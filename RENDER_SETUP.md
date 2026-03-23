@@ -92,6 +92,16 @@ window.ADORA_API_BASE = "https://<اسم-الخدمة>.onrender.com";
 
 ---
 
+## PostgreSQL على Render مقابل SQLite في Adora
+
+- لوحة Render تعرض **Internal Database URL** و**External Database URL** لقاعدة PostgreSQL.
+- **ربط قاعدة بـ Web Service:** من صفحة الـ Web Service → **Environment** → **Link Database** (أو من إعدادات الـ DB) — Render يضيف تلقائياً متغير **`DATABASE_URL`** يشير إلى الاتصال **الداخلي** بين الخدمات على Render (هذا هو المطلوب للإنتاج، وليس الـ External URL من جهازك).
+- **مهم:** نسخة Adora الحالية في هذا المستودع تستخدم **`db.js` + SQLite** (`sqlite3`) فقط. الكود **لا يقرأ `DATABASE_URL`** ولا يتصل بـ PostgreSQL بعد؛ إنشاء قاعدة Postgres على Render **لا يغيّر** سلوك التطبيق حتى يُنفَّذ ترحيل كامل للكود إلى `pg` وPostgreSQL.
+- إذا أردت البقاء على SQLite فقط (بدون تكلفة/تعقيد Postgres): يمكنك إيقاف أو حذف قاعدة PostgreSQL غير المستخدمة من لوحة Render لتفادي الالتباس.
+- إذا ظهرت كلمة مرور قاعدة البيانات في لقطة شاشة أو محادثة: **غيّر كلمة المرور** من إعدادات قاعدة البيانات على Render (أو أعد إنشاء المستخدم).
+
+---
+
 ## مرجع سريع
 
 - `server.js` — نقطة الدخول؛ `package.json` → `"start": "node server.js"`
