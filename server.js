@@ -1110,9 +1110,18 @@ app.post("/api/upload/image", requireAuth, requireAdmin, upload.single("file"), 
   }
 });
 
-app.get("/admin", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
-});
+const adminHtmlPath = path.join(__dirname, "public", "admin.html");
+function sendAdminPanel(_req, res) {
+  res.sendFile(adminHtmlPath, (err) => {
+    if (err) {
+      // eslint-disable-next-line no-console
+      console.error("[Adora] admin.html missing — ensure public/admin.html is in the deployed repo.", err.message);
+      res.status(500).type("text/plain").send("Admin panel file missing on server. Check that public/admin.html is deployed.");
+    }
+  });
+}
+app.get("/admin", sendAdminPanel);
+app.get("/admin/", sendAdminPanel);
 
 app.get("/manifest.json", (_req, res) => {
   res.type("application/manifest+json; charset=utf-8");
