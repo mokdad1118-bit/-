@@ -5,14 +5,17 @@
 ## الطريقة السريعة (GitHub CLI)
 
 1. ثبّت [Git](https://git-scm.com/download/win) و [GitHub CLI](https://cli.github.com/) إن لم تكن مثبّتاً.
-2. من مجلد المشروع، نفّذ:
+2. **بدون تفاعل (موصى به):** أنشئ [Personal Access Token](https://github.com/settings/tokens) بصلاحية `repo`، ثم:
 
 ```powershell
 cd "$env:USERPROFILE\OneDrive\Desktop\ادورا"
-gh auth login
+$env:GH_TOKEN = "ghp_xxxxxxxxxxxxxxxx"
+.\scripts\push-to-github.ps1
 ```
 
-3. أنشئ المستودع وادفع الكود (غيّر اسم المستودع إن أردت):
+يُنشئ المستودع `adora-ecommerce` ويُدفع الفرع `main` ويطبع رابط GitHub.
+
+3. **تفاعلي:** `gh auth login` ثم:
 
 ```powershell
 git branch -M main
