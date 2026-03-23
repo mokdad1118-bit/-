@@ -38,5 +38,4 @@ git push -u origin main
 
 ## Render
 
-بعد الرفع: في [Render](https://render.com) → **New Web Service** → اربط المستودع →  
-Build: `npm install` — Start: `node server.js` — واضبط المتغيرات من `.env.example`.
+بعد الرفع اتبع **`RENDER_SETUP.md`** (Web Service أو Blueprint، و `JWT_SECRET` / `CORS_ORIGIN`، وربط Netlify بـ `ADORA_API_BASE`).
