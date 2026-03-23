@@ -47,6 +47,10 @@ Set-Location -LiteralPath $root
 
 & $git branch -M main 2>$null
 
+$login = (& $gh api user -q .login 2>$null)
+if (-not $login) { throw "Could not read GitHub username (gh api user)." }
+$fullName = "$login/$RepoName"
+
 # إن وُجد remote قديم
 $remotes = & $git remote 2>$null
 if ($remotes -match "origin") {
@@ -54,11 +58,18 @@ if ($remotes -match "origin") {
 }
 
 $desc = "Adora: Node Express + SQLite + static frontend"
-if ($Private) {
-  & $gh repo create $RepoName --private --source=. --remote=origin --push --description $desc
+$null = & $gh repo view $fullName 2>&1
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "Repo exists: $fullName — pushing main..." -ForegroundColor Cyan
+  & $git remote add origin "https://github.com/$fullName.git"
+  & $git push -u origin main
 } else {
-  & $gh repo create $RepoName --public --source=. --remote=origin --push --description $desc
+  if ($Private) {
+    & $gh repo create $RepoName --private --source=. --remote=origin --push --description $desc
+  } else {
+    & $gh repo create $RepoName --public --source=. --remote=origin --push --description $desc
+  }
 }
 
 Write-Host "`nDone. Repository URL:" -ForegroundColor Green
-& $gh repo view --json url -q .url
+& $gh repo view $fullName --json url -q .url

@@ -28,15 +28,11 @@ npm start
 
 ## النشر على Render
 
-1. اربط هذا المستودع بـ **New Web Service** على [Render](https://render.com).
-2. **Build:** `npm install` — **Start:** `node server.js`
-3. **Environment** (من `.env.example`):
-   - `NODE_ENV` = `production`
-   - `JWT_SECRET` = سلسلة عشوائية طويلة (لا تستخدم القيمة الافتراضية)
-   - `CORS_ORIGIN` = رابط الواجهة على Netlify (مثل `https://xxxx.netlify.app`) بدون `/` في النهاية
-4. اختياري: `PORT` يضبطه Render تلقائياً.
+دليل خطوة بخطوة (GitHub + Render + Netlify + تسجيل الدخول): **`RENDER_SETUP.md`**.
 
-راجع أيضاً **`NETLIFY.md`** لربط الواجهة الثابتة بعنوان الـ API.
+باختصار: **Build** `npm ci` — **Start** `node server.js` — متغيرات **`JWT_SECRET`** و **`CORS_ORIGIN`** (انظر `.env.example` و `render.yaml`).
+
+راجع أيضاً **`NETLIFY.md`** لربط الواجهة الثابتة بعنوان الـ API (`ADORA_API_BASE`).
 
 ## الأمان
 

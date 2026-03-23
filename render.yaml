@@ -1,18 +1,21 @@
 # Render Blueprint: https://render.com/docs/blueprint-spec
-# بعد الربط بالمستودع: New Blueprint Instance أو اربط هذا الملف تلقائياً.
-# أضف في لوحة Render (Environment):
-#   JWT_SECRET      = سلسلة عشوائية طويلة (ليس القيمة الافتراضية)
-#   CORS_ORIGIN     = https://موقعك.netlify.app  (بدون / في النهاية)
-# ملاحظة: الخطة المجانية تستخدم قرصاً مؤقتاً — قد تُفقد بيانات SQLite عند إعادة التشغيل؛ للإنتاج استخدم Persistent Disk أو قاعدة بيانات خارجية.
+# New Blueprint → اربط المستودع؛ عند أول إنشاء سيطلب منك قيمة CORS_ORIGIN.
+# JWT_SECRET يُولَّد تلقائياً (generateValue).
+# إن أنشأت Web Service يدوياً: Build = npm ci، Start = node server.js، Health = /api/health
+# ملاحظة: SQLite على الخطة المجانية على قرص مؤقت — للإنتاج استخدم Persistent Disk أو SQLITE_PATH على قرص مثبت.
 
 services:
   - type: web
     name: adora-backend
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
