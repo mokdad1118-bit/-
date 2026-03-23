@@ -5644,7 +5644,12 @@
             const el = document.getElementById('store-catalog-stats');
             if (!el) return;
             try {
-                const s = await apiFetch('/api/public/stats', { requireAuth: false });
+                let s;
+                try {
+                    s = await apiFetch('/api/public/stats', { requireAuth: false });
+                } catch (_e1) {
+                    s = await apiFetch('/api/stats', { requireAuth: false });
+                }
                 const p = Number(s.products ?? 0);
                 const b = Number(s.brands ?? 0);
                 const c = Number(s.categories ?? 0);

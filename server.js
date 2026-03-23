@@ -122,6 +122,12 @@ app.get("/api/health", (_req, res) => {
     service: "adora",
     env: NODE_ENV,
     uptime: Math.round(process.uptime()),
+    /** استخدم نفس أصل هذا الطلب (Render) وليس Netlify */
+    endpoints: {
+      publicStats: "/api/public/stats",
+      publicStatsAlt: "/api/stats",
+      publicConfig: "/api/public-config",
+    },
   });
 });
 
@@ -132,8 +138,7 @@ app.get("/api/public-config", (_req, res) => {
   });
 });
 
-/** أرقام مجمّعة من SQLite للواجهة — لا يعرض صفوفاً خام */
-app.get("/api/public/stats", async (_req, res) => {
+async function sendPublicStatsJson(res) {
   try {
     const [pc, bc, cc] = await Promise.all([
       get(`SELECT COUNT(*) AS c FROM products`),
@@ -149,7 +154,12 @@ app.get("/api/public/stats", async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Failed to load stats" });
   }
-});
+}
+
+/** أرقام مجمّعة من SQLite للواجهة — لا يعرض صفوفاً خام */
+app.get("/api/public/stats", sendPublicStatsJson);
+/** نفس المحتوى — مسار أقصر إن احتجت */
+app.get("/api/stats", sendPublicStatsJson);
 
 async function loadUserProfileBundle(userId) {
   await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), userId]);
