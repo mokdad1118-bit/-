@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+.DS_Store
+# قاعدة البيانات المحلية (احتفظ بنسخة احتياطية على السيرفر)
+adora.sqlite
+*.sqlite-journal
+# ملفات مرفوعة من المستخدمين (لا تُرفع إلى Git)
+uploads/

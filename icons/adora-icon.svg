@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Adora">
+  <defs>
+    <linearGradient id="adoraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+  </defs>
+  <!-- E3'-) "EF) D#JBHF'* maskable ('DF5 /'.D 'D/'&1) 'DE1C2J) *B1J('K) -->
+  <rect width="512" height="512" rx="112" fill="url(#adoraGrad)"/>
+  <text x="256" y="302" text-anchor="middle" fill="#ffffff" font-family="system-ui, 'Segoe UI', 'Noto Sans Arabic', sans-serif" font-size="108" font-weight="800" letter-spacing="-0.03em">Adora</text>
+</svg>

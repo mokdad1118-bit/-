@@ -1,0 +1,10 @@
+# نشر واجهة ثابتة — الـ API يعمل على خادم Node منفصل (انظر NETLIFY.md)
+[build]
+  publish = "."
+  command = "node scripts/write-adora-config.cjs"
+
+# إن احتجت توجيه SPA لاحقاً، يمكن تفعيل السطور التالية بحذر (لا تؤثر على طلبات الـ API لأنها تذهب لنطاق آخر عبر adora-api-base)
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200

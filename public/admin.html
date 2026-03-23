@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-en="Adora Admin" data-ar="لوحة تحكم أدورا">لوحة تحكم أدورا</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <div class="max-w-6xl mx-auto p-4 md:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 class="text-xl md:text-2xl font-extrabold tracking-tight" data-en="Adora Admin" data-ar="لوحة أدورا">لوحة أدورا</h1>
+          <p class="text-sm text-gray-500" data-en="Products • Brands • Categories • Offers • Orders • Users • Ratings • Contact" data-ar="منتجات • علامات • أقسام • عروض • طلبات • مستخدمون • تقييمات • تواصل">منتجات • علامات • أقسام • عروض • طلبات • مستخدمون • تقييمات • تواصل</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-admin-lang" class="px-4 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 text-sm font-bold">
+            <span id="admin-lang-label">عربي</span>
+          </button>
+          <button id="btn-logout" class="hidden px-4 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95">
+            <span class="inline-flex items-center gap-2"><i class="fas fa-sign-out-alt"></i><span data-en="Logout" data-ar="تسجيل الخروج">تسجيل الخروج</span></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Auth -->
+      <div id="auth-panel" class="bg-white rounded-2xl border border-gray-200 p-4 md:p-6">
+        <h2 class="text-lg font-bold mb-2" data-en="Admin Login" data-ar="تسجيل دخول المشرف">تسجيل دخول المشرف</h2>
+        <p class="text-sm text-gray-600 mb-4" data-en="Use your phone + password. JWT is stored in the browser." data-ar="استخدم رقم الهاتف وكلمة المرور. يُحفظ رمز الدخول في المتصفح.">استخدم رقم الهاتف وكلمة المرور. يُحفظ رمز الدخول في المتصفح.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm font-semibold"><span data-en="Phone" data-ar="رقم الهاتف">رقم الهاتف</span></label>
+            <input id="admin-phone" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="0000000000" data-ar-ph="0000000000" placeholder="0000000000" />
+          </div>
+          <div>
+            <label class="text-sm font-semibold"><span data-en="Password" data-ar="كلمة المرور">كلمة المرور</span></label>
+            <input id="admin-password" type="password" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="admin123" data-ar-ph="admin123" placeholder="admin123" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <button id="btn-login" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 inline-flex items-center justify-center gap-2">
+            <i class="fas fa-key"></i><span data-en="Login" data-ar="تسجيل الدخول">تسجيل الدخول</span>
+          </button>
+          <button id="btn-refresh" class="px-4 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+            <i class="fas fa-rotate"></i><span data-en="Reload" data-ar="إعادة تحميل">إعادة تحميل</span>
+          </button>
+        </div>
+
+        <p id="auth-error" class="hidden mt-3 text-sm text-red-600"></p>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="dash-panel" class="hidden mt-4">
+        <div class="bg-white rounded-2xl border border-gray-200 p-3 md:p-4 mb-4 flex flex-wrap items-center gap-3">
+          <label class="text-sm font-semibold text-gray-600 shrink-0" data-en="Search current tab" data-ar="بحث في التبويب الحالي">بحث في التبويب الحالي</label>
+          <input
+            id="admin-table-search"
+            type="search"
+            class="flex-1 min-w-[200px] p-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+            data-en-ph="Filter table (orders: number or customer name)…"
+            data-ar-ph="تصفية الجدول (طلبات: رقم الطلب أو اسم الزبون)…"
+            placeholder=""
+            autocomplete="off"
+          />
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-200 p-3 md:p-4">
+          <div class="flex flex-wrap gap-2">
+            <button data-tab="tab-products" class="tab-btn px-3 py-2 rounded-xl bg-purple-50 text-purple-700 font-bold text-sm hover:bg-purple-100 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-box"></i><span data-en="Products" data-ar="المنتجات">المنتجات</span>
+            </button>
+            <button data-tab="tab-brands" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-building"></i><span data-en="Brands" data-ar="العلامات">العلامات</span>
+            </button>
+            <button data-tab="tab-categories" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-layer-group"></i><span data-en="Categories" data-ar="الأقسام">الأقسام</span>
+            </button>
+            <button data-tab="tab-offers" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-tags"></i><span data-en="Offers" data-ar="العروض">العروض</span>
+            </button>
+            <button data-tab="tab-flash" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-bolt"></i><span data-en="Flash / limited" data-ar="عروض محدودة">عروض محدودة</span>
+            </button>
+            <button data-tab="tab-orders" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-receipt"></i><span data-en="Orders" data-ar="الطلبات">الطلبات</span>
+            </button>
+            <button data-tab="tab-users" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-users"></i><span data-en="Users" data-ar="المستخدمون">المستخدمون</span>
+            </button>
+            <button data-tab="tab-notifications" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-bell"></i><span data-en="Notifications" data-ar="الإشعارات">الإشعارات</span>
+            </button>
+            <button data-tab="tab-contact" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-phone"></i><span data-en="Contact" data-ar="التواصل">التواصل</span>
+            </button>
+            <button data-tab="tab-ratings" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-star"></i><span data-en="Ratings" data-ar="التقييمات">التقييمات</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-4">
+          <!-- Products -->
+          <div id="tab-products" class="tab-panel">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Manage Products" data-ar="إدارة المنتجات">إدارة المنتجات</h2>
+              <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input type="hidden" id="product-id" />
+
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Name (AR)" data-ar="الاسم (عربي)">الاسم (عربي)</span></label>
+                  <input id="product-name-ar" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Name (EN)" data-ar="الاسم (إنجليزي)">الاسم (إنجليزي)</span></label>
+                  <input id="product-name-en" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Description" data-ar="الوصف">الوصف</span></label>
+                  <textarea id="product-description" rows="3" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"></textarea>
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Price" data-ar="السعر">السعر</span></label>
+                  <input id="product-price" type="number" step="0.01" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Discount (%)" data-ar="الخصم (%)">الخصم (%)</span></label>
+                  <input id="product-discount" type="number" step="0.01" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" value="0" />
+                </div>
+
+                <div class="md:col-span-2 rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50/80 to-white p-4 space-y-3">
+                  <p class="text-sm font-bold text-gray-900">
+                    <span data-en="Where to show this product" data-ar="أين يظهر المنتج في التطبيق؟">أين يظهر المنتج في التطبيق؟</span>
+                  </p>
+                  <p class="text-xs text-gray-600 leading-relaxed">
+                    <span data-en="Pick the main section first (Men / Women / Kids). Then choose a subcategory if needed. Same names as in the Categories tab." data-ar="اختر القسم الرئيسي أولاً (رجالي / نسائي / أطفال)، ثم القسم الفرعي إن وجد. الأسماء يجب أن تطابق تبويب «الأقسام».">اختر القسم الرئيسي أولاً، ثم القسم الفرعي إن وجد.</span>
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <label class="flex items-center gap-2 p-3 rounded-xl bg-white border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-colors has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50/50">
+                      <input type="radio" name="product-placement" value="Men" class="product-placement-radio w-4 h-4 text-purple-600" />
+                      <span class="text-sm font-semibold" data-en="Men" data-ar="رجالي">رجالي</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-3 rounded-xl bg-white border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-colors has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50/50">
+                      <input type="radio" name="product-placement" value="Women" class="product-placement-radio w-4 h-4 text-purple-600" />
+                      <span class="text-sm font-semibold" data-en="Women" data-ar="نسائي">نسائي</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-3 rounded-xl bg-white border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-colors has-[:checked]:border-purple-500 has-[:checked]:bg-purple-50/50">
+                      <input type="radio" name="product-placement" value="Kids" class="product-placement-radio w-4 h-4 text-purple-600" />
+                      <span class="text-sm font-semibold" data-en="Kids" data-ar="ولادي / أطفال">ولادي / أطفال</span>
+                    </label>
+                  </div>
+                  <p id="product-category-custom-hint" class="hidden text-xs font-semibold text-amber-800">
+                    <span data-en="Category is not Men/Women/Kids — pick the exact name from the list or fix in Categories tab." data-ar="القسم الحالي ليس رجالي/نسائي/أطفال — اختر الاسم الصحيح من القائمة أو عدّل من تبويب الأقسام.">القسم الحالي ليس رجالي/نسائي/أطفال — راجع القائمة.</span>
+                  </p>
+                  <label class="text-xs font-semibold text-gray-700 block mt-2">
+                    <span data-en="Category (synced with buttons above)" data-ar="القسم (يُحدَّد أيضاً بالأزرار أعلاه)">القسم (يُحدَّد أيضاً بالأزرار أعلاه)</span>
+                  </label>
+                  <select id="product-category" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white">
+                    <option value="">—</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Subcategory" data-ar="القسم الفرعي">القسم الفرعي</span></label>
+                  <p class="text-xs text-gray-500 mt-0.5 mb-1" data-en="Optional. Must match a subcategory under this main section in Categories." data-ar="اختياري. يجب أن يطابق أحد الأقسام الفرعية تحت نفس القسم الرئيسي في تبويب الأقسام.">اختياري — يطابق الأقسام الفرعية في التطبيق.</p>
+                  <select id="product-subcategory" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white">
+                    <option value="">—</option>
+                  </select>
+                </div>
+                <input type="hidden" id="product-brand" value="" />
+                <p id="product-general-catalog-note" class="md:col-span-2 text-sm text-gray-600 rounded-xl bg-gray-50 border border-gray-100 p-3 leading-relaxed" data-en="General catalog: products here have no brand. To add or edit brand products, use the Brands tab — they are a separate catalog." data-ar="الكتالوج العام: المنتجات هنا بدون علامة. لإضافة أو تعديل منتجات العلامات استخدم تبويب العلامات — كتالوج منفصل.">الكتالوج العام: المنتجات هنا بدون علامة. لإضافة أو تعديل منتجات العلامات استخدم تبويب العلامات — كتالوج منفصل.</p>
+                <div id="product-brand-strip" class="hidden md:col-span-2 rounded-xl border border-violet-200 bg-violet-50/70 p-3 text-sm text-violet-950">
+                  <span data-en="Under brand:" data-ar="ضمن العلامة:">ضمن العلامة:</span>
+                  <strong class="font-bold ms-1" data-brand-strip-name></strong>
+                  <span class="text-violet-800/90 block mt-1 text-xs" data-en="Saved with this product; brand products are managed from the Brands tab." data-ar="يُحفظ مع المنتج؛ إدارة منتجات العلامات من تبويب العلامات.">يُحفظ مع المنتج؛ إدارة منتجات العلامات من تبويب العلامات.</span>
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Stock" data-ar="المخزون">المخزون</span></label>
+                  <input id="product-stock" type="number" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" value="0" />
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Badge (optional)" data-ar="شارة (اختياري)">شارة (اختياري)</span></label>
+                  <input id="product-badge" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Image URLs (comma separated)" data-ar="روابط الصور (مفصولة بفاصلة)">روابط الصور (مفصولة بفاصلة)</span></label>
+                  <input id="product-images" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="https://..., https://..." data-ar-ph="https://..., https://..." placeholder="https://..., https://..." />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Image files (optional, multiple)" data-ar="ملفات صور (اختياري، متعدد)">ملفات صور (اختياري، متعدد)</span></label>
+                  <input id="product-images-files" type="file" multiple accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Sizes (comma separated)" data-ar="المقاسات (مفصولة بفاصلة)">المقاسات (مفصولة بفاصلة)</span></label>
+                  <input id="product-sizes" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="S,M,L" data-ar-ph="S,M,L" placeholder="S,M,L" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Colors (comma separated)" data-ar="الألوان (مفصولة بفاصلة)">الألوان (مفصولة بفاصلة)</span></label>
+                  <input id="product-colors" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="Black, Camel" data-ar-ph="أسود، جملي" placeholder="أسود، جملي" />
+                </div>
+
+                <div class="md:col-span-2 rounded-2xl border border-amber-100 bg-amber-50/40 p-4 space-y-2">
+                  <p class="text-sm font-bold text-gray-900">
+                    <span data-en="Homepage & offers (optional)" data-ar="الصفحة الرئيسية والعروض (اختياري)">الصفحة الرئيسية والعروض (اختياري)</span>
+                  </p>
+                  <p class="text-xs text-gray-600 mb-2">
+                    <span data-en="These flags control where the product appears in the app (featured row, flash sale section)." data-ar="يحدّد ظهور المنتج في «اختيارات أنيقة» أو في «عروض سريعة» داخل التطبيق.">يحدّد ظهور المنتج في أقسام «اختيارات أنيقة» و«عروض سريعة» في التطبيق.</span>
+                  </p>
+                  <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+                    <label class="flex items-start gap-2 cursor-pointer max-w-md">
+                      <input id="product-is-featured" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
+                      <span class="text-sm font-semibold leading-snug" data-en="Elegant picks (featured / curated section)" data-ar="اختيارات أنيقة (قسم المميّز / المنتقى في التطبيق)">اختيارات أنيقة (قسم المميّز في التطبيق)</span>
+                    </label>
+                    <label class="flex items-start gap-2 cursor-pointer max-w-md">
+                      <input id="product-is-flash-sale" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
+                      <span class="text-sm font-semibold leading-snug" data-en="Flash sale (offers / limited-time section)" data-ar="عروض سريعة (قسم العروض والوقت المحدود)">عروض سريعة (قسم العروض والوقت المحدود)</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Flash sale end (ISO)" data-ar="نهاية التخفيض السريع (ISO)">نهاية التخفيض السريع (ISO)</span></label>
+                  <input id="product-flash-end" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="2026-03-25T12:00:00.000Z" data-ar-ph="2026-03-25T12:00:00.000Z" placeholder="2026-03-25T12:00:00.000Z" />
+                </div>
+
+                <div class="md:col-span-2 flex gap-2">
+                  <button id="btn-save-product" type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 inline-flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i><span data-en="Save Product" data-ar="حفظ المنتج">حفظ المنتج</span>
+                  </button>
+                  <button id="btn-reset-product" type="button" class="px-4 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95"><span data-en="Reset" data-ar="إعادة">إعادة</span></button>
+                </div>
+              </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                  <h3 class="text-lg font-bold" data-en="Products List (general catalog)" data-ar="قائمة المنتجات (الكتالوج العام)">قائمة المنتجات (الكتالوج العام)</h3>
+                  <p class="text-xs text-gray-500 mt-1 max-w-xl" data-en="Only items without a brand. Brand items appear under the Brands tab." data-ar="العناصر بدون علامة فقط. منتجات العلامات تظهر تحت تبويب العلامات.">العناصر بدون علامة فقط. منتجات العلامات تظهر تحت تبويب العلامات.</p>
+                </div>
+                <button id="btn-refresh-products" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Name" data-ar="الاسم">الاسم</th>
+                      <th class="py-2" data-en="Category" data-ar="القسم">القسم</th>
+                      <th class="py-2" data-en="Price" data-ar="السعر">السعر</th>
+                      <th class="py-2" data-en="Stock" data-ar="المخزون">المخزون</th>
+                      <th class="py-2" data-en="Featured" data-ar="مميز">مميز</th>
+                      <th class="py-2" data-en="Flash" data-ar="سريع">سريع</th>
+                      <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Brands -->
+          <div id="tab-brands" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Manage Brands" data-ar="إدارة العلامات">إدارة العلامات</h2>
+              <form id="brand-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input type="hidden" id="brand-id" />
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Name" data-ar="الاسم">الاسم</span></label>
+                  <input id="brand-name" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Logo (upload)" data-ar="الشعار (رفع)">الشعار (رفع)</span></label>
+                  <input id="brand-logo-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                </div>
+                <div class="md:col-span-2 flex items-center gap-3">
+                  <label class="flex items-center gap-2">
+                    <input id="brand-is-top" type="checkbox" class="w-4 h-4" />
+                    <span class="text-sm font-semibold" data-en="Top Brand" data-ar="علامة مميزة">علامة مميزة</span>
+                  </label>
+                  <div class="flex-1"></div>
+                </div>
+
+                <div class="md:col-span-2 flex gap-2">
+                  <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95"><span data-en="Save Brand" data-ar="حفظ العلامة">حفظ العلامة</span></button>
+                  <button id="btn-reset-brand" type="button" class="px-4 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95"><span data-en="Reset" data-ar="إعادة">إعادة</span></button>
+                </div>
+              </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mt-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-bold" data-en="Brands List" data-ar="قائمة العلامات">قائمة العلامات</h3>
+                <button id="btn-refresh-brands" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Name" data-ar="الاسم">الاسم</th>
+                      <th class="py-2" data-en="Logo" data-ar="الشعار">الشعار</th>
+                      <th class="py-2" data-en="Top" data-ar="مميز">مميز</th>
+                      <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="brands-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="brand-products-panel" class="bg-white rounded-2xl border border-gray-200 p-4 mt-4">
+              <h3 class="text-lg font-bold mb-1" data-en="Brand products" data-ar="منتجات العلامة">منتجات العلامة</h3>
+              <p class="text-sm text-gray-500 mb-4" data-en="Choose a brand, then Men / Women / Kids. Add or edit products — same options as the Products tab (price, discount, stock, images)." data-ar="اختر العلامة ثم رجالي / نسائي / أطفال. أضف أو عدّل المنتجات — نفس خيارات تبويب المنتجات (سعر، خصم، مخزون، صور…).">اختر العلامة ثم رجالي / نسائي / أطفال. أضف أو عدّل المنتجات — نفس خيارات تبويب المنتجات (سعر، خصم، مخزون، صور…).</p>
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:flex-wrap">
+                <div class="flex-1 min-w-[200px]">
+                  <label for="brand-products-brand-select" class="text-sm font-semibold block mb-1" data-en="Brand" data-ar="العلامة">العلامة</label>
+                  <select id="brand-products-brand-select" class="w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white">
+                    <option value="">—</option>
+                  </select>
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                  <span class="text-sm font-semibold text-gray-600 shrink-0" data-en="Section" data-ar="القسم">القسم</span>
+                  <button type="button" class="brand-main-cat-btn px-3 py-2 rounded-xl border bg-purple-50 text-purple-700 border-purple-200 font-bold text-sm" data-cat="Men" data-en="Men" data-ar="رجالي">رجالي</button>
+                  <button type="button" class="brand-main-cat-btn px-3 py-2 rounded-xl border bg-white text-gray-600 border-gray-200 text-sm" data-cat="Women" data-en="Women" data-ar="نسائي">نسائي</button>
+                  <button type="button" class="brand-main-cat-btn px-3 py-2 rounded-xl border bg-white text-gray-600 border-gray-200 text-sm" data-cat="Kids" data-en="Kids" data-ar="أطفال">أطفال</button>
+                </div>
+                <button type="button" id="btn-brand-add-product-in-section" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 shrink-0">
+                  <i class="fas fa-plus"></i><span data-en="Add product in this section" data-ar="إضافة منتج في هذا القسم">إضافة منتج في هذا القسم</span>
+                </button>
+              </div>
+              <div class="overflow-auto mt-4">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Name" data-ar="الاسم">الاسم</th>
+                      <th class="py-2" data-en="Subcategory" data-ar="الفرعي">الفرعي</th>
+                      <th class="py-2" data-en="Price" data-ar="السعر">السعر</th>
+                      <th class="py-2" data-en="Disc. %" data-ar="خصم %">خصم %</th>
+                      <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="brand-products-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div id="tab-categories" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Manage Categories" data-ar="إدارة الأقسام">إدارة الأقسام</h2>
+              <form id="category-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input type="hidden" id="category-id" />
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Category name" data-ar="اسم القسم">اسم القسم</span></label>
+                  <input id="category-name" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="Men / Women / Kids" data-ar-ph="رجالي / نسائي / أطفال" placeholder="رجالي / نسائي / أطفال" />
+                </div>
+                <div class="md:col-span-1">
+                  <label class="text-sm font-semibold"><span data-en="Subcategories (comma separated)" data-ar="أقسام فرعية (مفصولة بفاصلة)">أقسام فرعية (مفصولة بفاصلة)</span></label>
+                  <input id="category-subcategories" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="Jackets, Shoes" data-ar-ph="جاكيت، أحذية" placeholder="جاكيت، أحذية" />
+                </div>
+                <div class="md:col-span-2 flex gap-2">
+                  <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95"><span data-en="Save Category" data-ar="حفظ القسم">حفظ القسم</span></button>
+                  <button id="btn-reset-category" type="button" class="px-4 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95"><span data-en="Reset" data-ar="إعادة">إعادة</span></button>
+                </div>
+              </form>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mt-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-bold" data-en="Categories List" data-ar="قائمة الأقسام">قائمة الأقسام</h3>
+                <button id="btn-refresh-categories" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Name" data-ar="الاسم">الاسم</th>
+                      <th class="py-2" data-en="Subcategories" data-ar="الأقسام الفرعية">الأقسام الفرعية</th>
+                      <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="categories-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Offers -->
+          <div id="tab-offers" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Manage Offers" data-ar="إدارة العروض">إدارة العروض</h2>
+              <form id="offer-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input type="hidden" id="offer-id" />
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Product" data-ar="المنتج">المنتج</span></label>
+                  <select id="offer-product" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"></select>
+                </div>
+                <div class="md:col-span-1">
+                  <label class="text-sm font-semibold"><span data-en="Banner image (upload)" data-ar="صورة البانر (رفع)">صورة البانر (رفع)</span></label>
+                  <input id="offer-banner-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                </div>
+                <div class="md:col-span-1">
+                  <label class="text-sm font-semibold"><span data-en="Discount %" data-ar="نسبة الخصم %">نسبة الخصم %</span></label>
+                  <input id="offer-discount" type="number" step="0.01" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" value="0" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Offer end (ISO)" data-ar="نهاية العرض (ISO)">نهاية العرض (ISO)</span></label>
+                  <input id="offer-end" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="2026-03-25T12:00:00.000Z" data-ar-ph="2026-03-25T12:00:00.000Z" placeholder="2026-03-25T12:00:00.000Z" />
+                </div>
+                <div class="md:col-span-2 flex gap-2">
+                  <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95"><span data-en="Save Offer" data-ar="حفظ العرض">حفظ العرض</span></button>
+                  <button id="btn-reset-offer" type="button" class="px-4 py-3 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95"><span data-en="Reset" data-ar="إعادة">إعادة</span></button>
+                </div>
+              </form>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mt-4">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-bold" data-en="Offers List" data-ar="قائمة العروض">قائمة العروض</h3>
+                <button id="btn-refresh-offers" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Product" data-ar="المنتج">المنتج</th>
+                      <th class="py-2" data-en="Discount" data-ar="الخصم">الخصم</th>
+                      <th class="py-2" data-en="End" data-ar="النهاية">النهاية</th>
+                      <th class="py-2" data-en="Banner" data-ar="البانر">البانر</th>
+                      <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="offers-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Flash / limited-time (products with is_flash_sale) -->
+          <div id="tab-flash" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h2 class="text-lg font-bold" data-en="Limited-time flash sales" data-ar="عروض سريعة لفترة محدودة">عروض سريعة لفترة محدودة</h2>
+                  <p class="text-sm text-gray-600 mt-1" data-en="Products flagged as flash sale. Set dates in ISO format (UTC). Also available in Product form." data-ar="المنتجات المفعّل لها «عروض سريعة». استخدم صيغة ISO للتاريخ. يمكن ضبطها أيضاً من نموذج المنتج.">
+                    المنتجات المفعّل لها «عروض سريعة».
+                  </p>
+                </div>
+                <button id="btn-refresh-flash" type="button" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="ID" data-ar="المعرّف">المعرّف</th>
+                      <th class="py-2" data-en="Product" data-ar="المنتج">المنتج</th>
+                      <th class="py-2" data-en="Price" data-ar="السعر">السعر</th>
+                      <th class="py-2" data-en="Flash ends (ISO)" data-ar="نهاية العرض (ISO)">نهاية العرض (ISO)</th>
+                      <th class="py-2" data-en="Save" data-ar="حفظ">حفظ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="flash-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orders -->
+          <div id="tab-orders" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold" data-en="Manage Orders" data-ar="إدارة الطلبات">إدارة الطلبات</h2>
+                <button id="btn-refresh-orders" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="Order No." data-ar="رقم الطلب">رقم الطلب</th>
+                      <th class="py-2" data-en="User" data-ar="المستخدم">المستخدم</th>
+                      <th class="py-2" data-en="Total" data-ar="الإجمالي">الإجمالي</th>
+                      <th class="py-2" data-en="Status" data-ar="الحالة">الحالة</th>
+                      <th class="py-2" data-en="Source" data-ar="المصدر">المصدر</th>
+                      <th class="py-2" data-en="Details" data-ar="تفاصيل">تفاصيل</th>
+                      <th class="py-2" data-en="Update" data-ar="تحديث">تحديث</th>
+                    </tr>
+                  </thead>
+                  <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Users (app customers) -->
+          <div id="tab-users" class="tab-panel hidden space-y-4">
+            <div class="bg-violet-50 rounded-2xl border border-violet-100 p-4">
+              <h3 class="text-sm font-bold text-violet-900 mb-1" data-en="In-app messages" data-ar="رسائل داخل التطبيق">رسائل داخل التطبيق</h3>
+              <p class="text-xs text-violet-800/80 mb-3" data-en="Every registered user appears in the table below. Messages here show in the app profile (Messages from Adora). For WhatsApp campaigns use the link in each row." data-ar="كل من يسجّل في التطبيق يظهر في الجدول أدناه. الرسائل هنا تظهر للمستخدم في الملف الشخصي. للتواصل عبر واتساب استخدم الرابط بجانب كل رقم.">كل من يسجّل في التطبيق يظهر في الجدول أدناه.</p>
+              <form id="broadcast-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-semibold text-gray-700"><span data-en="Title (AR)" data-ar="العنوان (عربي)">العنوان (عربي)</span></label>
+                  <input id="bc-title-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200 bg-white" required />
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-gray-700"><span data-en="Title (EN)" data-ar="العنوان (إنجليزي)">العنوان (إنجليزي)</span></label>
+                  <input id="bc-title-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200 bg-white" required />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-semibold text-gray-700"><span data-en="Body (AR)" data-ar="النص (عربي)">النص (عربي)</span></label>
+                  <textarea id="bc-body-ar" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200 bg-white"></textarea>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-semibold text-gray-700"><span data-en="Body (EN)" data-ar="النص (إنجليزي)">النص (إنجليزي)</span></label>
+                  <textarea id="bc-body-en" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200 bg-white"></textarea>
+                </div>
+                <div class="md:col-span-2">
+                  <button type="submit" class="px-4 py-2.5 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700">
+                    <i class="fas fa-paper-plane mr-2"></i><span data-en="Send to all app users" data-ar="إرسال لجميع مستخدمي التطبيق">إرسال لجميع مستخدمي التطبيق</span>
+                  </button>
+                </div>
+              </form>
+              <div class="mt-4 overflow-auto max-h-40">
+                <table class="w-full text-xs">
+                  <thead class="text-left text-gray-500 border-b border-violet-200">
+                    <tr>
+                      <th class="py-1 pr-2" data-en="Recent" data-ar="آخر الرسائل">آخر الرسائل</th>
+                      <th class="py-1" data-en="Sent" data-ar="التاريخ">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="broadcasts-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold" data-en="App users" data-ar="المستخدمون (التطبيق)">المستخدمون (التطبيق)</h2>
+                <button id="btn-refresh-users" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <p class="text-xs text-gray-500 mb-3" data-en="Users are created when they sign up in the app (same server and database)." data-ar="يُنشأ المستخدم عند التسجيل في التطبيق (نفس السيرفر وقاعدة البيانات).">يُنشأ المستخدم عند التسجيل في التطبيق.</p>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500">
+                    <tr>
+                      <th class="py-2" data-en="Name" data-ar="الاسم">الاسم</th>
+                      <th class="py-2" data-en="Phone" data-ar="الهاتف">الهاتف</th>
+                      <th class="py-2" data-en="Role" data-ar="الدور">الدور</th>
+                      <th class="py-2" data-en="Push" data-ar="إشعارات">إشعارات</th>
+                      <th class="py-2" data-en="Registered" data-ar="تاريخ التسجيل">تاريخ التسجيل</th>
+                      <th class="py-2" data-en="Orders" data-ar="عدد الطلبات">عدد الطلبات</th>
+                      <th class="py-2" data-en="Last activity" data-ar="آخر نشاط">آخر نشاط</th>
+                      <th class="py-2" data-en="WhatsApp" data-ar="واتساب">واتساب</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Push notifications (in-app + real-time) -->
+          <div id="tab-notifications" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-1" data-en="Send notifications" data-ar="إرسال إشعارات">إرسال إشعارات</h2>
+              <p class="text-sm text-gray-600 mb-4" data-en="Messages appear instantly in the app for signed-in users (Socket.io). Stored in the database." data-ar="تظهر للمستخدمين المسجّلين فوراً داخل التطبيق (Socket.io) وتُخزَّن في قاعدة البيانات.">
+                تظهر للمستخدمين المسجّلين فوراً داخل التطبيق وتُخزَّن في قاعدة البيانات.
+              </p>
+              <form id="admin-notif-form" class="space-y-3">
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Message" data-ar="نص الإشعار">نص الإشعار</span></label>
+                  <textarea
+                    id="admin-notif-message"
+                    rows="4"
+                    class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    placeholder=""
+                  ></textarea>
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Send to" data-ar="إرسال إلى">إرسال إلى</span></label>
+                  <select id="admin-notif-target" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600">
+                    <option value="">—</option>
+                  </select>
+                </div>
+                <button type="submit" class="px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-paper-plane"></i><span data-en="Send notification" data-ar="إرسال الإشعار">إرسال الإشعار</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Site ratings (from app users) -->
+          <div id="tab-ratings" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h2 class="text-lg font-bold" data-en="Site ratings" data-ar="تقييمات الموقع">تقييمات الموقع</h2>
+                  <p class="text-sm text-gray-600 mt-1" data-en="Star ratings and optional comments from signed-in app users." data-ar="نجوم وتعليق اختياري من مستخدمي التطبيق المسجّلين.">نجوم وتعليق اختياري من مستخدمي التطبيق المسجّلين.</p>
+                </div>
+                <button type="button" id="btn-refresh-site-ratings" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th class="py-2 pr-2" data-en="User" data-ar="المستخدم">المستخدم</th>
+                      <th class="py-2 pr-2" data-en="Phone" data-ar="الهاتف">الهاتف</th>
+                      <th class="py-2 pr-2" data-en="Stars" data-ar="النجوم">النجوم</th>
+                      <th class="py-2 pr-2 min-w-[200px]" data-en="Comment" data-ar="التعليق">التعليق</th>
+                      <th class="py-2" data-en="Date" data-ar="التاريخ">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="site-ratings-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 mt-4">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h2 class="text-lg font-bold" data-en="Product reviews" data-ar="تقييمات المنتجات">تقييمات المنتجات</h2>
+                  <p class="text-sm text-gray-600 mt-1" data-en="Per-product star ratings from app users (linked to catalog items)." data-ar="تقييم نجوم لكل منتج من التطبيق (مرتبط بعناصر الكتالوج).">تقييم نجوم لكل منتج من التطبيق.</p>
+                </div>
+                <button type="button" id="btn-refresh-product-reviews" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th class="py-2 pr-2" data-en="Product" data-ar="المنتج">المنتج</th>
+                      <th class="py-2 pr-2" data-en="User" data-ar="المستخدم">المستخدم</th>
+                      <th class="py-2 pr-2" data-en="Phone" data-ar="الهاتف">الهاتف</th>
+                      <th class="py-2 pr-2" data-en="Stars" data-ar="النجوم">النجوم</th>
+                      <th class="py-2 pr-2 min-w-[180px]" data-en="Comment" data-ar="التعليق">التعليق</th>
+                      <th class="py-2" data-en="Date" data-ar="التاريخ">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="product-reviews-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact -->
+          <div id="tab-contact" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Contact Us" data-ar="تواصل معنا">تواصل معنا</h2>
+              <form id="contact-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Address" data-ar="العنوان">العنوان</span></label>
+                  <input id="contact-address" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Phones (comma separated)" data-ar="أرقام الهاتف (مفصولة بفاصلة)">أرقام الهاتف (مفصولة بفاصلة)</span></label>
+                  <input id="contact-phones" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="+9665..., +9665..." data-ar-ph="+9665..., +9665..." placeholder="+9665..., +9665..." />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="WhatsApp" data-ar="واتساب">واتساب</span></label>
+                  <input id="contact-whatsapp" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="+9665..." data-ar-ph="+9665..." placeholder="+9665..." />
+                </div>
+                <div class="md:col-span-2 flex gap-2">
+                  <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95">
+                    <span data-en="Save Contact" data-ar="حفظ التواصل">حفظ التواصل</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order detail (admin) -->
+    <div id="order-detail-backdrop" class="fixed inset-0 z-[200] hidden bg-black/50 flex items-center justify-center p-4" onclick="closeOrderDetailModal()">
+      <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 class="text-lg font-bold" data-en="Order details" data-ar="تفاصيل الطلب">تفاصيل الطلب</h3>
+          <button type="button" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200" onclick="closeOrderDetailModal()" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div id="order-detail-body" class="p-4 overflow-y-auto max-h-[calc(90vh-56px)] text-sm"></div>
+      </div>
+    </div>
+
+    <script src="/public/admin.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,19 @@
+{
+  "name": "Adora",
+  "short_name": "Adora",
+  "description": "أدورا — أزياء وتسوق",
+  "lang": "ar",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/icons/adora-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
