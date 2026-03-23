@@ -2282,6 +2282,7 @@
                 <div>
                     <p class="text-[10px] tracking-[0.3em] uppercase text-gray-400" data-en="Products" data-ar="منتجات">Products</p>
                     <h3 class="text-lg font-bold text-gray-900" data-en="Curated picks" data-ar="اختيارات أنيقة">Curated picks</h3>
+                    <p id="store-catalog-stats" class="text-xs text-gray-500 mt-1 hidden" aria-live="polite"></p>
                 </div>
                 <button onclick="navigateToListingAll()" class="text-purple-600 text-xs font-semibold flex items-center gap-1" data-en="View all" data-ar="عرض الكل">
                     <span>View all</span>
@@ -5638,6 +5639,25 @@
             renderTopBrands();
         }
 
+        /** إحصائيات حية من SQLite عبر الـ API (بدون اتصال خارجي بقاعدة البيانات) */
+        async function syncStoreStatsFromApi() {
+            const el = document.getElementById('store-catalog-stats');
+            if (!el) return;
+            try {
+                const s = await apiFetch('/api/public/stats', { requireAuth: false });
+                const p = Number(s.products ?? 0);
+                const b = Number(s.brands ?? 0);
+                const c = Number(s.categories ?? 0);
+                el.textContent = isRTL
+                    ? `من الكتالوج: ${p} منتج · ${b} علامة · ${c} قسم`
+                    : `Catalog: ${p} products · ${b} brands · ${c} categories`;
+                el.classList.remove('hidden');
+            } catch (_e) {
+                el.textContent = '';
+                el.classList.add('hidden');
+            }
+        }
+
         function renderBrandCards() {
             const container = document.getElementById('brand-scroll');
             if (!container) return;
@@ -6862,6 +6882,7 @@
             updateOrderTrackingUI();
             refreshProfileAndOrders().catch(() => {});
             syncBrandsFromApi().catch(() => {});
+            syncStoreStatsFromApi().catch(() => {});
             updateBrandSortButtons();
             syncFlashSaleFromApi().finally(() => {
                 renderFlashSale();

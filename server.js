@@ -4,7 +4,7 @@ const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
-const { all, get, run, initDb } = require("./db");
+const { all, get, run, initDb, getDatabaseOverview } = require("./db");
 const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
@@ -132,6 +132,25 @@ app.get("/api/public-config", (_req, res) => {
   });
 });
 
+/** أرقام مجمّعة من SQLite للواجهة — لا يعرض صفوفاً خام */
+app.get("/api/public/stats", async (_req, res) => {
+  try {
+    const [pc, bc, cc] = await Promise.all([
+      get(`SELECT COUNT(*) AS c FROM products`),
+      get(`SELECT COUNT(*) AS c FROM brands`),
+      get(`SELECT COUNT(*) AS c FROM categories`),
+    ]);
+    res.json({
+      products: Number(pc?.c ?? 0),
+      brands: Number(bc?.c ?? 0),
+      categories: Number(cc?.c ?? 0),
+      engine: "sqlite",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load stats" });
+  }
+});
+
 async function loadUserProfileBundle(userId) {
   await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), userId]);
   const user = await get(
@@ -232,6 +251,19 @@ app.put("/api/profile/notifications", requireAuth, async (req, res) => {
     return res.json({ ok: true, notifications_enabled: enabled, notifications_snoozed_until: enabled ? null : snoozed });
   } catch (err) {
     return res.status(500).json({ error: "Failed to update notifications" });
+  }
+});
+
+/** ملخص الجداول (عدد الصفوف) — للمشرف فقط؛ الملف غير معروض للتنزيل */
+app.get("/api/admin/database/overview", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const overview = await getDatabaseOverview();
+    return res.json({
+      ...overview,
+      note: "SQLite is internal to this Node process. Use this dashboard or REST APIs — no direct file access.",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load database overview" });
   }
 });
 
@@ -1075,6 +1107,15 @@ app.get("/admin", (_req, res) => {
 app.get("/manifest.json", (_req, res) => {
   res.type("application/manifest+json; charset=utf-8");
   res.sendFile(path.join(__dirname, "manifest.json"));
+});
+
+/** لا تُقدَّم ملفات قاعدة SQLite كملفات ثابتة */
+app.use((req, res, next) => {
+  const p = String(req.path || "");
+  if (p.endsWith(".sqlite") || p.endsWith(".sqlite-journal") || p.endsWith(".sqlite-wal")) {
+    return res.status(404).end();
+  }
+  next();
 });
 
 app.use(express.static(path.join(__dirname)));

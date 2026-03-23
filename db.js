@@ -2,7 +2,11 @@ const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
 
-/** مثال للنشر: SQLITE_PATH=/var/data/adora.sqlite */
+/**
+ * SQLite داخل عملية Node فقط — ملف محلي على قرص الخدمة (Render free: نفس المثيل).
+ * لا يوجد اتصال بقاعدة خارجية عبر الشبكة؛ الوصول للبيانات عبر server.js / الـ API فقط.
+ * مثال لمسار صريح: SQLITE_PATH=/var/data/adora.sqlite
+ */
 const dbPath = process.env.SQLITE_PATH || path.join(__dirname, "adora.sqlite");
 const db = new sqlite3.Database(dbPath);
 
@@ -302,4 +306,23 @@ async function migrateOrderStatusesToV2() {
   }
 }
 
-module.exports = { db, run, get, all, initDb };
+/** جداول آمنة للعدّ (أسماء من sqlite_master مع تحقق) */
+async function getDatabaseOverview() {
+  const rows = await all(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+  );
+  const tables = [];
+  let totalRows = 0;
+  for (const row of rows) {
+    const name = String(row.name || "");
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) continue;
+    const quoted = `"${name.replace(/"/g, '""')}"`;
+    const r = await get(`SELECT COUNT(*) AS c FROM ${quoted}`);
+    const c = Number(r?.c ?? 0);
+    totalRows += c;
+    tables.push({ name, rowCount: c });
+  }
+  return { engine: "sqlite", internalOnly: true, tables, totalRows };
+}
+
+module.exports = { db, run, get, all, initDb, getDatabaseOverview };

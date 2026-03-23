@@ -86,6 +86,7 @@ function setAdminLang(lang) {
     loadAdminProductReviews().catch(() => {}),
     loadBroadcasts().catch(() => {}),
     loadBrandProductsSection().catch(() => {}),
+    loadDatabaseOverview().catch(() => {}),
   ]).catch(() => {});
 }
 
@@ -251,6 +252,7 @@ function setActiveTab(tabId) {
     populateBrandProductsBrandSelect();
     loadBrandProductsSection().catch(() => {});
   }
+  if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
 }
 
 async function login() {
@@ -1515,6 +1517,39 @@ async function loadOrders() {
   renderOrdersTable();
 }
 
+async function loadDatabaseOverview() {
+  const token = getToken();
+  const tbody = document.getElementById("database-overview-tbody");
+  const totalEl = document.getElementById("database-overview-total");
+  if (!tbody) return;
+  if (!token) {
+    tbody.innerHTML = "";
+    return;
+  }
+  try {
+    const data = await api("/api/admin/database/overview", { token });
+    const ar = getAdminLang() === "ar";
+    if (totalEl) {
+      const n = Number(data.totalRows ?? 0);
+      totalEl.textContent = ar
+        ? `المجموع: ${n} صفاً — SQLite (داخلي)`
+        : `Total rows: ${n} — SQLite (internal)`;
+    }
+    const rows = Array.isArray(data.tables) ? data.tables : [];
+    tbody.innerHTML = rows
+      .map(
+        (t) =>
+          `<tr><td class="py-2 pr-2 font-mono text-xs">${escapeHtml(t.name)}</td><td class="py-2">${Number(
+            t.rowCount ?? 0
+          )}</td></tr>`
+      )
+      .join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="2" class="py-2 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+    if (totalEl) totalEl.textContent = "";
+  }
+}
+
 function refilterAdminActiveTab() {
   const vis = document.querySelector(".tab-panel:not(.hidden)")?.id;
   if (vis === "tab-products") renderProductsTable();
@@ -1650,6 +1685,7 @@ async function bootstrapAuthed() {
   document.getElementById("admin-notif-form")?.addEventListener("submit", sendAdminNotification);
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));
   document.getElementById("btn-refresh-product-reviews")?.addEventListener("click", () => loadAdminProductReviews().catch(() => {}));
+  document.getElementById("btn-refresh-database-overview")?.addEventListener("click", () => loadDatabaseOverview().catch(() => {}));
 
   try {
     await loadOfferProductsIntoSelect();

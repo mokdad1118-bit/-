@@ -98,6 +98,9 @@
             <button data-tab="tab-ratings" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
               <i class="fas fa-star"></i><span data-en="Ratings" data-ar="التقييمات">التقييمات</span>
             </button>
+            <button data-tab="tab-database" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-database"></i><span data-en="Database" data-ar="قاعدة البيانات">قاعدة البيانات</span>
+            </button>
           </div>
         </div>
 
@@ -663,6 +666,33 @@
                     </tr>
                   </thead>
                   <tbody id="product-reviews-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SQLite: counts only (internal DB) -->
+          <div id="tab-database" class="tab-panel hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                  <h2 class="text-lg font-bold" data-en="Database" data-ar="قاعدة البيانات">قاعدة البيانات</h2>
+                  <p class="text-sm text-gray-600 mt-1" data-en="SQLite runs inside this Node server only. Here you see row counts — no TablePlus or external connection." data-ar="قاعدة SQLite داخل السيرفر فقط — عدد الصفوف لكل جدول دون TablePlus أو اتصال خارجي.">قاعدة SQLite داخل السيرفر فقط — عدد الصفوف لكل جدول دون TablePlus أو اتصال خارجي.</p>
+                </div>
+                <button type="button" id="btn-refresh-database-overview" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <p id="database-overview-total" class="text-sm font-semibold text-gray-800 mb-3"></p>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th class="py-2 pr-2" data-en="Table" data-ar="الجدول">الجدول</th>
+                      <th class="py-2" data-en="Rows" data-ar="الصفوف">الصفوف</th>
+                    </tr>
+                  </thead>
+                  <tbody id="database-overview-tbody" class="divide-y divide-gray-100"></tbody>
                 </table>
               </div>
             </div>
