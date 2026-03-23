@@ -1,0 +1,4 @@
+# ضع رابط الباكند على Render في السطر التالي فقط (بدون مسافات، بدون / في النهاية).
+# احذف أو علّق هذا التعليق بعد التعديل إن أردت. مثال:
+# https://adora-xxxx.onrender.com
+https://YOUR-SERVICE.onrender.com

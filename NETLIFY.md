@@ -22,6 +22,14 @@
 2. عند كل بناء، يُشغَّل `node scripts/write-adora-config.cjs` ويُحدَّث `adora-config.js` تلقائياً (انظر `netlify.toml`).
 3. أعد نشر الموقع.
 
+### الطريقة أ² — إذا فشلت متغيرات Netlify من الواجهة
+
+1. على GitHub افتح الملف **`render-api-url.txt`** في المستودع.
+2. استبدل `YOUR-SERVICE` باسم خدمة Render الحقيقي (مثل `adora-xxxx`) بحيث يصبح السطر مثل:  
+   `https://adora-xxxx.onrender.com`
+3. احفظ وادفع إلى `main` — Netlify سيعيد البناء ويحقن الرابط في `adora-config.js` تلقائياً.  
+   (الأولوية لـ **`ADORA_API_BASE`** من لوحة Netlify إن وُجد.)
+
 ### الطريقة ب — رفع يدوي (drag & drop)
 
 قبل الرفع، إما:

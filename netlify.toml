@@ -1,4 +1,5 @@
 # نشر واجهة ثابتة — الـ API يعمل على خادم Node منفصل (انظر NETLIFY.md)
+# رابط Render يمكن وضعه في: (1) متغير ADORA_API_BASE في Netlify أو (2) ملف render-api-url.txt
 [build]
   publish = "."
   command = "node scripts/write-adora-config.cjs"
