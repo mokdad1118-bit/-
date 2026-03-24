@@ -1217,6 +1217,93 @@
             transform: scale(0.98);
         }
 
+        /* شريط البحث — تلميح دوار داخل الحقل */
+        .adora-search-field {
+            display: flex;
+            flex: 1;
+            min-width: 0;
+            align-items: stretch;
+            border-radius: 1rem;
+            background: rgb(243 244 246);
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+            overflow: hidden;
+            position: relative;
+        }
+        .adora-search-field__icon {
+            flex-shrink: 0;
+            width: 2.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgb(156 163 175);
+            z-index: 20;
+            transition: color 0.2s ease;
+        }
+        .adora-search-field__icon:hover {
+            color: rgb(147 51 234);
+        }
+        .adora-search-field__input-wrap {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        #search-rotating-hint {
+            position: absolute;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding-inline: 0.125rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgb(156 163 175);
+            pointer-events: none;
+            z-index: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.25s ease;
+        }
+        #search-rotating-hint.search-hint-anim-out {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        #search-rotating-hint.search-hint-anim-in {
+            animation: adoraSearchHintIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes adoraSearchHintIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        #search-input {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            min-height: 3rem;
+            border: none;
+            background: transparent;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgb(31 41 55);
+            padding-inline: 0.25rem;
+        }
+        #search-input:focus {
+            outline: none;
+        }
+        .adora-search-field:focus-within {
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06), 0 0 0 2px rgba(168, 85, 247, 0.2);
+        }
+
         .order-options-content {
             background: white;
             border-radius: 32px;
@@ -2186,24 +2273,27 @@
     <div id="screen-categories" class="screen active bg-gray-50">
         <!-- Search -->
         <div class="px-4 py-4 bg-white border-b border-gray-100">
-            <div class="search-container flex gap-3">
-                <div class="flex-1 relative rounded-2xl bg-gray-100">
-                    <button type="button" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-purple-600 z-20 rtl:left-auto rtl:right-4" onclick="runProductSearch()" aria-label="Search">
-                        <i class="fas fa-search text-lg"></i>
-                    </button>
-                    <input id="search-input" type="text" 
-                           placeholder=""
-                           data-en-placeholder=""
-                           data-ar-placeholder=""
-                           class="relative z-10 w-full bg-transparent text-gray-800 rounded-2xl py-3.5 pl-12 pr-12 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
-                           autocomplete="off"
-                           aria-label=""
-                           data-en-aria="Search fashion"
-                           data-ar-aria="ابحث عن الموضة">
-                    <span id="search-rotating-hint" class="absolute start-12 end-12 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none z-[8] truncate transition-opacity duration-200 opacity-100" aria-hidden="true">تيشرتات</span>
-                    <button type="button" id="search-voice-btn" class="voice-btn absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-gray-500 transition-colors z-20 rtl:right-auto rtl:left-2" onclick="toggleVoiceSearch()" aria-label="Voice search" aria-pressed="false">
-                        <i class="fas fa-microphone" aria-hidden="true"></i>
-                    </button>
+            <div class="search-container flex gap-3 items-stretch">
+                <div class="flex-1 min-w-0 flex items-stretch rounded-2xl">
+                    <div class="adora-search-field w-full">
+                        <button type="button" class="adora-search-field__icon" onclick="runProductSearch()" aria-label="Search">
+                            <i class="fas fa-search text-lg"></i>
+                        </button>
+                        <div class="adora-search-field__input-wrap">
+                            <span id="search-rotating-hint" class="opacity-100 transition-opacity duration-200 truncate" aria-hidden="true">تيشرتات</span>
+                            <input id="search-input" type="text"
+                                   placeholder=""
+                                   data-en-placeholder=""
+                                   data-ar-placeholder=""
+                                   autocomplete="off"
+                                   aria-label=""
+                                   data-en-aria="Search fashion"
+                                   data-ar-aria="ابحث عن الموضة">
+                        </div>
+                        <button type="button" id="search-voice-btn" class="voice-btn flex-shrink-0 w-10 h-10 my-auto rounded-full flex items-center justify-center text-gray-500 transition-colors z-20" onclick="toggleVoiceSearch()" aria-label="Voice search" aria-pressed="false">
+                            <i class="fas fa-microphone" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
                 <button onclick="toggleFilterModal()" class="w-11 h-11 bg-gray-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-gray-900/20 active:scale-95 transition-transform">
                     <i class="fas fa-sliders-h"></i>

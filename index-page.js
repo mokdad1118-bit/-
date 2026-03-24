@@ -1011,10 +1011,12 @@
                 }
             }
             try {
-                history.replaceState(
+                const url = window.location.pathname + window.location.search + window.location.hash;
+                history.replaceState({ adora: 0, bootstrap: true }, '', url);
+                history.pushState(
                     { adora: 1, screen: adoraNavStack[adoraNavStack.length - 1] },
                     '',
-                    window.location.pathname + window.location.search + window.location.hash
+                    url
                 );
             } catch (_e) {}
             if (!adoraNavPopStateBound) {
@@ -3105,6 +3107,35 @@
             return t.replace(/\s+/g, ' ').trim();
         }
 
+        /** تحسين عرض كلمة عربية واحدة من الصوت: «كنزه» → «كنزة» (بدون المساس بجمل) */
+        function prettifyArabicVoiceDisplay(s) {
+            const t = String(s || '').trim();
+            if (!t || !isRTL) return t;
+            if (/\s/.test(t)) return t;
+            if (t.length >= 4 && t.endsWith('ه')) return t.slice(0, -1) + '\u0629';
+            return t;
+        }
+
+        function pickBestSpeechTranscript(event) {
+            const res = event.results && event.results[0];
+            if (!res) return '';
+            let best = '';
+            let bestConf = -Infinity;
+            const n = res.length;
+            for (let i = 0; i < n; i++) {
+                const alt = res[i];
+                const tx = String(alt.transcript || '').trim();
+                if (!tx) continue;
+                const c =
+                    typeof alt.confidence === 'number' && !Number.isNaN(alt.confidence) ? alt.confidence : 0;
+                if (best === '' || c > bestConf) {
+                    bestConf = c;
+                    best = tx;
+                }
+            }
+            return best;
+        }
+
         function getSpeechRecognitionConstructor() {
             return window.SpeechRecognition || window.webkitSpeechRecognition || null;
         }
@@ -3149,10 +3180,10 @@
             }
 
             const rec = voiceSearchRecognition;
-            rec.lang = isRTL ? 'ar-SY' : 'en-US';
+            rec.lang = isRTL ? 'ar' : 'en-US';
             rec.interimResults = false;
             rec.continuous = false;
-            rec.maxAlternatives = 1;
+            rec.maxAlternatives = 5;
 
             rec.onstart = () => {
                 setVoiceSearchUi(true);
@@ -3177,8 +3208,8 @@
 
             rec.onresult = (event) => {
                 try {
-                    let text = String(event.results[0][0].transcript || '').trim();
-                    if (isRTL) text = normalizeArabicSpeechForSearch(text);
+                    let text = pickBestSpeechTranscript(event);
+                    if (isRTL) text = prettifyArabicVoiceDisplay(text);
                     const input = document.getElementById('search-input');
                     if (input) input.value = text;
                     if (text) {
@@ -3208,8 +3239,13 @@
             const list = document.getElementById('listing-search-input');
             try {
                 if (home) {
-                    if (document.activeElement !== home) home.value = q;
-                    else if (!String(home.value || '').trim() && q) home.value = q;
+                    if (currentScreen === 'screen-categories') {
+                        if (document.activeElement !== home) home.value = q;
+                        else if (!String(home.value || '').trim() && q) home.value = q;
+                    } else if (document.activeElement !== home) {
+                        home.value = '';
+                    }
+                    syncSearchRotatingHintVisibility();
                 }
                 if (list) {
                     if (document.activeElement !== list) list.value = q;
@@ -3228,13 +3264,22 @@
             return isRTL ? SEARCH_ROTATE_HINTS_AR : SEARCH_ROTATE_HINTS_EN;
         }
 
-        function updateSearchRotatingHintText() {
+        function updateSearchRotatingHintText(opts) {
+            const animate = opts && opts.animate === true;
             const hint = document.getElementById('search-rotating-hint');
             if (!hint) return;
             const words = getSearchRotateHintWords();
             if (!words.length) return;
             searchRotateHintIndex = ((searchRotateHintIndex % words.length) + words.length) % words.length;
-            hint.textContent = words[searchRotateHintIndex];
+            const next = words[searchRotateHintIndex];
+            if (animate) {
+                hint.classList.remove('search-hint-anim-in');
+                void hint.offsetWidth;
+                hint.textContent = next;
+                hint.classList.add('search-hint-anim-in');
+            } else {
+                hint.textContent = next;
+            }
         }
 
         function syncSearchRotatingHintVisibility() {
@@ -3242,6 +3287,7 @@
             const hint = document.getElementById('search-rotating-hint');
             if (!input || !hint) return;
             const show = !String(input.value || '').trim() && document.activeElement !== input;
+            hint.classList.remove('search-hint-anim-in');
             hint.classList.toggle('opacity-0', !show);
             hint.classList.toggle('opacity-100', show);
         }
@@ -3250,7 +3296,7 @@
             const words = getSearchRotateHintWords();
             if (!words.length) return;
             searchRotateHintIndex = (searchRotateHintIndex + 1) % words.length;
-            updateSearchRotatingHintText();
+            updateSearchRotatingHintText({ animate: true });
         }
 
         function restartSearchRotatingHintTimer() {
@@ -3284,7 +3330,8 @@
             const input = document.getElementById('search-input');
             listingSearchQuery = input ? input.value.trim() : '';
             listingAdoraOnly = false;
-            syncSearchInputsFromQuery();
+            if (input) input.value = '';
+            syncSearchRotatingHintVisibility();
             navigateTo('screen-listing');
         }
 
