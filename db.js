@@ -251,6 +251,7 @@ async function initDb() {
   await migrateAppBannersTable();
   await migrateOrderStatusesToV2();
   await migrateOrdersShippingAddressColumn();
+  await migrateOrderNumbersSequential();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -327,6 +328,27 @@ async function migrateUsersColumns() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS credentials_acknowledged INTEGER NOT NULL DEFAULT 0`
   );
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TEXT`);
+}
+
+/** أرقام قديمة عشوائية أو غير ORD-##### → إعادة ترقيم متسلسل حسب تاريخ الإنشاء */
+async function migrateOrderNumbersSequential() {
+  try {
+    const row = await get(
+      `SELECT COUNT(*)::int AS c FROM orders WHERE order_no IS NULL OR TRIM(order_no) = '' OR order_no !~ '^ORD-[0-9]{5}$'`
+    );
+    if (!row || Number(row.c) === 0) return;
+    const list = await all(
+      `SELECT id FROM orders ORDER BY COALESCE(created_at, TIMESTAMP '1970-01-01') ASC, id ASC`
+    );
+    let seq = 0;
+    for (const r of list) {
+      seq += 1;
+      const no = `ORD-${String(seq).padStart(5, "0")}`;
+      await run(`UPDATE orders SET order_no=? WHERE id=?`, [no, r.id]);
+    }
+  } catch (e) {
+    console.error("[db] migrateOrderNumbersSequential:", e.message || e);
+  }
 }
 
 async function migrateOrderItemsColumns() {

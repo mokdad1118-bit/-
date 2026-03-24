@@ -1175,6 +1175,16 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
   }
 });
 
+/** ترتيب الحالات للفرز الثانوي بعد التاريخ (الأحدث أولاً) */
+const ORDER_STATUS_SORT_SQL = `CASE o.status
+  WHEN 'pending_receipt' THEN 1
+  WHEN 'in_progress' THEN 2
+  WHEN 'fulfilled' THEN 3
+  WHEN 'shipping' THEN 4
+  WHEN 'delivered' THEN 5
+  ELSE 6
+END`;
+
 app.get("/api/orders", requireAuth, async (req, res) => {
   try {
     const rows =
@@ -1183,14 +1193,14 @@ app.get("/api/orders", requireAuth, async (req, res) => {
             `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone
              FROM orders o
              LEFT JOIN users u ON u.id = o.user_id
-             ORDER BY o.id DESC`
+             ORDER BY o.created_at DESC NULLS LAST, ${ORDER_STATUS_SORT_SQL} ASC, o.id DESC`
           )
         : await all(
             `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone
              FROM orders o
              LEFT JOIN users u ON u.id = o.user_id
              WHERE o.user_id=?
-             ORDER BY o.id DESC`,
+             ORDER BY o.created_at DESC NULLS LAST, ${ORDER_STATUS_SORT_SQL} ASC, o.id DESC`,
             [req.user.id]
           );
     return res.json(rows);

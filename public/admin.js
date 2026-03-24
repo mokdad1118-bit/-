@@ -1491,22 +1491,33 @@ function renderOrdersTable() {
     : adminOrdersCache;
   const ar = getAdminLang() === "ar";
   if (!adminOrdersCache.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${
       ar ? "لا طلبات بعد — تظهر هنا طلبات التطبيق بعد إتمام الشراء." : "No orders yet — app orders appear here after checkout."
     }</td></tr>`;
     return;
   }
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-500">${ar ? "لا نتائج للبحث." : "No search matches."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${ar ? "لا نتائج للبحث." : "No search matches."}</td></tr>`;
     return;
   }
   tbody.innerHTML = list
     .map((o) => {
       const cust = o.customer_name || o.customer_phone ? `${escapeHtml(o.customer_name || "—")}` : "—";
       const phone = o.customer_phone ? `<div class="text-xs text-gray-500 font-mono">${escapeHtml(o.customer_phone)}</div>` : "";
+      const dtRaw = o.created_at ? new Date(o.created_at) : null;
+      const dtStr = dtRaw && !Number.isNaN(dtRaw.getTime())
+        ? dtRaw.toLocaleString(ar ? "ar-SY" : "en-US", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "—";
       return `
         <tr>
           <td class="py-2 font-semibold">${escapeHtml(o.order_no)}</td>
+          <td class="py-2 text-xs text-gray-600 whitespace-nowrap">${escapeHtml(dtStr)}</td>
           <td class="py-2 text-sm text-gray-700">
             <div>${cust}</div>
             ${phone}
