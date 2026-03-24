@@ -651,11 +651,22 @@
             return `${id}__${sz}__${cl}`;
         }
 
+        function normalizeCartLine(it) {
+            if (!it || typeof it !== 'object') return it;
+            if (typeof it.name === 'string') {
+                const s = it.name;
+                it.name = { ar: s, en: s };
+            }
+            if (it.unitPrice == null && it.price != null) it.unitPrice = Number(it.price);
+            if (it.price == null && it.unitPrice != null) it.price = Number(it.unitPrice);
+            return it;
+        }
+
         function loadCartFromStorage() {
             try {
                 const raw = localStorage.getItem(ADORA_CART_KEY);
                 const arr = JSON.parse(raw || '[]');
-                cartItems = Array.isArray(arr) ? arr : [];
+                cartItems = Array.isArray(arr) ? arr.map(normalizeCartLine) : [];
             } catch (_e) {
                 cartItems = [];
             }
@@ -1076,7 +1087,6 @@
             }
             const leaving = adoraNavStack.pop();
             if (leaving === 'screen-listing') {
-                listingSearchQuery = '';
                 listingBrandName = null;
                 listingBrandMainCategory = null;
                 activeBrandKey = null;
@@ -1883,6 +1893,7 @@
                 renderCartUI();
             }
             if (screenId === 'screen-categories') {
+                syncSearchInputsFromQuery();
                 loadHomeFeaturedGrid().catch(() => {});
                 loadHomeBestsellers().catch(() => {});
                 injectHomeBanners().catch(() => {});
@@ -1927,7 +1938,11 @@
             if (searchInput) {
                 const placeholder = isRTL ? searchInput.getAttribute('data-ar-placeholder') : searchInput.getAttribute('data-en-placeholder');
                 if (placeholder) searchInput.setAttribute('placeholder', placeholder);
+                else searchInput.setAttribute('placeholder', '');
+                const ariaS = isRTL ? searchInput.getAttribute('data-ar-aria') : searchInput.getAttribute('data-en-aria');
+                if (ariaS) searchInput.setAttribute('aria-label', ariaS);
             }
+            restartSearchRotatingHintTimer();
             const listingSearchInput = document.getElementById('listing-search-input');
             if (listingSearchInput) {
                 const lph = isRTL ? listingSearchInput.getAttribute('data-ar-placeholder') : listingSearchInput.getAttribute('data-en-placeholder');
@@ -2164,8 +2179,18 @@
             };
             const key = getCartLineKey(line);
             const existing = cartItems.find((x) => getCartLineKey(x) === key);
-            if (existing) existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
-            else cartItems.push(line);
+            if (existing) {
+                existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
+                existing.selected = true;
+                existing.unitPrice = unit;
+                existing.price = unit;
+                existing.discountPct = discPct;
+                if (img0) existing.image = img0;
+                existing.name = { ar: p.name_ar, en: p.name_en };
+                existing.brand = brandVal;
+            } else {
+                cartItems.push(line);
+            }
             currentQty = 1;
             const qd = document.getElementById('qty-display');
             if (qd) qd.textContent = '1';
@@ -3059,6 +3084,7 @@
                 listingProductsRaw = [];
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             } finally {
+                syncSearchInputsFromQuery();
                 updateListingBrandMainCatBar();
             }
         }
@@ -3176,10 +3202,89 @@
             }
         }
 
+        function syncSearchInputsFromQuery() {
+            const q = listingSearchQuery != null ? String(listingSearchQuery) : '';
+            const home = document.getElementById('search-input');
+            const list = document.getElementById('listing-search-input');
+            try {
+                if (home) {
+                    if (document.activeElement !== home) home.value = q;
+                    else if (!String(home.value || '').trim() && q) home.value = q;
+                }
+                if (list) {
+                    if (document.activeElement !== list) list.value = q;
+                    else if (!String(list.value || '').trim() && q) list.value = q;
+                }
+            } catch (_e) {}
+        }
+
+        const SEARCH_ROTATE_HINTS_AR = ['تيشرتات', 'أطفال', 'إكسسوارات', 'قمصان', 'فساتين', 'أحذية', 'حقائب'];
+        const SEARCH_ROTATE_HINTS_EN = ['T-shirts', 'Kids', 'Accessories', 'Shirts', 'Dresses', 'Shoes', 'Bags'];
+        let searchRotateHintIndex = 0;
+        let searchRotateHintTimer = null;
+        let searchRotatingHintListenersBound = false;
+
+        function getSearchRotateHintWords() {
+            return isRTL ? SEARCH_ROTATE_HINTS_AR : SEARCH_ROTATE_HINTS_EN;
+        }
+
+        function updateSearchRotatingHintText() {
+            const hint = document.getElementById('search-rotating-hint');
+            if (!hint) return;
+            const words = getSearchRotateHintWords();
+            if (!words.length) return;
+            searchRotateHintIndex = ((searchRotateHintIndex % words.length) + words.length) % words.length;
+            hint.textContent = words[searchRotateHintIndex];
+        }
+
+        function syncSearchRotatingHintVisibility() {
+            const input = document.getElementById('search-input');
+            const hint = document.getElementById('search-rotating-hint');
+            if (!input || !hint) return;
+            const show = !String(input.value || '').trim() && document.activeElement !== input;
+            hint.classList.toggle('opacity-0', !show);
+            hint.classList.toggle('opacity-100', show);
+        }
+
+        function tickSearchRotatingHint() {
+            const words = getSearchRotateHintWords();
+            if (!words.length) return;
+            searchRotateHintIndex = (searchRotateHintIndex + 1) % words.length;
+            updateSearchRotatingHintText();
+        }
+
+        function restartSearchRotatingHintTimer() {
+            if (searchRotateHintTimer) {
+                clearInterval(searchRotateHintTimer);
+                searchRotateHintTimer = null;
+            }
+            searchRotateHintIndex = 0;
+            updateSearchRotatingHintText();
+            syncSearchRotatingHintVisibility();
+            const hint = document.getElementById('search-rotating-hint');
+            if (hint) {
+                searchRotateHintTimer = setInterval(tickSearchRotatingHint, 2800);
+            }
+        }
+
+        function initSearchRotatingHint() {
+            const input = document.getElementById('search-input');
+            if (!input) return;
+            if (!searchRotatingHintListenersBound) {
+                searchRotatingHintListenersBound = true;
+                const onChange = () => syncSearchRotatingHintVisibility();
+                input.addEventListener('focus', onChange);
+                input.addEventListener('blur', onChange);
+                input.addEventListener('input', onChange);
+            }
+            restartSearchRotatingHintTimer();
+        }
+
         function runProductSearch() {
             const input = document.getElementById('search-input');
             listingSearchQuery = input ? input.value.trim() : '';
             listingAdoraOnly = false;
+            syncSearchInputsFromQuery();
             navigateTo('screen-listing');
         }
 
@@ -4442,6 +4547,7 @@
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
             applyAppLanguage();
+            initSearchRotatingHint();
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('keydown', (e) => {
