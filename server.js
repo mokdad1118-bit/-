@@ -64,6 +64,50 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
+/** منتجات أدورا: بدون علامة أو علامة أدورا (للأقسام الرئيسية على الرئيسية) */
+function sqlAdoraBrandPredicate() {
+  return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'أدورا')`;
+}
+
+async function decrementProductStock(productId, qty, size, color) {
+  const pid = Number(productId);
+  if (!Number.isFinite(pid) || qty <= 0) return;
+  const p = await get(`SELECT stock, inventory_json FROM products WHERE id=?`, [pid]);
+  if (!p) return;
+  let inv = safeJsonParse(p.inventory_json, []);
+  if (!Array.isArray(inv)) inv = [];
+  const sz = size != null ? String(size).trim().toLowerCase() : "";
+  const cl = color != null ? String(color).trim().toLowerCase() : "";
+  let idx = -1;
+  if (inv.length > 0 && (sz || cl)) {
+    idx = inv.findIndex((row) => {
+      const rs = String(row.size || "").trim().toLowerCase();
+      const rc = String(row.color || "").trim().toLowerCase();
+      const szMatch = !sz || rs === sz;
+      const clMatch = !cl || rc === cl;
+      return szMatch && clMatch;
+    });
+  }
+  if (idx >= 0) {
+    const row = inv[idx];
+    const cur = Number(row.stock || 0);
+    const next = Math.max(0, cur - qty);
+    inv[idx] = { ...row, stock: next };
+    await run(`UPDATE products SET inventory_json=? WHERE id=?`, [JSON.stringify(inv), pid]);
+  } else {
+    await run(`UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id=?`, [qty, pid]);
+  }
+}
+
+function mapProductRow(p) {
+  if (!p) return p;
+  const { inventory_json, ...rest } = p;
+  return {
+    ...rest,
+    inventory: safeJsonParse(inventory_json, []),
+  };
+}
+
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { name, phone, password } = req.body;
@@ -149,14 +193,14 @@ async function sendPublicStatsJson(res) {
       products: Number(pc?.c ?? 0),
       brands: Number(bc?.c ?? 0),
       categories: Number(cc?.c ?? 0),
-      engine: "sqlite",
+      engine: "postgresql",
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to load stats" });
   }
 }
 
-/** أرقام مجمّعة من SQLite للواجهة — لا يعرض صفوفاً خام */
+/** أرقام مجمّعة من قاعدة البيانات للواجهة — لا يعرض صفوفاً خام */
 app.get("/api/public/stats", sendPublicStatsJson);
 /** نفس المحتوى — مسار أقصر إن احتجت */
 app.get("/api/stats", sendPublicStatsJson);
@@ -270,7 +314,7 @@ app.get("/api/admin/database/overview", requireAuth, requireAdmin, async (_req, 
     const overview = await getDatabaseOverview();
     return res.json({
       ...overview,
-      note: "SQLite is internal to this Node process. Use this dashboard or REST APIs — no direct file access.",
+      note: "PostgreSQL via DATABASE_URL. Use this dashboard or REST APIs — no direct database file on the app host.",
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load database overview" });
@@ -346,7 +390,10 @@ app.post("/api/notifications/read", requireAuth, async (req, res) => {
     if (kind === "broadcast") {
       const exists = await get(`SELECT id FROM broadcast_messages WHERE id=?`, [nid]);
       if (!exists) return res.status(404).json({ error: "Not found" });
-      await run(`INSERT OR IGNORE INTO user_broadcast_reads (user_id, broadcast_id) VALUES (?, ?)`, [req.user.id, nid]);
+      await run(
+        `INSERT INTO user_broadcast_reads (user_id, broadcast_id) VALUES (?, ?) ON CONFLICT (user_id, broadcast_id) DO NOTHING`,
+        [req.user.id, nid]
+      );
       return res.json({ ok: true });
     }
     if (kind === "in_app") {
@@ -355,7 +402,10 @@ app.post("/api/notifications/read", requireAuth, async (req, res) => {
         req.user.id,
       ]);
       if (!row) return res.status(404).json({ error: "Not found" });
-      await run(`INSERT OR IGNORE INTO in_app_notification_reads (user_id, notification_id) VALUES (?, ?)`, [req.user.id, nid]);
+      await run(
+        `INSERT INTO in_app_notification_reads (user_id, notification_id) VALUES (?, ?) ON CONFLICT (user_id, notification_id) DO NOTHING`,
+        [req.user.id, nid]
+      );
       return res.json({ ok: true });
     }
     return res.status(400).json({ error: "Invalid kind" });
@@ -370,7 +420,10 @@ app.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
     const id = Number(req.params.id);
     const exists = await get(`SELECT id FROM broadcast_messages WHERE id=?`, [id]);
     if (!exists) return res.status(404).json({ error: "Not found" });
-    await run(`INSERT OR IGNORE INTO user_broadcast_reads (user_id, broadcast_id) VALUES (?, ?)`, [req.user.id, id]);
+    await run(
+      `INSERT INTO user_broadcast_reads (user_id, broadcast_id) VALUES (?, ?) ON CONFLICT (user_id, broadcast_id) DO NOTHING`,
+      [req.user.id, id]
+    );
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: "Failed to mark read" });
@@ -463,11 +516,26 @@ app.post("/api/admin/broadcasts", requireAuth, requireAdmin, async (req, res) =>
 
 app.get("/api/products", async (req, res) => {
   try {
-    const { category, subcategory, brand, featured, flash, q, min_price, max_price, no_brand } = req.query;
+    const {
+      category,
+      subcategory,
+      brand,
+      featured,
+      flash,
+      q,
+      min_price,
+      max_price,
+      no_brand,
+      adora_only,
+      min_rating,
+    } = req.query;
     const where = [];
     const params = [];
     if (no_brand === "1" || no_brand === "true") {
       where.push(`(brand IS NULL OR TRIM(brand) = '')`);
+    }
+    if (adora_only === "1" || adora_only === "true") {
+      where.push(sqlAdoraBrandPredicate());
     }
     if (category) {
       where.push("category=?");
@@ -487,9 +555,9 @@ app.get("/api/products", async (req, res) => {
     if (qtrim) {
       const term = `%${qtrim}%`;
       where.push(
-        `(name_ar LIKE ? OR name_en LIKE ? OR IFNULL(brand,'') LIKE ? OR description LIKE ? OR category LIKE ? OR IFNULL(subcategory,'') LIKE ?)`
+        `(name_ar LIKE ? OR name_en LIKE ? OR COALESCE(brand,'') LIKE ? OR COALESCE(description,'') LIKE ? OR category LIKE ? OR COALESCE(subcategory,'') LIKE ? OR COALESCE(badge,'') LIKE ? OR EXISTS (SELECT 1 FROM brands b WHERE b.name LIKE ? AND (TRIM(COALESCE(products.brand,'')) = TRIM(b.name) OR COALESCE(products.brand,'') LIKE ('%' || TRIM(b.name) || '%'))))`
       );
-      params.push(term, term, term, term, term, term);
+      params.push(term, term, term, term, term, term, term, term);
     }
     if (min_price !== undefined && min_price !== "" && !Number.isNaN(Number(min_price))) {
       where.push(`price >= ?`);
@@ -499,21 +567,110 @@ app.get("/api/products", async (req, res) => {
       where.push(`price <= ?`);
       params.push(Number(max_price));
     }
+    if (min_rating !== undefined && min_rating !== "" && !Number.isNaN(Number(min_rating))) {
+      const mr = Number(min_rating);
+      where.push(
+        `id IN (SELECT product_id FROM product_reviews GROUP BY product_id HAVING ROUND(COALESCE(AVG(stars),0),2) >= ?)`
+      );
+      params.push(mr);
+    }
     const sql = `SELECT * FROM products ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC`;
     const products = await all(sql, params);
+    const ids = products.map((p) => p.id).filter((id) => Number.isFinite(Number(id)));
+    const reviewMap = {};
+    if (ids.length) {
+      const ph = ids.map(() => "?").join(",");
+      const revRows = await all(
+        `SELECT product_id, AVG(stars) AS review_avg, COUNT(*) AS review_count FROM product_reviews WHERE product_id IN (${ph}) GROUP BY product_id`,
+        ids
+      );
+      for (const r of revRows) {
+        reviewMap[r.product_id] = {
+          review_avg: r.review_avg != null ? Math.round(Number(r.review_avg) * 10) / 10 : null,
+          review_count: Number(r.review_count || 0),
+        };
+      }
+    }
     const rows = [];
     for (const p of products) {
       const images = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
+      const base = mapProductRow(p);
+      const rev = reviewMap[p.id] || { review_avg: null, review_count: 0 };
       rows.push({
-        ...p,
+        ...base,
         sizes: safeJsonParse(p.sizes_json, []),
         colors: safeJsonParse(p.colors_json, []),
         images: images.map((i) => i.image_url),
+        review_avg: rev.review_avg,
+        review_count: rev.review_count,
       });
     }
     return res.json(rows);
   } catch (err) {
     return res.status(500).json({ error: "Failed to load products" });
+  }
+});
+
+/** منتجات ذات صلة: نفس القسم (ويفضّل نفس الفرع ثم نفس العلامة) */
+app.get("/api/products/:id/related", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const limit = Math.min(24, Math.max(1, Number(req.query.limit) || 8));
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid product id" });
+    const p = await get(`SELECT id, category, subcategory, brand FROM products WHERE id=?`, [id]);
+    if (!p) return res.status(404).json({ error: "Product not found" });
+    const cat = String(p.category || "").trim();
+    const sub = String(p.subcategory || "").trim();
+    const brand = String(p.brand || "").trim();
+    let products = [];
+    if (cat) {
+      products = await all(
+        `SELECT * FROM products WHERE id != ? AND category = ?
+         ORDER BY
+           CASE WHEN TRIM(COALESCE(subcategory,'')) = ? THEN 0 ELSE 1 END,
+           CASE WHEN TRIM(COALESCE(brand,'')) = ? THEN 0 ELSE 1 END,
+           id DESC
+         LIMIT ?`,
+        [id, cat, sub, brand, limit]
+      );
+    }
+    if (products.length < limit) {
+      const exclude = [id, ...products.map((x) => x.id)];
+      const ph = exclude.map(() => "?").join(",");
+      const need = limit - products.length;
+      const more = await all(
+        `SELECT * FROM products WHERE id NOT IN (${ph}) ORDER BY id DESC LIMIT ?`,
+        [...exclude, need]
+      );
+      const seen = new Set(products.map((x) => x.id));
+      for (const m of more) {
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
+        products.push(m);
+        if (products.length >= limit) break;
+      }
+    }
+    const rows = [];
+    for (const pr of products.slice(0, limit)) {
+      const images = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [pr.id]);
+      const base = mapProductRow(pr);
+      const agg = await get(
+        `SELECT AVG(stars) AS review_avg, COUNT(*) AS review_count FROM product_reviews WHERE product_id=?`,
+        [pr.id]
+      );
+      rows.push({
+        ...base,
+        sizes: safeJsonParse(pr.sizes_json, []),
+        colors: safeJsonParse(pr.colors_json, []),
+        images: images.map((i) => i.image_url),
+        review_avg:
+          agg && agg.review_avg != null ? Math.round(Number(agg.review_avg) * 10) / 10 : null,
+        review_count: agg && agg.review_count != null ? Number(agg.review_count) : 0,
+      });
+    }
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load related products" });
   }
 });
 
@@ -554,8 +711,9 @@ app.get("/api/products/:id", async (req, res) => {
     const p = await get(`SELECT * FROM products WHERE id=?`, [id]);
     if (!p) return res.status(404).json({ error: "Product not found" });
     const images = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
+    const base = mapProductRow(p);
     return res.json({
-      ...p,
+      ...base,
       sizes: safeJsonParse(p.sizes_json, []),
       colors: safeJsonParse(p.colors_json, []),
       images: images.map((i) => i.image_url),
@@ -580,6 +738,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       sizes = [],
       colors = [],
       stock = 0,
+      inventory = [],
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
@@ -588,11 +747,12 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
     if (!name_ar || !name_en || !description || !category) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    const invArr = Array.isArray(inventory) ? inventory : [];
     const result = await run(
       `INSERT INTO products (
         name_ar, name_en, description, price, discount, category, subcategory, brand,
-        sizes_json, colors_json, stock, badge, is_featured, is_flash_sale, flash_sale_end_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sizes_json, colors_json, stock, inventory_json, badge, is_featured, is_flash_sale, flash_sale_end_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_ar,
         name_en,
@@ -605,6 +765,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
         JSON.stringify(sizes),
         JSON.stringify(colors),
         Number(stock || 0),
+        JSON.stringify(invArr),
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
@@ -636,15 +797,17 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       sizes = [],
       colors = [],
       stock = 0,
+      inventory = [],
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
       flash_sale_end_time = null,
     } = req.body;
+    const invArr = Array.isArray(inventory) ? inventory : [];
     await run(
       `UPDATE products SET
         name_ar=?, name_en=?, description=?, price=?, discount=?, category=?, subcategory=?, brand=?,
-        sizes_json=?, colors_json=?, stock=?, badge=?, is_featured=?, is_flash_sale=?, flash_sale_end_time=?
+        sizes_json=?, colors_json=?, stock=?, inventory_json=?, badge=?, is_featured=?, is_flash_sale=?, flash_sale_end_time=?
        WHERE id=?`,
       [
         name_ar,
@@ -658,6 +821,7 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
         JSON.stringify(sizes),
         JSON.stringify(colors),
         Number(stock || 0),
+        JSON.stringify(invArr),
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
@@ -688,11 +852,19 @@ app.get("/api/brands", async (_req, res) => {
   try {
     const rows = await all(
       `SELECT b.*,
-        (SELECT COUNT(*) FROM products p WHERE TRIM(IFNULL(p.brand,'')) = TRIM(b.name)) AS product_count
+        (SELECT COUNT(*) FROM products p WHERE TRIM(COALESCE(p.brand,'')) = TRIM(b.name)) AS product_count
        FROM brands b
        ORDER BY b.is_top_brand DESC, b.id DESC`
     );
-    return res.json(rows);
+    return res.json(
+      rows.map((b) => {
+        const { showcase_categories_json, ...rest } = b;
+        return {
+          ...rest,
+          showcase_categories: safeJsonParse(showcase_categories_json, ["Men", "Women", "Kids"]),
+        };
+      })
+    );
   } catch (err) {
     return res.status(500).json({ error: "Failed to load brands" });
   }
@@ -700,12 +872,12 @@ app.get("/api/brands", async (_req, res) => {
 
 app.post("/api/brands", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, logo = "", is_top_brand = 0 } = req.body;
-    const result = await run(`INSERT INTO brands (name, logo, is_top_brand) VALUES (?, ?, ?)`, [
-      name,
-      logo,
-      is_top_brand ? 1 : 0,
-    ]);
+    const { name, logo = "", is_top_brand = 0, showcase_categories } = req.body;
+    const sc = Array.isArray(showcase_categories) ? showcase_categories : ["Men", "Women", "Kids"];
+    const result = await run(
+      `INSERT INTO brands (name, logo, is_top_brand, showcase_categories_json) VALUES (?, ?, ?, ?)`,
+      [name, logo, is_top_brand ? 1 : 0, JSON.stringify(sc)]
+    );
     return res.status(201).json({ id: result.id });
   } catch (err) {
     return res.status(500).json({ error: "Failed to add brand" });
@@ -714,11 +886,13 @@ app.post("/api/brands", requireAuth, requireAdmin, async (req, res) => {
 
 app.put("/api/brands/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, logo = "", is_top_brand = 0 } = req.body;
-    await run(`UPDATE brands SET name=?, logo=?, is_top_brand=? WHERE id=?`, [
+    const { name, logo = "", is_top_brand = 0, showcase_categories } = req.body;
+    const sc = Array.isArray(showcase_categories) ? showcase_categories : ["Men", "Women", "Kids"];
+    await run(`UPDATE brands SET name=?, logo=?, is_top_brand=?, showcase_categories_json=? WHERE id=?`, [
       name,
       logo,
       is_top_brand ? 1 : 0,
+      JSON.stringify(sc),
       Number(req.params.id),
     ]);
     return res.json({ ok: true });
@@ -812,8 +986,9 @@ app.post("/api/orders", requireAuth, async (req, res) => {
     await run(`INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`, [result.id, status]);
 
     for (const item of productLines) {
+      const brandLine = item.brand != null ? String(item.brand).trim() : "";
       await run(
-        `INSERT INTO order_items (order_id, product_id, product_name, qty, price, image_url, color, size) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO order_items (order_id, product_id, product_name, qty, price, image_url, color, size, brand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           result.id,
           item.product_id || null,
@@ -823,18 +998,19 @@ app.post("/api/orders", requireAuth, async (req, res) => {
           item.image_url != null ? String(item.image_url) : "",
           item.color != null ? String(item.color) : "",
           item.size != null ? String(item.size) : "",
+          brandLine,
         ]
       );
       const pid = item.product_id != null ? Number(item.product_id) : null;
       const qn = Number(item.qty || 1);
       if (pid && qn > 0) {
-        await run(`UPDATE products SET stock = COALESCE(stock, 0) - ? WHERE id=?`, [qn, pid]);
+        await decrementProductStock(pid, qn, item.size, item.color);
       }
     }
     await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), req.user.id]);
     const saved = await get(`SELECT * FROM orders WHERE id=?`, [result.id]);
     const items = await all(
-      `SELECT id, product_id, product_name, qty, price, image_url, color, size
+      `SELECT id, product_id, product_name, qty, price, image_url, color, size, brand
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [result.id]
     );
@@ -856,7 +1032,7 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
       [orderId]
     );
     const items = await all(
-      `SELECT id, product_id, product_name, qty, price, image_url, color, size
+      `SELECT id, product_id, product_name, qty, price, image_url, color, size, brand
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [orderId]
     );
@@ -1049,7 +1225,7 @@ app.post("/api/product-reviews", requireAuth, async (req, res) => {
     if (!p) return res.status(404).json({ error: "Product not found" });
     await run(
       `INSERT INTO product_reviews (user_id, product_id, stars, comment) VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id, product_id) DO UPDATE SET
+       ON CONFLICT (user_id, product_id) DO UPDATE SET
          stars = excluded.stars,
          comment = excluded.comment,
          created_at = CURRENT_TIMESTAMP`,
@@ -1078,6 +1254,145 @@ app.get("/api/admin/product-reviews", requireAuth, requireAdmin, async (_req, re
   }
 });
 
+/** الأكثر مبيعاً من مجموع كميات order_items */
+app.get("/api/bestsellers", async (req, res) => {
+  try {
+    const limit = Math.min(48, Math.max(1, Number(req.query.limit) || 12));
+    const soldRows = await all(
+      `SELECT product_id, SUM(qty) AS sold
+       FROM order_items
+       WHERE product_id IS NOT NULL
+       GROUP BY product_id
+       ORDER BY sold DESC
+       LIMIT ?`,
+      [limit]
+    );
+    const rows = [];
+    for (const s of soldRows) {
+      const p = await get(`SELECT * FROM products WHERE id=?`, [s.product_id]);
+      if (!p) continue;
+      const images = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
+      const base = mapProductRow(p);
+      rows.push({
+        ...base,
+        sold: Number(s.sold || 0),
+        sizes: safeJsonParse(p.sizes_json, []),
+        colors: safeJsonParse(p.colors_json, []),
+        images: images.map((i) => i.image_url),
+      });
+    }
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load bestsellers" });
+  }
+});
+
+/** بانرات قابلة للوضع في الرئيسية — placement: home_top | below_categories | below_brands | below_top_brands | below_flash | below_curated | below_trending */
+app.get("/api/banners", async (_req, res) => {
+  try {
+    const rows = await all(
+      `SELECT id, title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order
+       FROM app_banners WHERE active=1 ORDER BY placement ASC, sort_order ASC, id ASC`
+    );
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load banners" });
+  }
+});
+
+app.get("/api/admin/banners", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await all(`SELECT * FROM app_banners ORDER BY placement ASC, sort_order ASC, id DESC`);
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load banners" });
+  }
+});
+
+app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const {
+      title_ar = "",
+      title_en = "",
+      body_ar = "",
+      body_en = "",
+      image_url,
+      link_url = "",
+      placement,
+      sort_order = 0,
+      active = 1,
+    } = req.body || {};
+    const img = image_url != null ? String(image_url).trim() : "";
+    const pl = placement != null ? String(placement).trim() : "";
+    if (!img || !pl) return res.status(400).json({ error: "image_url and placement required" });
+    const r = await run(
+      `INSERT INTO app_banners (title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        String(title_ar).trim(),
+        String(title_en).trim(),
+        String(body_ar).trim(),
+        String(body_en).trim(),
+        img,
+        String(link_url).trim(),
+        pl,
+        Number(sort_order) || 0,
+        Number(active) === 0 ? 0 : 1,
+      ]
+    );
+    return res.status(201).json({ id: r.id });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to create banner" });
+  }
+});
+
+app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const {
+      title_ar = "",
+      title_en = "",
+      body_ar = "",
+      body_en = "",
+      image_url,
+      link_url = "",
+      placement,
+      sort_order = 0,
+      active = 1,
+    } = req.body || {};
+    const img = image_url != null ? String(image_url).trim() : "";
+    const pl = placement != null ? String(placement).trim() : "";
+    if (!img || !pl) return res.status(400).json({ error: "image_url and placement required" });
+    await run(
+      `UPDATE app_banners SET title_ar=?, title_en=?, body_ar=?, body_en=?, image_url=?, link_url=?, placement=?, sort_order=?, active=? WHERE id=?`,
+      [
+        String(title_ar).trim(),
+        String(title_en).trim(),
+        String(body_ar).trim(),
+        String(body_en).trim(),
+        img,
+        String(link_url).trim(),
+        pl,
+        Number(sort_order) || 0,
+        Number(active) === 0 ? 0 : 1,
+        id,
+      ]
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to update banner" });
+  }
+});
+
+app.delete("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await run(`DELETE FROM app_banners WHERE id=?`, [Number(req.params.id)]);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete banner" });
+  }
+});
+
 app.get("/api/contact", async (_req, res) => {
   try {
     const row = await get(`SELECT * FROM contact_info LIMIT 1`);
@@ -1090,11 +1405,10 @@ app.get("/api/contact", async (_req, res) => {
 app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { address, phones = [], whatsapp_phone = "" } = req.body;
-    await run(`UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=? WHERE id=(SELECT id FROM contact_info LIMIT 1)`, [
-      address,
-      JSON.stringify(phones),
-      whatsapp_phone,
-    ]);
+    await run(
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone]
+    );
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: "Failed to update contact" });
@@ -1151,7 +1465,8 @@ function socketIoCors() {
   return { origin: list.length === 1 ? list[0] : list, methods: ["GET", "POST"] };
 }
 
-initDb().then(() => {
+initDb()
+  .then(() => {
   if (isProd && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "adora-dev-secret")) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -1189,4 +1504,9 @@ initDb().then(() => {
     // eslint-disable-next-line no-console
     console.log(`Public URL (set PUBLIC_URL in .env): ${publicHint}`);
   });
-});
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("[Adora] Database init failed:", err.message || err);
+    process.exit(1);
+  });

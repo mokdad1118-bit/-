@@ -2,7 +2,7 @@
 # New Blueprint → اربط المستودع؛ عند أول إنشاء سيطلب منك قيمة CORS_ORIGIN.
 # JWT_SECRET يُولَّد تلقائياً (generateValue).
 # إن أنشأت Web Service يدوياً: Build = npm ci، Start = node server.js، Health = /api/health
-# ملاحظة: SQLite على الخطة المجانية على قرص مؤقت — للإنتاج استخدم Persistent Disk أو SQLITE_PATH على قرص مثبت.
+# اربط خدمة PostgreSQL من لوحة Render بالـ Web Service ليُحقن DATABASE_URL، أو عيّنه يدوياً كمتغير بيئة.
 
 services:
   - type: web

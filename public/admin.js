@@ -87,6 +87,7 @@ function setAdminLang(lang) {
     loadBroadcasts().catch(() => {}),
     loadBrandProductsSection().catch(() => {}),
     loadDatabaseOverview().catch(() => {}),
+    loadBanners().catch(() => {}),
   ]).catch(() => {});
 }
 
@@ -198,6 +199,7 @@ let adminUsersCache = [];
 let adminSiteRatingsCache = [];
 let adminProductReviewsCache = [];
 let adminFlashCache = [];
+let adminBannersCache = [];
 /** منتجات العلامة المختارة حسب القسم الرئيسي (Men/Women/Kids) */
 let adminBrandProductsCache = [];
 let brandProductsSelection = { mainCat: "Men" };
@@ -253,6 +255,128 @@ function setActiveTab(tabId) {
     loadBrandProductsSection().catch(() => {});
   }
   if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
+  if (tabId === "tab-banners") loadBanners().catch(() => {});
+}
+
+async function loadBanners() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    adminBannersCache = await api("/api/admin/banners", { token });
+  } catch (_e) {
+    adminBannersCache = [];
+  }
+  renderBannersTable();
+}
+
+function renderBannersTable() {
+  const tbody = document.getElementById("banners-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const list = Array.isArray(adminBannersCache) ? adminBannersCache : [];
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">${
+      ar ? "لا بانرات بعد." : "No banners yet."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list
+    .map((b) => {
+      return `<tr>
+        <td class="py-2">${b.id}</td>
+        <td class="py-2 font-mono text-xs">${escapeHtml(b.placement)}</td>
+        <td class="py-2 max-w-[140px] truncate"><a href="${escapeHtml(b.image_url)}" target="_blank" rel="noopener" class="text-purple-600">${ar ? "صورة" : "Image"}</a></td>
+        <td class="py-2">${b.active ? adminT("yes") : adminT("no")}</td>
+        <td class="py-2">
+          <button type="button" class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-xs" data-banner-edit="${b.id}">${adminT("edit")}</button>
+          <button type="button" class="px-2 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs mr-1" data-banner-del="${b.id}">${adminT("delete")}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  const token = getToken();
+  tbody.querySelectorAll("[data-banner-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.getAttribute("data-banner-edit"));
+      const b = list.find((x) => x.id === id);
+      if (!b) return;
+      document.getElementById("banner-id").value = b.id;
+      document.getElementById("banner-title-ar").value = b.title_ar || "";
+      document.getElementById("banner-title-en").value = b.title_en || "";
+      document.getElementById("banner-body-ar").value = b.body_ar || "";
+      document.getElementById("banner-body-en").value = b.body_en || "";
+      document.getElementById("banner-image-url").value = b.image_url || "";
+      document.getElementById("banner-link-url").value = b.link_url || "";
+      document.getElementById("banner-placement").value = b.placement || "home_top";
+      document.getElementById("banner-sort").value = String(b.sort_order ?? 0);
+      document.getElementById("banner-active").checked = Number(b.active) !== 0;
+      document.getElementById("banner-image-file").value = "";
+    });
+  });
+  tbody.querySelectorAll("[data-banner-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm(ar ? "حذف البانر؟" : "Delete banner?")) return;
+      const id = btn.getAttribute("data-banner-del");
+      await api(`/api/admin/banners/${id}`, { method: "DELETE", token });
+      await loadBanners();
+    });
+  });
+}
+
+async function saveBanner(e) {
+  e.preventDefault();
+  const token = getToken();
+  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  const id = document.getElementById("banner-id").value ? Number(document.getElementById("banner-id").value) : null;
+  let image_url = document.getElementById("banner-image-url").value.trim();
+  const file = document.getElementById("banner-image-file")?.files?.[0];
+  if (file) {
+    const up = await uploadImageFile(file, token);
+    if (up) image_url = up;
+  }
+  if (!image_url) {
+    alert(ar ? "أدخل رابط الصورة أو ارفع ملفاً." : "Enter image URL or upload a file.");
+    return;
+  }
+  const body = {
+    title_ar: document.getElementById("banner-title-ar").value.trim(),
+    title_en: document.getElementById("banner-title-en").value.trim(),
+    body_ar: document.getElementById("banner-body-ar").value.trim(),
+    body_en: document.getElementById("banner-body-en").value.trim(),
+    image_url,
+    link_url: document.getElementById("banner-link-url").value.trim(),
+    placement: document.getElementById("banner-placement").value.trim(),
+    sort_order: Number(document.getElementById("banner-sort").value || 0),
+    active: document.getElementById("banner-active").checked ? 1 : 0,
+  };
+  if (!body.placement) {
+    alert(ar ? "اختر موضع العرض." : "Choose placement.");
+    return;
+  }
+  if (id) {
+    await api(`/api/admin/banners/${id}`, { method: "PUT", token, body });
+  } else {
+    await api("/api/admin/banners", { method: "POST", token, body });
+  }
+  document.getElementById("banner-id").value = "";
+  document.getElementById("banner-image-file").value = "";
+  await loadBanners();
+  alert(ar ? "تم حفظ البانر." : "Banner saved.");
+}
+
+function resetBannerForm() {
+  document.getElementById("banner-id").value = "";
+  document.getElementById("banner-title-ar").value = "";
+  document.getElementById("banner-title-en").value = "";
+  document.getElementById("banner-body-ar").value = "";
+  document.getElementById("banner-body-en").value = "";
+  document.getElementById("banner-image-url").value = "";
+  document.getElementById("banner-link-url").value = "";
+  document.getElementById("banner-placement").value = "home_top";
+  document.getElementById("banner-sort").value = "0";
+  document.getElementById("banner-active").checked = true;
+  document.getElementById("banner-image-file").value = "";
 }
 
 async function login() {
@@ -311,6 +435,17 @@ function readProductForm() {
     .map((x) => x.trim())
     .filter(Boolean);
 
+  let inventory = [];
+  const invEl = document.getElementById("product-inventory-json");
+  if (invEl && invEl.value.trim()) {
+    try {
+      const parsed = JSON.parse(invEl.value.trim());
+      inventory = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      inventory = [];
+    }
+  }
+
   const is_featured = document.getElementById("product-is-featured").checked ? 1 : 0;
   const is_flash_sale = document.getElementById("product-is-flash-sale").checked ? 1 : 0;
   const flash_sale_end_time = document.getElementById("product-flash-end").value.trim() || null;
@@ -335,6 +470,7 @@ function readProductForm() {
       flash_sale_end_time: is_flash_sale ? flash_sale_end_time : null,
       sizes,
       colors,
+      inventory,
     },
   };
 }
@@ -367,6 +503,8 @@ function resetProductForm() {
   document.getElementById("product-images-files").value = "";
   document.getElementById("product-sizes").value = "";
   document.getElementById("product-colors").value = "";
+  const invTa = document.getElementById("product-inventory-json");
+  if (invTa) invTa.value = "[]";
   document.getElementById("product-is-featured").checked = false;
   document.getElementById("product-is-flash-sale").checked = false;
   document.getElementById("product-flash-end").value = "";
@@ -403,6 +541,11 @@ function fillProductFormFromProduct(product) {
   document.getElementById("product-images").value = (product.images || []).join(", ");
   document.getElementById("product-sizes").value = (product.sizes || []).join(", ");
   document.getElementById("product-colors").value = (product.colors || []).join(", ");
+  const invTa = document.getElementById("product-inventory-json");
+  if (invTa) {
+    const inv = Array.isArray(product.inventory) ? product.inventory : [];
+    invTa.value = JSON.stringify(inv.length ? inv : [], null, 2);
+  }
   document.getElementById("product-is-featured").checked = !!product.is_featured;
   document.getElementById("product-is-flash-sale").checked = !!product.is_flash_sale;
   document.getElementById("product-flash-end").value = product.flash_sale_end_time ?? "";
@@ -490,7 +633,7 @@ function renderBrandProductsTable() {
             <div class="text-xs text-gray-500">${escapeHtml(p.name_ar)}</div>
           </td>
           <td class="py-2">${escapeHtml(p.subcategory || "—")}</td>
-          <td class="py-2">$${Number(p.price).toFixed(2)}</td>
+          <td class="py-2">${Number(p.price).toLocaleString()} ل.س</td>
           <td class="py-2">${disc}%</td>
           <td class="py-2">
             <button type="button" class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 text-xs" data-brand-p-edit="${p.id}">${adminT("edit")}</button>
@@ -534,7 +677,7 @@ function renderProductsTable() {
   const tbody = document.getElementById("products-tbody");
   const ar = getAdminLang() === "ar";
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-gray-500">${
       products.length && f ? (ar ? "لا نتائج تطابق البحث." : "No matches for this search.") : ar ? "لا منتجات بعد." : "No products yet."
     }</td></tr>`;
     return;
@@ -543,6 +686,11 @@ function renderProductsTable() {
     .map((p) => {
       const stockN = Number(p.stock);
       const stockDisp = Number.isFinite(stockN) ? stockN : 0;
+      const inv = Array.isArray(p.inventory) ? p.inventory : [];
+      const invNote =
+        inv.length > 0
+          ? `<div class="text-[10px] text-violet-600 font-semibold">${inv.length} ${ar ? "صف مخزون" : "variant rows"}</div>`
+          : "";
       return `
         <tr>
           <td class="py-2">${p.id}</td>
@@ -551,8 +699,9 @@ function renderProductsTable() {
             <div class="text-xs text-gray-500">${escapeHtml(p.name_ar)}</div>
           </td>
           <td class="py-2">${escapeHtml(p.category)}</td>
-          <td class="py-2">$${Number(p.price).toFixed(2)}</td>
-          <td class="py-2">${stockDisp}</td>
+          <td class="py-2 text-xs text-gray-600 max-w-[100px] truncate" title="${escapeHtml(p.brand || "")}">${escapeHtml(p.brand || "—")}</td>
+          <td class="py-2">${Number(p.price).toLocaleString()} ل.س</td>
+          <td class="py-2">${stockDisp}${invNote}</td>
           <td class="py-2">${p.is_featured ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">${p.is_flash_sale ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">
@@ -589,7 +738,7 @@ async function loadProducts() {
   const token = getToken();
   let products = [];
   try {
-    products = await api("/api/products?no_brand=1", { token });
+    products = await api("/api/products", { token });
   } catch (e) {
     console.error(e);
   }
@@ -636,7 +785,7 @@ function renderBrandsTable() {
   if (!tbody) return;
   if (!list.length) {
     const ar = getAdminLang() === "ar";
-    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">${
       adminBrandsCache.length && f ? (ar ? "لا نتائج." : "No matches.") : ar ? "لا علامات بعد." : "No brands yet."
     }</td></tr>`;
     return;
@@ -653,6 +802,7 @@ function renderBrandsTable() {
             ${b.logo ? `<img src="${escapeHtml(b.logo)}" class="w-10 h-10 rounded-full object-cover" />` : "-"}
           </td>
           <td class="py-2">${b.is_top_brand ? adminT("yes") : adminT("no")}</td>
+          <td class="py-2 text-xs text-gray-600">${escapeHtml((b.showcase_categories || []).join(", ") || "—")}</td>
           <td class="py-2">
             <button type="button" class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 mr-1" data-edit-brand="${b.id}">${adminT("edit")}</button>
             <button type="button" class="px-2 py-1 rounded-lg bg-violet-50 border border-violet-200 text-violet-800 hover:bg-violet-100 mr-1 text-xs font-semibold" data-brand-focus="${encodeURIComponent(b.name)}">${getAdminLang() === "ar" ? "منتجات" : "Products"}</button>
@@ -672,6 +822,10 @@ function renderBrandsTable() {
       document.getElementById("brand-name").value = b.name || "";
       document.getElementById("brand-is-top").checked = !!b.is_top_brand;
       document.getElementById("brand-logo-file").value = "";
+      const sc = Array.isArray(b.showcase_categories) ? b.showcase_categories : ["Men", "Women", "Kids"];
+      document.getElementById("brand-showcase-men").checked = sc.includes("Men");
+      document.getElementById("brand-showcase-women").checked = sc.includes("Women");
+      document.getElementById("brand-showcase-kids").checked = sc.includes("Kids");
     });
   });
 
@@ -715,7 +869,11 @@ function readBrandForm() {
   const name = document.getElementById("brand-name").value.trim();
   const logoFile = document.getElementById("brand-logo-file").files[0] || null;
   const is_top_brand = document.getElementById("brand-is-top").checked ? 1 : 0;
-  return { id, name, logoFile, is_top_brand };
+  const showcase_categories = [];
+  if (document.getElementById("brand-showcase-men")?.checked) showcase_categories.push("Men");
+  if (document.getElementById("brand-showcase-women")?.checked) showcase_categories.push("Women");
+  if (document.getElementById("brand-showcase-kids")?.checked) showcase_categories.push("Kids");
+  return { id, name, logoFile, is_top_brand, showcase_categories };
 }
 
 async function saveBrand(e) {
@@ -725,7 +883,7 @@ async function saveBrand(e) {
     alert(adminT("loginRequired"));
     return;
   }
-  const { id, name, logoFile, is_top_brand } = readBrandForm();
+  const { id, name, logoFile, is_top_brand, showcase_categories } = readBrandForm();
   if (!name) return alert(adminT("brandNameRequired"));
   let logo = "";
   try {
@@ -735,7 +893,7 @@ async function saveBrand(e) {
       if (prev && prev.logo) logo = prev.logo;
     }
 
-    const body = { name, logo, is_top_brand };
+    const body = { name, logo, is_top_brand, showcase_categories };
     if (id) {
       await api(`/api/brands/${id}`, { method: "PUT", token, body });
     } else {
@@ -745,6 +903,9 @@ async function saveBrand(e) {
     document.getElementById("brand-id").value = "";
     document.getElementById("brand-name").value = "";
     document.getElementById("brand-is-top").checked = false;
+    document.getElementById("brand-showcase-men").checked = true;
+    document.getElementById("brand-showcase-women").checked = true;
+    document.getElementById("brand-showcase-kids").checked = true;
     await loadBrands();
     alert(adminT("brandSaved"));
   } catch (err) {
@@ -1257,7 +1418,7 @@ function renderFlashSalesTable() {
             <div class="font-semibold">${escapeHtml(p.name_en)}</div>
             <div class="text-xs text-gray-500">${escapeHtml(p.name_ar)}</div>
           </td>
-          <td class="py-2">$${Number(p.price).toFixed(2)}</td>
+          <td class="py-2">${Number(p.price).toLocaleString()} ل.س</td>
           <td class="py-2">
             <input type="text" class="flash-end-input w-full max-w-xs p-2 rounded-lg border border-gray-200 text-xs font-mono" data-flash-product="${p.id}" value="${escapeHtml(p.flash_sale_end_time || "")}" placeholder="2026-03-25T12:00:00.000Z" />
           </td>
@@ -1288,6 +1449,7 @@ function renderFlashSalesTable() {
           sizes: full.sizes || [],
           colors: full.colors || [],
           stock: full.stock,
+          inventory: Array.isArray(full.inventory) ? full.inventory : [],
           badge: full.badge || "",
           images: full.images || [],
           is_featured: full.is_featured ? 1 : 0,
@@ -1350,7 +1512,7 @@ function renderOrdersTable() {
             ${phone}
             <div class="text-[10px] text-gray-400">id: ${o.user_id}</div>
           </td>
-          <td class="py-2">$${Number(o.total_price).toFixed(2)}</td>
+          <td class="py-2">${Number(o.total_price).toLocaleString()} ل.س</td>
           <td class="py-2">${escapeHtml(formatOrderStatusLabel(o.status))}</td>
           <td class="py-2">${escapeHtml(o.source)}</td>
           <td class="py-2">
@@ -1466,12 +1628,16 @@ async function openOrderDetailModal(orderId) {
           it.size && String(it.size).trim()
             ? `<div class="text-xs text-gray-600">${ar ? "المقاس" : "Size"}: <span class="font-semibold">${escapeHtml(it.size)}</span></div>`
             : "";
+        const brandLine =
+          it.brand && String(it.brand).trim()
+            ? `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة" : "Brand"}: ${escapeHtml(it.brand)}</div>`
+            : `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة: أدورا" : "Brand: Adora"}</div>`;
         return `<div class="flex gap-3 py-3 border-b border-gray-100">
           ${img}
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-gray-900">${escapeHtml(it.product_name)} <span class="text-gray-500 font-normal">× ${it.qty}</span></div>
-            ${colorLine}${sizeLine}
-            <div class="text-sm font-mono mt-1">$${Number(it.price).toFixed(2)}</div>
+            ${brandLine}${colorLine}${sizeLine}
+            <div class="text-sm font-mono mt-1">${Number(it.price).toLocaleString()} ل.س</div>
           </div>
         </div>`;
       })
@@ -1486,7 +1652,7 @@ async function openOrderDetailModal(orderId) {
       <div class="space-y-2 mb-4">
         <div><strong>${ar ? "رقم الطلب" : "Order"}:</strong> ${escapeHtml(o.order_no)}</div>
         <div><strong>${ar ? "المستخدم" : "User"}:</strong> ${escapeHtml(o.customer_name || "—")} <span class="font-mono text-xs">${escapeHtml(o.customer_phone || "")}</span></div>
-        <div><strong>${ar ? "الإجمالي" : "Total"}:</strong> $${Number(o.total_price).toFixed(2)}</div>
+        <div><strong>${ar ? "الإجمالي" : "Total"}:</strong> ${Number(o.total_price).toLocaleString()} ل.س</div>
         <div><strong>${ar ? "الحالة" : "Status"}:</strong> ${escapeHtml(formatOrderStatusLabel(o.status))}</div>
         <div><strong>${ar ? "الدفع" : "Payment"}:</strong> ${escapeHtml(o.payment_method)}</div>
       </div>
@@ -1532,8 +1698,8 @@ async function loadDatabaseOverview() {
     if (totalEl) {
       const n = Number(data.totalRows ?? 0);
       totalEl.textContent = ar
-        ? `المجموع: ${n} صفاً — SQLite (داخلي)`
-        : `Total rows: ${n} — SQLite (internal)`;
+        ? `المجموع: ${n} صفاً — PostgreSQL`
+        : `Total rows: ${n} — PostgreSQL`;
     }
     const rows = Array.isArray(data.tables) ? data.tables : [];
     tbody.innerHTML = rows
@@ -1566,6 +1732,7 @@ function refilterAdminActiveTab() {
     renderAdminProductReviewsTable();
   }
   else if (vis === "tab-flash") renderFlashSalesTable();
+  else if (vis === "tab-banners") renderBannersTable();
 }
 
 async function loadContact() {
@@ -1686,6 +1853,9 @@ async function bootstrapAuthed() {
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));
   document.getElementById("btn-refresh-product-reviews")?.addEventListener("click", () => loadAdminProductReviews().catch(() => {}));
   document.getElementById("btn-refresh-database-overview")?.addEventListener("click", () => loadDatabaseOverview().catch(() => {}));
+  document.getElementById("banner-form")?.addEventListener("submit", (ev) => saveBanner(ev).catch((err) => alert(err.message || String(err))));
+  document.getElementById("btn-refresh-banners")?.addEventListener("click", () => loadBanners().catch(() => {}));
+  document.getElementById("btn-reset-banner")?.addEventListener("click", () => resetBannerForm());
 
   try {
     await loadOfferProductsIntoSelect();
@@ -1705,6 +1875,7 @@ async function bootstrapAuthed() {
     ["productReviews", () => loadAdminProductReviews()],
     ["broadcasts", () => loadBroadcasts()],
     ["contact", () => loadContact()],
+    ["banners", () => loadBanners()],
   ];
   const settled = await Promise.allSettled(loaders.map(([, fn]) => fn()));
   settled.forEach((r, i) => {

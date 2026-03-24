@@ -68,9 +68,9 @@
    - **`CORS_ORIGIN`** = `https://موقعك.netlify.app` (رابط الواجهة بالضبط، يمكن فصل أصول متعددة بفاصلة)
 5. بعد النشر انسخ **Public URL** الخاص بالخدمة (مثل `https://adora-backend-xxxx.onrender.com`) وضعه في **`ADORA_API_BASE`** على Netlify أو في `adora-config.js`.
 
-### ملاحظة SQLite على الخطة المجانية
+### قاعدة البيانات على Render
 
-قرص Render المجاني **مؤقت**؛ قد تُفقد بيانات SQLite عند إعادة التشغيل أو النوم. للإنتاج استخدم **Persistent Disk** أو قاعدة بيانات خارجية.
+الخلفية تستخدم **PostgreSQL** عبر **`DATABASE_URL`**. أنشئ قاعدة Postgres على Render واربطها بالـ Web Service (أو عيّن الرابط يدوياً). البيانات تبقى في خدمة قاعدة البيانات وليس على القرص المؤقت للـ Web Service.
 
 ---
 

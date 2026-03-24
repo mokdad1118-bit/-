@@ -57,7 +57,7 @@ if ($remotes -match "origin") {
   & $git remote remove origin
 }
 
-$desc = "Adora: Node Express + SQLite + static frontend"
+$desc = "Adora: Node Express + PostgreSQL + static frontend"
 $null = & $gh repo view $fullName 2>&1
 if ($LASTEXITCODE -eq 0) {
   Write-Host "Repo exists: $fullName — pushing main..." -ForegroundColor Cyan

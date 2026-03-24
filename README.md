@@ -1,6 +1,6 @@
 # Adora — متجر + API (Node.js / Express)
 
-مشروع واحد يشغّل **واجهة ثابتة** و**REST API** و**Socket.io** من `server.js`، مع **SQLite** عبر `db.js` (إنشاء الجداول تلقائياً عند التشغيل).
+مشروع واحد يشغّل **واجهة ثابتة** و**REST API** و**Socket.io** من `server.js`، مع **PostgreSQL** عبر `db.js` ومتغير البيئة **`DATABASE_URL`** (إنشاء الجداول تلقائياً عند التشغيل).
 
 ## هيكل مهم للخلفية
 
@@ -8,7 +8,7 @@
 |-------------|---------|
 | `server.js` | تطبيق Express، مسارات `/api/*`، Socket.io |
 | `auth.js` | JWT، حماية المسارات |
-| `db.js` | SQLite، الاتصال والتهيئة |
+| `db.js` | PostgreSQL (`pg`)، الاتصال والتهيئة |
 | `package.json` | التبعيات و`npm start` |
 | `render.yaml` | تعريف اختياري لنشر [Render Blueprint](https://render.com/docs/blueprint-spec) |
 | `.env.example` | نموذج المتغيرات (انسخه إلى `.env` محلياً) |
@@ -20,7 +20,7 @@
 ```bash
 npm install
 copy .env.example .env
-# عدّل .env (JWT_SECRET، إلخ)
+# عدّل .env (DATABASE_URL، JWT_SECRET، إلخ)
 npm start
 ```
 

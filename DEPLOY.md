@@ -25,7 +25,8 @@ nano .env
 | `JWT_SECRET` | سلسلة عشوائية طويلة — لا تستخدم القيمة الافتراضية |
 | `CORS_ORIGIN` | `https://نطاقك.com` (أو عدة نطاقات مفصولة بفاصلة) |
 | `ADORA_APP_DOWNLOAD_URL` | رابط متجر التطبيق إن وُجد |
-| `SQLITE_PATH` | اختياري — مسار دائم لملف قاعدة البيانات (مثلاً `/var/lib/adora/adora.sqlite`) |
+| `DATABASE_URL` | **مطلوب** — رابط PostgreSQL (`postgres://…`). على Render: اربط قاعدة البيانات بالخدمة أو انسخ الرابط (Internal للتطبيق على Render، External للاتصال من جهازك فقط) |
+| `DATABASE_SSL` | اختياري — `false` للاتصال المحلي بدون SSL |
 
 توليد `JWT_SECRET`:
 
@@ -78,15 +79,27 @@ Netlify **لا يشغّل Node**. إن رفعت المشروع هناك فقط،
 
 ```bash
 docker build -t adora .
-docker run -d -p 3000:3000 --env-file .env -v adora-data:/data adora
+docker run -d -p 3000:3000 --env-file .env adora
 ```
 
-مجلد `/data` يحفظ `adora.sqlite` عند استخدام `SQLITE_PATH=/data/adora.sqlite` في الصورة.
+يجب أن يحتوي `.env` على **`DATABASE_URL`** لقاعدة PostgreSQL.
 
 ## 8) نسخ احتياطي
 
-- انسخ ملف **SQLite** (`adora.sqlite` أو المسار في `SQLITE_PATH`)  
+- **PostgreSQL:** استخدم `pg_dump` أو نسخ احتياطي من مزوّد الاستضافة (مثل Render)  
 - انسخ مجلد **`uploads/`** (صور المنتجات)
+
+### ترحيل بيانات قديمة من SQLite
+
+إن كان لديك ملف `adora.sqlite` سابقاً:
+
+```bash
+npm install
+# ثم عيّن DATABASE_URL في .env ثم:
+npm run migrate:sqlite-to-pg -- path/to/adora.sqlite
+```
+
+يحتاج السكربت حزمة **`sqlite3`** ضمن `devDependencies` (مثبتة تلقائياً بـ `npm install` بدون `--omit=dev`).
 
 ## 9) أمان
 

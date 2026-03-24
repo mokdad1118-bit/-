@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build:netlify": "node scripts/write-adora-config.cjs"
+    "lint": "eslint . --ext .js,.cjs",
+    "build:netlify": "node scripts/write-adora-config.cjs",
+    "migrate:sqlite-to-pg": "node scripts/migrate-sqlite-to-pg.cjs"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -17,7 +19,11 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "socket.io": "^4.8.3",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
     "sqlite3": "^5.1.7"
   }
 }
