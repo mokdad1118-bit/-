@@ -2129,10 +2129,12 @@
         }
 
         // Cart Functions
-        function addToCart() {
+        /** يُرجع true عند نجاح الإضافة — لاستخدام «اشتري الآن» قبل فتح الطلب */
+        function addToCart(opts = {}) {
+            const silent = opts.silent === true;
             if (!currentProductDetail || !currentProductDetail.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
-                return;
+                return false;
             }
             const p = currentProductDetail;
             const size = getSelectedDetailSize();
@@ -2140,7 +2142,7 @@
             const qty = Math.max(1, Math.min(99, Number(currentQty || 1)));
             if (!variantHasStock(p, size === '—' ? '' : size, color)) {
                 showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
-                return;
+                return false;
             }
             const unit = Number(p.price || 0);
             const discPct = Number(p.discount || 0);
@@ -2168,10 +2170,12 @@
             const qd = document.getElementById('qty-display');
             if (qd) qd.textContent = '1';
             persistCart();
-            showToast(isRTL ? 'أُضيف إلى السلة' : 'Added to cart');
+            if (!silent) showToast(isRTL ? 'أُضيف إلى السلة' : 'Added to cart');
+            return true;
         }
 
         function buyNow() {
+            if (!addToCart({ silent: true })) return;
             openOrderOptions();
         }
 
@@ -3062,6 +3066,19 @@
         let voiceSearchRecognition = null;
         let voiceSearchListening = false;
 
+        /** توحيد أشكال الهمزة والتاء المربوطة والتشكيل لنتيجة أوضح في البحث */
+        function normalizeArabicSpeechForSearch(text) {
+            let t = String(text || '').trim();
+            if (!t) return t;
+            t = t.replace(/\u0640/g, '');
+            t = t.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+            t = t.replace(/[\u0622\u0623\u0625]/g, '\u0627');
+            t = t.replace(/\u0629/g, '\u0647');
+            t = t.replace(/\u0624/g, '\u0648');
+            t = t.replace(/\u0626/g, '\u064a');
+            return t.replace(/\s+/g, ' ').trim();
+        }
+
         function getSpeechRecognitionConstructor() {
             return window.SpeechRecognition || window.webkitSpeechRecognition || null;
         }
@@ -3134,7 +3151,8 @@
 
             rec.onresult = (event) => {
                 try {
-                    const text = String(event.results[0][0].transcript || '').trim();
+                    let text = String(event.results[0][0].transcript || '').trim();
+                    if (isRTL) text = normalizeArabicSpeechForSearch(text);
                     const input = document.getElementById('search-input');
                     if (input) input.value = text;
                     if (text) {
