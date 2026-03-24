@@ -115,6 +115,62 @@
 
         let splashEnterLocked = false;
 
+        function shouldSkipSplashOnLoad() {
+            try {
+                return (
+                    sessionStorage.getItem('adora_skip_splash') === '1' || !!sessionStorage.getItem('adora_nav_stack_v1')
+                );
+            } catch (_e) {
+                return false;
+            }
+        }
+
+        async function finalizeSplashTransition() {
+            try {
+                sessionStorage.setItem('adora_skip_splash', '1');
+            } catch (_e) {}
+            if (splashScreen) splashScreen.style.display = 'none';
+            const token = getStoredJwtToken();
+            const resumeOverlay = document.getElementById('session-resume-overlay');
+
+            if (!token) {
+                resumeOverlay?.classList.add('hidden');
+                showAuthGateOnly();
+                return;
+            }
+
+            resumeOverlay?.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            try {
+                await Promise.race([
+                    apiFetch('/api/profile', { requireAuth: true }),
+                    profileValidationTimeout(15000),
+                ]);
+                resumeOverlay?.classList.add('hidden');
+                restoreBodyScrollIfIdle();
+                showAppShellOnly();
+                await refreshProfileAndOrders();
+                await runPostAuthOnboarding();
+                const hasDeep =
+                    (() => {
+                        try {
+                            return !!sessionStorage.getItem('adora_deeplink_product');
+                        } catch (_e) {
+                            return false;
+                        }
+                    })();
+                if (!hasDeep) {
+                    await restoreAdoraSessionRoute();
+                }
+                consumeProductDeepLink();
+            } catch {
+                clearStoredJwtToken();
+                resumeOverlay?.classList.add('hidden');
+                restoreBodyScrollIfIdle();
+                showAuthGateOnly();
+            }
+        }
+
         async function enterApp() {
             if (splashEnterLocked) return;
             splashEnterLocked = true;
@@ -124,37 +180,19 @@
 
             splashScreen?.classList.add('splash-exit');
 
-            setTimeout(async () => {
-                if (splashScreen) splashScreen.style.display = 'none';
-                const token = getStoredJwtToken();
-                const resumeOverlay = document.getElementById('session-resume-overlay');
-
-                if (!token) {
-                    resumeOverlay?.classList.add('hidden');
-                    showAuthGateOnly();
-                    return;
-                }
-
-                resumeOverlay?.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                try {
-                    await Promise.race([
-                        apiFetch('/api/profile', { requireAuth: true }),
-                        profileValidationTimeout(15000),
-                    ]);
-                    resumeOverlay?.classList.add('hidden');
-                    restoreBodyScrollIfIdle();
-                    showAppShellOnly();
-                    await refreshProfileAndOrders();
-                    await runPostAuthOnboarding();
-                    consumeProductDeepLink();
-                } catch {
-                    clearStoredJwtToken();
-                    resumeOverlay?.classList.add('hidden');
-                    restoreBodyScrollIfIdle();
-                    showAuthGateOnly();
-                }
+            setTimeout(() => {
+                finalizeSplashTransition();
             }, 800);
+        }
+
+        /** إعادة تحميل الصفحة: تخطي الشاشة الترحيبية والدخول مباشرة */
+        async function skipSplashAndEnterApp() {
+            if (splashEnterLocked) return;
+            splashEnterLocked = true;
+            clearInterval(splashInterval);
+            clearInterval(progressInterval);
+            splashScreen?.classList.remove('splash-exit');
+            await finalizeSplashTransition();
         }
 
         function initOnboardingStorageMigration() {
@@ -850,6 +888,80 @@
         let flashCountdownInterval = null;
         let trackingCycleIndex = 0;
 
+        const ADORA_SESSION_STACK_KEY = 'adora_nav_stack_v1';
+        const ADORA_SESSION_LISTING_KEY = 'adora_listing_ctx_v1';
+        const ADORA_SESSION_PRODUCT_KEY = 'adora_last_product_id_v1';
+
+        const ADORA_VALID_RESTORE_SCREENS = new Set([
+            'screen-categories',
+            'screen-listing',
+            'screen-offers',
+            'screen-wishlist',
+            'screen-cart',
+            'screen-checkout',
+            'screen-profile',
+            'screen-order-tracking',
+            'screen-product',
+        ]);
+
+        function getValidScreenStack(arr) {
+            if (!Array.isArray(arr)) return null;
+            const filtered = arr.filter((s) => typeof s === 'string' && ADORA_VALID_RESTORE_SCREENS.has(s));
+            return filtered.length ? filtered : null;
+        }
+
+        function loadListingCtxFromSession() {
+            try {
+                const raw = sessionStorage.getItem(ADORA_SESSION_LISTING_KEY);
+                if (!raw) return;
+                const o = JSON.parse(raw);
+                if (!o || typeof o !== 'object') return;
+                listingSearchQuery = o.listingSearchQuery != null ? String(o.listingSearchQuery) : '';
+                listingBrandName = o.listingBrandName != null ? o.listingBrandName : null;
+                listingBrandMainCategory = o.listingBrandMainCategory != null ? o.listingBrandMainCategory : null;
+                activeBrandKey = o.activeBrandKey != null ? o.activeBrandKey : null;
+                listingCategoryFilter = o.listingCategoryFilter != null ? o.listingCategoryFilter : null;
+                listingSubcategoryFilter = o.listingSubcategoryFilter != null ? o.listingSubcategoryFilter : null;
+                listingAdoraOnly = !!o.listingAdoraOnly;
+            } catch (_e) {}
+        }
+
+        function persistListingCtxToSession() {
+            try {
+                sessionStorage.setItem(
+                    ADORA_SESSION_LISTING_KEY,
+                    JSON.stringify({
+                        listingSearchQuery,
+                        listingBrandName,
+                        listingBrandMainCategory,
+                        activeBrandKey,
+                        listingCategoryFilter,
+                        listingSubcategoryFilter,
+                        listingAdoraOnly,
+                    })
+                );
+            } catch (_e) {}
+        }
+
+        function persistAdoraSessionState() {
+            try {
+                const stack = getValidScreenStack(adoraNavStack);
+                if (stack) sessionStorage.setItem(ADORA_SESSION_STACK_KEY, JSON.stringify(stack));
+                persistListingCtxToSession();
+                if (currentScreen === 'screen-product') {
+                    const id = currentProductDetail && currentProductDetail.id;
+                    if (id) {
+                        sessionStorage.setItem(ADORA_SESSION_PRODUCT_KEY, String(id));
+                    } else {
+                        const prev = sessionStorage.getItem(ADORA_SESSION_PRODUCT_KEY);
+                        if (!prev) sessionStorage.removeItem(ADORA_SESSION_PRODUCT_KEY);
+                    }
+                } else {
+                    sessionStorage.removeItem(ADORA_SESSION_PRODUCT_KEY);
+                }
+            } catch (_e) {}
+        }
+
         function setActiveNavForScreen(screenId) {
             const keys = ['screen-categories', 'screen-listing', 'screen-offers', 'screen-cart', 'screen-profile'];
             if (!keys.includes(screenId)) return;
@@ -865,12 +977,27 @@
         }
 
         function initAdoraNavigationHistory() {
-            const first = document.querySelector('.screen.active')?.id;
-            if (first && String(first).startsWith('screen-')) {
-                currentScreen = first;
-                adoraNavStack = [first];
-            } else {
-                adoraNavStack = [currentScreen || 'screen-categories'];
+            let restored = false;
+            try {
+                const raw = sessionStorage.getItem(ADORA_SESSION_STACK_KEY);
+                if (raw) {
+                    const parsed = getValidScreenStack(JSON.parse(raw));
+                    if (parsed && parsed.length) {
+                        adoraNavStack = parsed;
+                        currentScreen = adoraNavStack[adoraNavStack.length - 1];
+                        loadListingCtxFromSession();
+                        restored = true;
+                    }
+                }
+            } catch (_e) {}
+            if (!restored) {
+                const first = document.querySelector('.screen.active')?.id;
+                if (first && String(first).startsWith('screen-')) {
+                    currentScreen = first;
+                    adoraNavStack = [first];
+                } else {
+                    adoraNavStack = [currentScreen || 'screen-categories'];
+                }
             }
             try {
                 history.replaceState(
@@ -885,28 +1012,66 @@
             }
         }
 
-        function getExitConfirmMessage() {
-            return isRTL ? 'هل أنت متأكد من الخروج من أدورا؟' : 'Are you sure you want to leave Adora?';
+        function getExitConfirmTitle() {
+            return isRTL ? 'الخروج من التطبيق؟' : 'Leave the app?';
+        }
+
+        function getExitConfirmSubtitle() {
+            return isRTL
+                ? 'سيتم مغادرة أدورا والعودة للصفحة السابقة.'
+                : 'You will leave Adora and return to the previous page.';
+        }
+
+        function syncExitAppModalLabels() {
+            const title = document.getElementById('exit-app-modal-title');
+            const sub = document.getElementById('exit-app-modal-subtitle');
+            const yesBtn = document.getElementById('exit-app-modal-yes');
+            const noBtn = document.getElementById('exit-app-modal-no');
+            const card = document.querySelector('#exit-app-modal .exit-app-modal-card');
+            if (title) title.textContent = getExitConfirmTitle();
+            if (sub) sub.textContent = getExitConfirmSubtitle();
+            if (yesBtn) yesBtn.textContent = isRTL ? 'نعم، خروج' : 'Yes, leave';
+            if (noBtn) noBtn.textContent = isRTL ? 'لا، البقاء' : 'No, stay';
+            if (card) card.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
+        }
+
+        function showExitAppModal() {
+            const modal = document.getElementById('exit-app-modal');
+            if (!modal) return;
+            syncExitAppModalLabels();
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeExitAppModal() {
+            const modal = document.getElementById('exit-app-modal');
+            if (modal) modal.classList.add('hidden');
+            restoreBodyScrollIfIdle();
+        }
+
+        function confirmExitAppYes() {
+            closeExitAppModal();
+            try {
+                window.removeEventListener('popstate', onAdoraPopState);
+            } catch (_e) {}
+            adoraNavPopStateBound = false;
+            setTimeout(() => {
+                try {
+                    history.go(-1);
+                } catch (_e2) {}
+            }, 0);
+        }
+
+        function confirmExitAppNo() {
+            closeExitAppModal();
         }
 
         function onAdoraPopState() {
             if (adoraNavStack.length <= 1) {
-                const ok = window.confirm(getExitConfirmMessage());
-                if (!ok) {
-                    try {
-                        history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
-                    } catch (_e) {}
-                    return;
-                }
                 try {
-                    window.removeEventListener('popstate', onAdoraPopState);
+                    history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
                 } catch (_e) {}
-                adoraNavPopStateBound = false;
-                setTimeout(() => {
-                    try {
-                        history.go(-1);
-                    } catch (_e2) {}
-                }, 0);
+                showExitAppModal();
                 return;
             }
             const leaving = adoraNavStack.pop();
@@ -975,6 +1140,7 @@
             if (typeof onScreenEnter === 'function') {
                 onScreenEnter(screenId);
             }
+            persistAdoraSessionState();
         }
 
         function switchTab(screenId, btn) {
@@ -1793,6 +1959,7 @@
                 searchVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي' : 'Voice search');
             }
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
+            syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
         }
 
@@ -3062,16 +3229,48 @@
             }
         }
 
-        async function openProductDetail(id) {
-            productDetailBackScreen = currentScreen || 'screen-listing';
+        async function openProductDetail(id, opts = {}) {
+            const skipNavigate = opts.skipNavigate === true;
+            if (!skipNavigate) {
+                productDetailBackScreen = currentScreen || 'screen-listing';
+            }
             try {
                 const p = await apiFetch(`/api/products/${id}`, { requireAuth: false });
                 currentProductDetail = p;
                 fillProductDetailScreen(p);
-                navigateTo('screen-product');
+                if (!skipNavigate) {
+                    navigateTo('screen-product');
+                } else {
+                    persistAdoraSessionState();
+                }
             } catch (e) {
                 showToast(isRTL ? 'تعذر تحميل المنتج' : 'Failed to load product');
             }
+        }
+
+        async function restoreAdoraSessionRoute() {
+            const token = getStoredJwtToken();
+            if (!token) return;
+            const shell = document.getElementById('app-shell');
+            if (!shell || shell.classList.contains('hidden')) return;
+            try {
+                const raw = sessionStorage.getItem(ADORA_SESSION_STACK_KEY);
+                if (!raw) return;
+                const stack = getValidScreenStack(JSON.parse(raw));
+                if (!stack || !stack.length) return;
+                adoraNavStack = stack;
+                loadListingCtxFromSession();
+                const top = adoraNavStack[adoraNavStack.length - 1];
+                navigateTo(top, { skipHistory: true });
+                if (top === 'screen-product') {
+                    const pid = sessionStorage.getItem(ADORA_SESSION_PRODUCT_KEY);
+                    if (pid && /^\d+$/.test(pid)) {
+                        const back = adoraNavStack.length >= 2 ? adoraNavStack[adoraNavStack.length - 2] : 'screen-categories';
+                        productDetailBackScreen = back;
+                        await openProductDetail(Number(pid), { skipNavigate: true });
+                    }
+                }
+            } catch (_e) {}
         }
 
         function fillProductDetailScreen(p) {
@@ -4211,10 +4410,6 @@
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
             initAdoraNavigationHistory();
-            window.addEventListener('beforeunload', (e) => {
-                e.preventDefault();
-                e.returnValue = '';
-            });
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
@@ -4242,7 +4437,11 @@
                 btn.addEventListener('touchstart', () => btn.style.transform = 'scale(0.95)');
                 btn.addEventListener('touchend', () => btn.style.transform = 'scale(1)');
             });
-            initSplash();
+            if (shouldSkipSplashOnLoad()) {
+                skipSplashAndEnterApp();
+            } else {
+                initSplash();
+            }
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js').catch(() => {});
             }

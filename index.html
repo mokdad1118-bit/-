@@ -1140,6 +1140,83 @@
             display: none;
         }
 
+        /* تأكيد الخروج من التطبيق — فوق كل الطبقات */
+        .exit-app-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10050;
+        }
+
+        .exit-app-modal.hidden {
+            display: none;
+        }
+
+        .exit-app-modal-card {
+            background: white;
+            border-radius: 28px;
+            padding: 28px 24px 24px;
+            width: min(380px, 100%);
+            box-shadow: 0 25px 80px rgba(15, 23, 42, 0.35);
+            text-align: center;
+            animation: slideInRight 0.35s ease;
+        }
+
+        .exit-app-modal-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, #ede9fe 0%, #ddd6fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6d28d9;
+            font-size: 1.5rem;
+        }
+
+        .exit-app-modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .exit-app-modal-actions button {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .exit-app-btn-no {
+            border: 2px solid #e5e7eb;
+            background: #f9fafb;
+            color: #374151;
+        }
+
+        .exit-app-btn-no:active {
+            transform: scale(0.98);
+        }
+
+        .exit-app-btn-yes {
+            border: none;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            box-shadow: 0 10px 28px rgba(124, 58, 237, 0.45);
+        }
+
+        .exit-app-btn-yes:active {
+            transform: scale(0.98);
+        }
+
         .order-options-content {
             background: white;
             border-radius: 32px;
@@ -3109,6 +3186,21 @@
                 </button>
             </div>
             <button type="button" class="w-full text-sm font-semibold text-gray-500" onclick="closeOrderOptions()" data-en="Cancel" data-ar="إلغاء">Cancel</button>
+        </div>
+    </div>
+
+    <!-- تأكيد الخروج من التطبيق (زر الرجوع في آخر مستوى) -->
+    <div id="exit-app-modal" class="exit-app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="exit-app-modal-title" onclick="if (event.target === this) confirmExitAppNo()">
+        <div class="exit-app-modal-card" onclick="event.stopPropagation()">
+            <div class="exit-app-modal-icon" aria-hidden="true">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 id="exit-app-modal-title" class="text-lg font-bold text-gray-900 leading-snug px-1">الخروج من التطبيق؟</h3>
+            <p id="exit-app-modal-subtitle" class="text-sm text-gray-500 mt-2 leading-relaxed">سيتم مغادرة أدورا والعودة للصفحة السابقة.</p>
+            <div class="exit-app-modal-actions">
+                <button type="button" id="exit-app-modal-no" class="exit-app-btn-no" onclick="confirmExitAppNo()">لا، البقاء</button>
+                <button type="button" id="exit-app-modal-yes" class="exit-app-btn-yes" onclick="confirmExitAppYes()">نعم، خروج</button>
+            </div>
         </div>
     </div>
 
