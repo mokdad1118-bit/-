@@ -1036,7 +1036,15 @@ function orderStatusNotifyMessageAr(status) {
 
 app.post("/api/orders", requireAuth, async (req, res) => {
   try {
-    const { products = [], total_price = 0, payment_method = "cod", source = "system" } = req.body;
+    const {
+      products = [],
+      total_price = 0,
+      payment_method = "cod",
+      source = "system",
+      shipping_address: shippingAddressBody,
+    } = req.body;
+    const shippingAddress =
+      shippingAddressBody != null && String(shippingAddressBody).trim() ? String(shippingAddressBody).trim().slice(0, 2000) : null;
     const productLines = Array.isArray(products) ? products : [];
     if (productLines.length === 0) {
       return res.status(400).json({ error: "Order must include at least one product" });
@@ -1045,8 +1053,8 @@ app.post("/api/orders", requireAuth, async (req, res) => {
     const status = "pending_receipt";
     const orderNo = `ORD-${Math.floor(Math.random() * 900000 + 100000)}`;
     const result = await run(
-      `INSERT INTO orders (order_no, user_id, total_price, status, payment_method, source) VALUES (?, ?, ?, ?, ?, ?)`,
-      [orderNo, req.user.id, Number(total_price || 0), status, payment_method, source]
+      `INSERT INTO orders (order_no, user_id, total_price, status, payment_method, source, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [orderNo, req.user.id, Number(total_price || 0), status, payment_method, source, shippingAddress]
     );
 
     await run(`INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`, [result.id, status]);

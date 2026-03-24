@@ -598,6 +598,18 @@
         .main-header.scrolled {
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
+
+        /* شريط عنوان/رجوع يبقى ظاهراً تحت الهيدر أثناء التمرير */
+        .adora-screen-toolbar {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 4.5rem;
+            z-index: 35;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
         
         .logo-text {
             background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
@@ -2368,7 +2380,7 @@
 
     <!-- ==================== PRODUCT LISTING PAGE ==================== -->
     <div id="screen-listing" class="screen bg-gray-50">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-3">
+        <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between mb-2">
                 <button type="button" onclick="goBackFromListing()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-left text-gray-800"></i>
@@ -2426,9 +2438,9 @@
 
     <!-- ==================== OUR OFFERS ==================== -->
     <div id="screen-offers" class="screen bg-gray-50">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-3">
+        <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <button type="button" onclick="navigateTo('screen-categories')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <button type="button" onclick="history.back()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-left text-gray-800"></i>
                 </button>
                 <h1 class="text-lg font-bold text-gray-900 text-center flex-1 px-2 truncate" data-en="Our offers" data-ar="عروضنا">عروضنا</h1>
@@ -2443,9 +2455,9 @@
 
     <!-- ==================== WISHLIST (المفضلة — محلياً) ==================== -->
     <div id="screen-wishlist" class="screen bg-gray-50">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-3">
+        <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between gap-2">
-                <button type="button" onclick="navigateTo('screen-profile')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <button type="button" onclick="history.back()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-left text-gray-800"></i>
                 </button>
                 <h1 class="text-lg font-bold text-gray-900 text-center flex-1 truncate" data-en="Wishlist" data-ar="المفضلة">المفضلة</h1>
@@ -2459,6 +2471,11 @@
 
     <!-- ==================== PRODUCT DETAILS PAGE ==================== -->
     <div id="screen-product" class="screen bg-white">
+        <div class="adora-screen-toolbar px-4 py-2 flex items-center border-b border-gray-100">
+            <button type="button" onclick="backFromProductDetail()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
+                <i class="fas fa-arrow-left text-gray-800"></i>
+            </button>
+        </div>
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[450px]" id="product-gallery">
                 <div class="snap-center w-full flex-shrink-0 relative min-w-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
@@ -2466,10 +2483,7 @@
                 </div>
             </div>
             
-            <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10">
-                <button type="button" onclick="backFromProductDetail()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition">
-                    <i class="fas fa-arrow-left text-gray-800"></i>
-                </button>
+            <div class="absolute top-0 left-0 right-0 p-4 flex justify-end items-center z-10">
                 <div class="flex gap-3">
                     <button type="button" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Share">
                         <i class="fas fa-share-alt text-gray-800"></i>
@@ -2606,9 +2620,9 @@
 
     <!-- ==================== CART PAGE ==================== -->
     <div id="screen-cart" class="screen bg-gray-50">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+        <div class="adora-screen-toolbar px-4 py-4 flex items-center justify-between border-b border-gray-200">
             <div class="flex items-center gap-3">
-                <button onclick="navigateTo('screen-categories')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <button type="button" onclick="history.back()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-left text-gray-800"></i>
                 </button>
                 <h1 class="text-xl font-bold text-gray-900" data-en="Shopping Cart" data-ar="سلة التسوق">Shopping Cart</h1>
@@ -2671,8 +2685,8 @@
 
     <!-- ==================== CHECKOUT (غير مستخدمة — الطلب من السلة والنافذة المنبثقة) ==================== -->
     <div id="screen-checkout" class="screen bg-gray-50 hidden">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-            <button type="button" onclick="navigateTo('screen-cart')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+        <div class="adora-screen-toolbar px-4 py-4 flex items-center gap-3 border-b border-gray-200">
+            <button type="button" onclick="history.back()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                 <i class="fas fa-arrow-left text-gray-800"></i>
             </button>
             <h1 class="text-xl font-bold text-gray-900" data-en="Checkout" data-ar="إتمام الطلب">إتمام الطلب</h1>
@@ -2788,16 +2802,24 @@
                 <i class="fas fa-chevron-right text-gray-300"></i>
             </button>
 
-            <button class="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition active:scale-95">
-                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-xl">
-                    <i class="fas fa-map-marker-alt"></i>
+            <div class="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <button type="button" onclick="toggleProfileDeliveryAddressSection()" class="w-full p-4 flex items-center gap-4 hover:bg-gray-50/80 transition active:scale-[0.99] text-start">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-xl shrink-0">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-gray-900" data-en="Delivery address" data-ar="عنوان التوصيل">عنوان التوصيل</h3>
+                        <p class="text-xs text-gray-500 mt-0.5 leading-relaxed" data-en="Used in your order summary and WhatsApp message." data-ar="يُستخدم في ملخص الطلب ورسالة واتساب.">يُستخدم في ملخص الطلب ورسالة واتساب.</p>
+                    </div>
+                    <i id="profile-delivery-chevron" class="fas fa-chevron-down text-gray-400 shrink-0 transition-transform"></i>
+                </button>
+                <div id="profile-delivery-address-section" class="hidden border-t border-gray-100 px-4 pb-4 pt-2 space-y-2">
+                    <textarea id="profile-delivery-address" rows="4" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none" data-en-ph="Neighborhood, street, building, phone…" data-ar-ph="المنطقة، الشارع، البناء، رقم الهاتف…"></textarea>
+                    <button type="button" onclick="saveDeliveryAddressFromProfile()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold text-sm shadow-sm hover:bg-purple-700 active:scale-[0.98] transition">
+                        <span data-en="Save address" data-ar="حفظ العنوان">حفظ العنوان</span>
+                    </button>
                 </div>
-                <div class="flex-1 text-left">
-                    <h3 class="font-bold text-gray-900" data-en="Addresses" data-ar="العناوين">Addresses</h3>
-                    <p class="text-xs text-gray-500 mt-0.5" data-en="Manage delivery addresses" data-ar="إدارة عناوين التوصيل">Manage delivery addresses</p>
-                </div>
-                <i class="fas fa-chevron-right text-gray-300"></i>
-            </button>
+            </div>
 
             <button class="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition active:scale-95">
                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 text-xl">
@@ -2839,8 +2861,8 @@
 
     <!-- ==================== ORDER TRACKING PAGE ==================== -->
     <div id="screen-order-tracking" class="screen bg-gray-50">
-        <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center gap-3">
-            <button onclick="navigateTo('screen-profile')" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+        <div class="adora-screen-toolbar px-4 py-4 flex items-center gap-3 border-b border-gray-200">
+            <button type="button" onclick="history.back()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                 <i class="fas fa-arrow-left text-gray-800"></i>
             </button>
             <h1 class="text-xl font-bold text-gray-900" data-en="Order Tracking" data-ar="تتبع الطلب">Order Tracking</h1>
@@ -3042,8 +3064,16 @@
                     <span id="checkout-order-id">#ORD-4218</span>
                 </div>
                 <div id="checkout-items"></div>
-                <div class="flex justify-between text-sm font-semibold text-gray-900">
-                    <span data-en="Total" data-ar="الإجمالي">Total</span>
+                <div id="checkout-before-discount-row" class="flex justify-between text-xs text-gray-500" style="display: none">
+                    <span data-en="Subtotal (before discount)" data-ar="المجموع قبل الخصم">المجموع قبل الخصم</span>
+                    <span id="checkout-subtotal-before">—</span>
+                </div>
+                <div id="checkout-discount-row" class="flex justify-between text-sm text-green-700 font-medium" style="display: none">
+                    <span data-en="Discount" data-ar="الخصم">الخصم</span>
+                    <span id="checkout-discount-amount">—</span>
+                </div>
+                <div class="flex justify-between text-sm font-semibold text-gray-900 pt-1 border-t border-gray-100">
+                    <span data-en="Total to pay" data-ar="الإجمالي للدفع">الإجمالي للدفع</span>
                     <span id="checkout-total">239,980 ل.س</span>
                 </div>
             </div>

@@ -250,6 +250,7 @@ async function initDb() {
   await migrateBrandsShowcaseJson();
   await migrateAppBannersTable();
   await migrateOrderStatusesToV2();
+  await migrateOrdersShippingAddressColumn();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -364,6 +365,10 @@ async function migrateAppBannersTable() {
     active INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+}
+
+async function migrateOrdersShippingAddressColumn() {
+  await run(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address TEXT`);
 }
 
 async function migrateOrderStatusesToV2() {

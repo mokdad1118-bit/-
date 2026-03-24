@@ -519,15 +519,52 @@
         
         // State Management
         let currentScreen = 'screen-categories';
+        /** مكدس شاشات داخلي يُزامن مع history.pushState لزر الرجوع على الموبايل */
+        let adoraNavStack = ['screen-categories'];
+        let adoraNavPopStateBound = false;
         let cartCount = 0;
         let currentQty = 1;
         let isRTL = localStorage.getItem('adora_rtl') === '1';
         let pendingOrder = null;
         let selectedPaymentMethod = 'cod';
-        const shippingAddress = {
+        const ADORA_DELIVERY_ADDRESS_KEY = 'adora_delivery_address_v1';
+        const defaultShippingAddress = {
             en: 'Damascus, Syria — coordinated with Adora',
             ar: 'دمشق، سوريا — يتم التنسيق مع أدورا'
         };
+        function getSavedDeliveryAddressText() {
+            try {
+                return String(localStorage.getItem(ADORA_DELIVERY_ADDRESS_KEY) || '').trim();
+            } catch (_e) {
+                return '';
+            }
+        }
+        function getShippingAddress() {
+            const t = getSavedDeliveryAddressText();
+            if (t) return { ar: t, en: t };
+            return { ...defaultShippingAddress };
+        }
+        function loadDeliveryAddressField() {
+            const ta = document.getElementById('profile-delivery-address');
+            if (ta) ta.value = getSavedDeliveryAddressText();
+        }
+        function toggleProfileDeliveryAddressSection() {
+            const sec = document.getElementById('profile-delivery-address-section');
+            const ch = document.getElementById('profile-delivery-chevron');
+            if (!sec) return;
+            sec.classList.toggle('hidden');
+            const hidden = sec.classList.contains('hidden');
+            if (ch) ch.style.transform = hidden ? '' : 'rotate(180deg)';
+            if (!hidden) loadDeliveryAddressField();
+        }
+        function saveDeliveryAddressFromProfile() {
+            const ta = document.getElementById('profile-delivery-address');
+            const v = String(ta?.value || '').trim().slice(0, 2000);
+            try {
+                localStorage.setItem(ADORA_DELIVERY_ADDRESS_KEY, v);
+            } catch (_e) {}
+            showToast(isRTL ? 'تم حفظ عنوان التوصيل' : 'Delivery address saved');
+        }
         const paymentOptions = {
             cod: { en: 'Cash on Delivery', ar: 'الدفع عند الاستلام' },
             card: { en: 'Card', ar: 'بطاقة' }
@@ -535,6 +572,22 @@
         const ADORA_CART_KEY = 'adora_cart_v2';
         let cartItems = [];
         const cartTotals = { subtotal: 0, discount: 0, shipping: 0, total: 0 };
+
+        function computeTotalsForCartLines(items) {
+            let subtotal = 0;
+            let discount = 0;
+            const arr = Array.isArray(items) ? items : [];
+            for (const it of arr) {
+                const q = Number(it.qty || 1);
+                const unit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
+                const discPct = Number(it.discountPct || 0);
+                const lineOrig = q * (discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit);
+                const lineSale = q * unit;
+                subtotal += lineSale;
+                discount += Math.max(0, lineOrig - lineSale);
+            }
+            return { subtotal, discount, shipping: 0, total: subtotal };
+        }
         let filterMinRating = 0;
 
         function formatSyp(amount) {
@@ -807,9 +860,78 @@
             }
         }
 
+        function initAdoraNavigationHistory() {
+            const first = document.querySelector('.screen.active')?.id;
+            if (first && String(first).startsWith('screen-')) {
+                currentScreen = first;
+                adoraNavStack = [first];
+            } else {
+                adoraNavStack = [currentScreen || 'screen-categories'];
+            }
+            try {
+                history.replaceState(
+                    { adora: 1, screen: adoraNavStack[adoraNavStack.length - 1] },
+                    '',
+                    window.location.pathname + window.location.search + window.location.hash
+                );
+            } catch (_e) {}
+            if (!adoraNavPopStateBound) {
+                adoraNavPopStateBound = true;
+                window.addEventListener('popstate', onAdoraPopState);
+            }
+        }
+
+        function onAdoraPopState() {
+            if (adoraNavStack.length <= 1) {
+                try {
+                    history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
+                } catch (_e) {}
+                return;
+            }
+            const leaving = adoraNavStack.pop();
+            if (leaving === 'screen-listing') {
+                listingSearchQuery = '';
+                listingBrandName = null;
+                listingBrandMainCategory = null;
+                activeBrandKey = null;
+                listingCategoryFilter = null;
+                listingSubcategoryFilter = null;
+                listingAdoraOnly = false;
+                renderBrandCards();
+                const status = document.getElementById('brand-status');
+                if (status) {
+                    status.textContent = isRTL ? status.getAttribute('data-ar') : status.getAttribute('data-en');
+                }
+            }
+            const prev = adoraNavStack[adoraNavStack.length - 1];
+            navigateTo(prev, { skipHistory: true });
+        }
+
         // Navigation
-        function navigateTo(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => {
+        function navigateTo(screenId, opts = {}) {
+            const rootTab = opts.rootTab === true;
+            const skipHistory = opts.skipHistory === true;
+
+            if (rootTab) {
+                adoraNavStack = [screenId];
+                try {
+                    history.replaceState(
+                        { adora: 1, screen: screenId },
+                        '',
+                        window.location.pathname + window.location.search + window.location.hash
+                    );
+                } catch (_e) {}
+            } else if (!skipHistory) {
+                const top = adoraNavStack[adoraNavStack.length - 1];
+                if (top !== screenId) {
+                    adoraNavStack.push(screenId);
+                    try {
+                        history.pushState({ adora: 1, screen: screenId }, '');
+                    } catch (_e) {}
+                }
+            }
+
+            document.querySelectorAll('.screen').forEach((screen) => {
                 screen.classList.remove('active');
                 setTimeout(() => {
                     if (!screen.classList.contains('active')) {
@@ -817,7 +939,7 @@
                     }
                 }, 300);
             });
-            
+
             const target = document.getElementById(screenId);
             if (!target) {
                 console.warn('[navigateTo] Missing screen:', screenId);
@@ -825,7 +947,7 @@
             }
             target.style.display = 'block';
             setTimeout(() => target.classList.add('active'), 10);
-            
+
             currentScreen = screenId;
             window.scrollTo(0, 0);
             setActiveNavForScreen(screenId);
@@ -845,7 +967,7 @@
                 const st = document.getElementById('brand-status');
                 if (st) st.textContent = isRTL ? st.getAttribute('data-ar') : st.getAttribute('data-en');
             }
-            navigateTo(screenId);
+            navigateTo(screenId, { rootTab: true });
         }
 
         // ==================== AUTH + API HELPERS ====================
@@ -1265,6 +1387,7 @@
                 refreshSideMenuHeader().catch(() => {});
                 updateSiteRatingLoginHint();
                 updateProfileWishlistUi();
+                loadDeliveryAddressField();
                 return;
             }
 
@@ -1334,6 +1457,7 @@
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
             updateProfileWishlistUi();
+            loadDeliveryAddressField();
         }
 
         function updateSiteRatingLoginHint() {
@@ -1631,6 +1755,11 @@
             if (productReviewTa) {
                 const ph = isRTL ? productReviewTa.getAttribute('data-ar-ph') : productReviewTa.getAttribute('data-en-ph');
                 if (ph) productReviewTa.setAttribute('placeholder', ph);
+            }
+            const profileDeliveryTa = document.getElementById('profile-delivery-address');
+            if (profileDeliveryTa) {
+                const pdh = isRTL ? profileDeliveryTa.getAttribute('data-ar-ph') : profileDeliveryTa.getAttribute('data-en-ph');
+                if (pdh) profileDeliveryTa.setAttribute('placeholder', pdh);
             }
             const searchVoiceBtn = document.getElementById('search-voice-btn');
             if (searchVoiceBtn) {
@@ -2074,16 +2203,18 @@
             const itemsContainer = document.getElementById('checkout-items');
             const locale = isRTL ? 'ar' : 'en';
             const sel = getSelectedCartItems();
-            let sum = 0;
+            const totals = computeTotalsForCartLines(sel);
             if (itemsContainer) {
                 itemsContainer.innerHTML = sel
                     .map((item) => {
                         const name = locale === 'ar' ? item.name.ar : item.name.en;
                         const unit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
                         const line = unit * Number(item.qty || 1);
-                        sum += line;
+                        const discPct = Number(item.discountPct || 0);
+                        const oldU = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
                         const br = resolveDisplayBrand(item.brand);
                         const meta = [item.size, item.color].filter(Boolean).join(' · ');
+                        const oldLine = discPct > 0 ? `<span class="text-[10px] text-gray-400 line-through ms-1">${formatSyp(oldU * Number(item.qty || 1))}</span>` : '';
                         return `<div class="checkout-item">
                                 <div class="flex justify-between items-start gap-2">
                                     <div>
@@ -2093,19 +2224,31 @@
                                     </div>
                                     <span class="text-[10px] text-gray-500 shrink-0">${item.qty} × ${formatSyp(unit)}</span>
                                 </div>
-                                <span class="text-right text-[11px] text-gray-400">${locale === 'ar' ? 'المجموع' : 'Subtotal'}: ${formatSyp(line)}</span>
+                                <span class="text-right text-[11px] text-gray-400">${locale === 'ar' ? 'المجموع' : 'Subtotal'}: ${formatSyp(line)}${oldLine}</span>
                             </div>`;
                     })
                     .join('');
             }
+            const beforeRow = document.getElementById('checkout-before-discount-row');
+            const beforeEl = document.getElementById('checkout-subtotal-before');
+            const discRow = document.getElementById('checkout-discount-row');
+            const discAmt = document.getElementById('checkout-discount-amount');
+            const showDisc = totals.discount > 0;
+            if (beforeRow) beforeRow.style.display = showDisc ? 'flex' : 'none';
+            if (discRow) discRow.style.display = showDisc ? 'flex' : 'none';
+            if (showDisc) {
+                if (beforeEl) beforeEl.textContent = formatSyp(totals.subtotal + totals.discount);
+                if (discAmt) discAmt.textContent = `−${formatSyp(totals.discount)}`;
+            }
             const totalEl = document.getElementById('checkout-total');
             if (totalEl) {
-                totalEl.textContent = formatSyp(sum);
+                totalEl.textContent = formatSyp(totals.subtotal);
             }
             const orderIdEl = document.getElementById('checkout-order-id');
             if (orderIdEl) orderIdEl.textContent = latestOrderId;
             const shippingEl = document.getElementById('checkout-shipping-address');
-            if (shippingEl) shippingEl.textContent = locale === 'ar' ? shippingAddress.ar : shippingAddress.en;
+            const ship = getShippingAddress();
+            if (shippingEl) shippingEl.textContent = locale === 'ar' ? ship.ar : ship.en;
             const shippingLabelEl = document.getElementById('checkout-shipping-label');
             if (shippingLabelEl) shippingLabelEl.textContent = locale === 'ar' ? translationMap.shippingLabel : 'Shipping:';
             updatePaymentSelection();
@@ -2123,18 +2266,12 @@
         function buildOrderSummary() {
             const id = `ORD-${Math.floor(Math.random() * 9000) + 1000}`;
             const items = getSelectedCartItems();
-            let subtotal = 0;
-            for (const it of items) {
-                const q = Number(it.qty || 1);
-                const unit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
-                subtotal += q * unit;
-            }
-            const totals = { subtotal, discount: 0, shipping: 0, total: subtotal };
+            const totals = computeTotalsForCartLines(items);
             return {
                 id,
                 items,
                 totals,
-                shippingAddress,
+                shippingAddress: getShippingAddress(),
                 paymentMethod: selectedPaymentMethod
             };
         }
@@ -2181,6 +2318,7 @@
                     };
                 });
 
+                const shipLine = getSavedDeliveryAddressText() || (isRTL ? order.shippingAddress?.ar : order.shippingAddress?.en) || '';
                 const created = await apiFetch('/api/orders', {
                     method: 'POST',
                     requireAuth: true,
@@ -2189,6 +2327,7 @@
                         total_price: order.totals?.total ?? 0,
                         payment_method: order.paymentMethod,
                         source,
+                        shipping_address: shipLine.slice(0, 2000),
                     },
                 });
 
@@ -2206,7 +2345,7 @@
                 persistCart();
 
                 showToast(isRTL ? translationMap.orderSent : 'Order submitted to system');
-                setTimeout(() => navigateTo('screen-profile'), 1000);
+                setTimeout(() => navigateTo('screen-profile', { rootTab: true }), 1000);
                 return order;
             } catch (e) {
                 shouldPersistOrderStatusUpdates = false;
@@ -2215,7 +2354,7 @@
                 latestOrderStatus = 'processing';
                 updateOrderTrackingUI();
                 showToast(isRTL ? `فشل إرسال الطلب: ${e.message}` : `Failed to submit order: ${e.message}`);
-                setTimeout(() => navigateTo('screen-profile'), 1000);
+                setTimeout(() => navigateTo('screen-profile', { rootTab: true }), 1000);
                 return order;
             }
         }
@@ -2270,6 +2409,8 @@
                 const br = resolveDisplayBrand(item.brand);
                 const unit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
                 const line = unit * Number(item.qty || 1);
+                const discPct = Number(item.discountPct || 0);
+                const listUnit = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
                 const img = absoluteMediaUrl(item.image);
                 ar.push(`▸ صنف ${i + 1}`);
                 ar.push(`   المنتج: ${item.name.ar}`);
@@ -2277,7 +2418,8 @@
                 if (item.size) ar.push(`   المقاس: ${item.size}`);
                 if (item.color) ar.push(`   اللون: ${item.color}`);
                 ar.push(`   الكمية: ${item.qty}`);
-                ar.push(`   سعر الوحدة: ${formatSyp(unit)}`);
+                ar.push(`   سعر الوحدة (بعد الخصم): ${formatSyp(unit)}`);
+                if (discPct > 0) ar.push(`   السعر قبل الخصم: ${formatSyp(listUnit)}`);
                 ar.push(`   المجموع: ${formatSyp(line)}`);
                 if (img) ar.push(`   رابط صورة المنتج: ${img}`);
                 ar.push('');
@@ -2287,17 +2429,30 @@
                 if (item.size) en.push(`   Size: ${item.size}`);
                 if (item.color) en.push(`   Color: ${item.color}`);
                 en.push(`   Qty: ${item.qty}`);
-                en.push(`   Unit: ${formatSyp(unit)}`);
+                en.push(`   Unit (after discount): ${formatSyp(unit)}`);
+                if (discPct > 0) en.push(`   List price: ${formatSyp(listUnit)}`);
                 en.push(`   Line total: ${formatSyp(line)}`);
                 if (img) en.push(`   Product image: ${img}`);
                 en.push('');
             });
-            ar.push(`💰 الإجمالي: ${formatSyp(order.totals.total)}`);
+            const td = order.totals || {};
+            const payTotal = Number(td.total != null ? td.total : td.subtotal || 0);
+            const discAll = Number(td.discount || 0);
+            const beforeAll = payTotal + discAll;
+            if (discAll > 0) {
+                ar.push(`📊 المجموع قبل الخصم: ${formatSyp(beforeAll)}`);
+                ar.push(`🏷 إجمالي الخصم: ${formatSyp(discAll)}`);
+                en.push(`📊 Subtotal before discount: ${formatSyp(beforeAll)}`);
+                en.push(`🏷 Total discount: ${formatSyp(discAll)}`);
+            }
+            ar.push(`💰 الإجمالي للدفع: ${formatSyp(payTotal)}`);
             ar.push(`💳 طريقة الدفع: ${payAr}`);
-            ar.push(`📍 عنوان التوصيل: ${order.shippingAddress.ar}`);
-            en.push(`💰 Total: ${formatSyp(order.totals.total)}`);
+            const shipAr = order.shippingAddress?.ar ?? getShippingAddress().ar;
+            const shipEn = order.shippingAddress?.en ?? getShippingAddress().en;
+            ar.push(`📍 عنوان التوصيل: ${shipAr}`);
+            en.push(`💰 Total to pay: ${formatSyp(payTotal)}`);
             en.push(`💳 Payment: ${payEn}`);
-            en.push(`📍 Shipping: ${order.shippingAddress.en}`);
+            en.push(`📍 Shipping: ${shipEn}`);
             return [...ar, '', '──────────────', 'English (same order):', '', ...en].join('\n');
         }
 
@@ -2551,19 +2706,7 @@
         }
 
         function goBackFromListing() {
-            listingSearchQuery = '';
-            listingBrandName = null;
-            listingBrandMainCategory = null;
-            activeBrandKey = null;
-            listingCategoryFilter = null;
-            listingSubcategoryFilter = null;
-            listingAdoraOnly = false;
-            renderBrandCards();
-            const status = document.getElementById('brand-status');
-            if (status) {
-                status.textContent = isRTL ? status.getAttribute('data-ar') : status.getAttribute('data-en');
-            }
-            navigateTo('screen-categories');
+            history.back();
         }
 
         function updateListingBrandMainCatBar() {
@@ -3195,7 +3338,7 @@
         }
 
         function backFromProductDetail() {
-            navigateTo(productDetailBackScreen);
+            history.back();
         }
 
         function captureProductDeepLinkFromUrl() {
@@ -3215,7 +3358,11 @@
                 u.searchParams.delete('p');
                 u.searchParams.delete('product');
                 const q = u.searchParams.toString();
-                history.replaceState({}, '', u.pathname + (q ? `?${q}` : '') + u.hash);
+                history.replaceState(
+                    { adora: 1, screen: currentScreen },
+                    '',
+                    u.pathname + (q ? `?${q}` : '') + u.hash
+                );
             } catch (_e) {}
         }
 
@@ -4036,6 +4183,7 @@
                 }
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
+            initAdoraNavigationHistory();
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
