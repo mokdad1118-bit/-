@@ -26,7 +26,7 @@
         function applySplashCtaLang() {
             const label = document.getElementById('splash-cta-label');
             const icon = document.getElementById('splash-cta-icon');
-            const rtl = localStorage.getItem('adora_rtl') === '1';
+            const rtl = localStorage.getItem('adora_rtl') !== '0';
             if (label) {
                 label.textContent = rtl ? label.getAttribute('data-ar') : label.getAttribute('data-en');
             }
@@ -524,7 +524,8 @@
         let adoraNavPopStateBound = false;
         let cartCount = 0;
         let currentQty = 1;
-        let isRTL = localStorage.getItem('adora_rtl') === '1';
+        /** الافتراضي عربي؛ الإنجليزي فقط عند اختيار المستخدم (adora_rtl === '0') — لا يُربَط بلغة المتصفح */
+        let isRTL = localStorage.getItem('adora_rtl') !== '0';
         let pendingOrder = null;
         let selectedPaymentMethod = 'cod';
         const ADORA_DELIVERY_ADDRESS_KEY = 'adora_delivery_address_v1';
@@ -590,9 +591,12 @@
         }
         let filterMinRating = 0;
 
+        /** أرقام 0–9 لاتينية دائماً بغض النظر عن لغة الواجهة */
+        const ADORA_NUMBER_LOCALE = 'en-US';
+
         function formatSyp(amount) {
             const n = Number(amount || 0);
-            const s = (Number.isFinite(n) ? n : 0).toLocaleString(isRTL ? 'ar-SY' : 'en-US', { maximumFractionDigits: 0 });
+            const s = (Number.isFinite(n) ? n : 0).toLocaleString(ADORA_NUMBER_LOCALE, { maximumFractionDigits: 0 });
             return `${s} ل.س`;
         }
 
@@ -881,11 +885,28 @@
             }
         }
 
+        function getExitConfirmMessage() {
+            return isRTL ? 'هل أنت متأكد من الخروج من أدورا؟' : 'Are you sure you want to leave Adora?';
+        }
+
         function onAdoraPopState() {
             if (adoraNavStack.length <= 1) {
+                const ok = window.confirm(getExitConfirmMessage());
+                if (!ok) {
+                    try {
+                        history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
+                    } catch (_e) {}
+                    return;
+                }
                 try {
-                    history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
+                    window.removeEventListener('popstate', onAdoraPopState);
                 } catch (_e) {}
+                adoraNavPopStateBound = false;
+                setTimeout(() => {
+                    try {
+                        history.go(-1);
+                    } catch (_e2) {}
+                }, 0);
                 return;
             }
             const leaving = adoraNavStack.pop();
@@ -1571,7 +1592,9 @@
                                   ? m.title_ar
                                   : m.title_en;
                             const text = isInApp ? (m.message || '') : isRTL ? (m.body_ar || '') : (m.body_en || '');
-                            const dt = m.created_at ? new Date(m.created_at).toLocaleString(isRTL ? 'ar-SA' : 'en-US') : '';
+                            const dt = m.created_at
+                                ? new Date(m.created_at).toLocaleString(ADORA_NUMBER_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
+                                : '';
                             const unread = !m.read ? ' border-violet-200 bg-violet-50/50' : '';
                             const imgUrl =
                                 isInApp && m.image_url && /^https:\/\//i.test(String(m.image_url))
@@ -1622,7 +1645,7 @@
             const d = new Date(dateStr);
             if (isNaN(d.getTime())) return dateStr;
             try {
-                return isRTL ? d.toLocaleDateString('ar-SA') : d.toLocaleDateString('en-US');
+                return d.toLocaleDateString(ADORA_NUMBER_LOCALE, { year: 'numeric', month: 'short', day: 'numeric' });
             } catch {
                 return d.toDateString();
             }
@@ -1721,7 +1744,11 @@
 
         // Language Toggle
         function applyAppLanguage() {
-            document.body.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
+            const dir = isRTL ? 'rtl' : 'ltr';
+            const lang = isRTL ? 'ar' : 'en';
+            document.documentElement.setAttribute('dir', dir);
+            document.documentElement.setAttribute('lang', lang);
+            document.body.setAttribute('dir', dir);
             document.getElementById('lang-text').textContent = isRTL ? 'AR' : 'EN';
             
             document.querySelectorAll('[data-en]').forEach((el) => {
@@ -4184,6 +4211,10 @@
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
             initAdoraNavigationHistory();
+            window.addEventListener('beforeunload', (e) => {
+                e.preventDefault();
+                e.returnValue = '';
+            });
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
