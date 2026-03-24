@@ -1498,7 +1498,10 @@ initDb()
   app.set("io", io);
 
   server.listen(PORT, "0.0.0.0", () => {
-    const publicHint = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
+    const publicHint =
+      process.env.PUBLIC_URL ||
+      process.env.RENDER_EXTERNAL_URL ||
+      `http://localhost:${PORT}`;
     // eslint-disable-next-line no-console
     console.log(`Adora listening on 0.0.0.0:${PORT} [${NODE_ENV}]`);
     // eslint-disable-next-line no-console
