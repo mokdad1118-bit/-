@@ -1,2 +1,2 @@
-/* فارغ = نفس أصل الصفحة (تطوير محلي). للنشر: اضبط ADORA_API_BASE في Netlify أو عدّل هذا الملف. */
-window.ADORA_API_BASE = "";
+/* API base for deployed frontend */
+window.ADORA_API_BASE = "https://adora-backend-qi3n.onrender.com";

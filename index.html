@@ -9,6 +9,7 @@
     <!-- رابط متجر التطبيق أو ملف APK (https://...) — أو اتركه فارغاً واضبط ADORA_APP_DOWNLOAD_URL في السيرفر -->
     <meta name="adora-app-download-url" content="">
     <meta name="theme-color" content="#7c3aed">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Adora">
@@ -17,7 +18,7 @@
     <link rel="icon" href="/icons/adora-icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/adora-icon.svg">
     <title>Adora | Premium Fashion</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/tailwind.bundle.css">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -104,37 +105,27 @@
             opacity: 1;
         }
         
-        .splash-slide-visual {
+        .splash-slide-photo {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .splash-slide-center-brand {
             position: absolute;
             inset: 0;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
-        }
-        .splash-slide--1 {
-            background: linear-gradient(160deg, #1e1b4b 0%, #4c1d95 40%, #7c3aed 100%);
-        }
-        .splash-slide--2 {
-            background: linear-gradient(160deg, #312e81 0%, #4338ca 45%, #6366f1 100%);
-        }
-        .splash-slide--3 {
-            background: linear-gradient(160deg, #4a044e 0%, #86198f 45%, #c026d3 100%);
-        }
-        .splash-slide--4 {
-            background: linear-gradient(160deg, #0f172a 0%, #334155 50%, #64748b 100%);
+            pointer-events: none;
+            z-index: 1;
         }
         .splash-brand-icon {
             width: clamp(88px, 22vw, 120px);
             height: clamp(88px, 22vw, 120px);
             object-fit: contain;
             filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.35));
-        }
-        .splash-slide-fa {
-            font-size: clamp(3.5rem, 15vw, 5rem);
-            color: rgba(255, 255, 255, 0.92);
-            text-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         }
 
         /* شاشات قصيرة جداً (هواتف صغيرة) */
@@ -1926,24 +1917,19 @@
         <div class="splash-screen-inner">
         <div class="splash-slider">
             <div class="splash-slide active" data-category="Adora | أدورا">
-                <div class="splash-slide-visual splash-slide--1">
-                    <img src="icons/adora-icon.svg" class="splash-brand-icon" width="120" height="120" alt="Adora">
+                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="Adora" fetchpriority="high" decoding="async">
+                <div class="splash-slide-center-brand" aria-hidden="true">
+                    <img src="icons/adora-icon.svg" class="splash-brand-icon" width="120" height="120" alt="">
                 </div>
             </div>
             <div class="splash-slide" data-category="Men | رجالي">
-                <div class="splash-slide-visual splash-slide--2">
-                    <i class="fas fa-male splash-slide-fa" aria-hidden="true"></i>
-                </div>
+                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="رجالي" loading="lazy" decoding="async">
             </div>
             <div class="splash-slide" data-category="Women | نسائي">
-                <div class="splash-slide-visual splash-slide--3">
-                    <i class="fas fa-female splash-slide-fa" aria-hidden="true"></i>
-                </div>
+                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="نسائي" loading="lazy" decoding="async">
             </div>
             <div class="splash-slide" data-category="Kids | ولادي">
-                <div class="splash-slide-visual splash-slide--4">
-                    <i class="fas fa-child splash-slide-fa" aria-hidden="true"></i>
-                </div>
+                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="أطفال" loading="lazy" decoding="async">
             </div>
         </div>
         
@@ -2281,7 +2267,7 @@
                 <div>
                     <p class="text-[10px] tracking-[0.3em] uppercase text-gray-400" data-en="Brands" data-ar="الشركات">Brands</p>
                     <h3 class="text-lg font-bold text-gray-900" data-en="Choose a brand" data-ar="اختر شركة">Choose a brand</h3>
-                    <p class="text-xs text-gray-500 mt-1 leading-relaxed max-w-[220px]" data-en="Partner brands you add in Admin — tap to open their catalog." data-ar="شركات شريكة تضيفها من لوحة التحكم — اضغط لفتح معرض منتجاتها.">شركات شريكة تضيفها من لوحة التحكم — اضغط لفتح معرض منتجاتها.</p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed max-w-[220px]" data-en="Tap a brand to open its catalog." data-ar="اضغط على شركة لعرض منتجاتها.">اضغط على شركة لعرض منتجاتها.</p>
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="sortBrands('selling')" class="brand-sort-btn font-semibold" data-sort-key="selling" data-en="Best Sellers" data-ar="الأكثر مبيعاً">Best Sellers</button>
@@ -2313,7 +2299,7 @@
                     <div>
                         <p class="text-[10px] tracking-[0.3em] uppercase text-gray-400" data-en="Flash Sale" data-ar="عروض سريعة">Flash Sale</p>
                         <h3 class="text-lg font-bold text-gray-900" data-en="Limited time drops" data-ar="عروض لفترة محدودة">Limited time drops</h3>
-                        <p class="text-xs text-purple-700 font-semibold mt-1" data-en="Managed in Admin → Quick offers" data-ar="يُدار من لوحة التحكم ← عروض سريعة">يُدار من لوحة التحكم ← عروض سريعة</p>
+                        <p class="text-xs text-purple-700 font-semibold mt-1" data-en="Limited quantities — check back often" data-ar="كميات محدودة — تابعوا العروض">كميات محدودة — تابعوا العروض</p>
                     </div>
                     <div class="flash-countdown" id="flash-countdown">01:45:20</div>
                 </div>
@@ -2328,7 +2314,7 @@
                 <div>
                     <p class="text-[10px] tracking-[0.3em] uppercase text-gray-400" data-en="Products" data-ar="منتجات">Products</p>
                     <h3 class="text-lg font-bold text-gray-900" data-en="Curated picks" data-ar="اختيارات أنيقة">Curated picks</h3>
-                    <p class="text-xs text-purple-700 font-semibold mt-1" data-en="Adora selection — managed in Admin → Elegant picks" data-ar="اختيار أدورا — يُدار من لوحة التحكم ← اختيارات أنيقة">اختيار أدورا — يُدار من لوحة التحكم ← اختيارات أنيقة</p>
+                    <p class="text-xs text-purple-700 font-semibold mt-1" data-en="Hand-picked styles from Adora" data-ar="تشكيلة مختارة من أدورا">تشكيلة مختارة من أدورا</p>
                     <p id="store-catalog-stats" class="text-xs text-gray-500 mt-1 hidden" aria-live="polite"></p>
                 </div>
                 <button onclick="navigateToListingAll()" class="text-purple-600 text-xs font-semibold flex items-center gap-1" data-en="View all" data-ar="عرض الكل">
@@ -2398,7 +2384,7 @@
                     oninput="scheduleListingSearchDebounced()" onkeydown="listingSearchOnEnter(event)" />
             </div>
 
-            <!-- أقسام رجالي / نسائي / أطفال عند تصفح منتجات شركة (نفس لوحة التحكم) -->
+            <!-- أقسام رجالي / نسائي / أطفال عند تصفح منتجات شركة -->
             <div id="listing-brand-main-cat-wrap" class="hidden mb-3">
                 <p class="text-xs font-semibold text-gray-500 mb-2" data-en="Shop by section" data-ar="التسوق حسب القسم">التسوق حسب القسم</p>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
@@ -2438,7 +2424,7 @@
         </div>
     </div>
 
-    <!-- ==================== OUR OFFERS (لوحة التحكم ← العروض) ==================== -->
+    <!-- ==================== OUR OFFERS ==================== -->
     <div id="screen-offers" class="screen bg-gray-50">
         <div class="sticky top-16 z-30 bg-white border-b border-gray-200 px-4 py-3">
             <div class="flex items-center justify-between">
@@ -2448,7 +2434,7 @@
                 <h1 class="text-lg font-bold text-gray-900 text-center flex-1 px-2 truncate" data-en="Our offers" data-ar="عروضنا">عروضنا</h1>
                 <span class="w-10" aria-hidden="true"></span>
             </div>
-            <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed" data-en="Products you add in Admin → Offers appear here." data-ar="المنتجات التي تضيفها من لوحة التحكم ← العروض تظهر هنا.">المنتجات التي تضيفها من لوحة التحكم ← العروض تظهر هنا.</p>
+            <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed" data-en="Current promotions and discounted items." data-ar="عروض وتخفيضات حالية.">عروض وتخفيضات حالية.</p>
         </div>
         <div id="offers-products-grid" class="p-4 grid grid-cols-2 gap-4 pb-24 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
@@ -2589,7 +2575,7 @@
                 <button type="button" class="product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="5" aria-label="5"><i class="far fa-star text-gray-300"></i></button>
             </div>
             <textarea id="product-review-comment" rows="3" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-amber-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
-            <button type="button" onclick="submitProductReview()" class="mt-2 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0189,900 ل.س] transition flex items-center justify-center gap-2">
+            <button type="button" onclick="submitProductReview()" class="mt-2 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
                 <i class="fas fa-paper-plane text-sm"></i>
                 <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
             </button>
@@ -2775,7 +2761,7 @@
 
             <div class="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
                 <h3 class="font-bold text-gray-900 mb-0.5" data-en="Rate the store" data-ar="قيّم الموقع">قيّم الموقع</h3>
-                <p class="text-xs text-gray-500 mb-3 leading-relaxed" data-en="Choose stars and optionally write a comment — it is sent to our admin panel." data-ar="اختر النجوم ويمكنك كتابة تعليق — يُرسل إلى لوحة التحكم.">اختر النجوم ويمكنك كتابة تعليق — يُرسل إلى لوحة التحكم.</p>
+                <p class="text-xs text-gray-500 mb-3 leading-relaxed" data-en="Choose stars and optionally share a short comment with the store." data-ar="اختر النجوم ويمكنك كتابة تعليق قصير لمتجرنا.">اختر النجوم ويمكنك كتابة تعليق قصير لمتجرنا.</p>
                 <p id="site-rating-login-hint" class="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5 mb-3 hidden" data-en="Sign in to submit your rating." data-ar="سجّل الدخول لإرسال التقييم.">سجّل الدخول لإرسال التقييم.</p>
                 <div id="site-rating-stars-row" class="flex gap-1 justify-center mb-3 dir-ltr" dir="ltr" role="group" aria-label="Rating">
                     <button type="button" class="site-rating-star p-1 rounded-lg transition hover:bg-amber-50 text-2xl leading-none" data-star="1" aria-label="1"><i class="far fa-star text-gray-300"></i></button>
@@ -2785,7 +2771,7 @@
                     <button type="button" class="site-rating-star p-1 rounded-lg transition hover:bg-amber-50 text-2xl leading-none" data-star="5" aria-label="5"><i class="far fa-star text-gray-300"></i></button>
                 </div>
                 <textarea id="site-rating-comment" rows="3" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" data-en-ph="Optional written feedback…" data-ar-ph="تعليق كتابي اختياري…"></textarea>
-                <button type="button" onclick="submitSiteRating()" class="mt-3 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0189,900 ل.س] transition flex items-center justify-center gap-2">
+                <button type="button" onclick="submitSiteRating()" class="mt-3 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
                     <i class="fas fa-paper-plane text-sm"></i>
                     <span data-en="Send rating" data-ar="إرسال التقييم">إرسال التقييم</span>
                 </button>
@@ -2973,7 +2959,7 @@
                 <!-- Color -->
                 <div id="filter-section-color">
                     <h3 class="font-bold text-gray-900 mb-3" data-en="Color" data-ar="اللون">Color</h3>
-                    <p class="text-xs text-gray-500 mb-2" data-en="Optional — matches product color tags from admin." data-ar="اختياري — يطابق ألوان المنتج كما أُدخلت في لوحة التحكم.">اختياري — يطابق ألوان المنتج كما أُدخلت في لوحة التحكم.</p>
+                    <p class="text-xs text-gray-500 mb-2" data-en="Optional — filter by product color." data-ar="اختياري — تصفية حسب لون المنتج.">اختياري — تصفية حسب لون المنتج.</p>
                     <div class="flex gap-3 flex-wrap">
                         <button type="button" data-color="black" onclick="toggleColorFilter(this)" class="filter-color-opt w-10 h-10 rounded-full bg-black border-2 border-gray-300"></button>
                         <button type="button" data-color="white" onclick="toggleColorFilter(this)" class="filter-color-opt w-10 h-10 rounded-full bg-white border border-gray-300"></button>
@@ -3178,7 +3164,7 @@
         </div>
     </div>
 
-    <!-- In-app messages from admin -->
+    <!-- In-app messages -->
     <!-- مشاركة المنتج: واتساب / فيسبوك / إنستغرام (نسخ) / نسخ الرابط -->
     <div id="product-share-modal" class="fixed inset-0 z-[88] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeProductShareModal()">
         <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-[428px] sm:max-w-md shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
@@ -3189,17 +3175,17 @@
                 </button>
             </div>
             <div class="p-4 space-y-2 pb-safe">
-                <button type="button" onclick="shareProductWhatsApp()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 active:scale-[0189,900 ل.س] transition text-left">
+                <button type="button" onclick="shareProductWhatsApp()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 active:scale-[0.98] transition text-left">
                     <span class="w-12 h-12 rounded-xl bg-[#25D366] text-white flex items-center justify-center text-xl"><i class="fab fa-whatsapp"></i></span>
                     <span class="flex-1 font-semibold text-gray-900" data-en="WhatsApp" data-ar="واتساب">واتساب</span>
                     <i class="fas fa-chevron-right text-gray-300 text-sm"></i>
                 </button>
-                <button type="button" onclick="shareProductFacebook()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-blue-50 hover:bg-blue-100 active:scale-[0189,900 ل.س] transition text-left">
+                <button type="button" onclick="shareProductFacebook()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-blue-50 hover:bg-blue-100 active:scale-[0.98] transition text-left">
                     <span class="w-12 h-12 rounded-xl bg-[#1877F2] text-white flex items-center justify-center text-xl"><i class="fab fa-facebook-f"></i></span>
                     <span class="flex-1 font-semibold text-gray-900" data-en="Facebook" data-ar="فيسبوك">فيسبوك</span>
                     <i class="fas fa-chevron-right text-gray-300 text-sm"></i>
                 </button>
-                <button type="button" onclick="shareProductInstagram()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] bg-opacity-15 hover:opacity-95 active:scale-[0189,900 ل.س] transition text-left border border-pink-100">
+                <button type="button" onclick="shareProductInstagram()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] bg-opacity-15 hover:opacity-95 active:scale-[0.98] transition text-left border border-pink-100">
                     <span class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888] text-white flex items-center justify-center text-xl"><i class="fab fa-instagram"></i></span>
                     <span class="flex-1">
                         <span class="font-semibold text-gray-900 block" data-en="Instagram" data-ar="إنستغرام">إنستغرام</span>
@@ -3207,7 +3193,7 @@
                     </span>
                     <i class="fas fa-chevron-right text-gray-300 text-sm"></i>
                 </button>
-                <button type="button" onclick="copyProductShareLink()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 active:scale-[0189,900 ل.س] transition text-left border border-gray-200">
+                <button type="button" onclick="copyProductShareLink()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 active:scale-[0.98] transition text-left border border-gray-200">
                     <span class="w-12 h-12 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xl"><i class="fas fa-link"></i></span>
                     <span class="flex-1 font-semibold text-gray-900" data-en="Copy product link" data-ar="نسخ رابط المنتج">نسخ رابط المنتج</span>
                     <i class="fas fa-copy text-gray-400"></i>
@@ -3319,7 +3305,7 @@
             <div class="text-center mb-4">
                 <i class="fas fa-bell text-3xl text-violet-600 mb-2"></i>
                 <h3 class="text-lg font-bold text-gray-900" data-en="Enable notifications?" data-ar="هل تريد تفعيل الإشعارات؟">هل تريد تفعيل الإشعارات؟</h3>
-                <p class="text-sm text-gray-500 mt-1" data-en="Stay updated on orders and offers." data-ar="تلقّ تحديثات الطلبات والعروض.">تلقّ تحديثات الطلبات والعروض.</p>
+                <p class="text-sm text-gray-500 mt-1" data-en="Get order updates and offers on your device (like other apps), not only inside Adora." data-ar="تحديثات الطلبات والعروض على جهازك (مثل التطبيقات الأخرى)، وليس فقط داخل أدورا.">تحديثات الطلبات والعروض على جهازك (مثل التطبيقات الأخرى)، وليس فقط داخل أدورا.</p>
             </div>
             <div class="flex flex-col gap-2">
                 <button type="button" onclick="confirmNotificationPrompt()" class="w-full py-3 rounded-2xl bg-purple-600 text-white font-bold">

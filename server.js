@@ -8,6 +8,7 @@ const { all, get, run, initDb, getDatabaseOverview } = require("./db");
 const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
+const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const multer = require("multer");
 
 const app = express();
@@ -182,7 +183,7 @@ app.get("/api/public-config", (_req, res) => {
   });
 });
 
-async function sendPublicStatsJson(res) {
+async function sendPublicStatsJson(_req, res) {
   try {
     const [pc, bc, cc] = await Promise.all([
       get(`SELECT COUNT(*) AS c FROM products`),
@@ -308,6 +309,54 @@ app.put("/api/profile/notifications", requireAuth, async (req, res) => {
   }
 });
 
+/** مفتاح VAPID العام — للاشتراك في Web Push من المتصفح */
+app.get("/api/push/vapid-public-key", (_req, res) => {
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  if (!pub || !String(pub).trim()) {
+    return res.status(503).json({ ok: false, error: "Push not configured" });
+  }
+  return res.json({ ok: true, publicKey: String(pub).trim() });
+});
+
+app.post("/api/push/subscribe", requireAuth, async (req, res) => {
+  try {
+    if (!isWebPushConfigured()) {
+      return res.status(503).json({ error: "Push not configured on server" });
+    }
+    const sub = req.body?.subscription;
+    if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
+      return res.status(400).json({ error: "Invalid subscription" });
+    }
+    const endpoint = String(sub.endpoint).slice(0, 2500);
+    const p256dh = String(sub.keys.p256dh).slice(0, 500);
+    const auth = String(sub.keys.auth).slice(0, 200);
+    await run(
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
+      [req.user.id, endpoint, p256dh, auth]
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to save subscription" });
+  }
+});
+
+app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
+  try {
+    const endpoint = req.body?.endpoint;
+    if (!endpoint || typeof endpoint !== "string") {
+      return res.status(400).json({ error: "endpoint required" });
+    }
+    await run(`DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?`, [
+      req.user.id,
+      String(endpoint).slice(0, 2500),
+    ]);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to remove subscription" });
+  }
+});
+
 /** ملخص الجداول (عدد الصفوف) — للمشرف فقط؛ الملف غير معروض للتنزيل */
 app.get("/api/admin/database/overview", requireAuth, requireAdmin, async (_req, res) => {
   try {
@@ -358,7 +407,7 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
     }));
 
     const inApp = await all(
-      `SELECT id, message, target_user_id, created_at FROM in_app_notifications
+      `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications
        WHERE target_user_id IS NULL OR target_user_id = ?
        ORDER BY id DESC LIMIT 200`,
       [req.user.id]
@@ -369,6 +418,8 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
       kind: "in_app",
       id: n.id,
       message: n.message,
+      image_url: n.image_url || null,
+      link_url: n.link_url || null,
       read: inReadSet.has(n.id),
       created_at: n.created_at,
     }));
@@ -436,6 +487,8 @@ function emitInAppNotification(io, row, targetUserId) {
     kind: "in_app",
     id: row.id,
     message: row.message,
+    image_url: row.image_url || null,
+    link_url: row.link_url || null,
     created_at: row.created_at,
   };
   if (targetUserId != null) {
@@ -443,13 +496,18 @@ function emitInAppNotification(io, row, targetUserId) {
   } else {
     io.to("app-users").emit("notification:new", payload);
   }
+  notifyInAppRow(row, targetUserId != null && targetUserId !== "" ? Number(targetUserId) : null).catch((e) =>
+    console.error("[Adora] Web Push:", e.message || e)
+  );
 }
 
 app.post("/api/admin/notifications/send", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { message, target_user_id } = req.body || {};
+    const { message, target_user_id, image_url, link_url } = req.body || {};
     const text = message != null ? String(message).trim() : "";
     if (!text) return res.status(400).json({ error: "message required" });
+    const img = sanitizeHttpsUrl(image_url);
+    const link = sanitizeHttpsUrl(link_url);
     let uid = null;
     if (target_user_id != null && target_user_id !== "") {
       uid = Number(target_user_id);
@@ -457,8 +515,16 @@ app.post("/api/admin/notifications/send", requireAuth, requireAdmin, async (req,
       const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') != 'admin'`, [uid]);
       if (!u) return res.status(404).json({ error: "User not found" });
     }
-    const result = await run(`INSERT INTO in_app_notifications (message, target_user_id) VALUES (?, ?)`, [text, uid]);
-    const row = await get(`SELECT id, message, target_user_id, created_at FROM in_app_notifications WHERE id=?`, [result.id]);
+    const result = await run(`INSERT INTO in_app_notifications (message, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?)`, [
+      text,
+      uid,
+      img,
+      link,
+    ]);
+    const row = await get(
+      `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
+      [result.id]
+    );
     const io = req.app.get("io");
     emitInAppNotification(io, row, uid);
     return res.status(201).json({ id: result.id });
@@ -1084,8 +1150,16 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) =>
     if (order.user_id) {
       const msg = orderStatusNotifyMessageAr(status);
       try {
-        const ins = await run(`INSERT INTO in_app_notifications (message, target_user_id) VALUES (?, ?)`, [msg, order.user_id]);
-        const row = await get(`SELECT id, message, target_user_id, created_at FROM in_app_notifications WHERE id=?`, [ins.id]);
+        const ins = await run(`INSERT INTO in_app_notifications (message, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?)`, [
+          msg,
+          order.user_id,
+          null,
+          null,
+        ]);
+        const row = await get(
+          `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
+          [ins.id]
+        );
         emitInAppNotification(io, row, order.user_id);
       } catch (_e) {
         /* ignore notification failure */

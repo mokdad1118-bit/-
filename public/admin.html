@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title data-en="Adora Admin" data-ar="لوحة تحكم أدورا">لوحة تحكم أدورا</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/tailwind.bundle.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   </head>
   <body class="bg-gray-50 text-gray-900">
@@ -608,8 +608,8 @@
           <div id="tab-notifications" class="tab-panel hidden">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-1" data-en="Send notifications" data-ar="إرسال إشعارات">إرسال إشعارات</h2>
-              <p class="text-sm text-gray-600 mb-4" data-en="Messages appear instantly in the app for signed-in users (Socket.io). Stored in the database." data-ar="تظهر للمستخدمين المسجّلين فوراً داخل التطبيق (Socket.io) وتُخزَّن في قاعدة البيانات.">
-                تظهر للمستخدمين المسجّلين فوراً داخل التطبيق وتُخزَّن في قاعدة البيانات.
+              <p class="text-sm text-gray-600 mb-4" data-en="In-app list + real-time. With VAPID keys on the server, users also get mobile/system push (image &amp; link optional)." data-ar="قائمة داخل التطبيق وفورية. عند ضبط مفاتيح VAPID على السيرفر يصل إشعار للجوال/النظام (صورة ورابط اختياريان).">
+                قائمة داخل التطبيق وفورية؛ مع VAPID على السيرفر يصل إشعار للجوال (صورة ورابط اختياريان).
               </p>
               <form id="admin-notif-form" class="space-y-3">
                 <div>
@@ -620,6 +620,24 @@
                     class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
                     placeholder=""
                   ></textarea>
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Image URL (https, optional)" data-ar="رابط صورة (https — اختياري)">رابط صورة (https — اختياري)</span></label>
+                  <input
+                    id="admin-notif-image"
+                    type="url"
+                    class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold"><span data-en="Open link (https, optional)" data-ar="رابط عند الضغط (https — اختياري)">رابط عند الضغط (https — اختياري)</span></label>
+                  <input
+                    id="admin-notif-link"
+                    type="url"
+                    class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    placeholder="https://..."
+                  />
                 </div>
                 <div>
                   <label class="text-sm font-semibold"><span data-en="Send to" data-ar="إرسال إلى">إرسال إلى</span></label>

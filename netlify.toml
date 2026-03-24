@@ -2,7 +2,7 @@
 # رابط Render يمكن وضعه في: (1) متغير ADORA_API_BASE في Netlify أو (2) ملف render-api-url.txt
 [build]
   publish = "."
-  command = "node scripts/write-adora-config.cjs"
+  command = "npm ci && npm run build:css && node scripts/write-adora-config.cjs"
 
 # إن احتجت توجيه SPA لاحقاً، يمكن تفعيل السطور التالية بحذر (لا تؤثر على طلبات الـ API لأنها تذهب لنطاق آخر عبر adora-api-base)
 # [[redirects]]

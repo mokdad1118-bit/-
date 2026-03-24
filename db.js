@@ -213,6 +213,18 @@ async function initDb() {
     PRIMARY KEY (user_id, notification_id)
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS image_url TEXT`);
+  await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
+
   await run(`CREATE TABLE IF NOT EXISTS site_ratings (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

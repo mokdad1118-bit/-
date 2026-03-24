@@ -7,6 +7,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev || npm install --omit=dev
 
 COPY . .
+RUN npm run build:css
 
 ENV NODE_ENV=production
 ENV PORT=3000

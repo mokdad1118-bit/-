@@ -7,7 +7,16 @@ module.exports = {
   extends: ["eslint:recommended"],
   overrides: [
     {
-      files: ["server.js", "db.js", "auth.js", "ecosystem.config.cjs", "scripts/**/*.cjs", "scripts/**/*.js"],
+      files: [
+        "server.js",
+        "db.js",
+        "auth.js",
+        "push-notify.js",
+        "tailwind.config.js",
+        "ecosystem.config.cjs",
+        "scripts/**/*.cjs",
+        "scripts/**/*.js",
+      ],
       env: { node: true, es2022: true },
     },
     {

@@ -9,7 +9,7 @@ services:
     name: adora-backend
     runtime: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm ci && npm run build:css
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:

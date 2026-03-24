@@ -212,6 +212,84 @@
             r?.();
         }
 
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+            return outputArray;
+        }
+
+        async function sendPushSubscriptionToServer(subscription) {
+            const json = subscription.toJSON ? subscription.toJSON() : subscription;
+            await apiFetch('/api/push/subscribe', {
+                method: 'POST',
+                requireAuth: true,
+                body: { subscription: json },
+            });
+        }
+
+        async function registerAdoraPushSubscription() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            const reg = await navigator.serviceWorker.ready;
+            const keyRes = await fetch(`${getApiOrigin()}/api/push/vapid-public-key`, { credentials: 'omit' });
+            const keyJson = await keyRes.json().catch(() => ({}));
+            if (!keyJson.ok || !keyJson.publicKey) return;
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(keyJson.publicKey),
+                });
+            }
+            await sendPushSubscriptionToServer(sub);
+        }
+
+        async function unregisterAdoraPushSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    const j = sub.toJSON();
+                    if (j.endpoint) {
+                        await apiFetch('/api/push/unsubscribe', {
+                            method: 'POST',
+                            requireAuth: true,
+                            body: { endpoint: j.endpoint },
+                        }).catch(() => {});
+                    }
+                    await sub.unsubscribe();
+                }
+            } catch (_e) {
+                /* ignore */
+            }
+        }
+
+        function showAdoraSystemNotification(payload) {
+            if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+            const title = isRTL ? 'أدورا' : 'Adora';
+            const body = String(payload?.message || '').slice(0, 300);
+            const opts = {
+                body,
+                icon: `${window.location.origin}/icons/adora-icon.svg`,
+                tag: `adora-${payload?.id || 'msg'}`,
+                data: { url: payload?.link_url && /^https:\/\//i.test(payload.link_url) ? payload.link_url : '/' },
+            };
+            if (payload?.image_url && /^https:\/\//i.test(payload.image_url)) opts.image = payload.image_url;
+            try {
+                const n = new Notification(title, opts);
+                n.onclick = () => {
+                    const u = n.data?.url || '/';
+                    if (/^https?:\/\//i.test(u)) window.open(u, '_blank', 'noopener,noreferrer');
+                    else window.location.href = u.startsWith('/') ? u : `/${u}`;
+                    n.close();
+                };
+            } catch (_e) {
+                /* ignore */
+            }
+        }
+
         function maybeShowNotificationPromptAsync() {
             const token = getStoredJwtToken();
             if (!token) return Promise.resolve();
@@ -356,6 +434,7 @@
                 });
             } catch (_e) {}
             syncNotificationToggleUI(granted);
+            if (granted) await registerAdoraPushSubscription().catch(() => {});
             finishNotificationPromptUI();
         }
 
@@ -367,6 +446,7 @@
                         requireAuth: true,
                         body: { notifications_enabled: 0, snooze_hours: 24 },
                     });
+                    await unregisterAdoraPushSubscription().catch(() => {});
                 } catch (_e) {}
             }
             finishNotificationPromptUI();
@@ -389,20 +469,23 @@
             const token = getStoredJwtToken();
             if (!token) return;
             const btn = document.getElementById('side-menu-notif-toggle');
-            const on = btn?.classList.contains('bg-purple-600');
-            const next = !on;
-            let granted = next;
-            if (next && typeof Notification !== 'undefined') {
+            const currentlyOn = btn?.classList.contains('bg-purple-600');
+            const wantOn = !currentlyOn;
+            let permitted = false;
+            if (wantOn && typeof Notification !== 'undefined') {
                 const p = await Notification.requestPermission();
-                granted = p === 'granted';
+                permitted = p === 'granted';
             }
+            const enabled = wantOn && permitted;
             try {
                 await apiFetch('/api/profile/notifications', {
                     method: 'PUT',
                     requireAuth: true,
-                    body: { notifications_enabled: granted ? 1 : 0 },
+                    body: { notifications_enabled: enabled ? 1 : 0 },
                 });
-                syncNotificationToggleUI(granted);
+                syncNotificationToggleUI(enabled);
+                if (enabled) await registerAdoraPushSubscription().catch(() => {});
+                else await unregisterAdoraPushSubscription().catch(() => {});
             } catch (_e) {
                 showToast(isRTL ? 'تعذر التحديث' : 'Update failed');
             }
@@ -627,7 +710,7 @@
                 b.classList.toggle('text-gray-600', !on);
             });
         }
-        /** تسلسل الحالات (يُحدَّث فقط من لوحة التحكم) */
+        /** تسلسل حالات الطلب من المتجر */
         const orderStatusFlow = [
             { key: 'pending_receipt', en: 'Pending receipt', ar: 'قيد الاستلام' },
             { key: 'in_progress', en: 'In progress', ar: 'قيد التنفيذ' },
@@ -674,7 +757,7 @@
             paymentLabel: 'طريقة الدفع:',
             shippingLabel: 'عنوان الشحن:'
         };
-        /** صورة احتياطية محلية — ليست منتجاً حقيقياً حتى تُرفع صور في لوحة التحكم */
+        /** صورة احتياطية عندما لا تتوفر صورة للمنتج */
         function adoraPlaceholderImageUrl() {
             return 'icons/adora-icon.svg';
         }
@@ -685,7 +768,7 @@
         let currentQuery = '';
         let brandSortKey = 'selling';
         let activeBrandKey = null;
-        /** علامات من الـ API (لوحة التحكم) */
+        /** علامات تجارية من الخادم */
         let apiBrandsList = [];
         /** عند فتح منتجات شركة: اسم العلامة كما في المنتج وفي جدول brands */
         let listingBrandName = null;
@@ -1132,6 +1215,17 @@
                 syncAppBroadcastBadge().catch(() => {});
                 if (payload && payload.message) {
                     showToast(payload.message);
+                    void (async () => {
+                        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+                        try {
+                            const r = await fetch(`${getApiOrigin()}/api/push/vapid-public-key`, { credentials: 'omit' });
+                            const j = await r.json().catch(() => ({}));
+                            if (j && j.ok && j.publicKey) return;
+                        } catch (_e) {
+                            /* fall through to system notification */
+                        }
+                        showAdoraSystemNotification(payload);
+                    })();
                 }
             });
             appSocket.on('order:updated', (payload) => {
@@ -1202,6 +1296,9 @@
             const reviewsStatEl = document.getElementById('profile-reviews-stat');
             if (reviewsStatEl) reviewsStatEl.textContent = String(Number.isFinite(rc) ? rc : 0);
             syncNotificationToggleUI(Number(data.user.notifications_enabled) === 1);
+            if (Number(data.user.notifications_enabled) === 1) {
+                registerAdoraPushSubscription().catch(() => {});
+            }
 
             if (ordersList) {
                 if (!data.orders || data.orders.length === 0) {
@@ -1352,9 +1449,19 @@
                             const text = isInApp ? (m.message || '') : isRTL ? (m.body_ar || '') : (m.body_en || '');
                             const dt = m.created_at ? new Date(m.created_at).toLocaleString(isRTL ? 'ar-SA' : 'en-US') : '';
                             const unread = !m.read ? ' border-violet-200 bg-violet-50/50' : '';
+                            const imgUrl =
+                                isInApp && m.image_url && /^https:\/\//i.test(String(m.image_url))
+                                    ? String(m.image_url)
+                                    : '';
+                            const linkUrl =
+                                isInApp && m.link_url && /^https:\/\//i.test(String(m.link_url))
+                                    ? String(m.link_url)
+                                    : '';
                             return `<div class="rounded-2xl border border-gray-100 p-4${unread}">
           <div class="font-bold text-gray-900 mb-1">${escapeHtml(title)}</div>
           ${text ? `<p class="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>` : ''}
+          ${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" class="w-full max-h-44 object-cover rounded-xl mt-2" loading="lazy">` : ''}
+          ${linkUrl ? `<p class="mt-2"><a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="text-violet-600 text-sm font-semibold break-all">${isRTL ? 'فتح الرابط' : 'Open link'}</a></p>` : ''}
           <p class="text-[10px] text-gray-400 mt-2">${escapeHtml(dt)}</p>
         </div>`;
                         })
@@ -2126,7 +2233,7 @@
                 }
                 const digits = whatsAppDigitsOnly(cachedWhatsAppPhone);
                 if (digits.length < 8) {
-                    showToast(isRTL ? 'رقم واتساب المتجر غير مضبوط في لوحة التحكم' : 'Store WhatsApp number is not set in Admin');
+                    showToast(isRTL ? 'رقم واتساب المتجر غير متاح حالياً' : 'Store WhatsApp number is not available');
                     return;
                 }
                 window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
@@ -2206,7 +2313,7 @@
         }
 
         function simulateStatusProgression() {
-            /* الحالة تُحدَّث من السيرفر فقط (لوحة التحكم) */
+            /* الحالة من السيرفر */
         }
 
         function updateOrderTrackingUI() {
@@ -2349,7 +2456,7 @@
                 popular: (Number(b.is_top_brand) ? 1000 : 0) + Number(b.product_count || 0),
             }));
             if (!rows.length) {
-                container.innerHTML = `<p class="text-xs text-gray-500 px-2">${isRTL ? 'لا توجد شركات بعد. أضفها من لوحة التحكم.' : 'No brands yet. Add them from the admin panel.'}</p>`;
+                container.innerHTML = `<p class="text-xs text-gray-500 px-2">${isRTL ? 'لا توجد علامات تجارية لعرضها حالياً.' : 'No brands to show yet.'}</p>`;
                 return;
             }
             const sorted = [...rows].sort((a, b) => b[brandSortKey] - a[brandSortKey]);
@@ -2422,7 +2529,7 @@
             navigateTo('screen-listing');
         }
 
-        /** category/sub: نفس القيم في لوحة التحكم (مثلاً Men, Shoes) */
+        /** category/sub مثل Men, Shoes — تتطابق مع أقسام المتجر */
         function navigateToListingFiltered(category, subcategory) {
             listingSearchQuery = '';
             listingBrandName = null;
@@ -2601,7 +2708,7 @@
                     }
                 }
                 if (listingProductsRaw.length === 0) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-8 text-sm leading-relaxed px-2">${isRTL ? 'لا توجد منتجات لهذا القسم. أضف منتجات من لوحة التحكم واختر القسم والقسم الفرعي من نفس الأسماء.' : 'No products for this filter. Add products in the admin and pick the same category/subcategory names.'}</p>`;
+                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-8 text-sm leading-relaxed px-2">${isRTL ? 'لا توجد منتجات مطابقة لهذا التصفية حالياً.' : 'No products match this filter right now.'}</p>`;
                     return;
                 }
                 syncFilterPriceRangeFromProducts(listingProductsRaw);
@@ -2761,7 +2868,7 @@
                 const rows = await apiFetch('/api/offers', { requireAuth: false });
                 const list = Array.isArray(rows) ? rows.filter(offerRowIsActive) : [];
                 if (!list.length) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm leading-relaxed px-2">${isRTL ? 'لا توجد عروض نشطة. أضف منتجات من لوحة التحكم ← العروض.' : 'No active offers yet. Add products in Admin → Offers.'}</p>`;
+                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm leading-relaxed px-2">${isRTL ? 'لا توجد عروض نشطة حالياً.' : 'No active offers right now.'}</p>`;
                     return;
                 }
                 grid.innerHTML = list
@@ -3261,9 +3368,7 @@
                 return;
             }
             container.innerHTML = `<p class="text-xs text-gray-500 px-1 py-4 leading-relaxed">${
-                isRTL
-                    ? 'لا توجد علامات مميزة بعد. فعّل «أفضل الشركات» على العلامات من لوحة التحكم.'
-                    : 'No featured brands yet. Mark brands as «Top brand» in Admin.'
+                isRTL ? 'لا توجد علامات مميزة لعرضها حالياً.' : 'No featured brands to show yet.'
             }</p>`;
         }
 
@@ -3272,9 +3377,7 @@
             if (!container) return;
             if (!flashSaleItems.length) {
                 container.innerHTML = `<p class="text-sm text-gray-500 text-center py-6 px-2 leading-relaxed">${
-                    isRTL
-                        ? 'لا توجد عروض سريعة نشطة. عيّن منتجات كـ «عروض سريعة» من لوحة التحكم.'
-                        : 'No active flash offers. Mark products as flash sale in Admin.'
+                    isRTL ? 'لا توجد عروض سريعة نشطة حالياً.' : 'No active flash offers right now.'
                 }</p>`;
                 return;
             }
@@ -3318,9 +3421,7 @@
                 const list = Array.isArray(products) ? products.slice(0, 8) : [];
                 if (!list.length) {
                     grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 text-sm py-8 leading-relaxed px-2">${
-                        isRTL
-                            ? 'فعّل «اختيارات أنيقة» على منتجات أدورا من لوحة التحكم.'
-                            : 'Mark Adora products as «Elegant picks» in Admin.'
+                        isRTL ? 'لا توجد منتجات مميزة لعرضها حالياً.' : 'No featured picks to show yet.'
                     }</p>`;
                     return;
                 }

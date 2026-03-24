@@ -1585,6 +1585,8 @@ async function sendAdminNotification(e) {
   const token = getToken();
   if (!token) return;
   const message = document.getElementById("admin-notif-message")?.value.trim() || "";
+  const image_url = document.getElementById("admin-notif-image")?.value.trim() || "";
+  const link_url = document.getElementById("admin-notif-link")?.value.trim() || "";
   const target = document.getElementById("admin-notif-target")?.value || "";
   const ar = getAdminLang() === "ar";
   if (!message) {
@@ -1593,9 +1595,15 @@ async function sendAdminNotification(e) {
   }
   const body = { message };
   if (target) body.target_user_id = Number(target);
+  if (image_url) body.image_url = image_url;
+  if (link_url) body.link_url = link_url;
   try {
     await api("/api/admin/notifications/send", { method: "POST", token, body });
     document.getElementById("admin-notif-message").value = "";
+    const imgEl = document.getElementById("admin-notif-image");
+    const linkEl = document.getElementById("admin-notif-link");
+    if (imgEl) imgEl.value = "";
+    if (linkEl) linkEl.value = "";
     alert(ar ? "تم الإرسال." : "Sent.");
   } catch (err) {
     alert(err.message || String(err));
