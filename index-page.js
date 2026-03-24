@@ -659,6 +659,7 @@
             }
             if (it.unitPrice == null && it.price != null) it.unitPrice = Number(it.price);
             if (it.price == null && it.unitPrice != null) it.price = Number(it.unitPrice);
+            it.qty = Math.max(1, Math.min(99, Number(it.qty || 1)));
             return it;
         }
 
@@ -2012,8 +2013,9 @@
         function updateQty(change) {
             currentQty += change;
             if (currentQty < 1) currentQty = 1;
-            if (currentQty > 10) currentQty = 10;
-            document.getElementById('qty-display').textContent = currentQty;
+            if (currentQty > 99) currentQty = 99;
+            const qd = document.getElementById('qty-display');
+            if (qd) qd.textContent = currentQty;
         }
 
         function selectSize(btn) {
@@ -2149,6 +2151,7 @@
         /** يُرجع true عند نجاح الإضافة — لاستخدام «اشتري الآن» قبل فتح الطلب */
         function addToCart(opts = {}) {
             const silent = opts.silent === true;
+            const forceQtyOne = opts.forceQtyOne === true;
             if (!currentProductDetail || !currentProductDetail.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
                 return false;
@@ -2156,7 +2159,9 @@
             const p = currentProductDetail;
             const size = getSelectedDetailSize();
             const color = getSelectedDetailColor();
-            const qty = Math.max(1, Math.min(99, Number(currentQty || 1)));
+            const qty = forceQtyOne
+                ? 1
+                : Math.max(1, Math.min(99, Number(currentQty || 1)));
             if (!variantHasStock(p, size === '—' ? '' : size, color)) {
                 showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
                 return false;
@@ -2202,7 +2207,7 @@
         }
 
         function buyNow() {
-            if (!addToCart({ silent: true })) return;
+            if (!addToCart({ silent: true, forceQtyOne: true })) return;
             openOrderOptions();
         }
 
@@ -3019,6 +3024,7 @@
         async function loadListingPageProducts() {
             const grid = document.getElementById('listing-products-grid');
             if (!grid) return;
+            const startedWithTextSearch = !!(listingSearchQuery && String(listingSearchQuery).trim());
             const lsi = document.getElementById('listing-search-input');
             if (lsi && document.activeElement !== lsi) lsi.value = listingSearchQuery || '';
             grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-8">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
@@ -3086,6 +3092,20 @@
                 listingProductsRaw = [];
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             } finally {
+                if (startedWithTextSearch) {
+                    listingSearchQuery = '';
+                    const homeInp = document.getElementById('search-input');
+                    const listInp = document.getElementById('listing-search-input');
+                    if (homeInp && document.activeElement !== homeInp) homeInp.value = '';
+                    if (listInp && document.activeElement !== listInp) listInp.value = '';
+                    const te = document.getElementById('listing-screen-title');
+                    if (te) {
+                        te.setAttribute('data-en', 'Search results');
+                        te.setAttribute('data-ar', 'نتائج البحث');
+                        te.textContent = isRTL ? te.getAttribute('data-ar') : te.getAttribute('data-en');
+                    }
+                    syncSearchRotatingHintVisibility();
+                }
                 syncSearchInputsFromQuery();
                 updateListingBrandMainCatBar();
             }
@@ -3254,8 +3274,32 @@
             } catch (_e) {}
         }
 
-        const SEARCH_ROTATE_HINTS_AR = ['تيشرتات', 'أطفال', 'إكسسوارات', 'قمصان', 'فساتين', 'أحذية', 'حقائب'];
-        const SEARCH_ROTATE_HINTS_EN = ['T-shirts', 'Kids', 'Accessories', 'Shirts', 'Dresses', 'Shoes', 'Bags'];
+        const SEARCH_ROTATE_HINTS_AR = [
+            'نسائي',
+            'رجالي',
+            'أطفال',
+            'تيشرتات',
+            'كنزات',
+            'قمصان',
+            'فساتين',
+            'إكسسوارات',
+            'أحذية',
+            'حقائب',
+            'عروض',
+        ];
+        const SEARCH_ROTATE_HINTS_EN = [
+            'Women',
+            'Men',
+            'Kids',
+            'T-shirts',
+            'Sweaters',
+            'Shirts',
+            'Dresses',
+            'Accessories',
+            'Shoes',
+            'Bags',
+            'Deals',
+        ];
         let searchRotateHintIndex = 0;
         let searchRotateHintTimer = null;
         let searchRotatingHintListenersBound = false;
@@ -3309,7 +3353,7 @@
             syncSearchRotatingHintVisibility();
             const hint = document.getElementById('search-rotating-hint');
             if (hint) {
-                searchRotateHintTimer = setInterval(tickSearchRotatingHint, 2800);
+                searchRotateHintTimer = setInterval(tickSearchRotatingHint, 2000);
             }
         }
 
@@ -3445,6 +3489,9 @@
 
         function fillProductDetailScreen(p) {
             productDetailSelectedColorIndex = 0;
+            currentQty = 1;
+            const qd0 = document.getElementById('qty-display');
+            if (qd0) qd0.textContent = '1';
             const title = isRTL ? p.name_ar : p.name_en;
             const price = Number(p.price || 0);
             const disc = Number(p.discount || 0);

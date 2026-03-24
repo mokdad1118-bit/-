@@ -1248,6 +1248,7 @@
             position: relative;
             display: flex;
             align-items: center;
+            overflow: hidden;
         }
         #search-rotating-hint {
             position: absolute;
@@ -1257,32 +1258,41 @@
             bottom: 0;
             display: flex;
             align-items: center;
-            padding-inline: 0.125rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: rgb(156 163 175);
+            justify-content: flex-start;
+            padding-inline: 0.2rem;
+            font-size: clamp(0.95rem, 3.6vw, 1.125rem);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: rgb(107 114 128);
             pointer-events: none;
             z-index: 1;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            transition: opacity 0.25s ease;
+            transition: opacity 0.2s ease;
+            transform-origin: center bottom;
         }
         #search-rotating-hint.search-hint-anim-out {
             opacity: 0;
             transform: translateY(4px);
         }
         #search-rotating-hint.search-hint-anim-in {
-            animation: adoraSearchHintIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            animation: adoraSearchHintIn 0.32s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
         }
         @keyframes adoraSearchHintIn {
             from {
                 opacity: 0;
-                transform: translateY(8px);
+                transform: translateY(12px) scale(0.94);
+                filter: blur(2px);
+            }
+            70% {
+                opacity: 1;
+                filter: blur(0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
+                filter: blur(0);
             }
         }
         #search-input {
@@ -1292,7 +1302,7 @@
             min-height: 3rem;
             border: none;
             background: transparent;
-            font-size: 0.875rem;
+            font-size: clamp(0.9rem, 3.2vw, 1rem);
             font-weight: 500;
             color: rgb(31 41 55);
             padding-inline: 0.25rem;
