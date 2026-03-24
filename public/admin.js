@@ -1856,6 +1856,26 @@ async function bootstrapAuthed() {
       alert(err.message || String(err));
     }
   });
+  document.getElementById("btn-clear-all-notifications")?.addEventListener("click", async () => {
+    const token = getToken();
+    if (!token) return;
+    const ar = getAdminLang() === "ar";
+    if (
+      !confirm(
+        ar
+          ? "سيتم حذف جميع رسائل البث والإشعارات الداخلية من قاعدة البيانات لجميع المستخدمين. هل أنت متأكد؟"
+          : "This will delete ALL broadcast messages and in-app notifications for every user. Continue?"
+      )
+    )
+      return;
+    try {
+      await api("/api/admin/notifications/all", { method: "DELETE", token });
+      await loadBroadcasts();
+      alert(ar ? "تم حذف الإشعارات." : "All notifications cleared.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
   document.getElementById("contact-form").addEventListener("submit", saveContact);
   document.getElementById("admin-notif-form")?.addEventListener("submit", sendAdminNotification);
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));

@@ -831,7 +831,9 @@
             return LEGACY_ORDER_STATUS[s] || s;
         }
         let latestOrderStatus = 'pending_receipt';
-        let latestOrderId = 'ORD-4218';
+        let latestOrderId = '';
+        /** رقم الطلب المعروض في نافذة المراجعة (من الخادم قبل الإرسال) */
+        let checkoutPreviewOrderNo = '';
         let latestOrderDbId = null; // numeric DB id for tracking updates
         let latestOrderCreatedAt = null; // ISO string from backend
         let latestTrackingItems = []; // line items for current tracking view
@@ -2187,7 +2189,11 @@
             const key = getCartLineKey(line);
             const existing = cartItems.find((x) => getCartLineKey(x) === key);
             if (existing) {
-                existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
+                if (forceQtyOne) {
+                    existing.qty = 1;
+                } else {
+                    existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
+                }
                 existing.selected = true;
                 existing.unitPrice = unit;
                 existing.price = unit;
@@ -2402,10 +2408,21 @@
             showToast(isRTL ? 'تم تطبيق الفلاتر' : 'Filters applied');
         }
 
+        async function refreshCheckoutOrderPreviewNo() {
+            checkoutPreviewOrderNo = '';
+            const token = getStoredJwtToken();
+            if (!token) return;
+            try {
+                const data = await apiFetch('/api/orders/next-order-no', { requireAuth: true });
+                if (data && data.order_no) checkoutPreviewOrderNo = String(data.order_no);
+            } catch (_e) {}
+        }
+
         function openOrderOptions() {
             const modal = document.getElementById('order-options-modal');
             if (!modal) return;
             renderCheckoutSummary();
+            refreshCheckoutOrderPreviewNo().finally(() => renderCheckoutSummary());
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -2475,7 +2492,15 @@
                 totalEl.textContent = formatSyp(totals.subtotal);
             }
             const orderIdEl = document.getElementById('checkout-order-id');
-            if (orderIdEl) orderIdEl.textContent = latestOrderId;
+            if (orderIdEl) {
+                if (checkoutPreviewOrderNo) {
+                    orderIdEl.textContent = `#${checkoutPreviewOrderNo}`;
+                } else if (getStoredJwtToken()) {
+                    orderIdEl.textContent = isRTL ? 'جاري التحميل…' : 'Loading…';
+                } else {
+                    orderIdEl.textContent = isRTL ? 'بعد تسجيل الدخول' : 'Sign in to get order #';
+                }
+            }
             const shippingEl = document.getElementById('checkout-shipping-address');
             const ship = getShippingAddress();
             if (shippingEl) shippingEl.textContent = locale === 'ar' ? ship.ar : ship.en;
@@ -2486,6 +2511,7 @@
 
         async function handleCheckoutOption(option) {
             closeOrderOptions();
+            await refreshCheckoutOrderPreviewNo();
             const order = buildOrderSummary();
             const created = await sendOrderToSystem(order, option);
             if (option === 'whatsapp' && created) {
@@ -2494,7 +2520,7 @@
         }
 
         function buildOrderSummary() {
-            const id = `ORD-${Math.floor(Math.random() * 9000) + 1000}`;
+            const id = checkoutPreviewOrderNo || '';
             const items = getSelectedCartItems();
             const totals = computeTotalsForCartLines(items);
             return {
@@ -2619,71 +2645,88 @@
             return origin + (s.startsWith('/') ? s : `/${s}`);
         }
 
+        function orderLineItemName(item, locale) {
+            const n = item && item.name;
+            if (!n) return '';
+            if (typeof n === 'string') return n;
+            return locale === 'ar' ? (n.ar || n.en || '') : (n.en || n.ar || '');
+        }
+
         function formatOrderMessage(order, _locale) {
             const items = order.items || [];
             const payAr = paymentOptions[order.paymentMethod] ? paymentOptions[order.paymentMethod].ar : '';
             const payEn = paymentOptions[order.paymentMethod] ? paymentOptions[order.paymentMethod].en : '';
+            const oid = order.id || latestOrderId || '—';
             const ar = [];
             const en = [];
-            ar.push('━━━━━━━━━━━━━━━━');
-            ar.push('🛍 ADORA — أدورا | طلب جديد');
-            ar.push('━━━━━━━━━━━━━━━━');
-            ar.push(`رقم الطلب: ${order.id}`);
+            ar.push('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
+            ar.push('  🛍  ADORA · طلب جديد');
+            ar.push('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛');
             ar.push('');
-            en.push('━━━━━━━━━━━━━━━━');
-            en.push('🛍 ADORA — New customer order');
-            en.push('━━━━━━━━━━━━━━━━');
-            en.push(`Order ID: ${order.id}`);
+            ar.push(`📋 رقم الطلب:  ${oid}`);
+            ar.push('');
+            en.push('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
+            en.push('  🛍  ADORA · New order');
+            en.push('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛');
+            en.push('');
+            en.push(`📋 Order:  ${oid}`);
             en.push('');
             items.forEach((item, i) => {
+                const num = i + 1;
                 const br = resolveDisplayBrand(item.brand);
                 const unit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
                 const line = unit * Number(item.qty || 1);
                 const discPct = Number(item.discountPct || 0);
                 const listUnit = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
                 const img = absoluteMediaUrl(item.image);
-                ar.push(`▸ صنف ${i + 1}`);
-                ar.push(`   المنتج: ${item.name.ar}`);
-                ar.push(`   الشركة: ${br}`);
-                if (item.size) ar.push(`   المقاس: ${item.size}`);
-                if (item.color) ar.push(`   اللون: ${item.color}`);
-                ar.push(`   الكمية: ${item.qty}`);
-                ar.push(`   سعر الوحدة (بعد الخصم): ${formatSyp(unit)}`);
-                if (discPct > 0) ar.push(`   السعر قبل الخصم: ${formatSyp(listUnit)}`);
-                ar.push(`   المجموع: ${formatSyp(line)}`);
-                if (img) ar.push(`   رابط صورة المنتج: ${img}`);
+                const na = orderLineItemName(item, 'ar');
+                const ne = orderLineItemName(item, 'en');
+                ar.push(`▸▸  ${num} — البند ${num}`);
+                ar.push('    ─────────────────');
+                ar.push(`    📦  ${na}`);
+                ar.push(`    🏷  ${br}`);
+                if (item.size) ar.push(`    📏  المقاس: ${item.size}`);
+                if (item.color) ar.push(`    🎨  اللون: ${item.color}`);
+                ar.push(`    🔢  الكمية: ${item.qty}`);
+                ar.push(`    💵  السعر: ${formatSyp(unit)} × ${item.qty} = ${formatSyp(line)}`);
+                if (discPct > 0) ar.push(`    📎  قبل الخصم: ${formatSyp(listUnit)}`);
+                if (img) ar.push(`    🖼  ${img}`);
                 ar.push('');
-                en.push(`▸ Line ${i + 1}`);
-                en.push(`   Product: ${item.name.en}`);
-                en.push(`   Brand: ${br}`);
-                if (item.size) en.push(`   Size: ${item.size}`);
-                if (item.color) en.push(`   Color: ${item.color}`);
-                en.push(`   Qty: ${item.qty}`);
-                en.push(`   Unit (after discount): ${formatSyp(unit)}`);
-                if (discPct > 0) en.push(`   List price: ${formatSyp(listUnit)}`);
-                en.push(`   Line total: ${formatSyp(line)}`);
-                if (img) en.push(`   Product image: ${img}`);
+                en.push(`▸▸  ${num} — Line ${num}`);
+                en.push('    ─────────────────');
+                en.push(`    📦  ${ne}`);
+                en.push(`    🏷  ${br}`);
+                if (item.size) en.push(`    📏  Size: ${item.size}`);
+                if (item.color) en.push(`    🎨  Color: ${item.color}`);
+                en.push(`    🔢  Qty: ${item.qty}`);
+                en.push(`    💵  ${formatSyp(unit)} × ${item.qty} = ${formatSyp(line)}`);
+                if (discPct > 0) en.push(`    📎  List: ${formatSyp(listUnit)}`);
+                if (img) en.push(`    🖼  ${img}`);
                 en.push('');
             });
             const td = order.totals || {};
             const payTotal = Number(td.total != null ? td.total : td.subtotal || 0);
             const discAll = Number(td.discount || 0);
             const beforeAll = payTotal + discAll;
+            ar.push('┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈');
             if (discAll > 0) {
-                ar.push(`📊 المجموع قبل الخصم: ${formatSyp(beforeAll)}`);
-                ar.push(`🏷 إجمالي الخصم: ${formatSyp(discAll)}`);
-                en.push(`📊 Subtotal before discount: ${formatSyp(beforeAll)}`);
-                en.push(`🏷 Total discount: ${formatSyp(discAll)}`);
+                ar.push(`📊  قبل الخصم: ${formatSyp(beforeAll)}`);
+                ar.push(`🏷  الخصم: ${formatSyp(discAll)}`);
             }
-            ar.push(`💰 الإجمالي للدفع: ${formatSyp(payTotal)}`);
-            ar.push(`💳 طريقة الدفع: ${payAr}`);
+            ar.push(`💰  الإجمالي: ${formatSyp(payTotal)}`);
+            ar.push(`💳  الدفع: ${payAr}`);
             const shipAr = order.shippingAddress?.ar ?? getShippingAddress().ar;
             const shipEn = order.shippingAddress?.en ?? getShippingAddress().en;
-            ar.push(`📍 عنوان التوصيل: ${shipAr}`);
-            en.push(`💰 Total to pay: ${formatSyp(payTotal)}`);
-            en.push(`💳 Payment: ${payEn}`);
-            en.push(`📍 Shipping: ${shipEn}`);
-            return [...ar, '', '──────────────', 'English (same order):', '', ...en].join('\n');
+            ar.push(`📍  التوصيل: ${shipAr}`);
+            en.push('┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈');
+            if (discAll > 0) {
+                en.push(`📊  Before discount: ${formatSyp(beforeAll)}`);
+                en.push(`🏷  Discount: ${formatSyp(discAll)}`);
+            }
+            en.push(`💰  Total: ${formatSyp(payTotal)}`);
+            en.push(`💳  Payment: ${payEn}`);
+            en.push(`📍  Ship to: ${shipEn}`);
+            return [...ar, '', '──────────────', 'English:', '', ...en].join('\n');
         }
 
         function setOrderStatus(status) {
@@ -2737,7 +2780,7 @@
                         </div>`;
             }).join('');
 
-            if (detailOrderId) detailOrderId.textContent = latestOrderId;
+            if (detailOrderId) detailOrderId.textContent = latestOrderId || '—';
             if (detailStatus) {
                 const st = orderStatusFlow[currentIndex];
                 detailStatus.textContent = st ? (isRTL ? st.ar : st.en) : getOrderStatusLabel(latestOrderStatus);

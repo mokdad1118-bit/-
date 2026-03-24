@@ -65,6 +65,17 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
+/** الرقم التالي بصيغة ORD-00001 — متسلسل من قاعدة البيانات */
+async function allocateNextOrderNo() {
+  const row = await get(
+    `SELECT COALESCE(MAX(CAST(SUBSTRING(order_no FROM 5) AS INTEGER)), 0) AS n
+     FROM orders
+     WHERE order_no LIKE 'ORD-%' AND SUBSTRING(order_no FROM 5) ~ '^[0-9]+$'`
+  );
+  const next = Number(row?.n ?? 0) + 1;
+  return `ORD-${String(next).padStart(5, "0")}`;
+}
+
 /** منتجات أدورا: بدون علامة أو علامة أدورا (للأقسام الرئيسية على الرئيسية) */
 function sqlAdoraBrandPredicate() {
   return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'أدورا')`;
@@ -605,6 +616,17 @@ app.post("/api/admin/broadcasts", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
+/** حذف كل رسائل البث والإشعارات الداخلية لجميع المستخدمين (تُحذف سجلات القراءة تلقائياً بـ CASCADE) */
+app.delete("/api/admin/notifications/all", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    await run(`DELETE FROM in_app_notifications`);
+    await run(`DELETE FROM broadcast_messages`);
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to clear notifications" });
+  }
+});
+
 app.get("/api/products", async (req, res) => {
   try {
     const {
@@ -1062,6 +1084,15 @@ function orderStatusNotifyMessageAr(status) {
   return m[status] || `تم تحديث حالة طلبك (${status})`;
 }
 
+app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
+  try {
+    const order_no = await allocateNextOrderNo();
+    return res.json({ order_no });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load next order number" });
+  }
+});
+
 app.post("/api/orders", requireAuth, async (req, res) => {
   try {
     const {
@@ -1079,7 +1110,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
     }
     /** الحالة الأولى دائماً «قيد الاستلام» — لا يُقبل تمرير حالة من الزبون */
     const status = "pending_receipt";
-    const orderNo = `ORD-${Math.floor(Math.random() * 900000 + 100000)}`;
+    const orderNo = await allocateNextOrderNo();
     const result = await run(
       `INSERT INTO orders (order_no, user_id, total_price, status, payment_method, source, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [orderNo, req.user.id, Number(total_price || 0), status, payment_method, source, shippingAddress]
