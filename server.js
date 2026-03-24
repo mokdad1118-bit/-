@@ -1498,14 +1498,16 @@ initDb()
   app.set("io", io);
 
   server.listen(PORT, "0.0.0.0", () => {
+    const renderHost = process.env.RENDER_EXTERNAL_HOSTNAME;
     const publicHint =
       process.env.PUBLIC_URL ||
       process.env.RENDER_EXTERNAL_URL ||
+      (renderHost && String(renderHost).trim() ? `https://${String(renderHost).trim()}` : "") ||
       `http://localhost:${PORT}`;
     // eslint-disable-next-line no-console
     console.log(`Adora listening on 0.0.0.0:${PORT} [${NODE_ENV}]`);
     // eslint-disable-next-line no-console
-    console.log(`Public URL (set PUBLIC_URL in .env): ${publicHint}`);
+    console.log(`Public URL hint: ${publicHint}`);
   });
   })
   .catch((err) => {
