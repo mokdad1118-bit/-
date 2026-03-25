@@ -4649,28 +4649,107 @@
             const arr = window.__adoraBannerCarouselTimers;
             if (Array.isArray(arr)) arr.forEach((id) => clearInterval(id));
             window.__adoraBannerCarouselTimers = [];
+            const ros = window.__adoraBannerResizeObservers;
+            if (Array.isArray(ros)) {
+                ros.forEach((ro) => {
+                    try {
+                        ro.disconnect();
+                    } catch (_e) {}
+                });
+                window.__adoraBannerResizeObservers = [];
+            }
         }
 
-        function __scheduleBannerCarouselAutoAdvance(track) {
-            if (!track || track.children.length < 2) return;
-            try {
-                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            } catch (_e) {}
-            const gapPx = 8;
-            const id = setInterval(() => {
-                const first = track.children[0];
-                if (!first) return;
-                const step = first.getBoundingClientRect().width + gapPx;
-                const max = track.scrollWidth - track.clientWidth;
-                if (max <= 4) return;
-                if (track.scrollLeft + step >= max - 6) {
-                    track.scrollTo({ left: 0, behavior: 'smooth' });
-                } else {
-                    track.scrollBy({ left: step, behavior: 'smooth' });
+        /** سلايدر بعرض 100% وارتفاع 200px، تبديل كل 3s — صور مثل 1200×400 تُعرض بـ object-cover */
+        function __mountAdoraBannerSlider(host, banners) {
+            const n = banners.length;
+            if (!n) {
+                host.innerHTML = '';
+                return;
+            }
+            const slidesHtml = banners
+                .map((b) => {
+                    const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
+                    const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
+                    const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
+                    const hasImg = !!rawUrl;
+                    const linkLine = b.link_url
+                        ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
+                        : '';
+                    if (hasImg) {
+                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200">
+  <img src="${escapeHtml(rawUrl)}" alt="" class="absolute inset-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="lazy" decoding="async" />
+  <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
+    ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
+    ${bodyTxt ? `<p class="mt-0.5 text-[11px] leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
+    ${linkLine}
+  </div>
+</div>`;
+                    }
+                    return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 px-4 text-center">
+  <div class="max-w-full">
+    ${title ? `<p class="text-[14px] font-bold text-white drop-shadow">${escapeHtml(title)}</p>` : ''}
+    ${bodyTxt ? `<p class="mt-1 text-[12px] leading-snug text-white/95 line-clamp-3">${escapeHtml(bodyTxt)}</p>` : ''}
+    ${linkLine}
+  </div>
+</div>`;
+                })
+                .join('');
+            host.innerHTML = `<div class="adora-banner-slider-viewport relative w-full overflow-hidden shadow-md" style="height:200px;border-radius:16px">
+  <div dir="ltr" class="adora-banner-slider-track flex h-[200px] transition-transform duration-500 ease-out" style="will-change:transform">
+    ${slidesHtml}
+  </div>
+</div>`;
+            const vp = host.querySelector('.adora-banner-slider-viewport');
+            const track = host.querySelector('.adora-banner-slider-track');
+            const slides = track ? Array.from(track.querySelectorAll('.adora-banner-slide')) : [];
+            if (!vp || !track || !slides.length) return;
+
+            let idx = 0;
+            let resizeTimer = null;
+            function layout() {
+                const w = vp.offsetWidth;
+                if (!w) return;
+                slides.forEach((el) => {
+                    el.style.flex = `0 0 ${w}px`;
+                    el.style.minWidth = `${w}px`;
+                });
+                track.style.transform = `translate3d(-${idx * w}px,0,0)`;
+            }
+            function onResize() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    idx = Math.min(idx, Math.max(0, n - 1));
+                    layout();
+                }, 80);
+            }
+            layout();
+            if (typeof ResizeObserver !== 'undefined') {
+                try {
+                    const ro = new ResizeObserver(() => layout());
+                    ro.observe(vp);
+                    window.__adoraBannerResizeObservers = window.__adoraBannerResizeObservers || [];
+                    window.__adoraBannerResizeObservers.push(ro);
+                } catch (_e) {
+                    window.addEventListener('resize', onResize);
                 }
-            }, 5000);
-            window.__adoraBannerCarouselTimers = window.__adoraBannerCarouselTimers || [];
-            window.__adoraBannerCarouselTimers.push(id);
+            } else {
+                window.addEventListener('resize', onResize);
+            }
+
+            if (n < 2) return;
+            let reduced = false;
+            try {
+                reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            } catch (_e2) {}
+            if (!reduced) {
+                const id = setInterval(() => {
+                    idx = (idx + 1) % n;
+                    layout();
+                }, 3000);
+                window.__adoraBannerCarouselTimers = window.__adoraBannerCarouselTimers || [];
+                window.__adoraBannerCarouselTimers.push(id);
+            }
         }
 
         async function injectHomeBanners() {
@@ -4702,30 +4781,7 @@
                         host.innerHTML = '';
                         return;
                     }
-                    const cards = banners
-                        .map((b, idx) => {
-                            const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
-                            const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
-                            const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
-                            const hasImg = !!rawUrl;
-                            const delay = Math.min(idx * 0.05, 0.3);
-                            const imgBlock = hasImg
-                                ? `<div class="w-full shrink-0 h-[52px] sm:h-[52px] overflow-hidden bg-gray-100"><img src="${escapeHtml(rawUrl)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async"></div>`
-                                : `<div class="w-full shrink-0 h-[52px] bg-gradient-to-br from-violet-300/35 to-fuchsia-200/40 flex items-center justify-center"><i class="fas fa-image text-sm text-purple-600/75" aria-hidden="true"></i></div>`;
-                            return `<article class="snap-center shrink-0 w-[min(46vw,11.75rem)] min-w-[min(46vw,11.75rem)] max-w-[12rem]">
-  <div class="adora-banner-card flex flex-col overflow-hidden rounded-2xl border border-purple-100/90 bg-white shadow-[0_2px_10px_rgba(124,58,237,0.08)] transition-transform duration-200 will-change-transform active:scale-[0.98]" style="animation-delay:${delay}s">${imgBlock}
-    <div class="px-2.5 py-1.5 space-y-0.5 flex flex-col justify-start min-h-0">${title ? `<p class="font-bold text-gray-900 text-[10px] leading-snug text-center line-clamp-2 break-words">${escapeHtml(title)}</p>` : ''}${bodyTxt ? `<p class="text-[9px] text-gray-600 leading-snug text-center line-clamp-3 break-words">${escapeHtml(bodyTxt)}</p>` : ''}${
-                                b.link_url
-                                    ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="block pt-0.5 text-center text-[9px] font-semibold text-purple-600">${isRTL ? 'رابط' : 'Link'}</a>`
-                                    : ''
-                            }</div>
-  </div>
-</article>`;
-                        })
-                        .join('');
-                    host.innerHTML = `<div class="adora-banner-strip -mx-1"><div dir="ltr" class="adora-banner-track flex overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch]">${cards}</div></div>`;
-                    const track = host.querySelector('.adora-banner-track');
-                    __scheduleBannerCarouselAutoAdvance(track);
+                    __mountAdoraBannerSlider(host, banners);
                 });
             } catch (_e) {
                 /* ignore */

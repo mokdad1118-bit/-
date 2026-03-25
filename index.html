@@ -1308,41 +1308,17 @@
             }
         }
 
-        /* بانرات الرئيسية — شريط مدمج، عرض حديث، حركة دخول خفيفة */
-        @keyframes adoraBannerCardIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px) scale(0.94);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+        /* بانرات الرئيسية — سلايدر بعرض كامل، ارتفاع 200px، زوايا 16px */
+        .adora-banner-slider-viewport {
+            border-radius: 16px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .adora-banner-strip {
-            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
-        }
-        .adora-banner-track {
-            gap: 0.5rem;
-            padding: 0.125rem 0.25rem 0.25rem;
-            scroll-snap-type: x mandatory;
-            scroll-padding-inline: 0.35rem;
-        }
-        .adora-banner-card {
-            animation: adoraBannerCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-        }
-        .adora-banner-card:active {
-            transform: scale(0.97);
+        .adora-banner-slider-track {
+            backface-visibility: hidden;
         }
         @media (prefers-reduced-motion: reduce) {
-            .adora-banner-card {
-                animation: none;
-            }
-            .adora-banner-strip {
-                -webkit-mask-image: none;
-                mask-image: none;
+            .adora-banner-slider-track {
+                transition: none !important;
             }
         }
         
