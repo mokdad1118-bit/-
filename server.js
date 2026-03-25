@@ -426,8 +426,14 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
 /** إشعارات: رسائل بث قديمة + إشعارات نصية جديدة (مع قراءة لكل مستخدم) */
 app.get("/api/notifications", requireAuth, async (req, res) => {
   try {
+    const urow = await get(`SELECT created_at FROM users WHERE id=?`, [req.user.id]);
+    const since = urow?.created_at ? new Date(urow.created_at).toISOString() : new Date(0).toISOString();
+
     const messages = await all(
-      `SELECT id, title_ar, title_en, body_ar, body_en, created_at FROM broadcast_messages ORDER BY id DESC LIMIT 100`
+      `SELECT id, title_ar, title_en, body_ar, body_en, created_at FROM broadcast_messages
+       WHERE created_at >= ?
+       ORDER BY id DESC LIMIT 100`,
+      [since]
     );
     const reads = await all(`SELECT broadcast_id FROM user_broadcast_reads WHERE user_id=?`, [req.user.id]);
     const readSet = new Set(reads.map((r) => r.broadcast_id));
@@ -444,9 +450,10 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
 
     const inApp = await all(
       `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications
-       WHERE target_user_id IS NULL OR target_user_id = ?
+       WHERE (target_user_id IS NULL OR target_user_id = ?)
+       AND created_at >= ?
        ORDER BY id DESC LIMIT 200`,
-      [req.user.id]
+      [req.user.id, since]
     );
     const inReads = await all(`SELECT notification_id FROM in_app_notification_reads WHERE user_id=?`, [req.user.id]);
     const inReadSet = new Set(inReads.map((r) => r.notification_id));

@@ -2620,7 +2620,24 @@
         }
 
         async function openWhatsAppWithOrder(order) {
-            const message = formatOrderMessage(order, isRTL ? 'ar' : 'en');
+            let customerName = '';
+            let customerPhone = '';
+            try {
+                const bundle = await apiFetch('/api/profile', { requireAuth: true });
+                customerName = bundle?.user?.name ? String(bundle.user.name) : '';
+                customerPhone = bundle?.user?.phone ? String(bundle.user.phone) : '';
+            } catch (_e) {}
+            const savedAddr = getSavedDeliveryAddressText();
+            const shipAr = order.shippingAddress?.ar ?? getShippingAddress().ar;
+            const shipEn = order.shippingAddress?.en ?? getShippingAddress().en;
+            const enriched = {
+                ...order,
+                customerName,
+                customerPhone,
+                deliveryAddressAr: savedAddr || shipAr,
+                deliveryAddressEn: savedAddr || shipEn,
+            };
+            const message = formatOrderMessage(enriched, isRTL ? 'ar' : 'en');
             try {
                 if (!cachedWhatsAppPhone) {
                     const data = await apiFetch('/api/contact', { requireAuth: false });
@@ -2665,11 +2682,21 @@
             ar.push('');
             ar.push(`📋 رقم الطلب:  ${oid}`);
             ar.push('');
+            ar.push('👤 بيانات الزبون');
+            ar.push(`   الاسم: ${order.customerName || '—'}`);
+            ar.push(`   الهاتف: ${order.customerPhone || '—'}`);
+            ar.push(`   عنوان التوصيل: ${order.deliveryAddressAr || '—'}`);
+            ar.push('');
             en.push('┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓');
             en.push('  🛍  ADORA · New order');
             en.push('┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛');
             en.push('');
             en.push(`📋 Order:  ${oid}`);
+            en.push('');
+            en.push('👤 Customer');
+            en.push(`   Name: ${order.customerName || '—'}`);
+            en.push(`   Phone: ${order.customerPhone || '—'}`);
+            en.push(`   Address: ${order.deliveryAddressEn || '—'}`);
             en.push('');
             items.forEach((item, i) => {
                 const num = i + 1;
@@ -2715,9 +2742,6 @@
             }
             ar.push(`💰  الإجمالي: ${formatSyp(payTotal)}`);
             ar.push(`💳  الدفع: ${payAr}`);
-            const shipAr = order.shippingAddress?.ar ?? getShippingAddress().ar;
-            const shipEn = order.shippingAddress?.en ?? getShippingAddress().en;
-            ar.push(`📍  التوصيل: ${shipAr}`);
             en.push('┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈');
             if (discAll > 0) {
                 en.push(`📊  Before discount: ${formatSyp(beforeAll)}`);
@@ -2725,7 +2749,6 @@
             }
             en.push(`💰  Total: ${formatSyp(payTotal)}`);
             en.push(`💳  Payment: ${payEn}`);
-            en.push(`📍  Ship to: ${shipEn}`);
             return [...ar, '', '──────────────', 'English:', '', ...en].join('\n');
         }
 
@@ -2898,7 +2921,6 @@
                     return `<button type="button" class="brand-card${activeClass}" data-brand-name="${brandEnc}">
                             <div class="logo overflow-hidden">${logoHtml}</div>
                             <div class="brand-name">${escapeHtml(brand.name)}</div>
-                            <div class="brand-meta">${isRTL ? 'منتجات' : 'Items'}: ${brand.selling}</div>
                         </button>`;
                 })
                 .join('');
@@ -2982,17 +3004,39 @@
             history.back();
         }
 
+        function isAdoraBrandName(name) {
+            const n = String(name || '')
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, '');
+            return n === 'adora' || n === 'أدورا' || n.includes('adora');
+        }
+
+        function updateListingBrandSectionCount() {
+            const el = document.getElementById('listing-brand-section-count');
+            if (!el) return;
+            const sq = listingSearchQuery && String(listingSearchQuery).trim();
+            const show = !!listingBrandName && !sq;
+            el.classList.toggle('hidden', !show);
+            if (!show) return;
+            const raw = Array.isArray(listingProductsRaw) ? listingProductsRaw : [];
+            const n = applyClientSideListingFilters(raw).length;
+            el.textContent = isRTL ? `${n} منتج` : `${n} items`;
+        }
+
         function updateListingBrandMainCatBar() {
             const wrap = document.getElementById('listing-brand-main-cat-wrap');
             if (!wrap) return;
             const sq = listingSearchQuery && String(listingSearchQuery).trim();
             const show = !!listingBrandName && !sq;
             wrap.classList.toggle('hidden', !show);
+            wrap.setAttribute('data-brand-theme', listingBrandName && isAdoraBrandName(listingBrandName) ? 'adora' : 'other');
             const cur = listingBrandMainCategory || '';
             wrap.querySelectorAll('.listing-brand-cat-chip').forEach((btn) => {
                 const v = btn.getAttribute('data-main-cat') || '';
                 btn.classList.toggle('active', v === cur);
             });
+            updateListingBrandSectionCount();
         }
 
         function setListingBrandMainCategory(cat) {
@@ -3432,7 +3476,7 @@
                 disc > 0
                     ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round(disc)}%</span>`
                     : '';
-            return `<div onclick="openProductDetail(${p.id})" class="product-card bg-white rounded-2xl shadow-sm overflow-hidden group cursor-pointer">
+            return `<div onclick="openProductDetail(${p.id})" class="product-card bg-white rounded-2xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
                 <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
                     <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                     ${badge}
@@ -3974,7 +4018,6 @@
             if (tops.length) {
                 container.innerHTML = tops
                     .map((b) => {
-                        const cnt = Number(b.product_count || 0);
                         const nameEnc = encodeURIComponent(String(b.name || ''));
                         let sc = Array.isArray(b.showcase_categories) ? b.showcase_categories.map(String) : [];
                         sc = sc.filter((c) => ['Men', 'Women', 'Kids'].includes(c));
@@ -3986,13 +4029,12 @@
                                 return `<button type="button" class="top-brand-cat-chip shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-100 bg-white text-purple-700 hover:bg-purple-50 transition" data-brand-name="${nameEnc}" data-main-cat="${cat}">${escapeHtml(t)}</button>`;
                             })
                             .join('');
-                        return `<div class="w-36 flex-shrink-0 flex flex-col gap-2">
+                        return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
                             <button type="button" class="top-brand-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-brand-name="${nameEnc}">
-                                <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center">
+                                <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-black/5">
                                     ${b.logo ? `<img src="${escapeHtml(b.logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`}
                                 </div>
                                 <h4 class="font-bold text-gray-900 truncate">${escapeHtml(b.name)}</h4>
-                                <span class="text-xs text-gray-500">${cnt} ${isRTL ? 'منتج' : 'items'}</span>
                             </button>
                             <div class="flex flex-wrap gap-1">${chips}</div>
                         </div>`;
