@@ -282,9 +282,9 @@ async function initDb() {
       `INSERT INTO categories (name, subcategories_json) VALUES (?, ?), (?, ?), (?, ?)`,
       [
         "Men",
-        JSON.stringify(["T-Shirts", "Pants", "Shoes", "Shirts", "Accessories", "Perfumes"]),
+        JSON.stringify(["T-Shirts", "Pants", "Shoes", "Shirts", "Jackets", "Accessories", "Perfumes"]),
         "Women",
-        JSON.stringify(["Dresses", "Tops", "Pants", "Accessories", "Bags", "Perfumes"]),
+        JSON.stringify(["Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"]),
         "Kids",
         JSON.stringify(["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"]),
       ]
@@ -303,8 +303,8 @@ async function initDb() {
 
 async function mergeCategorySubcategoriesWithDefaults() {
   const defaults = {
-    Men: ["T-Shirts", "Pants", "Shoes", "Shirts", "Accessories", "Perfumes"],
-    Women: ["Dresses", "Tops", "Pants", "Accessories", "Bags", "Perfumes"],
+    Men: ["T-Shirts", "Pants", "Shoes", "Shirts", "Jackets", "Accessories", "Perfumes"],
+    Women: ["Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"],
     Kids: ["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"],
   };
   for (const [name, subs] of Object.entries(defaults)) {
