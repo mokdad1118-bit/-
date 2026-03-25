@@ -234,7 +234,7 @@
                     </label>
                     <label class="flex items-start gap-2 cursor-pointer max-w-md">
                       <input id="product-is-new-collection" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
-                      <span class="text-sm font-semibold leading-snug" data-en="Show in home banner and dedicated list" data-ar="الظهور في بانر الرئيسية وقائمة مخصّصة">الظهور في بانر الرئيسية وقائمة مخصّصة</span>
+                      <span class="text-sm font-semibold leading-snug" data-en="Fresh drops / New Collection — appears in the home «Fresh drops» block and in listing when customers filter by رجال/نساء/أطفال/ألعاب." data-ar="وصل حديثاً — يظهر في بلوك «وصل حديثاً» بالرئيسية وفي القائمة عند تصفية رجال/نساء/أطفال/ألعاب.">وصل حديثاً — يظهر في بلوك «وصل حديثاً» بالرئيسية وفي القائمة عند تصفية رجال/نساء/أطفال/ألعاب.</span>
                     </label>
                   </div>
                 </div>
@@ -634,10 +634,12 @@
                   <label class="text-sm font-semibold"><span data-en="Image URL (https, optional)" data-ar="رابط صورة (https — اختياري)">رابط صورة (https — اختياري)</span></label>
                   <input
                     id="admin-notif-image"
-                    type="url"
+                    type="text"
                     class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
                     placeholder="https://..."
                   />
+                  <input id="admin-notif-image-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm" />
+                  <p class="text-xs text-gray-500 mt-1" data-en="Or upload a file — URL field will be filled with the server link." data-ar="أو ارفع ملفاً — يُملأ حقل الرابط تلقائياً برابط السيرفر.">أو ارفع ملفاً — يُملأ حقل الرابط تلقائياً برابط السيرفر.</p>
                 </div>
                 <div>
                   <label class="text-sm font-semibold"><span data-en="Open link (https, optional)" data-ar="رابط عند الضغط (https — اختياري)">رابط عند الضغط (https — اختياري)</span></label>
@@ -720,7 +722,7 @@
           <div id="tab-banners" class="tab-panel hidden">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-2" data-en="App banners" data-ar="بانرات التطبيق">بانرات التطبيق</h2>
-              <p class="text-sm text-gray-600 mb-4" data-en="Image + text; choose where it appears on the home screen." data-ar="صورة ونص؛ اختر موضع الظهور في الرئيسية.">صورة ونص؛ اختر موضع الظهور في الرئيسية.</p>
+              <p class="text-sm text-gray-600 mb-4" data-en="Title and body are required; image is optional (text-only banners supported). Choose placement on the home screen." data-ar="العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.">العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.</p>
               <form id="banner-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input type="hidden" id="banner-id" />
                 <div>
@@ -740,11 +742,11 @@
                   <textarea id="banner-body-en" rows="2" class="mt-1 w-full p-3 rounded-xl border border-gray-200"></textarea>
                 </div>
                 <div class="md:col-span-2">
-                  <label class="text-sm font-semibold"><span data-en="Image URL" data-ar="رابط الصورة">رابط الصورة</span></label>
+                  <label class="text-sm font-semibold"><span data-en="Image URL (optional)" data-ar="رابط الصورة (اختياري)">رابط الصورة (اختياري)</span></label>
                   <input id="banner-image-url" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200" placeholder="https://..." />
                 </div>
                 <div>
-                  <label class="text-sm font-semibold"><span data-en="Upload image" data-ar="رفع صورة">رفع صورة</span></label>
+                  <label class="text-sm font-semibold"><span data-en="Upload image (optional)" data-ar="رفع صورة (اختياري)">رفع صورة (اختياري)</span></label>
                   <input id="banner-image-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
                 </div>
                 <div>
@@ -848,17 +850,10 @@
                   <input id="contact-whatsapp" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="+9665..." data-ar-ph="+9665..." placeholder="+9665..." />
                 </div>
                 <div class="md:col-span-2 border-t border-gray-100 pt-4 mt-1">
-                  <p class="text-sm font-bold text-gray-900 mb-2" data-en="App home — show / hide sections" data-ar="الرئيسية في التطبيق — إظهار / إخفاء الأقسام">الرئيسية في التطبيق — إظهار / إخفاء الأقسام</p>
-                  <p class="text-xs text-gray-500 mb-3 leading-relaxed" data-en="Turn sections on or off (saved with Contact). Banners = all promotional slots between blocks." data-ar="فعّل أو عطّل كل قسم (يُحفظ مع التواصل). البانرات = كل المواضع الترويجية بين الأقسام.">فعّل أو عطّل كل قسم (يُحفظ مع التواصل). البانرات = كل المواضع الترويجية بين الأقسام.</p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-banners" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Promo banners (all slots)" data-ar="البانرات الترويجية (كل المواضع)">البانرات الترويجية</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-main_categories" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Main categories (Men / Women / Kids)" data-ar="الأقسام الرئيسية (رجالي / نسائي / ولادي)">الأقسام الرئيسية</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-brands" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Brands row" data-ar="صف الشركات">صف الشركات</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-top_brands" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Top brands" data-ar="أفضل الشركات">أفضل الشركات</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-flash_sale" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Flash sale" data-ar="عروض سريعة">عروض سريعة</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-curated" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-promo_collection" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Promo collection strip" data-ar="شريط المجموعة الترويجية">شريط المجموعة الترويجية</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input id="contact-vis-bestsellers" type="checkbox" class="rounded border-gray-300" checked /> <span data-en="Bestsellers" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</span></label>
+                  <p class="text-sm font-bold text-gray-900 mb-1" data-en="All home sections" data-ar="جميع الأقسام">جميع الأقسام</p>
+                  <p class="text-xs text-gray-500 mb-3 leading-relaxed" data-en="Toggle each block on the app home. List is loaded from the server (new sections appear here automatically). Saved with «Save Contact» below." data-ar="تشغيل أو إيقاف كل قسم في الصفحة الرئيسية. القائمة تُحمّل من السيرفر (أي قسم جديد يظهر تلقائياً). يُحفظ مع «حفظ التواصل» أدناه.">تشغيل أو إيقاف كل قسم في الصفحة الرئيسية. القائمة تُحمّل من السيرفر (أي قسم جديد يظهر تلقائياً). يُحفظ مع «حفظ التواصل» أدناه.</p>
+                  <div id="home-sections-all-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm min-h-[2rem]">
+                    <p class="text-xs text-gray-400 col-span-2" data-en="Loading sections…" data-ar="جاري تحميل الأقسام…">جاري تحميل الأقسام…</p>
                   </div>
                 </div>
                 <div class="md:col-span-2 border-t border-gray-100 pt-4 mt-1">
@@ -867,15 +862,18 @@
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label class="text-sm font-semibold"><span data-en="Men card" data-ar="صورة رجالي">صورة رجالي</span></label>
-                      <input id="contact-home-img-men" type="url" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-men" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-men-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-xs" data-en="Upload file" data-ar="رفع ملف" />
                     </div>
                     <div>
                       <label class="text-sm font-semibold"><span data-en="Women card" data-ar="صورة نسائي">صورة نسائي</span></label>
-                      <input id="contact-home-img-women" type="url" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-women" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-women-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-xs" />
                     </div>
                     <div>
                       <label class="text-sm font-semibold"><span data-en="Kids card" data-ar="صورة ولادي">صورة ولادي</span></label>
-                      <input id="contact-home-img-kids" type="url" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-kids" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
+                      <input id="contact-home-img-kids-file" type="file" accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-xs" />
                     </div>
                   </div>
                 </div>

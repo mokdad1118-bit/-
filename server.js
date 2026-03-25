@@ -68,6 +68,18 @@ const DEFAULT_HOME_SECTIONS_VISIBILITY = {
   bestsellers: true,
 };
 
+/** Labels for admin UI + `/api/admin/home-sections/keys` — keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
+const HOME_SECTION_LABELS = {
+  banners: { ar: "البانرات الترويجية (كل المواضع)", en: "Promo banners (all slots)" },
+  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories (Men / Women / Kids)" },
+  brands: { ar: "صف الشركات", en: "Brands row" },
+  top_brands: { ar: "أفضل الشركات", en: "Top brands" },
+  flash_sale: { ar: "عروض سريعة", en: "Flash sale" },
+  curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
+  promo_collection: { ar: "شريط المجموعة الترويجية / وصل حديثاً", en: "Promo collection / New collection strip" },
+  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
+};
+
 function mergeHomeSectionsVisibility(raw) {
   const o = raw && typeof raw === "object" ? raw : {};
   const out = { ...DEFAULT_HOME_SECTIONS_VISIBILITY };
@@ -423,6 +435,26 @@ app.get("/api/admin/database/overview", requireAuth, requireAdmin, async (_req, 
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load database overview" });
+  }
+});
+
+/** Keys + labels for home section visibility (admin toggles) — derived from DEFAULT_HOME_SECTIONS_VISIBILITY */
+app.get("/api/admin/home-sections/keys", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const keys = Object.keys(DEFAULT_HOME_SECTIONS_VISIBILITY);
+    const defaults = { ...DEFAULT_HOME_SECTIONS_VISIBILITY };
+    const sections = keys.map((key) => {
+      const lab = HOME_SECTION_LABELS[key] || { ar: key, en: key };
+      return {
+        key,
+        label_ar: lab.ar,
+        label_en: lab.en,
+        default: defaults[key] !== false,
+      };
+    });
+    return res.json({ keys, defaults, sections });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to load home section keys" });
   }
 });
 
@@ -1508,7 +1540,13 @@ app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
     const pl = placement != null ? String(placement).trim() : "";
-    if (!img || !pl) return res.status(400).json({ error: "image_url and placement required" });
+    if (!pl) return res.status(400).json({ error: "placement required" });
+    const ta = String(title_ar).trim();
+    const te = String(title_en).trim();
+    const ba = String(body_ar).trim();
+    const be = String(body_en).trim();
+    if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
+    if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
     const r = await run(
       `INSERT INTO app_banners (title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order, active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1546,7 +1584,13 @@ app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) =>
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
     const pl = placement != null ? String(placement).trim() : "";
-    if (!img || !pl) return res.status(400).json({ error: "image_url and placement required" });
+    if (!pl) return res.status(400).json({ error: "placement required" });
+    const ta = String(title_ar).trim();
+    const te = String(title_en).trim();
+    const ba = String(body_ar).trim();
+    const be = String(body_en).trim();
+    if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
+    if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
     await run(
       `UPDATE app_banners SET title_ar=?, title_en=?, body_ar=?, body_en=?, image_url=?, link_url=?, placement=?, sort_order=?, active=? WHERE id=?`,
       [

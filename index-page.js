@@ -3488,6 +3488,10 @@
                 if (sq) {
                     params.set('q', sq);
                     if (listingBrandName) params.set('brand', listingBrandName);
+                    if (listingNewCollectionOnly) {
+                        params.set('new_collection', '1');
+                        if (listingCategoryFilter) params.set('category', listingCategoryFilter);
+                    }
                 } else {
                     if (listingBrandName) {
                         params.set('brand', listingBrandName);
@@ -3496,6 +3500,7 @@
                         }
                     } else if (listingNewCollectionOnly) {
                         params.set('new_collection', '1');
+                        if (listingCategoryFilter) params.set('category', listingCategoryFilter);
                     } else if (listingAdoraOnly) {
                         params.set('adora_only', '1');
                         if (listingCategoryFilter) params.set('category', listingCategoryFilter);
@@ -3514,14 +3519,31 @@
                 const products = await apiFetch(`/api/products${qs}`, { requireAuth: false });
                 listingProductsRaw = Array.isArray(products) ? products : [];
                 if (titleEl) {
+                    const ncCatLabelsAr = { Men: 'رجال', Women: 'نساء', Kids: 'أطفال', Games: 'ألعاب' };
+                    const ncCatLabelsEn = { Men: 'Men', Women: 'Women', Kids: 'Kids', Games: 'Games' };
                     if (sq) {
                         titleEl.removeAttribute('data-en');
                         titleEl.removeAttribute('data-ar');
-                        titleEl.textContent = isRTL ? `بحث: ${sq}` : `Search: ${sq}`;
+                        if (listingNewCollectionOnly) {
+                            const cf = listingCategoryFilter && ncCatLabelsAr[listingCategoryFilter];
+                            const catLab = cf ? (isRTL ? ncCatLabelsAr[listingCategoryFilter] : ncCatLabelsEn[listingCategoryFilter]) : '';
+                            titleEl.textContent = catLab
+                                ? isRTL
+                                    ? `بحث: ${sq} · وصل حديثاً · ${catLab}`
+                                    : `Search: ${sq} · Fresh drops · ${catLab}`
+                                : isRTL
+                                  ? `بحث: ${sq} · وصل حديثاً`
+                                  : `Search: ${sq} · Fresh drops`;
+                        } else {
+                            titleEl.textContent = isRTL ? `بحث: ${sq}` : `Search: ${sq}`;
+                        }
                     } else if (listingNewCollectionOnly) {
                         titleEl.setAttribute('data-en', 'Fresh drops');
                         titleEl.setAttribute('data-ar', 'وصل حديثاً');
-                        titleEl.textContent = isRTL ? titleEl.getAttribute('data-ar') : titleEl.getAttribute('data-en');
+                        const base = isRTL ? titleEl.getAttribute('data-ar') : titleEl.getAttribute('data-en');
+                        const cf = listingCategoryFilter && ncCatLabelsAr[listingCategoryFilter];
+                        const catLab = cf ? (isRTL ? ncCatLabelsAr[listingCategoryFilter] : ncCatLabelsEn[listingCategoryFilter]) : '';
+                        titleEl.textContent = catLab ? `${base} · ${catLab}` : base;
                     } else if (listingBrandName) {
                         const catLab =
                             listingBrandMainCategory && ['Men', 'Women', 'Kids'].includes(listingBrandMainCategory)
@@ -3848,6 +3870,26 @@
             listingSubcategoryFilter = null;
             listingAdoraOnly = false;
             listingNewCollectionOnly = true;
+            renderBrandCards();
+            const status = document.getElementById('brand-status');
+            if (status) {
+                status.textContent = isRTL ? status.getAttribute('data-ar') : status.getAttribute('data-en');
+            }
+            navigateTo('screen-listing');
+        }
+
+        /** Fresh drops filtered by main category + is_new_collection (Games = category Games) */
+        function navigateToListingNewCollectionCategory(mainCat) {
+            const allowed = ['Men', 'Women', 'Kids', 'Games'];
+            const c = String(mainCat || '').trim();
+            listingSearchQuery = '';
+            listingBrandName = null;
+            listingBrandMainCategory = null;
+            activeBrandKey = null;
+            listingSubcategoryFilter = null;
+            listingAdoraOnly = false;
+            listingNewCollectionOnly = true;
+            listingCategoryFilter = allowed.includes(c) ? c : null;
             renderBrandCards();
             const status = document.getElementById('brand-status');
             if (status) {
@@ -4603,6 +4645,24 @@
             }
         }
 
+        function __clearBannerCarouselTimers() {
+            const arr = window.__adoraBannerCarouselTimers;
+            if (Array.isArray(arr)) arr.forEach((id) => clearInterval(id));
+            window.__adoraBannerCarouselTimers = [];
+        }
+
+        function __scheduleBannerCarouselAutoAdvance(track) {
+            if (!track || track.children.length < 2) return;
+            const id = setInterval(() => {
+                const next = track.scrollLeft + track.clientWidth * 0.92;
+                const max = track.scrollWidth - track.clientWidth;
+                if (next >= max - 2) track.scrollTo({ left: 0, behavior: 'smooth' });
+                else track.scrollTo({ left: next, behavior: 'smooth' });
+            }, 5200);
+            window.__adoraBannerCarouselTimers = window.__adoraBannerCarouselTimers || [];
+            window.__adoraBannerCarouselTimers.push(id);
+        }
+
         async function injectHomeBanners() {
             const placements = [
                 'home_top',
@@ -4614,31 +4674,48 @@
                 'below_trending',
             ];
             try {
+                __clearBannerCarouselTimers();
                 const rows = await apiFetch('/api/banners', { requireAuth: false });
                 const list = Array.isArray(rows) ? rows : [];
+                const byPl = {};
+                for (const b of list) {
+                    const pl = b.placement;
+                    if (!pl) continue;
+                    if (!byPl[pl]) byPl[pl] = [];
+                    byPl[pl].push(b);
+                }
                 placements.forEach((pl) => {
                     const host = document.getElementById(`banner-slot-${pl}`);
-                    if (host) host.innerHTML = '';
-                });
-                for (const b of list) {
-                    const host = document.getElementById(`banner-slot-${b.placement}`);
-                    if (!host) continue;
-                    const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
-                    const body = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
-                    const inner = `<div class="rounded-2xl overflow-hidden border border-gray-100 bg-white shadow-sm">
-                        <img src="${escapeHtml(b.image_url)}" alt="" class="w-full h-36 object-cover" loading="lazy">
-                        <div class="p-4 space-y-1">
-                            ${title ? `<p class="font-bold text-gray-900 text-sm">${escapeHtml(title)}</p>` : ''}
-                            ${body ? `<p class="text-xs text-gray-600 leading-relaxed">${escapeHtml(body)}</p>` : ''}
-                            ${
+                    if (!host) return;
+                    const banners = byPl[pl] || [];
+                    if (!banners.length) {
+                        host.innerHTML = '';
+                        return;
+                    }
+                    const cards = banners
+                        .map((b) => {
+                            const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
+                            const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
+                            const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
+                            const hasImg = !!rawUrl;
+                            const imgBlock = hasImg
+                                ? `<div class="flex justify-center pt-3 pb-1 shrink-0"><div class="w-[5.25rem] h-[5.25rem] sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-purple-100 shadow-sm ring-2 ring-white"><img src="${escapeHtml(rawUrl)}" alt="" class="w-full h-full object-cover" loading="lazy"></div></div>`
+                                : '';
+                            return `<article class="snap-center shrink-0 w-[min(88vw,20rem)] min-w-[min(88vw,20rem)] max-w-sm">
+  <div class="rounded-[1.75rem] overflow-hidden border border-gray-100 bg-white shadow-sm h-full flex flex-col">${imgBlock}
+    <div class="p-3 sm:p-4 space-y-1 flex-1 flex flex-col justify-center">${title ? `<p class="font-bold text-gray-900 text-sm text-center">${escapeHtml(title)}</p>` : ''}${bodyTxt ? `<p class="text-xs text-gray-600 leading-relaxed text-center">${escapeHtml(bodyTxt)}</p>` : ''}${
                                 b.link_url
-                                    ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-xs font-bold text-purple-600">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
+                                    ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-center text-xs font-bold text-purple-600">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
                                     : ''
-                            }
-                        </div>
-                    </div>`;
-                    host.insertAdjacentHTML('beforeend', inner);
-                }
+                            }</div>
+  </div>
+</article>`;
+                        })
+                        .join('');
+                    host.innerHTML = `<div class="adora-banner-track flex gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pb-1 touch-pan-x [-webkit-overflow-scrolling:touch]">${cards}</div>`;
+                    const track = host.querySelector('.adora-banner-track');
+                    __scheduleBannerCarouselAutoAdvance(track);
+                });
             } catch (_e) {
                 /* ignore */
             }

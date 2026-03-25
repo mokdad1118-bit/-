@@ -285,7 +285,11 @@ function renderBannersTable() {
       return `<tr>
         <td class="py-2">${b.id}</td>
         <td class="py-2 font-mono text-xs">${escapeHtml(b.placement)}</td>
-        <td class="py-2 max-w-[140px] truncate"><a href="${escapeHtml(b.image_url)}" target="_blank" rel="noopener" class="text-purple-600">${ar ? "صورة" : "Image"}</a></td>
+        <td class="py-2 max-w-[140px] truncate">${
+          b.image_url && String(b.image_url).trim()
+            ? `<a href="${escapeHtml(b.image_url)}" target="_blank" rel="noopener" class="text-purple-600">${ar ? "صورة" : "Image"}</a>`
+            : `<span class="text-gray-400">${ar ? "نص فقط" : "Text only"}</span>`
+        }</td>
         <td class="py-2">${b.active ? adminT("yes") : adminT("no")}</td>
         <td class="py-2">
           <button type="button" class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-xs" data-banner-edit="${b.id}">${adminT("edit")}</button>
@@ -335,16 +339,12 @@ async function saveBanner(e) {
     const up = await uploadImageFile(file, token);
     if (up) image_url = up;
   }
-  if (!image_url) {
-    alert(ar ? "أدخل رابط الصورة أو ارفع ملفاً." : "Enter image URL or upload a file.");
-    return;
-  }
   const body = {
     title_ar: document.getElementById("banner-title-ar").value.trim(),
     title_en: document.getElementById("banner-title-en").value.trim(),
     body_ar: document.getElementById("banner-body-ar").value.trim(),
     body_en: document.getElementById("banner-body-en").value.trim(),
-    image_url,
+    image_url: image_url || "",
     link_url: document.getElementById("banner-link-url").value.trim(),
     placement: document.getElementById("banner-placement").value.trim(),
     sort_order: Number(document.getElementById("banner-sort").value || 0),
@@ -352,6 +352,14 @@ async function saveBanner(e) {
   };
   if (!body.placement) {
     alert(ar ? "اختر موضع العرض." : "Choose placement.");
+    return;
+  }
+  if (!body.title_ar && !body.title_en) {
+    alert(ar ? "أدخل عنواناً عربياً أو إنجليزياً." : "Enter a title in Arabic or English.");
+    return;
+  }
+  if (!body.body_ar && !body.body_en) {
+    alert(ar ? "أدخل نصاً عربياً أو إنجليزياً." : "Enter body text in Arabic or English.");
     return;
   }
   if (id) {
@@ -1604,13 +1612,27 @@ async function sendAdminNotification(e) {
   const token = getToken();
   if (!token) return;
   const message = document.getElementById("admin-notif-message")?.value.trim() || "";
-  const image_url = document.getElementById("admin-notif-image")?.value.trim() || "";
+  let image_url = document.getElementById("admin-notif-image")?.value.trim() || "";
   const link_url = document.getElementById("admin-notif-link")?.value.trim() || "";
   const target = document.getElementById("admin-notif-target")?.value || "";
   const ar = getAdminLang() === "ar";
   if (!message) {
     alert(ar ? "اكتب نص الإشعار." : "Enter a message.");
     return;
+  }
+  const imgFile = document.getElementById("admin-notif-image-file")?.files?.[0];
+  if (imgFile) {
+    try {
+      const up = await uploadImageFile(imgFile, token);
+      if (up) {
+        image_url = up;
+        const imgEl = document.getElementById("admin-notif-image");
+        if (imgEl) imgEl.value = up;
+      }
+    } catch (err) {
+      alert(err.message || String(err));
+      return;
+    }
   }
   const body = { message };
   if (target) body.target_user_id = Number(target);
@@ -1621,8 +1643,10 @@ async function sendAdminNotification(e) {
     document.getElementById("admin-notif-message").value = "";
     const imgEl = document.getElementById("admin-notif-image");
     const linkEl = document.getElementById("admin-notif-link");
+    const imgFileEl = document.getElementById("admin-notif-image-file");
     if (imgEl) imgEl.value = "";
     if (linkEl) linkEl.value = "";
+    if (imgFileEl) imgFileEl.value = "";
     alert(ar ? "تم الإرسال." : "Sent.");
   } catch (err) {
     alert(err.message || String(err));
@@ -1762,7 +1786,7 @@ function refilterAdminActiveTab() {
   else if (vis === "tab-banners") renderBannersTable();
 }
 
-const HOME_SECTION_VIS_KEYS = [
+const HOME_SECTION_VIS_KEYS_FALLBACK = [
   "banners",
   "main_categories",
   "brands",
@@ -1773,9 +1797,60 @@ const HOME_SECTION_VIS_KEYS = [
   "bestsellers",
 ];
 
+/** Populated from GET /api/admin/home-sections/keys */
+let homeSectionVisKeysRuntime = HOME_SECTION_VIS_KEYS_FALLBACK.slice();
+
+async function renderHomeSectionsCheckboxes() {
+  const container = document.getElementById("home-sections-all-checkboxes");
+  if (!container) return;
+  const token = getToken();
+  const langAr = document.documentElement.getAttribute("lang") !== "en";
+  try {
+    const meta = await api("/api/admin/home-sections/keys", { token });
+    homeSectionVisKeysRuntime = Array.isArray(meta.keys) && meta.keys.length ? meta.keys : HOME_SECTION_VIS_KEYS_FALLBACK;
+    container.innerHTML = "";
+    for (const s of meta.sections || []) {
+      const lab = langAr ? s.label_ar : s.label_en;
+      const wrap = document.createElement("label");
+      wrap.className = "flex items-center gap-2 cursor-pointer";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = `contact-vis-${s.key}`;
+      cb.className = "rounded border-gray-300";
+      cb.checked = s.default !== false;
+      const span = document.createElement("span");
+      span.setAttribute("data-en", s.label_en || s.key);
+      span.setAttribute("data-ar", s.label_ar || s.key);
+      span.textContent = lab || s.key;
+      wrap.appendChild(cb);
+      wrap.appendChild(span);
+      container.appendChild(wrap);
+    }
+  } catch (e) {
+    console.error(e);
+    homeSectionVisKeysRuntime = HOME_SECTION_VIS_KEYS_FALLBACK.slice();
+    container.innerHTML = "";
+    for (const k of HOME_SECTION_VIS_KEYS_FALLBACK) {
+      const wrap = document.createElement("label");
+      wrap.className = "flex items-center gap-2 cursor-pointer";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = `contact-vis-${k}`;
+      cb.className = "rounded border-gray-300";
+      cb.checked = true;
+      const span = document.createElement("span");
+      span.textContent = k;
+      wrap.appendChild(cb);
+      wrap.appendChild(span);
+      container.appendChild(wrap);
+    }
+  }
+}
+
 function setHomeSectionsVisibilityToggles(vis) {
   const v = vis && typeof vis === "object" ? vis : {};
-  for (const k of HOME_SECTION_VIS_KEYS) {
+  const keys = homeSectionVisKeysRuntime.length ? homeSectionVisKeysRuntime : HOME_SECTION_VIS_KEYS_FALLBACK;
+  for (const k of keys) {
     const el = document.getElementById(`contact-vis-${k}`);
     if (el) el.checked = v[k] !== false;
   }
@@ -1783,7 +1858,8 @@ function setHomeSectionsVisibilityToggles(vis) {
 
 function collectHomeSectionsVisibilityFromForm() {
   const o = {};
-  for (const k of HOME_SECTION_VIS_KEYS) {
+  const keys = homeSectionVisKeysRuntime.length ? homeSectionVisKeysRuntime : HOME_SECTION_VIS_KEYS_FALLBACK;
+  for (const k of keys) {
     const el = document.getElementById(`contact-vis-${k}`);
     o[k] = el ? !!el.checked : true;
   }
@@ -1792,6 +1868,7 @@ function collectHomeSectionsVisibilityFromForm() {
 
 async function loadContact() {
   try {
+    await renderHomeSectionsCheckboxes();
     const data = await api("/api/contact", {});
     const addr = document.getElementById("contact-address");
     const phones = document.getElementById("contact-phones");
@@ -1830,10 +1907,45 @@ async function saveContact(e) {
   const mEl = document.getElementById("contact-home-img-men");
   const wEl = document.getElementById("contact-home-img-women");
   const kEl = document.getElementById("contact-home-img-kids");
+  let men = mEl ? mEl.value.trim() : "";
+  let women = wEl ? wEl.value.trim() : "";
+  let kids = kEl ? kEl.value.trim() : "";
+  const mf = document.getElementById("contact-home-img-men-file")?.files?.[0];
+  const wf = document.getElementById("contact-home-img-women-file")?.files?.[0];
+  const kf = document.getElementById("contact-home-img-kids-file")?.files?.[0];
+  try {
+    if (mf) {
+      const up = await uploadImageFile(mf, token);
+      if (up) {
+        men = up;
+        if (mEl) mEl.value = up;
+      }
+    }
+    if (wf) {
+      const up = await uploadImageFile(wf, token);
+      if (up) {
+        women = up;
+        if (wEl) wEl.value = up;
+      }
+    }
+    if (kf) {
+      const up = await uploadImageFile(kf, token);
+      if (up) {
+        kids = up;
+        if (kEl) kEl.value = up;
+      }
+    }
+  } catch (err) {
+    alert(err.message || String(err));
+    return;
+  }
+  document.getElementById("contact-home-img-men-file") && (document.getElementById("contact-home-img-men-file").value = "");
+  document.getElementById("contact-home-img-women-file") && (document.getElementById("contact-home-img-women-file").value = "");
+  document.getElementById("contact-home-img-kids-file") && (document.getElementById("contact-home-img-kids-file").value = "");
   const home_main_section_images = {
-    men: mEl ? mEl.value.trim() : "",
-    women: wEl ? wEl.value.trim() : "",
-    kids: kEl ? kEl.value.trim() : "",
+    men,
+    women,
+    kids,
   };
   const slidesTa = document.getElementById("contact-home-subcat-slides-json");
   const body = { address, phones, whatsapp_phone, home_main_section_images, home_sections_visibility: collectHomeSectionsVisibilityFromForm() };

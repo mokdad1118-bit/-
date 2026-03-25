@@ -425,6 +425,7 @@ async function migrateAppBannersTable() {
     active INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  await run(`ALTER TABLE app_banners ALTER COLUMN image_url DROP NOT NULL`);
 }
 
 async function migrateOrdersShippingAddressColumn() {
