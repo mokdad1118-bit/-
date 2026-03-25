@@ -3342,9 +3342,19 @@
                     );
                 } catch (_e) {}
                 persistAdoraSessionState();
-            } else {
-                history.back();
+                return;
             }
+            resetListingFiltersAfterLeave();
+            adoraNavStack = ['screen-categories'];
+            navigateTo('screen-categories', { skipHistory: true });
+            try {
+                history.replaceState(
+                    { adora: 1, screen: 'screen-categories' },
+                    '',
+                    window.location.pathname + window.location.search + window.location.hash
+                );
+            } catch (_e) {}
+            persistAdoraSessionState();
         }
 
         function isAdoraBrandName(name) {

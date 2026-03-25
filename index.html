@@ -758,10 +758,11 @@
             transition: box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .subcat-slide-inner {
-            position: relative;
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
-            min-height: 7.5rem;
+            min-height: 0;
         }
         .subcat-slide-layer {
             position: absolute;
@@ -1215,25 +1216,23 @@
         }
 
         @keyframes adoraGlowTitlePulse {
-            0%, 100% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.045); filter: brightness(1.12); }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.035); }
         }
 
         .adora-glow-title {
             display: block;
             width: 100%;
             text-align: center;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", sans-serif;
             font-weight: 800;
             font-size: 1.2rem;
-            line-height: 1.35;
-            letter-spacing: 0.06em;
-            color: #082f49;
+            line-height: 1.4;
+            letter-spacing: 0.04em;
+            color: #7c3aed;
             animation: adoraGlowTitlePulse 2.4s ease-in-out infinite;
-            text-shadow:
-                0 0 10px rgba(120, 200, 255, 0.65),
-                0 0 22px rgba(40, 120, 200, 0.35),
-                0 2px 0 rgba(6, 32, 64, 0.95),
-                0 6px 18px rgba(8, 40, 80, 0.55);
+            text-shadow: none;
+            filter: none;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1677,6 +1676,15 @@
             border-color: #7c3aed;
             color: #7c3aed;
             box-shadow: 0 6px 20px rgba(124, 58, 237, 0.25);
+        }
+
+        .brand-section-sort-row {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .listing-brand-cat-chip {
@@ -2795,19 +2803,16 @@
 
         <!-- Brands Section -->
         <div class="px-4 mt-6 space-y-4" data-adora-section="brands">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs tracking-[0.25em] uppercase text-gray-400 font-semibold" data-en="Brands" data-ar="الشركات">Brands</p>
-                    <h3 class="text-xl font-bold text-gray-900" data-en="Choose a brand" data-ar="اختر شركة">Choose a brand</h3>
-                    <p class="text-sm text-gray-500 mt-1 leading-relaxed max-w-[260px]" data-en="Available brands — tap to open catalog." data-ar="الشركات المتاحة — اضغط لعرض المنتجات.">الشركات المتاحة — اضغط لعرض المنتجات.</p>
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="sortBrands('selling')" class="brand-sort-btn font-semibold" data-sort-key="selling" data-en="Best Sellers" data-ar="الأكثر مبيعاً">Best Sellers</button>
-                    <button type="button" onclick="sortBrands('popular')" class="brand-sort-btn" data-sort-key="popular" data-en="Most Popular" data-ar="الأكثر شعبية">Most Popular</button>
+            <div class="flex flex-col items-center text-center gap-2">
+                <h2 class="adora-glow-title text-base sm:text-lg px-2 max-w-[22rem]" data-en="Companies available in the app" data-ar="الشركات المتاحة داخل التطبيق">الشركات المتاحة داخل التطبيق</h2>
+                <p class="text-xs text-gray-500 font-normal leading-relaxed" data-en="Tap to view products" data-ar="اضغط لعرض المنتجات">اضغط لعرض المنتجات</p>
+                <div class="brand-section-sort-row w-full max-w-md pt-1">
+                    <button type="button" onclick="sortBrands('selling')" class="brand-sort-btn font-semibold" data-sort-key="selling" data-en="Best Sellers" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</button>
+                    <button type="button" onclick="sortBrands('popular')" class="brand-sort-btn" data-sort-key="popular" data-en="Most Popular" data-ar="الأكثر شعبية">الأكثر شعبية</button>
                 </div>
             </div>
             <div id="brand-scroll" class="flex gap-3 overflow-x-auto no-scrollbar pb-2"></div>
-            <div id="brand-status" class="text-xs text-gray-500" data-en="Tap any brand to filter products" data-ar="اضغط على أي شركة لفلترة المنتجات">Tap any brand to filter products</div>
+            <div id="brand-status" class="text-xs text-gray-500 text-center" data-en="Tap any brand to filter products" data-ar="اضغط على أي شركة لفلترة المنتجات">اضغط على أي شركة لفلترة المنتجات</div>
         </div>
 
         <div id="banner-slot-below_brands" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
