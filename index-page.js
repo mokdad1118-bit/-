@@ -2748,14 +2748,19 @@
             }
         }
 
+        /** روابط الصور من Cloudinary (https فقط). مسارات /uploads/ أو اسم ملف قديم بدون رابط كامل → صورة احتياطية */
         function absoluteMediaUrl(u) {
             const s = String(u || '').trim();
             if (!s) return '';
             if (s.startsWith('http://') || s.startsWith('https://')) return s;
+            const tail = s.replace(/^\/+/, '');
+            if (tail.toLowerCase().startsWith('uploads/')) {
+                return adoraPlaceholderImageUrl();
+            }
             const origin = getApiOrigin();
             if (s.startsWith('/')) return origin + s;
-            if (s.includes('/')) return `${origin}/${s.replace(/^\/+/, '')}`;
-            return `${origin}/uploads/${s}`;
+            if (s.includes('/')) return `${origin}/${tail}`;
+            return adoraPlaceholderImageUrl();
         }
 
         const DEFAULT_HOME_SECTIONS_VISIBILITY = {

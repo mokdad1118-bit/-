@@ -38,20 +38,6 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 /* static files registered after all /api routes so paths like /api/* are never swallowed */
 
-const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, "uploads"));
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (_req, file, cb) {
-    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const stamp = Date.now();
-    cb(null, `${stamp}_${safe}`);
-  },
-});
-const upload = multer({ storage });
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: Number(process.env.UPLOAD_MAX_BYTES) || 10 * 1024 * 1024 },
@@ -82,7 +68,12 @@ function initCloudinary() {
 initCloudinary();
 if (isCloudinaryConfigured()) {
   // eslint-disable-next-line no-console
-  console.log("[Adora] Image uploads: Cloudinary (DB stores HTTPS URLs only)");
+  console.log("[Adora] Image uploads: Cloudinary only (no /uploads on server)");
+} else {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[Adora] Cloudinary is not configured — POST /api/upload/image will fail until CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME+API_KEY+API_SECRET is set."
+  );
 }
 
 function uploadBufferToCloudinary(buffer) {
@@ -96,11 +87,6 @@ function uploadBufferToCloudinary(buffer) {
     });
     stream.end(buffer);
   });
-}
-
-function publicUrl(fileName) {
-  // Files are always exposed at /uploads/<file>, regardless of physical directory.
-  return `/uploads/${fileName}`;
 }
 
 const DEFAULT_HOME_SECTIONS_VISIBILITY = {
@@ -1751,18 +1737,18 @@ app.post(
   "/api/upload/image",
   requireAuth,
   requireAdmin,
-  (req, res, next) => {
-    const mw = isCloudinaryConfigured() ? memoryUpload.single("file") : upload.single("file");
-    mw(req, res, next);
-  },
+  memoryUpload.single("file"),
   async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "file is required" });
-      if (isCloudinaryConfigured()) {
-        const url = await uploadBufferToCloudinary(req.file.buffer);
-        return res.json({ url });
+      if (!isCloudinaryConfigured()) {
+        return res.status(503).json({
+          error:
+            "Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.",
+        });
       }
-      return res.json({ url: publicUrl(req.file.filename) });
+      const url = await uploadBufferToCloudinary(req.file.buffer);
+      return res.json({ url });
     } catch (err) {
       const msg = err && err.message ? String(err.message) : "Upload failed";
       return res.status(500).json({ error: msg });
@@ -1797,7 +1783,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/uploads", express.static(uploadsDir));
 app.use(express.static(path.join(__dirname)));
 
 function socketIoCors() {
