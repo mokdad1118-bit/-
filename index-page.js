@@ -532,27 +532,58 @@
         // ==================== CATEGORY TOGGLE LOGIC ====================
         let activeCategory = null;
         
-        function toggleCategoryPanel(category, btn) {
-            const allTabs = document.querySelectorAll('.home-main-cat-panel-btn');
-            const allPanels = document.querySelectorAll('.category-content-panel');
-            
-            if (activeCategory === category) {
-                // Collapse if clicking same category
-                const panel = document.getElementById(`panel-${category}`);
-                panel.classList.remove('open');
-                btn.classList.remove('active');
-                activeCategory = null;
+        const HOME_SUBCAT_KEYS = ['men', 'women', 'kids'];
+        const HOME_SUBCAT_INFO = {
+            men: { en: 'Men', ar: 'رجالي', cat: 'Men' },
+            women: { en: 'Women', ar: 'نسائي', cat: 'Women' },
+            kids: { en: 'Kids', ar: 'ولادي', cat: 'Kids' },
+        };
+
+        function openHomeCategoryPanel(key) {
+            const k = String(key || '').toLowerCase();
+            if (!HOME_SUBCAT_KEYS.includes(k)) return;
+            const ov = document.getElementById('home-subcat-overlay');
+            if (!ov) return;
+            if (activeCategory === k) {
+                closeHomeCategoryPanel();
                 return;
             }
-            
-            // Deactivate all tabs and panels
-            allTabs.forEach(tab => tab.classList.remove('active'));
-            allPanels.forEach(panel => panel.classList.remove('open'));
-            
-            // Activate clicked tab and panel
-            btn.classList.add('active');
-            document.getElementById(`panel-${category}`).classList.add('open');
-            activeCategory = category;
+            activeCategory = k;
+            const info = HOME_SUBCAT_INFO[k];
+            const titleEl = document.getElementById('home-subcat-sheet-title');
+            if (titleEl && info) {
+                titleEl.setAttribute('data-en', info.en);
+                titleEl.setAttribute('data-ar', info.ar);
+                titleEl.textContent = isRTL ? info.ar : info.en;
+            }
+            const viewBtn = document.getElementById('home-subcat-view-all-btn');
+            if (viewBtn) {
+                viewBtn.textContent = isRTL ? viewBtn.getAttribute('data-ar') || 'عرض الكل' : viewBtn.getAttribute('data-en') || 'View all';
+                viewBtn.onclick = () => {
+                    closeHomeCategoryPanel();
+                    navigateToMainCategoryListing(info.cat);
+                };
+            }
+            HOME_SUBCAT_KEYS.forEach((x) => {
+                const p = document.getElementById(`panel-${x}`);
+                if (p) p.classList.toggle('hidden', x !== k);
+            });
+            ov.classList.remove('hidden');
+            ov.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            initHomeSubcategorySliderHosts();
+        }
+
+        function closeHomeCategoryPanel() {
+            activeCategory = null;
+            const ov = document.getElementById('home-subcat-overlay');
+            if (ov) {
+                ov.classList.add('hidden');
+                ov.setAttribute('aria-hidden', 'true');
+            }
+            try {
+                document.body.style.overflow = '';
+            } catch (_e) {}
         }
 
         /** الانتقال إلى قائمة منتجات أدورا للقسم الرئيسي (بدون فرعي) */
@@ -3198,6 +3229,7 @@
 
         /** category/sub مثل Men, Shoes — تتطابق مع أقسام المتجر */
         function navigateToListingFiltered(category, subcategory) {
+            closeHomeCategoryPanel();
             listingSearchQuery = '';
             listingBrandName = null;
             listingBrandMainCategory = null;
@@ -4953,6 +4985,11 @@
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
             applyAppLanguage();
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const ov = document.getElementById('home-subcat-overlay');
+                if (ov && !ov.classList.contains('hidden')) closeHomeCategoryPanel();
+            });
             initSearchRotatingHint();
             const searchInput = document.getElementById('search-input');
             if (searchInput) {

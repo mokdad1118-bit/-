@@ -712,51 +712,6 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.45);
             pointer-events: none;
         }
-        .home-main-cat-sub {
-            margin-top: 10px;
-            text-align: center;
-        }
-        .home-main-cat-panel-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 0.68rem;
-            font-weight: 700;
-            border: 1px solid rgba(124, 58, 237, 0.25);
-            background: rgba(124, 58, 237, 0.06);
-            color: #5b21b6;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-        }
-        .home-main-cat-panel-btn:hover {
-            background: rgba(124, 58, 237, 0.12);
-            border-color: rgba(124, 58, 237, 0.45);
-        }
-        .home-main-cat-panel-btn.active {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            border-color: transparent;
-            color: #fff;
-        }
-
-        .category-content-panel {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-            opacity: 0;
-            background: white;
-            margin: 0 16px;
-            border-radius: 0 0 20px 20px;
-        }
-        
-        .category-content-panel.open {
-            max-height: min(2800px, 92vh);
-            opacity: 1;
-            padding: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-        
         /* Category System */
         .category-card {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2449,13 +2404,13 @@
 
         <div id="banner-slot-home_top" class="px-4 pt-2 space-y-3"></div>
 
-        <p class="px-4 pt-1 pb-2 text-xs font-bold text-purple-700 tracking-wide" data-en="Shop by department" data-ar="تسوق حسب القسم">تسوق حسب القسم</p>
+        <p class="px-4 pt-1 pb-2 text-sm font-bold text-gray-900 tracking-wide" data-en="Adora products" data-ar="منتجات أدورا">منتجات Adora</p>
 
-        <!-- أقسام رئيسية: كروت → الانتقال لقائمة أدورا؛ أزرار ثانوية لفتح الفئات الفرعية -->
+        <!-- أقسام رئيسية: الضغط يفتح الفئات الفرعية في لوحة منبثقة -->
         <div class="home-main-cat-wrap">
             <div class="home-main-cat-grid">
                 <div class="home-main-cat-card-slot">
-                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Men')" aria-label="">
+                    <button type="button" class="home-main-cat-card" onclick="openHomeCategoryPanel('men')" aria-label="">
                         <div class="home-main-cat-media">
                             <img id="home-main-img-men" src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
                             <div class="home-main-cat-shade" aria-hidden="true"></div>
@@ -2464,7 +2419,7 @@
                     </button>
                 </div>
                 <div class="home-main-cat-card-slot">
-                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Women')" aria-label="">
+                    <button type="button" class="home-main-cat-card" onclick="openHomeCategoryPanel('women')" aria-label="">
                         <div class="home-main-cat-media">
                             <img id="home-main-img-women" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
                             <div class="home-main-cat-shade" aria-hidden="true"></div>
@@ -2473,7 +2428,7 @@
                     </button>
                 </div>
                 <div class="home-main-cat-card-slot">
-                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Kids')" aria-label="">
+                    <button type="button" class="home-main-cat-card" onclick="openHomeCategoryPanel('kids')" aria-label="">
                         <div class="home-main-cat-media">
                             <img id="home-main-img-kids" src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
                             <div class="home-main-cat-shade" aria-hidden="true"></div>
@@ -2482,16 +2437,23 @@
                     </button>
                 </div>
             </div>
-            <p class="home-main-cat-sub text-[11px] text-gray-500 px-1 leading-snug" data-en="Or open subcategories" data-ar="أو افتح الفئات الفرعية">أو افتح الفئات الفرعية</p>
-            <div class="flex flex-wrap justify-center gap-2 mt-2 px-1">
-                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('men', this)" data-en="Men · subcategories" data-ar="رجالي · الأنواع">رجالي · الأنواع</button>
-                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('women', this)" data-en="Women · subcategories" data-ar="نسائي · الأنواع">نسائي · الأنواع</button>
-                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('kids', this)" data-en="Kids · subcategories" data-ar="ولادي · الأنواع">ولادي · الأنواع</button>
-            </div>
         </div>
 
-        <!-- Category Content Panels -->
-        <div id="panel-men" class="category-content-panel">
+        <!-- الفئات الفرعية: لوحة سفلية تفتح من كرت القسم الرئيسي -->
+        <div id="home-subcat-overlay" class="home-subcat-overlay fixed inset-0 z-[60] hidden flex flex-col justify-end" aria-hidden="true" role="dialog">
+            <div class="absolute inset-0 bg-black/45" onclick="closeHomeCategoryPanel()" aria-hidden="true"></div>
+            <div class="relative z-10 w-full max-w-lg mx-auto bg-white rounded-t-[1.75rem] shadow-2xl max-h-[78vh] flex flex-col" onclick="event.stopPropagation()">
+                <div class="flex-shrink-0 px-4 pt-3 pb-2.5 border-b border-gray-100 flex items-center justify-between gap-2">
+                    <h3 id="home-subcat-sheet-title" class="text-base font-bold text-gray-900">رجالي</h3>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="home-subcat-view-all-btn" class="text-xs font-bold text-purple-600 px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 active:scale-95 transition" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
+                        <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 active:scale-95" onclick="closeHomeCategoryPanel()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-y-auto flex-1 min-h-0 px-4 pb-6 pt-3">
+        <div id="panel-men" class="home-subcat-panel hidden">
             <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 <div onclick="navigateToListingFiltered('Men', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
                     <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
@@ -2526,7 +2488,7 @@
             </div>
         </div>
 
-        <div id="panel-women" class="category-content-panel">
+        <div id="panel-women" class="home-subcat-panel hidden">
             <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 <div onclick="navigateToListingFiltered('Women', 'Dresses')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
                     <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Dresses"><div class="subcat-slide-inner"></div></div>
@@ -2561,7 +2523,7 @@
             </div>
         </div>
 
-        <div id="panel-kids" class="category-content-panel">
+        <div id="panel-kids" class="home-subcat-panel hidden">
             <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
                 <div onclick="navigateToListingFiltered('Kids', 'Boys')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
                     <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Boys"><div class="subcat-slide-inner"></div></div>
@@ -2592,6 +2554,9 @@
                     <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Perfumes">—</span>
+                </div>
+            </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -2723,7 +2688,7 @@
 
             <!-- أقسام رجالي / نسائي / أطفال عند تصفح منتجات شركة -->
             <div id="listing-brand-main-cat-wrap" class="hidden mb-3" data-brand-theme="adora">
-                <p class="text-xs font-semibold text-gray-500 mb-2" data-en="Shop by section" data-ar="التسوق حسب القسم">التسوق حسب القسم</p>
+                <p class="text-xs font-semibold text-gray-500 mb-2" data-en="Adora products" data-ar="منتجات أدورا">منتجات أدورا</p>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
                     <button type="button" onclick="setListingBrandMainCategory(null)" class="listing-brand-cat-chip flex-shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition active:scale-95" data-main-cat="" data-en="All" data-ar="الكل">الكل</button>
                     <button type="button" onclick="setListingBrandMainCategory('Men')" class="listing-brand-cat-chip flex-shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition active:scale-95" data-main-cat="Men" data-en="Men" data-ar="رجالي">رجالي</button>
