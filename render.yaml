@@ -3,6 +3,7 @@
 # JWT_SECRET يُولَّد تلقائياً (generateValue).
 # إن أنشأت Web Service يدوياً: Build = npm ci، Start = node server.js، Health = /api/health
 # اربط خدمة PostgreSQL من لوحة Render بالـ Web Service ليُحقن DATABASE_URL، أو عيّنه يدوياً كمتغير بيئة.
+# رفع الصور (إلزامي للوحة التحكم): عيّن CLOUDINARY_URL أو الثلاثة CLOUDINARY_CLOUD_NAME + API_KEY + API_SECRET من لوحة Cloudinary.
 
 services:
   - type: web
@@ -18,4 +19,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN
+        sync: false
+      # انسخ من Cloudinary Dashboard → API Keys (صيغة URL أو المفاتيح المنفصلة)
+      - key: CLOUDINARY_URL
         sync: false
