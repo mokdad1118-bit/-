@@ -2753,7 +2753,9 @@
             if (!s) return '';
             if (s.startsWith('http://') || s.startsWith('https://')) return s;
             const origin = getApiOrigin();
-            return origin + (s.startsWith('/') ? s : `/${s}`);
+            if (s.startsWith('/')) return origin + s;
+            if (s.includes('/')) return `${origin}/${s.replace(/^\/+/, '')}`;
+            return `${origin}/uploads/${s}`;
         }
 
         const DEFAULT_HOME_SECTIONS_VISIBILITY = {
