@@ -4653,12 +4653,22 @@
 
         function __scheduleBannerCarouselAutoAdvance(track) {
             if (!track || track.children.length < 2) return;
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            } catch (_e) {}
+            const gapPx = 8;
             const id = setInterval(() => {
-                const next = track.scrollLeft + track.clientWidth * 0.92;
+                const first = track.children[0];
+                if (!first) return;
+                const step = first.getBoundingClientRect().width + gapPx;
                 const max = track.scrollWidth - track.clientWidth;
-                if (next >= max - 2) track.scrollTo({ left: 0, behavior: 'smooth' });
-                else track.scrollTo({ left: next, behavior: 'smooth' });
-            }, 5200);
+                if (max <= 4) return;
+                if (track.scrollLeft + step >= max - 6) {
+                    track.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    track.scrollBy({ left: step, behavior: 'smooth' });
+                }
+            }, 6800);
             window.__adoraBannerCarouselTimers = window.__adoraBannerCarouselTimers || [];
             window.__adoraBannerCarouselTimers.push(id);
         }
@@ -4693,26 +4703,27 @@
                         return;
                     }
                     const cards = banners
-                        .map((b) => {
+                        .map((b, idx) => {
                             const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
                             const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
                             const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
                             const hasImg = !!rawUrl;
+                            const delay = Math.min(idx * 0.06, 0.35);
                             const imgBlock = hasImg
-                                ? `<div class="flex justify-center pt-3 pb-1 shrink-0"><div class="w-[5.25rem] h-[5.25rem] sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-purple-100 shadow-sm ring-2 ring-white"><img src="${escapeHtml(rawUrl)}" alt="" class="w-full h-full object-cover" loading="lazy"></div></div>`
-                                : '';
-                            return `<article class="snap-center shrink-0 w-[min(88vw,20rem)] min-w-[min(88vw,20rem)] max-w-sm">
-  <div class="rounded-[1.75rem] overflow-hidden border border-gray-100 bg-white shadow-sm h-full flex flex-col">${imgBlock}
-    <div class="p-3 sm:p-4 space-y-1 flex-1 flex flex-col justify-center">${title ? `<p class="font-bold text-gray-900 text-sm text-center">${escapeHtml(title)}</p>` : ''}${bodyTxt ? `<p class="text-xs text-gray-600 leading-relaxed text-center">${escapeHtml(bodyTxt)}</p>` : ''}${
+                                ? `<div class="flex justify-center shrink-0 pt-1"><div class="w-11 h-11 rounded-full overflow-hidden border border-purple-200/80 shadow-sm ring-1 ring-white"><img src="${escapeHtml(rawUrl)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async"></div></div>`
+                                : `<div class="flex justify-center shrink-0 pt-1"><div class="w-11 h-11 rounded-full bg-gradient-to-br from-violet-400/20 to-fuchsia-400/15 border border-purple-200/50 flex items-center justify-center"><i class="fas fa-image text-[11px] text-purple-500/70" aria-hidden="true"></i></div></div>`;
+                            return `<article class="snap-center shrink-0 w-[7.75rem] min-w-[7.75rem] sm:w-[8.25rem] sm:min-w-[8.25rem] max-w-[8.5rem]">
+  <div class="adora-banner-card rounded-2xl overflow-hidden border border-purple-100/90 bg-gradient-to-b from-white to-purple-50/30 shadow-[0_2px_10px_rgba(124,58,237,0.07)] h-full flex flex-col items-stretch transition-transform duration-200 will-change-transform hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(124,58,237,0.11)]" style="animation-delay:${delay}s">${imgBlock}
+    <div class="px-2 pb-2 pt-1 space-y-0.5 flex-1 flex flex-col justify-start min-h-0">${title ? `<p class="font-bold text-gray-900 text-[10px] leading-tight text-center line-clamp-2">${escapeHtml(title)}</p>` : ''}${bodyTxt ? `<p class="text-[9px] text-gray-500 leading-snug text-center line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}${
                                 b.link_url
-                                    ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-center text-xs font-bold text-purple-600">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
+                                    ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="block mt-1 text-center text-[9px] font-semibold text-purple-600 hover:text-purple-700 truncate">${isRTL ? 'رابط' : 'Link'}</a>`
                                     : ''
                             }</div>
   </div>
 </article>`;
                         })
                         .join('');
-                    host.innerHTML = `<div class="adora-banner-track flex gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pb-1 touch-pan-x [-webkit-overflow-scrolling:touch]">${cards}</div>`;
+                    host.innerHTML = `<div class="adora-banner-strip -mx-1"><div class="adora-banner-track flex overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch]">${cards}</div></div>`;
                     const track = host.querySelector('.adora-banner-track');
                     __scheduleBannerCarouselAutoAdvance(track);
                 });

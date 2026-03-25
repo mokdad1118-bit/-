@@ -1306,6 +1306,44 @@
                 animation: none;
             }
         }
+
+        /* بانرات الرئيسية — شريط مدمج، عرض حديث، حركة دخول خفيفة */
+        @keyframes adoraBannerCardIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.94);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .adora-banner-strip {
+            -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+        }
+        .adora-banner-track {
+            gap: 0.5rem;
+            padding: 0.125rem 0.25rem 0.25rem;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 0.35rem;
+        }
+        .adora-banner-card {
+            animation: adoraBannerCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .adora-banner-card:active {
+            transform: scale(0.97);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .adora-banner-card {
+                animation: none;
+            }
+            .adora-banner-strip {
+                -webkit-mask-image: none;
+                mask-image: none;
+            }
+        }
         
         .filter-modal {
             transition: opacity 0.3s ease;
@@ -2672,7 +2710,7 @@
             </div>
         </div>
 
-        <div id="banner-slot-home_top" class="px-4 pt-2 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-home_top" class="px-4 pt-1 space-y-1" data-adora-section="banners"></div>
 
         <div data-adora-section="main_categories">
         <div class="px-4 pt-2 pb-3 flex justify-center">
@@ -2865,7 +2903,7 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_categories" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-below_categories" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
 
         <!-- Brands Section -->
         <div class="px-4 mt-6 space-y-4" data-adora-section="brands">
@@ -2881,7 +2919,7 @@
             <div id="brand-status" class="text-xs text-gray-500 text-center" data-en="Tap any brand to filter products" data-ar="اضغط على أي شركة لفلترة المنتجات">اضغط على أي شركة لفلترة المنتجات</div>
         </div>
 
-        <div id="banner-slot-below_brands" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
 
         <div class="px-4 py-4 mt-3 bg-white rounded-3xl shadow-sm border border-gray-100 space-y-4 mx-4" data-adora-section="top_brands">
             <div class="flex justify-center px-1">
@@ -2890,7 +2928,7 @@
             <div id="top-brands" class="flex gap-4 overflow-x-auto no-scrollbar"></div>
         </div>
 
-        <div id="banner-slot-below_top_brands" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-below_top_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
 
         <div class="px-4 space-y-3 mt-3 home-compact-flash" data-adora-section="flash_sale">
             <div class="flash-sale-section bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-3 space-y-3">
@@ -2905,7 +2943,7 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_flash" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-below_flash" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
 
         <div class="px-4 py-4 space-y-3 mt-3 home-compact-curated" data-adora-section="curated">
             <div class="flex flex-col items-center text-center gap-1 px-1">
@@ -2922,7 +2960,7 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_curated" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
+        <div id="banner-slot-below_curated" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
 
         <div class="px-4 py-5 space-y-5">
             <div data-adora-section="promo_collection" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-4 sm:p-5 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
@@ -2949,7 +2987,7 @@
                 </div>
             </div>
 
-            <div id="banner-slot-below_trending" class="mb-4 space-y-3" data-adora-section="banners"></div>
+            <div id="banner-slot-below_trending" class="mb-2 space-y-1" data-adora-section="banners"></div>
 
             <div class="home-compact-bestsellers bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-4 space-y-3" data-adora-section="bestsellers">
                 <div class="flex flex-col items-center text-center gap-1 mb-1 px-1">
