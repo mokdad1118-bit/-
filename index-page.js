@@ -554,6 +554,62 @@
             document.getElementById(`panel-${category}`).classList.add('open');
             activeCategory = category;
         }
+
+        /** تدوير تلقائي لصور تبويبات الأقسام الرئيسية (رجالي / نسائي / ولادي) — 4 صور لكل قسم */
+        const MAIN_CAT_HERO_GRAD =
+            'linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.15))';
+        const MAIN_CAT_HERO_URLS = {
+            men: [
+                'https://images.unsplash.com/photo-1542272604-787c3835535d?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1541643600914-78b084683601?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1572635194237-4b28093dc9d8?w=640&q=80&auto=format&fit=crop',
+            ],
+            women: [
+                'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=640&q=80&auto=format&fit=crop',
+            ],
+            kids: [
+                'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1503919545889-aef66e16bb32?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=640&q=80&auto=format&fit=crop',
+                'https://images.unsplash.com/photo-1519238263530-99bdd9d454bb?w=640&q=80&auto=format&fit=crop',
+            ],
+        };
+        const MAIN_CAT_HERO_ROTATE_MS = 1400;
+        let mainCatHeroRotateTimers = [];
+
+        function initMainCategoryHeroRotators() {
+            mainCatHeroRotateTimers.forEach((t) => clearInterval(t));
+            mainCatHeroRotateTimers = [];
+            const specs = [
+                { id: 'cat-tab-hero-men', urls: MAIN_CAT_HERO_URLS.men },
+                { id: 'cat-tab-hero-women', urls: MAIN_CAT_HERO_URLS.women },
+                { id: 'cat-tab-hero-kids', urls: MAIN_CAT_HERO_URLS.kids },
+            ];
+            specs.forEach(({ id, urls }) => {
+                const el = document.getElementById(id);
+                if (!el || !urls || !urls.length) return;
+                urls.forEach((u) => {
+                    try {
+                        const im = new Image();
+                        im.decoding = 'async';
+                        im.src = u;
+                    } catch (_e) {}
+                });
+                let idx = 0;
+                const apply = () => {
+                    const u = urls[idx % urls.length];
+                    el.style.backgroundImage = `${MAIN_CAT_HERO_GRAD}, url('${u}')`;
+                    idx = (idx + 1) % urls.length;
+                };
+                apply();
+                const t = setInterval(apply, MAIN_CAT_HERO_ROTATE_MS);
+                mainCatHeroRotateTimers.push(t);
+            });
+        }
         
         // State Management
         let currentScreen = 'screen-categories';
@@ -4719,6 +4775,7 @@
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
             initAdoraNavigationHistory();
+            initMainCategoryHeroRotators();
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
