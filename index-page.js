@@ -950,7 +950,7 @@
         let listingSearchQuery = '';
         /** أقسام رجالي/نسائي/أطفال من الرئيسية = منتجات أدورا فقط */
         let listingAdoraOnly = false;
-        /** قسم «تشكيلة جديدة» — يضيف new_collection=1 للـ API */
+        /** قسم البانر/القائمة المخصصة — يضيف new_collection=1 للـ API */
         let listingNewCollectionOnly = false;
         let currentProductDetail = null;
         let productDetailSelectedColorIndex = 0;
@@ -3519,8 +3519,8 @@
                         titleEl.removeAttribute('data-ar');
                         titleEl.textContent = isRTL ? `بحث: ${sq}` : `Search: ${sq}`;
                     } else if (listingNewCollectionOnly) {
-                        titleEl.setAttribute('data-en', 'New collection');
-                        titleEl.setAttribute('data-ar', 'تشكيلة جديدة');
+                        titleEl.setAttribute('data-en', 'Fresh drops');
+                        titleEl.setAttribute('data-ar', 'وصل حديثاً');
                         titleEl.textContent = isRTL ? titleEl.getAttribute('data-ar') : titleEl.getAttribute('data-en');
                     } else if (listingBrandName) {
                         const catLab =
@@ -3861,8 +3861,8 @@
             const br = resolveDisplayBrand(p.brand);
             const brandHtml = br
                 ? `<p class="${
-                      compact ? 'text-[9px]' : 'text-[10px]'
-                  } text-violet-700 font-semibold line-clamp-1 mb-0.5">${escapeHtml(br)}</p>`
+                      compact ? 'text-[8px]' : 'text-[9px]'
+                  } text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
                 : '';
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
@@ -3871,7 +3871,7 @@
             const saleP = productSaleUnitPrice(p);
             const badge =
                 disc > 0
-                    ? `<span class="absolute ${compact ? 'top-1 left-1 text-[9px] px-1.5 py-0.5' : 'top-1.5 left-1.5 text-[10px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    ? `<span class="absolute ${compact ? 'top-0.5 left-0.5 text-[8px] px-1 py-0.5' : 'top-1 left-1 text-[9px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
                     : '';
             const mediaCls = compact
                 ? 'relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100'
@@ -3882,7 +3882,7 @@
                 : 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5';
             const priceMain = compact ? 'font-bold text-gray-900 text-[11px]' : 'font-bold text-gray-900 text-xs';
             const cardExtra = compact ? ' home-compact-product-card' : '';
-            return `<div onclick="openProductDetail(${p.id})" class="product-card${cardExtra} bg-white rounded-2xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
+            return `<div onclick="openProductDetail(${p.id})" class="product-card${cardExtra} bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
                 <div class="${mediaCls}">
                     <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                     ${badge}
@@ -4485,7 +4485,7 @@
                 const safeTitle = escapeHtml(String(title || ''));
                 const br = item.brand ? escapeHtml(String(item.brand)) : '';
                 const brandLine = br
-                    ? `<p class="text-[9px] text-violet-700 font-semibold line-clamp-1 mb-0.5">${br}</p>`
+                    ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${br}</p>`
                     : '';
                 return `<div class="flash-card" role="button" tabindex="0" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                             <div class="flash-card-thumb"><img src="${imgSrc}" alt=""></div>
@@ -4545,9 +4545,7 @@
                 const list = Array.isArray(products) ? products.slice(0, 6) : [];
                 if (!list.length) {
                     grid.innerHTML = `<p class="col-span-2 text-center text-white/85 text-xs py-4 leading-relaxed px-2">${
-                        isRTL
-                            ? 'فعّل «تشكيلة جديدة» على المنتجات من لوحة التحكم.'
-                            : 'Mark products as New collection in the admin panel.'
+                        isRTL ? 'فعّل «الظهور في البانر» من إعدادات المنتج في لوحة التحكم.' : 'Enable the banner & list option on products in the admin panel.'
                     }</p>`;
                     return;
                 }
@@ -4575,7 +4573,7 @@
                         const name = isRTL ? p.name_ar : p.name_en;
                         const br = resolveDisplayBrand(p.brand);
                         const brandLine = br
-                            ? `<p class="text-[9px] text-violet-700 font-semibold line-clamp-1 mb-0.5">${escapeHtml(br)}</p>`
+                            ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
                             : '';
                         const listP = productListPrice(p);
                         const disc = productDiscountPct(p);
@@ -4584,17 +4582,17 @@
                             disc > 0
                                 ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
                                 : '';
-                        return `<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[7.25rem] bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
-                        <div class="aspect-[3/4] max-h-[118px] relative">
+                        return `<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                        <div class="aspect-[3/4] max-h-[102px] relative">
                             <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
                             ${badge}
                         </div>
-                        <div class="p-2">
+                        <div class="p-1.5">
                             ${brandLine}
-                            <h4 class="font-semibold text-[11px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
+                            <h4 class="font-semibold text-[10px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
                             <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                                <span class="font-bold text-purple-600 text-[11px]">${formatSyp(saleP)}</span>
-                                ${disc > 0 ? `<span class="text-[9px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+                                <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
+                                ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
                         </div>
                     </div>`;
