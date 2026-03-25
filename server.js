@@ -1554,7 +1554,12 @@ app.delete("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res)
 app.get("/api/contact", async (_req, res) => {
   try {
     const row = await get(`SELECT * FROM contact_info LIMIT 1`);
-    return res.json({ ...row, phones: safeJsonParse(row.phones_json, []) });
+    const home_main_section_images = safeJsonParse(row?.home_main_section_images_json, null);
+    return res.json({
+      ...row,
+      phones: safeJsonParse(row.phones_json, []),
+      home_main_section_images: home_main_section_images && typeof home_main_section_images === "object" ? home_main_section_images : null,
+    });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load contact" });
   }
@@ -1562,10 +1567,21 @@ app.get("/api/contact", async (_req, res) => {
 
 app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { address, phones = [], whatsapp_phone = "" } = req.body;
+    const body = req.body || {};
+    const { address, phones = [], whatsapp_phone = "" } = body;
+    const cur = await get(`SELECT id, home_main_section_images_json FROM contact_info ORDER BY id LIMIT 1`);
+    let homeJson = cur?.home_main_section_images_json ?? null;
+    if (body.home_main_section_images !== undefined && body.home_main_section_images !== null && typeof body.home_main_section_images === "object") {
+      const h = body.home_main_section_images;
+      homeJson = JSON.stringify({
+        men: String(h.men ?? "").trim(),
+        women: String(h.women ?? "").trim(),
+        kids: String(h.kids ?? "").trim(),
+      });
+    }
     await run(
-      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
-      [address, JSON.stringify(phones), whatsapp_phone]
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone, homeJson]
     );
     return res.json({ ok: true });
   } catch (err) {

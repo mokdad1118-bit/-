@@ -620,101 +620,126 @@
             letter-spacing: -0.5px;
         }
         
-        /* ==================== NEW CATEGORY TABS ==================== */
-        .category-tabs-simple {
-            display: flex;
-            gap: 12px;
+        /* ==================== أقسام رئيسية: كروت + دخول متحرك ==================== */
+        @keyframes homeMainCatIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .home-main-cat-wrap {
             padding: 0 16px 16px;
-            background: white;
+            background: #fff;
             border-bottom: 1px solid rgba(0,0,0,0.05);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.04);
         }
-        
-        .category-tab-simple {
-            flex: 1;
-            padding: 12px 8px;
-            border-radius: 16px;
-            border: 1px solid rgba(124, 58, 237, 0.15);
-            background: rgba(124, 58, 237, 0.03);
-            color: #4b5563;
-            font-weight: 600;
-            font-size: 0.85rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .home-main-cat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            max-width: 428px;
+            margin: 0 auto;
+        }
+        @media (min-width: 400px) {
+            .home-main-cat-grid {
+                gap: 12px;
+            }
+        }
+        .home-main-cat-card-slot {
+            opacity: 0;
+            animation: homeMainCatIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .home-main-cat-card-slot:nth-child(1) { animation-delay: 0.06s; }
+        .home-main-cat-card-slot:nth-child(2) { animation-delay: 0.14s; }
+        .home-main-cat-card-slot:nth-child(3) { animation-delay: 0.22s; }
+        .home-main-cat-card {
             position: relative;
-            overflow: hidden;
-        }
-        
-        .category-tab-simple:hover {
-            background: rgba(124, 58, 237, 0.08);
-            border-color: rgba(124, 58, 237, 0.25);
-        }
-        
-        .category-tab-simple.active {
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
-        }
-        
-        .category-tab-simple .tab-icon {
-            font-size: 1.1rem;
-            margin-bottom: 4px;
             display: block;
-        }
-        
-        .category-tab-simple .tab-label {
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        /* تبويبات أدورا: صورة + تسمية (صور مخصصة لأدورا في الصفحة الرئيسية) */
-        .category-tab-simple.cat-tab-hero {
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-            border: 1px solid rgba(124, 58, 237, 0.12);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-            overflow: hidden;
-        }
-        .category-tab-simple.cat-tab-hero:hover {
-            background: #fff;
-            border-color: rgba(124, 58, 237, 0.28);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-        }
-        .cat-tab-hero-img {
-            height: 5.25rem;
             width: 100%;
-            background-size: cover;
-            background-position: center top;
+            padding: 0;
+            border: none;
+            border-radius: 18px;
+            overflow: hidden;
+            cursor: pointer;
+            text-align: start;
+            background: #f3f4f6;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.06);
+            transition: transform 0.28s ease, box-shadow 0.28s ease;
+            -webkit-tap-highlight-color: transparent;
         }
-        /* خلفيات تبويبات رجالي/نسائي/ولادي تُحدَّث من JS (تدوير 4 صور) */
-        .cat-tab-hero-img.is-hero-rotating {
-            background-image: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.15)),
-                url("https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=640&q=80&auto=format&fit=crop");
-            background-color: #e5e7eb;
+        .home-main-cat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 32px rgba(124, 58, 237, 0.2), 0 4px 12px rgba(0,0,0,0.08);
         }
-        .category-tab-simple.cat-tab-hero .tab-label {
-            display: block;
-            padding: 10px 6px 9px;
+        .home-main-cat-card:active {
+            transform: translateY(-1px) scale(0.99);
+        }
+        .home-main-cat-media {
+            position: relative;
+            aspect-ratio: 3 / 4;
+            overflow: hidden;
+        }
+        .home-main-cat-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .home-main-cat-card:hover .home-main-cat-media img {
+            transform: scale(1.07);
+        }
+        .home-main-cat-shade {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.08) 45%, transparent 72%);
+            pointer-events: none;
+        }
+        .home-main-cat-title {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 10px 8px 9px;
             font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+            pointer-events: none;
+        }
+        .home-main-cat-sub {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .home-main-cat-panel-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.68rem;
             font-weight: 700;
-            letter-spacing: 0.04em;
-            background: rgba(248, 250, 252, 0.98);
-            color: #374151;
+            border: 1px solid rgba(124, 58, 237, 0.25);
+            background: rgba(124, 58, 237, 0.06);
+            color: #5b21b6;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
-        .category-tab-simple.cat-tab-hero.active {
-            background: #fff;
-            border-color: #7c3aed;
-            box-shadow: 0 10px 28px rgba(124, 58, 237, 0.3);
+        .home-main-cat-panel-btn:hover {
+            background: rgba(124, 58, 237, 0.12);
+            border-color: rgba(124, 58, 237, 0.45);
         }
-        .category-tab-simple.cat-tab-hero.active .tab-label {
+        .home-main-cat-panel-btn.active {
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            border-color: transparent;
             color: #fff;
         }
-        
+
         .category-content-panel {
             max-height: 0;
             overflow: hidden;
@@ -2414,22 +2439,45 @@
 
         <div id="banner-slot-home_top" class="px-4 pt-2 space-y-3"></div>
 
-        <p class="px-4 pt-1 pb-2 text-xs font-bold text-purple-700 tracking-wide" data-en="By Adora — main sections" data-ar="من شركة أدورا — الأقسام الرئيسية">من شركة أدورا — الأقسام الرئيسية</p>
+        <p class="px-4 pt-1 pb-2 text-xs font-bold text-purple-700 tracking-wide" data-en="Shop by department" data-ar="تسوق حسب القسم">تسوق حسب القسم</p>
 
-        <!-- NEW: Simple Category Tabs (Men/Women/Kids) — مغلقة حتى يفتحها المستخدم -->
-        <div class="category-tabs-simple">
-            <button type="button" class="category-tab-simple cat-tab-hero" onclick="toggleCategoryPanel('men', this)">
-                <div id="cat-tab-hero-men" class="cat-tab-hero-img is-hero-rotating" aria-hidden="true"></div>
-                <span class="tab-label" data-en="MEN" data-ar="رجالي">رجالي</span>
-            </button>
-            <button type="button" class="category-tab-simple cat-tab-hero" onclick="toggleCategoryPanel('women', this)">
-                <div id="cat-tab-hero-women" class="cat-tab-hero-img is-hero-rotating" aria-hidden="true"></div>
-                <span class="tab-label" data-en="WOMEN" data-ar="نسائي">نسائي</span>
-            </button>
-            <button type="button" class="category-tab-simple cat-tab-hero" onclick="toggleCategoryPanel('kids', this)">
-                <div id="cat-tab-hero-kids" class="cat-tab-hero-img is-hero-rotating" aria-hidden="true"></div>
-                <span class="tab-label" data-en="KIDS" data-ar="ولادي">ولادي</span>
-            </button>
+        <!-- أقسام رئيسية: كروت → الانتقال لقائمة أدورا؛ أزرار ثانوية لفتح الفئات الفرعية -->
+        <div class="home-main-cat-wrap">
+            <div class="home-main-cat-grid">
+                <div class="home-main-cat-card-slot">
+                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Men')" aria-label="">
+                        <div class="home-main-cat-media">
+                            <img id="home-main-img-men" src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
+                            <div class="home-main-cat-shade" aria-hidden="true"></div>
+                            <span class="home-main-cat-title" data-en="Men" data-ar="رجالي">رجالي</span>
+                        </div>
+                    </button>
+                </div>
+                <div class="home-main-cat-card-slot">
+                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Women')" aria-label="">
+                        <div class="home-main-cat-media">
+                            <img id="home-main-img-women" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
+                            <div class="home-main-cat-shade" aria-hidden="true"></div>
+                            <span class="home-main-cat-title" data-en="Women" data-ar="نسائي">نسائي</span>
+                        </div>
+                    </button>
+                </div>
+                <div class="home-main-cat-card-slot">
+                    <button type="button" class="home-main-cat-card" onclick="navigateToMainCategoryListing('Kids')" aria-label="">
+                        <div class="home-main-cat-media">
+                            <img id="home-main-img-kids" src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=85&auto=format&fit=crop" alt="" width="400" height="533" loading="eager" decoding="async">
+                            <div class="home-main-cat-shade" aria-hidden="true"></div>
+                            <span class="home-main-cat-title" data-en="Kids" data-ar="ولادي">ولادي</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <p class="home-main-cat-sub text-[11px] text-gray-500 px-1 leading-snug" data-en="Or open subcategories" data-ar="أو افتح الفئات الفرعية">أو افتح الفئات الفرعية</p>
+            <div class="flex flex-wrap justify-center gap-2 mt-2 px-1">
+                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('men', this)" data-en="Men · subcategories" data-ar="رجالي · الأنواع">رجالي · الأنواع</button>
+                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('women', this)" data-en="Women · subcategories" data-ar="نسائي · الأنواع">نسائي · الأنواع</button>
+                <button type="button" class="home-main-cat-panel-btn" onclick="toggleCategoryPanel('kids', this)" data-en="Kids · subcategories" data-ar="ولادي · الأنواع">ولادي · الأنواع</button>
+            </div>
         </div>
 
         <!-- Category Content Panels -->

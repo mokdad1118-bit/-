@@ -1763,6 +1763,13 @@ async function loadContact() {
     if (addr) addr.value = data.address || "";
     if (phones) phones.value = (data.phones || []).join(", ");
     if (wa) wa.value = data.whatsapp_phone || "";
+    const hm = data.home_main_section_images || {};
+    const m = document.getElementById("contact-home-img-men");
+    const w = document.getElementById("contact-home-img-women");
+    const k = document.getElementById("contact-home-img-kids");
+    if (m) m.value = hm.men || "";
+    if (w) w.value = hm.women || "";
+    if (k) k.value = hm.kids || "";
   } catch (e) {
     console.error(e);
   }
@@ -1777,7 +1784,19 @@ async function saveContact(e) {
     .map((x) => x.trim())
     .filter(Boolean);
   const whatsapp_phone = document.getElementById("contact-whatsapp").value.trim();
-  await api("/api/contact", { method: "PUT", token, body: { address, phones, whatsapp_phone } });
+  const mEl = document.getElementById("contact-home-img-men");
+  const wEl = document.getElementById("contact-home-img-women");
+  const kEl = document.getElementById("contact-home-img-kids");
+  const home_main_section_images = {
+    men: mEl ? mEl.value.trim() : "",
+    women: wEl ? wEl.value.trim() : "",
+    kids: kEl ? kEl.value.trim() : "",
+  };
+  await api("/api/contact", {
+    method: "PUT",
+    token,
+    body: { address, phones, whatsapp_phone, home_main_section_images },
+  });
   alert(adminT("contactSaved"));
 }
 

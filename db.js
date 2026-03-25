@@ -252,6 +252,7 @@ async function initDb() {
   await migrateOrderStatusesToV2();
   await migrateOrdersShippingAddressColumn();
   await migrateOrderNumbersSequential();
+  await migrateContactHomeSectionImages();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -317,6 +318,10 @@ async function mergeCategorySubcategoriesWithDefaults() {
     const merged = [...new Set([...existing, ...subs])];
     await run(`UPDATE categories SET subcategories_json=? WHERE id=?`, [JSON.stringify(merged), row.id]);
   }
+}
+
+async function migrateContactHomeSectionImages() {
+  await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_main_section_images_json TEXT`);
 }
 
 async function migrateUsersColumns() {
