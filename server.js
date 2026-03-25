@@ -37,7 +37,7 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 /* static files registered after all /api routes so paths like /api/* are never swallowed */
 
-const uploadsDir = path.join(__dirname, "uploads");
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, "uploads"));
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -53,7 +53,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 function publicUrl(fileName) {
-  // Express static serves from __dirname, so /uploads/<file> works.
+  // Files are always exposed at /uploads/<file>, regardless of physical directory.
   return `/uploads/${fileName}`;
 }
 
@@ -1737,6 +1737,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/uploads", express.static(uploadsDir));
 app.use(express.static(path.join(__dirname)));
 
 function socketIoCors() {
