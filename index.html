@@ -777,11 +777,13 @@
             transform: scale(0.98);
         }
 
+        /* كروت الأقسام الفرعية: صورة 200px بعرض كامل، cover مع تثبيت من الأعلى (لا يُقص الرأس) */
         .subcat-slide-host {
             position: relative;
             width: 100%;
-            aspect-ratio: 4 / 5;
-            min-height: 148px;
+            height: 200px;
+            min-height: 200px;
+            max-height: 200px;
             background: linear-gradient(145deg, #f3f4f6 0%, #e5e7eb 100%);
             border-color: rgba(0, 0, 0, 0.08);
             transition: box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -792,22 +794,19 @@
             width: 100%;
             height: 100%;
             min-height: 0;
-            padding: 6px;
+            padding: 0;
             box-sizing: border-box;
+            overflow: hidden;
+            border-radius: inherit;
         }
         .subcat-slide-layer {
             position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: auto;
-            height: auto;
-            max-width: calc(100% - 12px);
-            max-height: calc(100% - 12px);
-            min-width: 48px;
-            min-height: 48px;
-            object-fit: contain;
-            object-position: center;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
             opacity: 0;
             transition: opacity 1s ease-in-out;
             background: transparent;
@@ -842,6 +841,14 @@
         .home-subcat-panel .category-card:nth-child(7) { animation-delay: 0.28s; }
         .home-subcat-panel .category-card:nth-child(8) { animation-delay: 0.32s; }
         .home-subcat-panel .category-card:nth-child(9) { animation-delay: 0.36s; }
+        .home-subcat-grid-card h3 {
+            padding: 0.5rem 0.625rem 0;
+            margin: 0;
+        }
+        .home-subcat-grid-card > span.text-xs {
+            display: block;
+            padding: 0.125rem 0.625rem 0.625rem;
+        }
         .home-subcat-back-btn {
             transition: transform 0.2s ease, background-color 0.2s ease;
         }
@@ -2732,10 +2739,10 @@
         <div id="home-subcat-overlay" class="home-subcat-overlay fixed inset-0 z-[60] hidden flex flex-col justify-end" aria-hidden="true" role="dialog">
             <div class="absolute inset-0 bg-black/45" onclick="closeHomeCategoryPanel()" aria-hidden="true"></div>
             <div class="relative z-10 w-full max-w-lg mx-auto bg-white rounded-t-[1.75rem] shadow-2xl max-h-[78vh] flex flex-col" onclick="event.stopPropagation()">
-                <div class="flex-shrink-0 px-4 pt-3 pb-2.5 border-b border-gray-100 flex items-center justify-between gap-2">
+                <div class="home-subcat-sheet-header flex-shrink-0 sticky top-0 z-20 px-4 pt-3 pb-2.5 border-b border-gray-100 bg-white rounded-t-[1.75rem] flex items-center justify-between gap-2 shadow-sm">
                     <div class="flex items-center gap-2 min-w-0 flex-1">
-                        <button type="button" onclick="closeHomeCategoryPanel()" class="home-subcat-back-btn w-9 h-9 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 active:scale-95 transition" data-en="Back" data-ar="رجوع" aria-label="Back">
-                            <i class="fas fa-arrow-left rtl:rotate-180 text-sm"></i>
+                        <button type="button" onclick="closeHomeCategoryPanel()" class="home-subcat-back-btn w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 active:scale-95 transition" data-en="Back" data-ar="رجوع" aria-label="Back">
+                            <i class="fas fa-arrow-left rtl:rotate-180 text-base"></i>
                         </button>
                         <h3 id="home-subcat-sheet-title" class="text-base font-bold text-gray-900 truncate">رجالي</h3>
                     </div>
@@ -2748,131 +2755,131 @@
                 </div>
                 <div class="overflow-y-auto flex-1 min-h-0 px-4 pb-6 pt-3">
         <div id="panel-men" class="home-subcat-panel hidden">
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                <div onclick="navigateToListingFiltered('Men', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div onclick="navigateToListingFiltered('Men', 'T-Shirts')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="T-Shirts" data-ar="تيشيرتات">T-Shirts</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="T-Shirts">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="T-Shirts">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Pants')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Pants" data-ar="بناطيل">Pants</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Pants">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Pants">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Shoes')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Shoes" data-ar="أحذية">Shoes</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Shoes">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Shoes">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Shirts"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Shirts')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Shirts"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Shirts" data-ar="قمصان">Shirts</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Shirts">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Shirts">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Jackets')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Jackets"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Jackets')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Jackets"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Jackets" data-ar="جاكيت">Jackets</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Jackets">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Jackets">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Accessories')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Accessories" data-ar="إكسسوارات">Accessories</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Accessories">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Accessories">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Men', 'Perfumes')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Men" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Perfumes">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Men" data-adora-count-sub="Perfumes">—</span>
                 </div>
             </div>
         </div>
 
         <div id="panel-women" class="home-subcat-panel hidden">
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                <div onclick="navigateToListingFiltered('Women', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div onclick="navigateToListingFiltered('Women', 'T-Shirts')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="T-Shirts" data-ar="تيشيرتات">T-Shirts</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="T-Shirts">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="T-Shirts">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Dresses')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Dresses"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Dresses')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Dresses"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Dresses" data-ar="فساتين">Dresses</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Dresses">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Dresses">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Tops')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Tops"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Tops')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Tops"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Tops" data-ar="بلوزات">Tops</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Tops">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Tops">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Pants')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Pants" data-ar="بناطيل">Pants</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Pants">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Pants">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Jackets')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Jackets"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Jackets')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Jackets"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Jackets" data-ar="جاكيت">Jackets</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Jackets">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Jackets">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Accessories')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Accessories" data-ar="إكسسوارات">Accessories</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Accessories">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Accessories">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Bags')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Bags"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Bags')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Bags"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Bags" data-ar="حقائب">Bags</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Bags">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Bags">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Women', 'Perfumes')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Women" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Perfumes">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Women" data-adora-count-sub="Perfumes">—</span>
                 </div>
             </div>
         </div>
 
         <div id="panel-kids" class="home-subcat-panel hidden">
-            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-                <div onclick="navigateToListingFiltered('Kids', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div onclick="navigateToListingFiltered('Kids', 'T-Shirts')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="T-Shirts" data-ar="تيشيرتات">T-Shirts</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="T-Shirts">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="T-Shirts">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Pants')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Pants" data-ar="بناطيل">Pants</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Pants">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Pants">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Boys')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Boys"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Boys')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Boys"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Boys" data-ar="أولاد">Boys</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Boys">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Boys">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Girls')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Girls"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Girls')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Girls"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Girls" data-ar="بنات">Girls</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Girls">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Girls">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Baby')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Baby"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Baby')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Baby"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Baby" data-ar="رضع">Baby</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Baby">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Baby">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Shoes')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Shoes" data-ar="أحذية">Shoes</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Shoes">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Shoes">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Sets')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Sets"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Sets')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Sets"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Sets & Outfits" data-ar="أطقم">Sets & Outfits</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Sets">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Sets">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
-                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Perfumes')" class="category-card home-subcat-grid-card flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-0 rounded-t-xl overflow-hidden border-b border-black/[0.06] shadow-inner" data-slide-cat="Kids" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Perfumes">—</span>
+                    <span class="text-xs text-gray-500" data-adora-count-cat="Kids" data-adora-count-sub="Perfumes">—</span>
                 </div>
             </div>
         </div>

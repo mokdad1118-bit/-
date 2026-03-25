@@ -1204,6 +1204,13 @@
                 }
             }
 
+            /* إصلاح المكدس: قائمة منتجات بدون «الرئيسية» تحتها تُفسّر كرجوع مباشر للرئيسية */
+            if (!skipHistory && !rootTab && screenId === 'screen-listing') {
+                if (adoraNavStack.length === 1 && adoraNavStack[0] === 'screen-listing') {
+                    adoraNavStack.unshift('screen-categories');
+                }
+            }
+
             document.querySelectorAll('.screen').forEach((screen) => {
                 screen.classList.remove('active');
                 setTimeout(() => {
@@ -3342,6 +3349,9 @@
         }
 
         function goBackFromListing() {
+            if (adoraNavStack.length === 1 && adoraNavStack[0] === 'screen-listing') {
+                adoraNavStack.unshift('screen-categories');
+            }
             if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-listing') {
                 adoraNavStack.pop();
                 resetListingFiltersAfterLeave();
