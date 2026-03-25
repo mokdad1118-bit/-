@@ -1268,7 +1268,7 @@
             localStorage.removeItem('adora_token');
         }
 
-        async function apiFetch(pathname, { method = 'GET', body = null, requireAuth = true, isFormData = false } = {}) {
+        async function apiFetch(pathname, { method = 'GET', body = null, requireAuth = true, isFormData = false, cache } = {}) {
             const token = requireAuth ? getStoredJwtToken() : null;
             const headers = {};
             if (requireAuth && token) headers['Authorization'] = `Bearer ${token}`;
@@ -1283,11 +1283,13 @@
                 }
             }
 
-            const res = await fetch(`${getApiOrigin()}${pathname}`, {
+            const fetchOpts = {
                 method,
                 headers,
                 body: fetchBody,
-            });
+            };
+            if (cache !== undefined) fetchOpts.cache = cache;
+            const res = await fetch(`${getApiOrigin()}${pathname}`, fetchOpts);
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -4786,8 +4788,29 @@
             }
         }
 
+        /** يطابق placement من الـ API مع id العناصر banner-slot-* (مسافات، شرطات، حالة أحرف) */
+        function normalizeBannerPlacement(pl) {
+            let s = String(pl ?? '')
+                .trim()
+                .toLowerCase()
+                .replace(/[\s-]+/g, '_')
+                .replace(/_+/g, '_');
+            if (!s) return '';
+            const aliases = {
+                hometop: 'home_top',
+                top: 'home_top',
+                belowcategories: 'below_categories',
+                belowbrands: 'below_brands',
+                belowtopbrands: 'below_top_brands',
+                belowflash: 'below_flash',
+                belowcurated: 'below_curated',
+                belowtrending: 'below_trending',
+            };
+            return aliases[s] || s;
+        }
+
         async function injectHomeBanners() {
-            const placements = [
+            const placementsFallback = [
                 'home_top',
                 'below_categories',
                 'below_brands',
@@ -4800,7 +4823,7 @@
                 __clearBannerCarouselTimers();
                 let rows;
                 try {
-                    rows = await apiFetch('/api/banners', { requireAuth: false });
+                    rows = await apiFetch('/api/banners', { requireAuth: false, cache: 'no-store' });
                 } catch (err) {
                     try {
                         console.warn('[Adora] /api/banners failed:', err?.message || err);
@@ -4810,12 +4833,20 @@
                 const list = Array.isArray(rows) ? rows : [];
                 const byPl = {};
                 for (const b of list) {
-                    const pl = b.placement != null ? String(b.placement).trim() : '';
+                    const pl = normalizeBannerPlacement(b.placement);
                     if (!pl) continue;
                     if (!byPl[pl]) byPl[pl] = [];
                     byPl[pl].push(b);
                 }
-                placements.forEach((pl) => {
+                const slotHosts = document.querySelectorAll('[id^="banner-slot-"]');
+                const slotIds = new Set();
+                slotHosts.forEach((el) => {
+                    if (el.id) slotIds.add(el.id.replace(/^banner-slot-/, ''));
+                });
+                const keysToRender = new Set([...placementsFallback, ...Object.keys(byPl), ...slotIds]);
+                keysToRender.forEach((rawKey) => {
+                    const pl = normalizeBannerPlacement(rawKey);
+                    if (!pl) return;
                     const host = document.getElementById(`banner-slot-${pl}`);
                     if (!host) return;
                     const banners = byPl[pl] || [];
@@ -4829,9 +4860,8 @@
                 try {
                     console.warn('[Adora] injectHomeBanners:', err?.message || err);
                 } catch (_e) {}
-                placements.forEach((pl) => {
-                    const host = document.getElementById(`banner-slot-${pl}`);
-                    if (host) host.innerHTML = '';
+                document.querySelectorAll('[id^="banner-slot-"]').forEach((host) => {
+                    host.innerHTML = '';
                 });
             }
         }

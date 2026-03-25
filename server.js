@@ -97,6 +97,27 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
+/** يطابق placement مع عناصر banner-slot-* في الواجهة */
+function normalizeBannerPlacementValue(pl) {
+  let s = String(pl ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/_+/g, "_");
+  if (!s) return "";
+  const aliases = {
+    hometop: "home_top",
+    top: "home_top",
+    belowcategories: "below_categories",
+    belowbrands: "below_brands",
+    belowtopbrands: "below_top_brands",
+    belowflash: "below_flash",
+    belowcurated: "below_curated",
+    belowtrending: "below_trending",
+  };
+  return aliases[s] || s;
+}
+
 /** الرقم التالي بصيغة ORD-00001 — متسلسل من قاعدة البيانات */
 async function allocateNextOrderNo() {
   const row = await get(
@@ -1510,7 +1531,12 @@ app.get("/api/banners", async (_req, res) => {
       `SELECT id, title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order
        FROM app_banners WHERE active=1 ORDER BY placement ASC, sort_order ASC, id ASC`
     );
-    return res.json(rows);
+    const mapped = rows.map((r) => ({
+      ...r,
+      placement: normalizeBannerPlacementValue(r.placement),
+    }));
+    res.set("Cache-Control", "no-store, max-age=0");
+    return res.json(mapped);
   } catch (err) {
     return res.status(500).json({ error: "Failed to load banners" });
   }
@@ -1539,7 +1565,8 @@ app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
       active = 1,
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
-    const pl = placement != null ? String(placement).trim() : "";
+    const plRaw = placement != null ? String(placement).trim() : "";
+    const pl = normalizeBannerPlacementValue(plRaw);
     if (!pl) return res.status(400).json({ error: "placement required" });
     const ta = String(title_ar).trim();
     const te = String(title_en).trim();
@@ -1583,7 +1610,8 @@ app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) =>
       active = 1,
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
-    const pl = placement != null ? String(placement).trim() : "";
+    const plRaw = placement != null ? String(placement).trim() : "";
+    const pl = normalizeBannerPlacementValue(plRaw);
     if (!pl) return res.status(400).json({ error: "placement required" });
     const ta = String(title_ar).trim();
     const te = String(title_en).trim();
