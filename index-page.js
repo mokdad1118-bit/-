@@ -4682,13 +4682,21 @@
                     const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
                     const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
                     const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
-                    const hasImg = !!rawUrl;
-                    const linkLine = b.link_url
-                        ? `<a href="${escapeHtml(b.link_url)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
+                    const imgAbs = absoluteMediaUrl(rawUrl);
+                    const hasImg = !!imgAbs;
+                    const linkRaw = b.link_url != null ? String(b.link_url).trim() : '';
+                    const linkHref =
+                        linkRaw && (linkRaw.startsWith('http://') || linkRaw.startsWith('https://') || linkRaw.startsWith('mailto:') || linkRaw.startsWith('tel:'))
+                            ? linkRaw
+                            : linkRaw
+                              ? absoluteMediaUrl(linkRaw)
+                              : '';
+                    const linkLine = linkHref
+                        ? `<a href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
                         : '';
                     if (hasImg) {
                         return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200">
-  <img src="${escapeHtml(rawUrl)}" alt="" class="absolute inset-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="lazy" decoding="async" />
+  <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-adora-banner-img="1" />
   <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
     ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
     ${bodyTxt ? `<p class="mt-0.5 text-[11px] leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
@@ -4717,9 +4725,17 @@
 
             let idx = 0;
             let resizeTimer = null;
+            let layoutZeroRetries = 0;
             function layout() {
                 const w = vp.offsetWidth;
-                if (!w) return;
+                if (!w) {
+                    if (layoutZeroRetries < 12) {
+                        layoutZeroRetries += 1;
+                        requestAnimationFrame(() => layout());
+                    }
+                    return;
+                }
+                layoutZeroRetries = 0;
                 slides.forEach((el) => {
                     el.style.flex = `0 0 ${w}px`;
                     el.style.minWidth = `${w}px`;
@@ -4734,6 +4750,8 @@
                 }, 80);
             }
             layout();
+            setTimeout(() => layout(), 0);
+            setTimeout(() => layout(), 120);
             if (typeof ResizeObserver !== 'undefined') {
                 try {
                     const ro = new ResizeObserver(() => layout());
@@ -4774,11 +4792,19 @@
             ];
             try {
                 __clearBannerCarouselTimers();
-                const rows = await apiFetch('/api/banners', { requireAuth: false });
+                let rows;
+                try {
+                    rows = await apiFetch('/api/banners', { requireAuth: false });
+                } catch (err) {
+                    try {
+                        console.warn('[Adora] /api/banners failed:', err?.message || err);
+                    } catch (_e) {}
+                    rows = [];
+                }
                 const list = Array.isArray(rows) ? rows : [];
                 const byPl = {};
                 for (const b of list) {
-                    const pl = b.placement;
+                    const pl = b.placement != null ? String(b.placement).trim() : '';
                     if (!pl) continue;
                     if (!byPl[pl]) byPl[pl] = [];
                     byPl[pl].push(b);
@@ -4793,8 +4819,14 @@
                     }
                     __mountAdoraBannerSlider(host, banners);
                 });
-            } catch (_e) {
-                /* ignore */
+            } catch (err) {
+                try {
+                    console.warn('[Adora] injectHomeBanners:', err?.message || err);
+                } catch (_e) {}
+                placements.forEach((pl) => {
+                    const host = document.getElementById(`banner-slot-${pl}`);
+                    if (host) host.innerHTML = '';
+                });
             }
         }
 
