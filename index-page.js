@@ -569,7 +569,7 @@
                 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=640&q=80&auto=format&fit=crop',
                 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=640&q=80&auto=format&fit=crop',
                 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=640&q=80&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=640&q=80&auto=format&fit=crop',
+                '/images/women-perfume-category.png',
             ],
             kids: [
                 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=640&q=80&auto=format&fit=crop',
