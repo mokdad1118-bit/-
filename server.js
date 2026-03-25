@@ -1555,10 +1555,12 @@ app.get("/api/contact", async (_req, res) => {
   try {
     const row = await get(`SELECT * FROM contact_info LIMIT 1`);
     const home_main_section_images = safeJsonParse(row?.home_main_section_images_json, null);
+    const home_subcategory_slides = safeJsonParse(row?.home_subcategory_slides_json, null);
     return res.json({
       ...row,
       phones: safeJsonParse(row.phones_json, []),
       home_main_section_images: home_main_section_images && typeof home_main_section_images === "object" ? home_main_section_images : null,
+      home_subcategory_slides: home_subcategory_slides && typeof home_subcategory_slides === "object" ? home_subcategory_slides : null,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load contact" });
@@ -1569,7 +1571,9 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
   try {
     const body = req.body || {};
     const { address, phones = [], whatsapp_phone = "" } = body;
-    const cur = await get(`SELECT id, home_main_section_images_json FROM contact_info ORDER BY id LIMIT 1`);
+    const cur = await get(
+      `SELECT id, home_main_section_images_json, home_subcategory_slides_json FROM contact_info ORDER BY id LIMIT 1`
+    );
     let homeJson = cur?.home_main_section_images_json ?? null;
     if (body.home_main_section_images !== undefined && body.home_main_section_images !== null && typeof body.home_main_section_images === "object") {
       const h = body.home_main_section_images;
@@ -1579,9 +1583,13 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
         kids: String(h.kids ?? "").trim(),
       });
     }
+    let slidesJson = cur?.home_subcategory_slides_json ?? null;
+    if (body.home_subcategory_slides !== undefined && body.home_subcategory_slides !== null && typeof body.home_subcategory_slides === "object") {
+      slidesJson = JSON.stringify(body.home_subcategory_slides);
+    }
     await run(
-      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
-      [address, JSON.stringify(phones), whatsapp_phone, homeJson]
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson]
     );
     return res.json({ ok: true });
   } catch (err) {

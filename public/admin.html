@@ -129,11 +129,11 @@
                 </div>
 
                 <div>
-                  <label class="text-sm font-semibold"><span data-en="Price (SYP)" data-ar="السعر (ليرة سورية)">السعر (ليرة سورية)</span></label>
+                  <label class="text-sm font-semibold"><span data-en="List price before discount (SYP)" data-ar="السعر قبل الخصم (ل.س)">السعر قبل الخصم (ل.س)</span></label>
                   <input id="product-price" type="number" step="0.01" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" />
                 </div>
                 <div>
-                  <label class="text-sm font-semibold"><span data-en="Discount (%)" data-ar="الخصم (%)">الخصم (%)</span></label>
+                  <label class="text-sm font-semibold"><span data-en="Discount (% off list price)" data-ar="الخصم % (يُطبَّق على السعر أعلاه)">الخصم % (يُطبَّق على السعر أعلاه)</span></label>
                   <input id="product-discount" type="number" step="0.01" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" value="0" />
                 </div>
 
@@ -859,6 +859,11 @@
                       <input id="contact-home-img-kids" type="url" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm" placeholder="https://..." />
                     </div>
                   </div>
+                </div>
+                <div class="md:col-span-2 border-t border-gray-100 pt-4 mt-1">
+                  <p class="text-sm font-bold text-gray-900 mb-1" data-en="Home — subcategory sliders (JSON)" data-ar="الرئيسية — سلاسل صور الأقسام الفرعية (JSON)">الرئيسية — سلاسل صور الأقسام الفرعية (JSON)</p>
+                  <p class="text-xs text-gray-500 mb-2 leading-relaxed" data-en="Keys: Men, Women, Kids → subcategory (English, same as Categories) → array of image URLs. Merges with app defaults for missing keys." data-ar="المفاتيح: Men و Women و Kids ثم الفرعي بالإنجليزي كما في «الأقسام» ثم مصفوفة روابط. يُدمج مع الافتراضي للمفاتيح الناقصة.">المفاتيح: Men و Women و Kids ثم الفرعي بالإنجليزي كما في «الأقسام» ثم مصفوفة روابط الصور.</p>
+                  <textarea id="contact-home-subcat-slides-json" rows="10" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600 font-mono text-xs" placeholder='{"Men":{"T-Shirts":["https://..."]}}'></textarea>
                 </div>
                 <div class="md:col-span-2 flex gap-2">
                   <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95">

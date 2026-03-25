@@ -751,7 +751,7 @@
         }
         
         .category-content-panel.open {
-            max-height: 600px;
+            max-height: min(2800px, 92vh);
             opacity: 1;
             padding: 16px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
@@ -794,29 +794,39 @@
         .category-card:active {
             transform: scale(0.98);
         }
-        
-        .category-subcat-thumb {
-            width: 2.75rem;
-            height: 2.75rem;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+
+        .subcat-slide-host {
+            position: relative;
+            width: 100%;
+            background: linear-gradient(145deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-color: rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
         }
-        .category-subcat-thumb img {
+        .subcat-slide-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 7.5rem;
+        }
+        .subcat-slide-layer {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s ease;
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            opacity: 0;
+            transition: opacity 1s ease-in-out, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+            background: #e5e7eb;
         }
-        .category-card:hover .category-subcat-thumb {
-            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.22);
+        .subcat-slide-layer.subcat-slide-visible {
+            opacity: 1;
+            z-index: 1;
         }
-        .category-card:hover .category-subcat-thumb img {
-            transform: scale(1.07);
+        .category-card:hover .subcat-slide-host {
+            box-shadow: 0 12px 32px rgba(124, 58, 237, 0.18);
+        }
+        .category-card:hover .subcat-slide-inner .subcat-slide-layer.subcat-slide-visible {
+            transform: scale(1.06);
         }
         
         .subcategory-item {
@@ -2482,34 +2492,34 @@
 
         <!-- Category Content Panels -->
         <div id="panel-men" class="category-content-panel">
-            <div class="grid grid-cols-2 gap-3">
-                <div onclick="navigateToListingFiltered('Men', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                <div onclick="navigateToListingFiltered('Men', 'T-Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="T-Shirts"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="T-Shirts" data-ar="تيشيرتات">T-Shirts</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="T-Shirts">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
-                    <h3 class="font-bold text-gray-900 text-sm" data-en="Shirts" data-ar="قمصان">Shirts</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Shirts">—</span>
-                </div>
-                <div onclick="navigateToListingFiltered('Men', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1542272604-787c3835535d?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Men', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Pants" data-ar="بناطيل">Pants</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Pants">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Men', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Shoes" data-ar="أحذية">Shoes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Shoes">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&amp;fit=crop&amp;w=400&amp;q=82" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Men', 'Shirts')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Shirts"><div class="subcat-slide-inner"></div></div>
+                    <h3 class="font-bold text-gray-900 text-sm" data-en="Shirts" data-ar="قمصان">Shirts</h3>
+                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Shirts">—</span>
+                </div>
+                <div onclick="navigateToListingFiltered('Men', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Accessories" data-ar="إكسسوارات">Accessories</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Accessories">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Men', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Men', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Men" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Men" data-adora-count-sub="Perfumes">—</span>
                 </div>
@@ -2517,34 +2527,34 @@
         </div>
 
         <div id="panel-women" class="category-content-panel">
-            <div class="grid grid-cols-2 gap-3">
-                <div onclick="navigateToListingFiltered('Women', 'Dresses')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                <div onclick="navigateToListingFiltered('Women', 'Dresses')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Dresses"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Dresses" data-ar="فساتين">Dresses</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Dresses">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Tops')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Women', 'Tops')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Tops"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Tops" data-ar="بلوزات">Tops</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Tops">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Women', 'Pants')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Pants"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Pants" data-ar="بناطيل">Pants</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Pants">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Bags')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
-                    <h3 class="font-bold text-gray-900 text-sm" data-en="Bags" data-ar="حقائب">Bags</h3>
-                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Bags">—</span>
-                </div>
-                <div onclick="navigateToListingFiltered('Women', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Women', 'Accessories')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Accessories"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Accessories" data-ar="إكسسوارات">Accessories</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Accessories">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Women', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="/images/women-perfume-category.png" alt="" loading="eager" decoding="async"></div>
+                <div onclick="navigateToListingFiltered('Women', 'Bags')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Bags"><div class="subcat-slide-inner"></div></div>
+                    <h3 class="font-bold text-gray-900 text-sm" data-en="Bags" data-ar="حقائب">Bags</h3>
+                    <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Bags">—</span>
+                </div>
+                <div onclick="navigateToListingFiltered('Women', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Women" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Women" data-adora-count-sub="Perfumes">—</span>
                 </div>
@@ -2552,34 +2562,34 @@
         </div>
 
         <div id="panel-kids" class="category-content-panel">
-            <div class="grid grid-cols-2 gap-3">
-                <div onclick="navigateToListingFiltered('Kids', 'Boys')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                <div onclick="navigateToListingFiltered('Kids', 'Boys')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Boys"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Boys" data-ar="أولاد">Boys</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Boys">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Girls')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Girls')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Girls"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Girls" data-ar="بنات">Girls</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Girls">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Baby')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Baby')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Baby"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Baby" data-ar="رضع">Baby</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Baby">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1503944586555-7832668c7a95?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Shoes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Shoes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Shoes" data-ar="أحذية">Shoes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Shoes">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Sets')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="https://images.unsplash.com/photo-1503919545889-aef66e16bb32?w=200&q=80&auto=format&fit=crop" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Sets')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Sets"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Sets & Outfits" data-ar="أطقم">Sets & Outfits</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Sets">—</span>
                 </div>
-                <div onclick="navigateToListingFiltered('Kids', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer">
-                    <div class="category-subcat-thumb mb-2"><img src="/images/kids-perfume-category.png" alt="" loading="eager" decoding="async"></div>
+                <div onclick="navigateToListingFiltered('Kids', 'Perfumes')" class="category-card rounded-2xl p-3 flex flex-col items-stretch text-center cursor-pointer">
+                    <div class="subcat-slide-host mb-3 aspect-[4/5] rounded-2xl overflow-hidden border border-black/[0.06] shadow-md" data-slide-cat="Kids" data-slide-sub="Perfumes"><div class="subcat-slide-inner"></div></div>
                     <h3 class="font-bold text-gray-900 text-sm" data-en="Perfumes" data-ar="عطورات">Perfumes</h3>
                     <span class="text-xs text-gray-500 mt-1" data-adora-count-cat="Kids" data-adora-count-sub="Perfumes">—</span>
                 </div>

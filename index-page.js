@@ -560,26 +560,6 @@
             navigateToListingFiltered(category, null);
         }
 
-        /** صور الأقسام الرئيسية من لوحة التحكم (حقل contact.home_main_section_images) */
-        async function applyHomeMainSectionImagesFromApi() {
-            try {
-                const data = await apiFetch('/api/contact', { requireAuth: false });
-                const img = data.home_main_section_images;
-                if (!img || typeof img !== 'object') return;
-                const pairs = [
-                    ['men', 'home-main-img-men'],
-                    ['women', 'home-main-img-women'],
-                    ['kids', 'home-main-img-kids'],
-                ];
-                for (const [key, id] of pairs) {
-                    const u = img[key];
-                    if (u == null || !String(u).trim()) continue;
-                    const el = document.getElementById(id);
-                    if (el) el.src = absoluteMediaUrl(String(u).trim());
-                }
-            } catch (_e) {}
-        }
-
         // State Management
         let currentScreen = 'screen-categories';
         /** مكدس شاشات داخلي يُزامن مع history.pushState لزر الرجوع على الموبايل */
@@ -587,6 +567,7 @@
         let adoraNavPopStateBound = false;
         let cartCount = 0;
         let currentQty = 1;
+        let homeSubcatSlidesMerged = null;
         /** الافتراضي عربي؛ الإنجليزي فقط عند اختيار المستخدم (adora_rtl === '0') — لا يُربَط بلغة المتصفح */
         let isRTL = localStorage.getItem('adora_rtl') !== '0';
         let pendingOrder = null;
@@ -633,7 +614,7 @@
             cod: { en: 'Cash on Delivery', ar: 'الدفع عند الاستلام' },
             card: { en: 'Card', ar: 'بطاقة' }
         };
-        const ADORA_CART_KEY = 'adora_cart_v2';
+        const ADORA_CART_KEY = 'adora_cart_v3';
         let cartItems = [];
         const cartTotals = { subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
@@ -643,10 +624,11 @@
             const arr = Array.isArray(items) ? items : [];
             for (const it of arr) {
                 const q = Number(it.qty || 1);
-                const unit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
+                const listUnit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
                 const discPct = Number(it.discountPct || 0);
-                const lineOrig = q * (discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit);
-                const lineSale = q * unit;
+                const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
+                const lineOrig = q * listUnit;
+                const lineSale = q * saleUnit;
                 subtotal += lineSale;
                 discount += Math.max(0, lineOrig - lineSale);
             }
@@ -661,6 +643,25 @@
             const n = Number(amount || 0);
             const s = (Number.isFinite(n) ? n : 0).toLocaleString(ADORA_NUMBER_LOCALE, { maximumFractionDigits: 0 });
             return `${s} ل.س`;
+        }
+
+        /** السعر المُدخل في لوحة التحكم = سعر القائمة قبل الخصم؛ سعر البيع = القائمة × (1 − خصم%) */
+        function productListPrice(p) {
+            return Number(p?.price ?? 0);
+        }
+        function productDiscountPct(p) {
+            const d = Number(p?.discount ?? 0);
+            return d > 0 && d < 100 ? d : 0;
+        }
+        function productSaleUnitPrice(p) {
+            const list = productListPrice(p);
+            const d = productDiscountPct(p);
+            return d > 0 ? list * (1 - d / 100) : list;
+        }
+        function saleUnitFromListAndDiscount(listPrice, discPct) {
+            const u = Number(listPrice || 0);
+            const d = Number(discPct || 0);
+            return d > 0 && d < 100 ? u * (1 - d / 100) : u;
         }
 
         function resolveDisplayBrand(brandRaw) {
@@ -713,10 +714,11 @@
             let discount = 0;
             for (const it of cartItems) {
                 const q = Number(it.qty || 1);
-                const unit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
+                const listUnit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
                 const discPct = Number(it.discountPct || 0);
-                const lineOrig = q * (discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit);
-                const lineSale = q * unit;
+                const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
+                const lineOrig = q * listUnit;
+                const lineSale = q * saleUnit;
                 subtotal += lineSale;
                 discount += Math.max(0, lineOrig - lineSale);
             }
@@ -747,9 +749,9 @@
                         const name = loc === 'ar' ? it.name.ar : it.name.en;
                         const img = it.image ? escapeHtml(it.image) : adoraPlaceholderImageUrl();
                         const sel = it.selected !== false;
-                        const unit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
+                        const listUnit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
                         const discPct = Number(it.discountPct || 0);
-                        const oldU = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
+                        const saleU = saleUnitFromListAndDiscount(listUnit, discPct);
                         const meta = [it.size, it.color].filter(Boolean).join(' · ');
                         const brandLine = resolveDisplayBrand(it.brand);
                         return `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden" data-cart-idx="${idx}">
@@ -775,8 +777,8 @@
                                                 <button type="button" onclick="changeCartQtyByIndex(${idx},1)" class="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-50 rounded-r-lg"><i class="fas fa-plus text-xs"></i></button>
                                             </div>
                                             <div class="text-right">
-                                                <div class="font-bold text-gray-900 text-sm">${formatSyp(unit * it.qty)}</div>
-                                                ${discPct > 0 ? `<div class="text-xs text-gray-400 line-through">${formatSyp(oldU * it.qty)}</div>` : ''}
+                                                <div class="font-bold text-gray-900 text-sm">${formatSyp(saleU * it.qty)}</div>
+                                                ${discPct > 0 ? `<div class="text-xs text-gray-400 line-through">${formatSyp(listUnit * it.qty)}</div>` : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -2193,7 +2195,7 @@
                 showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
                 return false;
             }
-            const unit = Number(p.price || 0);
+            const listUnit = Number(p.price || 0);
             const discPct = Number(p.discount || 0);
             const img0 = p.images && p.images.length ? p.images[0] : '';
             const brandVal = String(p.brand || '').trim();
@@ -2202,8 +2204,8 @@
                 id: p.id,
                 name: { ar: p.name_ar, en: p.name_en },
                 qty,
-                unitPrice: unit,
-                price: unit,
+                unitPrice: listUnit,
+                price: listUnit,
                 discountPct: discPct,
                 image: img0,
                 brand: brandVal,
@@ -2220,8 +2222,8 @@
                     existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
                 }
                 existing.selected = true;
-                existing.unitPrice = unit;
-                existing.price = unit;
+                existing.unitPrice = listUnit;
+                existing.price = listUnit;
                 existing.discountPct = discPct;
                 if (img0) existing.image = img0;
                 existing.name = { ar: p.name_ar, en: p.name_en };
@@ -2277,7 +2279,7 @@
             const list = Array.isArray(products) ? products : [];
             let maxP = 500000;
             for (const p of list) {
-                const n = Number(p.price || 0);
+                const n = productSaleUnitPrice(p);
                 if (n > maxP) maxP = Math.ceil(n / 10000) * 10000;
             }
             const r = document.getElementById('filter-price-max');
@@ -2369,8 +2371,8 @@
                 .filter(Boolean);
 
             return list.filter((p) => {
-                const price = Number(p.price || 0);
-                if (price > maxP) return false;
+                const effective = productSaleUnitPrice(p);
+                if (effective > maxP) return false;
                 const minR = Number(filterMinRating || 0);
                 if (minR > 0) {
                     const avg = p.review_avg != null ? Number(p.review_avg) : null;
@@ -2480,13 +2482,15 @@
                 itemsContainer.innerHTML = sel
                     .map((item) => {
                         const name = locale === 'ar' ? item.name.ar : item.name.en;
-                        const unit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
-                        const line = unit * Number(item.qty || 1);
+                        const listUnit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
                         const discPct = Number(item.discountPct || 0);
-                        const oldU = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
+                        const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
+                        const qty = Number(item.qty || 1);
+                        const line = saleUnit * qty;
                         const br = resolveDisplayBrand(item.brand);
                         const meta = [item.size, item.color].filter(Boolean).join(' · ');
-                        const oldLine = discPct > 0 ? `<span class="text-[10px] text-gray-400 line-through ms-1">${formatSyp(oldU * Number(item.qty || 1))}</span>` : '';
+                        const oldLine =
+                            discPct > 0 ? `<span class="text-[10px] text-gray-400 line-through ms-1">${formatSyp(listUnit * qty)}</span>` : '';
                         return `<div class="checkout-item">
                                 <div class="flex justify-between items-start gap-2">
                                     <div>
@@ -2494,7 +2498,7 @@
                                         <p class="text-[10px] text-violet-700 font-semibold mt-0.5">${escapeHtml(br)}</p>
                                         ${meta ? `<p class="text-[10px] text-gray-500">${escapeHtml(meta)}</p>` : ''}
                                     </div>
-                                    <span class="text-[10px] text-gray-500 shrink-0">${item.qty} × ${formatSyp(unit)}</span>
+                                    <span class="text-[10px] text-gray-500 shrink-0">${item.qty} × ${formatSyp(saleUnit)}</span>
                                 </div>
                                 <span class="text-right text-[11px] text-gray-400">${locale === 'ar' ? 'المجموع' : 'Subtotal'}: ${formatSyp(line)}${oldLine}</span>
                             </div>`;
@@ -2586,12 +2590,14 @@
 
                 // Backend stores product_id optionally, but we always store name/qty/price.
                 const apiProducts = (order.items || []).map((item) => {
-                    const unit = Number(item.unitPrice != null ? item.unitPrice : item.price ?? 0);
+                    const listUnit = Number(item.unitPrice != null ? item.unitPrice : item.price ?? 0);
+                    const discPct = Number(item.discountPct || 0);
+                    const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
                     return {
                         product_id: item.productId ?? item.id ?? null,
                         product_name: isRTL ? item.name.ar : item.name.en,
                         qty: item.qty ?? 1,
-                        price: unit,
+                        price: saleUnit,
                         image_url: item.image || item.imageUrl || item.thumb || '',
                         color: item.color || item.selectedColor || '',
                         size: item.size || item.selectedSize || '',
@@ -2687,6 +2693,192 @@
             return origin + (s.startsWith('/') ? s : `/${s}`);
         }
 
+        function getDefaultHomeSubcatSlides() {
+            const q = 'w=800&q=85&auto=format&fit=crop';
+            return {
+                Men: {
+                    'T-Shirts': [
+                        `https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?${q}`,
+                        `https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?${q}`,
+                        `https://images.unsplash.com/photo-1576566588028-4147f3842f27?${q}`,
+                    ],
+                    Pants: [
+                        `https://images.unsplash.com/photo-1542272604-787c3835535d?${q}`,
+                        `https://images.unsplash.com/photo-1473966968600-fa8013becd27?${q}`,
+                        `https://images.unsplash.com/photo-1506629905607-2b256d2019d?${q}`,
+                    ],
+                    Shoes: [
+                        `https://images.unsplash.com/photo-1549298916-b41d501d3772?${q}`,
+                        `https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?${q}`,
+                        `https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?${q}`,
+                    ],
+                    Shirts: [
+                        `https://images.unsplash.com/photo-1594938298603-c8148c4dae35?${q}`,
+                        `https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?${q}`,
+                        `https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?${q}`,
+                    ],
+                    Accessories: [
+                        `https://images.unsplash.com/photo-1524592094714-0f0654e20314?${q}`,
+                        `https://images.unsplash.com/photo-1611591437281-460bfbe1220a?${q}`,
+                        `https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?${q}`,
+                    ],
+                    Perfumes: [
+                        `https://images.unsplash.com/photo-1541643600914-78b084683601?${q}`,
+                        `https://images.unsplash.com/photo-1595425970377-c970029bf94e?${q}`,
+                        `https://images.unsplash.com/photo-1587017539504-67cfbddac569?${q}`,
+                    ],
+                },
+                Women: {
+                    Dresses: [
+                        `https://images.unsplash.com/photo-1595777457583-95e059d581b8?${q}`,
+                        `https://images.unsplash.com/photo-1496747611176-843222e1e57c?${q}`,
+                        `https://images.unsplash.com/photo-1515372039744-b8f02a815ac0?${q}`,
+                    ],
+                    Tops: [
+                        `https://images.unsplash.com/photo-1524504388940-b1c1722653e1?${q}`,
+                        `https://images.unsplash.com/photo-1434389677669-e08b4cac3105?${q}`,
+                        `https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?${q}`,
+                    ],
+                    Pants: [
+                        `https://images.unsplash.com/photo-1506629082955-511b1aa562c8?${q}`,
+                        `https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?${q}`,
+                        `https://images.unsplash.com/photo-1509631179647-0177331693ae?${q}`,
+                    ],
+                    Accessories: [
+                        `https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?${q}`,
+                        `https://images.unsplash.com/photo-1611591437281-460bfbe1220a?${q}`,
+                        `https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?${q}`,
+                    ],
+                    Bags: [
+                        `https://images.unsplash.com/photo-1584917865442-de89df76afd3?${q}`,
+                        `https://images.unsplash.com/photo-1590874103328-eac38a683ce7?${q}`,
+                        `https://images.unsplash.com/photo-1594223274512-ad4803739b7c?${q}`,
+                    ],
+                    Perfumes: [
+                        `https://images.unsplash.com/photo-1541643600914-78b084683601?${q}`,
+                        `https://images.unsplash.com/photo-1595425970377-c970029bf94e?${q}`,
+                        `https://images.unsplash.com/photo-1594035910387-fea47794261f?${q}`,
+                    ],
+                },
+                Kids: {
+                    Boys: [
+                        `https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?${q}`,
+                        `https://images.unsplash.com/photo-1503944586555-7832668c7a95?${q}`,
+                        `https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?${q}`,
+                    ],
+                    Girls: [
+                        `https://images.unsplash.com/photo-1509967419530-da38b4704bc6?${q}`,
+                        `https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?${q}`,
+                        `https://images.unsplash.com/photo-1503341504253-dff4815485f1?${q}`,
+                    ],
+                    Baby: [
+                        `https://images.unsplash.com/photo-1519689680058-324335c77eba?${q}`,
+                        `https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?${q}`,
+                        `https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?${q}`,
+                    ],
+                    Shoes: [
+                        `https://images.unsplash.com/photo-1503944586555-7832668c7a95?${q}`,
+                        `https://images.unsplash.com/photo-1460353581641-37baddab0fa2?${q}`,
+                        `https://images.unsplash.com/photo-1549298916-b41d501d3772?${q}`,
+                    ],
+                    Sets: [
+                        `https://images.unsplash.com/photo-1503919545889-aef66e16bb32?${q}`,
+                        `https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?${q}`,
+                        `https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?${q}`,
+                    ],
+                    Perfumes: [
+                        `https://images.unsplash.com/photo-1595425970377-c970029bf94e?${q}`,
+                        `https://images.unsplash.com/photo-1541643600914-78b084683601?${q}`,
+                        `https://images.unsplash.com/photo-1587017539504-67cfbddac569?${q}`,
+                    ],
+                },
+            };
+        }
+
+        function mergeHomeSubcategorySlides(apiObj) {
+            const def = getDefaultHomeSubcatSlides();
+            const out = JSON.parse(JSON.stringify(def));
+            if (!apiObj || typeof apiObj !== 'object') return out;
+            for (const cat of ['Men', 'Women', 'Kids']) {
+                if (!apiObj[cat] || typeof apiObj[cat] !== 'object') continue;
+                for (const sub of Object.keys(apiObj[cat])) {
+                    const urls = apiObj[cat][sub];
+                    if (!Array.isArray(urls) || !urls.length) continue;
+                    const cleaned = urls
+                        .map((x) => String(x || '').trim())
+                        .filter(Boolean)
+                        .map((url) => absoluteMediaUrl(url));
+                    if (cleaned.length) out[cat][sub] = cleaned;
+                }
+            }
+            return out;
+        }
+
+        function initHomeSubcategorySliderHosts() {
+            const hosts = document.querySelectorAll('.subcat-slide-host');
+            if (!hosts.length) return;
+            const merged = homeSubcatSlidesMerged || mergeHomeSubcategorySlides(null);
+            homeSubcatSlidesMerged = merged;
+            hosts.forEach((host) => {
+                if (host._slideTimer) {
+                    clearInterval(host._slideTimer);
+                    host._slideTimer = null;
+                }
+                const cat = host.getAttribute('data-slide-cat');
+                const sub = host.getAttribute('data-slide-sub');
+                const inner = host.querySelector('.subcat-slide-inner');
+                if (!cat || !sub || !inner) return;
+                let urls = merged?.[cat]?.[sub];
+                if (!Array.isArray(urls) || !urls.length) urls = defUrlsForSubcat(cat, sub);
+                urls = urls.map((u) => String(u || '').trim()).filter(Boolean);
+                if (!urls.length) return;
+                inner.innerHTML = urls
+                    .map(
+                        (url, i) =>
+                            `<img src="${escapeHtml(url)}" alt="" class="subcat-slide-layer${i === 0 ? ' subcat-slide-visible' : ''}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                    )
+                    .join('');
+                const layers = inner.querySelectorAll('.subcat-slide-layer');
+                if (layers.length < 2) return;
+                let idx = 0;
+                host._slideTimer = setInterval(() => {
+                    const L = inner.querySelectorAll('.subcat-slide-layer');
+                    if (!L.length) return;
+                    L[idx].classList.remove('subcat-slide-visible');
+                    idx = (idx + 1) % L.length;
+                    L[idx].classList.add('subcat-slide-visible');
+                }, 4800);
+            });
+        }
+
+        function defUrlsForSubcat(cat, sub) {
+            const d = getDefaultHomeSubcatSlides();
+            const u = d[cat]?.[sub];
+            return Array.isArray(u) && u.length ? u : [''];
+        }
+
+        async function applyHomeContactFromApi() {
+            try {
+                const data = await apiFetch('/api/contact', { requireAuth: false });
+                const img = data.home_main_section_images;
+                if (img && typeof img === 'object') {
+                    const pairs = [
+                        ['men', 'home-main-img-men'],
+                        ['women', 'home-main-img-women'],
+                        ['kids', 'home-main-img-kids'],
+                    ];
+                    for (const [key, id] of pairs) {
+                        const u = img[key];
+                        if (u == null || !String(u).trim()) continue;
+                        const el = document.getElementById(id);
+                        if (el) el.src = absoluteMediaUrl(String(u).trim());
+                    }
+                }
+                homeSubcatSlidesMerged = mergeHomeSubcategorySlides(data.home_subcategory_slides);
+                initHomeSubcategorySliderHosts();
+            } catch (_e) {}
+        }
+
         function orderLineItemName(item, locale) {
             const n = item && item.name;
             if (!n) return '';
@@ -2726,10 +2918,10 @@
             items.forEach((item, i) => {
                 const num = i + 1;
                 const br = resolveDisplayBrand(item.brand);
-                const unit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
-                const line = unit * Number(item.qty || 1);
+                const listUnit = Number(item.unitPrice != null ? item.unitPrice : item.price || 0);
                 const discPct = Number(item.discountPct || 0);
-                const listUnit = discPct > 0 && discPct < 100 ? unit / (1 - discPct / 100) : unit;
+                const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
+                const line = saleUnit * Number(item.qty || 1);
                 const img = absoluteMediaUrl(item.image);
                 const na = orderLineItemName(item, 'ar');
                 const ne = orderLineItemName(item, 'en');
@@ -2740,8 +2932,8 @@
                 if (item.size) ar.push(`    📏  المقاس: ${item.size}`);
                 if (item.color) ar.push(`    🎨  اللون: ${item.color}`);
                 ar.push(`    🔢  الكمية: ${item.qty}`);
-                ar.push(`    💵  السعر: ${formatSyp(unit)} × ${item.qty} = ${formatSyp(line)}`);
-                if (discPct > 0) ar.push(`    📎  قبل الخصم: ${formatSyp(listUnit)}`);
+                ar.push(`    💵  السعر: ${formatSyp(saleUnit)} × ${item.qty} = ${formatSyp(line)}`);
+                if (discPct > 0) ar.push(`    📎  السعر قبل الخصم: ${formatSyp(listUnit)}`);
                 if (img) ar.push(`    🖼  ${img}`);
                 ar.push('');
                 en.push(`▸▸  ${num} — Line ${num}`);
@@ -2751,8 +2943,8 @@
                 if (item.size) en.push(`    📏  Size: ${item.size}`);
                 if (item.color) en.push(`    🎨  Color: ${item.color}`);
                 en.push(`    🔢  Qty: ${item.qty}`);
-                en.push(`    💵  ${formatSyp(unit)} × ${item.qty} = ${formatSyp(line)}`);
-                if (discPct > 0) en.push(`    📎  List: ${formatSyp(listUnit)}`);
+                en.push(`    💵  ${formatSyp(saleUnit)} × ${item.qty} = ${formatSyp(line)}`);
+                if (discPct > 0) en.push(`    📎  List price: ${formatSyp(listUnit)}`);
                 if (img) en.push(`    🖼  ${img}`);
                 en.push('');
             });
@@ -3494,9 +3686,9 @@
         function renderProductCardHtml(p) {
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
-            const price = Number(p.price || 0);
-            const disc = Number(p.discount || 0);
-            const oldP = disc > 0 && disc < 100 ? price / (1 - disc / 100) : price;
+            const listP = productListPrice(p);
+            const disc = productDiscountPct(p);
+            const saleP = productSaleUnitPrice(p);
             const badge =
                 disc > 0
                     ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round(disc)}%</span>`
@@ -3509,8 +3701,8 @@
                 <div class="p-3">
                     <h3 class="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">${escapeHtml(name)}</h3>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-gray-900">${formatSyp(price)}</span>
-                        ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(oldP)}</span>` : ''}
+                        <span class="font-bold text-gray-900">${formatSyp(saleP)}</span>
+                        ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                     </div>
                 </div>
             </div>`;
@@ -3605,9 +3797,9 @@
             const qd0 = document.getElementById('qty-display');
             if (qd0) qd0.textContent = '1';
             const title = isRTL ? p.name_ar : p.name_en;
-            const price = Number(p.price || 0);
-            const disc = Number(p.discount || 0);
-            const oldP = disc > 0 && disc < 100 ? price / (1 - disc / 100) : price;
+            const listP = productListPrice(p);
+            const disc = productDiscountPct(p);
+            const saleP = productSaleUnitPrice(p);
             const gal = document.getElementById('product-gallery');
             if (gal) {
                 const imgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
@@ -3639,12 +3831,12 @@
                 }
             }
             const pEl = document.getElementById('product-detail-price');
-            if (pEl) pEl.textContent = formatSyp(price);
+            if (pEl) pEl.textContent = formatSyp(saleP);
             const oEl = document.getElementById('product-detail-old-price');
             if (oEl) {
                 if (disc > 0) {
                     oEl.classList.remove('hidden');
-                    oEl.textContent = formatSyp(oldP);
+                    oEl.textContent = formatSyp(listP);
                 } else {
                     oEl.classList.add('hidden');
                 }
@@ -3653,7 +3845,7 @@
             if (sEl) {
                 if (disc > 0) {
                     sEl.classList.remove('hidden');
-                    sEl.textContent = isRTL ? `وفّر ${formatSyp(oldP - price)}` : `Save ${formatSyp(oldP - price)}`;
+                    sEl.textContent = isRTL ? `وفّر ${formatSyp(listP - saleP)}` : `Save ${formatSyp(listP - saleP)}`;
                 } else {
                     sEl.classList.add('hidden');
                 }
@@ -3668,7 +3860,7 @@
             const dEl = document.getElementById('content-desc');
             if (dEl) dEl.textContent = p.description || '';
             const addP = document.getElementById('product-detail-add-price');
-            if (addP) addP.textContent = ` — ${formatSyp(price)}`;
+            if (addP) addP.textContent = ` — ${formatSyp(saleP)}`;
 
             const colWrap = document.getElementById('product-color-options');
             const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
@@ -4151,9 +4343,9 @@
                     .map((p) => {
                         const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
                         const name = isRTL ? p.name_ar : p.name_en;
-                        const price = Number(p.price || 0);
-                        const disc = Number(p.discount || 0);
-                        const oldP = disc > 0 && disc < 100 ? price / (1 - disc / 100) : price;
+                        const listP = productListPrice(p);
+                        const disc = productDiscountPct(p);
+                        const saleP = productSaleUnitPrice(p);
                         const badge =
                             disc > 0
                                 ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
@@ -4166,8 +4358,8 @@
                         <div class="p-3">
                             <h4 class="font-semibold text-sm text-gray-900 truncate">${escapeHtml(name)}</h4>
                             <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                <span class="font-bold text-purple-600 text-sm">${formatSyp(price)}</span>
-                                ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(oldP)}</span>` : ''}
+                                <span class="font-bold text-purple-600 text-sm">${formatSyp(saleP)}</span>
+                                ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -4239,10 +4431,12 @@
 
                 const mapped = products.slice(0, 4).map((p) => {
                     const discountPercent = Number(p.discount || 0);
-                    const nowPrice = Number(p.price || 0);
-                    let oldPrice = nowPrice;
+                    const listPrice = Number(p.price || 0);
+                    let nowPrice = listPrice;
+                    let oldPrice = listPrice;
                     if (discountPercent > 0 && discountPercent < 100) {
-                        oldPrice = nowPrice / (1 - discountPercent / 100);
+                        nowPrice = listPrice * (1 - discountPercent / 100);
+                        oldPrice = listPrice;
                     }
                     const rawImg = p.images && p.images.length ? p.images[0] : '';
                     return {
@@ -4744,7 +4938,7 @@
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
             initAdoraNavigationHistory();
-            applyHomeMainSectionImagesFromApi().catch(() => {});
+            applyHomeContactFromApi().catch(() => {});
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});

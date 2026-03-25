@@ -1770,6 +1770,12 @@ async function loadContact() {
     if (m) m.value = hm.men || "";
     if (w) w.value = hm.women || "";
     if (k) k.value = hm.kids || "";
+    const slidesTa = document.getElementById("contact-home-subcat-slides-json");
+    if (slidesTa) {
+      const slides = data.home_subcategory_slides;
+      slidesTa.value =
+        slides && typeof slides === "object" ? JSON.stringify(slides, null, 2) : "";
+    }
   } catch (e) {
     console.error(e);
   }
@@ -1792,10 +1798,25 @@ async function saveContact(e) {
     women: wEl ? wEl.value.trim() : "",
     kids: kEl ? kEl.value.trim() : "",
   };
+  const slidesTa = document.getElementById("contact-home-subcat-slides-json");
+  const body = { address, phones, whatsapp_phone, home_main_section_images };
+  if (slidesTa && slidesTa.value.trim()) {
+    try {
+      const home_subcategory_slides = JSON.parse(slidesTa.value);
+      if (home_subcategory_slides == null || typeof home_subcategory_slides !== "object") {
+        alert(adminT("invalidJson") || "Invalid JSON in subcategory sliders");
+        return;
+      }
+      body.home_subcategory_slides = home_subcategory_slides;
+    } catch (e) {
+      alert(adminT("invalidJson") || "Invalid JSON in subcategory sliders");
+      return;
+    }
+  }
   await api("/api/contact", {
     method: "PUT",
     token,
-    body: { address, phones, whatsapp_phone, home_main_section_images },
+    body,
   });
   alert(adminT("contactSaved"));
 }

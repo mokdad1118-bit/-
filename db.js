@@ -253,6 +253,8 @@ async function initDb() {
   await migrateOrdersShippingAddressColumn();
   await migrateOrderNumbersSequential();
   await migrateContactHomeSectionImages();
+  await migrateContactHomeSubcategorySlides();
+  await migrateListPriceSemanticsOnce();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -280,11 +282,11 @@ async function initDb() {
       `INSERT INTO categories (name, subcategories_json) VALUES (?, ?), (?, ?), (?, ?)`,
       [
         "Men",
-        JSON.stringify(["T-Shirts", "Shirts", "Pants", "Jackets", "Shoes", "Accessories", "Perfumes"]),
+        JSON.stringify(["T-Shirts", "Pants", "Shoes", "Shirts", "Accessories", "Perfumes"]),
         "Women",
-        JSON.stringify(["Dresses", "Tops", "Pants", "Heels", "Bags", "Accessories", "Perfumes"]),
+        JSON.stringify(["Dresses", "Tops", "Pants", "Accessories", "Bags", "Perfumes"]),
         "Kids",
-        JSON.stringify(["Boys", "Girls", "Baby", "Sets", "Shoes", "Outerwear", "Perfumes"]),
+        JSON.stringify(["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"]),
       ]
     );
   }
@@ -301,9 +303,9 @@ async function initDb() {
 
 async function mergeCategorySubcategoriesWithDefaults() {
   const defaults = {
-    Men: ["T-Shirts", "Shirts", "Pants", "Jackets", "Shoes", "Accessories", "Perfumes"],
-    Women: ["Dresses", "Tops", "Pants", "Heels", "Bags", "Accessories", "Perfumes"],
-    Kids: ["Boys", "Girls", "Baby", "Sets", "Shoes", "Outerwear", "Perfumes"],
+    Men: ["T-Shirts", "Pants", "Shoes", "Shirts", "Accessories", "Perfumes"],
+    Women: ["Dresses", "Tops", "Pants", "Accessories", "Bags", "Perfumes"],
+    Kids: ["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"],
   };
   for (const [name, subs] of Object.entries(defaults)) {
     const row = await get(`SELECT id, subcategories_json FROM categories WHERE name=?`, [name]);
@@ -322,6 +324,27 @@ async function mergeCategorySubcategoriesWithDefaults() {
 
 async function migrateContactHomeSectionImages() {
   await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_main_section_images_json TEXT`);
+}
+
+async function migrateContactHomeSubcategorySlides() {
+  await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_subcategory_slides_json TEXT`);
+}
+
+/** مرة واحدة: كان الحقل price يُفسَّر كسعر بعد الخصم؛ نحوّله إلى سعر قائمة (قبل الخصم) ليتوافق مع لوحة التحكم */
+async function migrateListPriceSemanticsOnce() {
+  await run(`CREATE TABLE IF NOT EXISTS schema_migrations (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  const ins = await pool.query(
+    `INSERT INTO schema_migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id`,
+    ["list_price_semantics_v1"]
+  );
+  if (!ins.rows || ins.rows.length === 0) return;
+  await run(
+    `UPDATE products SET price = price / (1.0 - discount / 100.0) WHERE discount > 0 AND discount < 100`
+  );
 }
 
 async function migrateUsersColumns() {
