@@ -448,6 +448,7 @@ function readProductForm() {
 
   const is_featured = document.getElementById("product-is-featured").checked ? 1 : 0;
   const is_flash_sale = document.getElementById("product-is-flash-sale").checked ? 1 : 0;
+  const is_new_collection = document.getElementById("product-is-new-collection")?.checked ? 1 : 0;
   const flash_sale_end_time = document.getElementById("product-flash-end").value.trim() || null;
 
   return {
@@ -467,6 +468,7 @@ function readProductForm() {
       badge: badge || null,
       is_featured,
       is_flash_sale,
+      is_new_collection,
       flash_sale_end_time: is_flash_sale ? flash_sale_end_time : null,
       sizes,
       colors,
@@ -507,6 +509,8 @@ function resetProductForm() {
   if (invTa) invTa.value = "[]";
   document.getElementById("product-is-featured").checked = false;
   document.getElementById("product-is-flash-sale").checked = false;
+  const nc = document.getElementById("product-is-new-collection");
+  if (nc) nc.checked = false;
   document.getElementById("product-flash-end").value = "";
   syncProductBrandStrip();
 }
@@ -548,6 +552,8 @@ function fillProductFormFromProduct(product) {
   }
   document.getElementById("product-is-featured").checked = !!product.is_featured;
   document.getElementById("product-is-flash-sale").checked = !!product.is_flash_sale;
+  const ncEl = document.getElementById("product-is-new-collection");
+  if (ncEl) ncEl.checked = !!product.is_new_collection;
   document.getElementById("product-flash-end").value = product.flash_sale_end_time ?? "";
   syncProductBrandStrip();
 }
@@ -677,7 +683,7 @@ function renderProductsTable() {
   const tbody = document.getElementById("products-tbody");
   const ar = getAdminLang() === "ar";
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-gray-500">${
       products.length && f ? (ar ? "لا نتائج تطابق البحث." : "No matches for this search.") : ar ? "لا منتجات بعد." : "No products yet."
     }</td></tr>`;
     return;
@@ -704,6 +710,7 @@ function renderProductsTable() {
           <td class="py-2">${stockDisp}${invNote}</td>
           <td class="py-2">${p.is_featured ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">${p.is_flash_sale ? adminT("yes") : adminT("no")}</td>
+          <td class="py-2">${p.is_new_collection ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">
             <button class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100" data-act="edit" data-id="${p.id}">${adminT("edit")}</button>
             <button class="px-2 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 ml-2" data-act="del" data-id="${p.id}">${adminT("delete")}</button>
@@ -1454,6 +1461,7 @@ function renderFlashSalesTable() {
           images: full.images || [],
           is_featured: full.is_featured ? 1 : 0,
           is_flash_sale: 1,
+          is_new_collection: full.is_new_collection ? 1 : 0,
           flash_sale_end_time,
         };
         await api(`/api/products/${id}`, { method: "PUT", token, body });

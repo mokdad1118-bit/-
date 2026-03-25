@@ -950,6 +950,8 @@
         let listingSearchQuery = '';
         /** أقسام رجالي/نسائي/أطفال من الرئيسية = منتجات أدورا فقط */
         let listingAdoraOnly = false;
+        /** قسم «تشكيلة جديدة» — يضيف new_collection=1 للـ API */
+        let listingNewCollectionOnly = false;
         let currentProductDetail = null;
         let productDetailSelectedColorIndex = 0;
         let listingSearchDebounceTimer = null;
@@ -995,6 +997,7 @@
                 listingCategoryFilter = o.listingCategoryFilter != null ? o.listingCategoryFilter : null;
                 listingSubcategoryFilter = o.listingSubcategoryFilter != null ? o.listingSubcategoryFilter : null;
                 listingAdoraOnly = !!o.listingAdoraOnly;
+                listingNewCollectionOnly = !!o.listingNewCollectionOnly;
             } catch (_e) {}
         }
 
@@ -1010,6 +1013,7 @@
                         listingCategoryFilter,
                         listingSubcategoryFilter,
                         listingAdoraOnly,
+                        listingNewCollectionOnly,
                     })
                 );
             } catch (_e) {}
@@ -1147,6 +1151,7 @@
             listingCategoryFilter = null;
             listingSubcategoryFilter = null;
             listingAdoraOnly = false;
+            listingNewCollectionOnly = false;
             renderBrandCards();
             const status = document.getElementById('brand-status');
             if (status) {
@@ -1217,6 +1222,9 @@
             setTimeout(() => target.classList.add('active'), 10);
 
             currentScreen = screenId;
+            try {
+                document.body.classList.toggle('adora-screen-listing-active', screenId === 'screen-listing');
+            } catch (_e) {}
             window.scrollTo(0, 0);
             setActiveNavForScreen(screenId);
             if (typeof onScreenEnter === 'function') {
@@ -1232,6 +1240,7 @@
                 activeBrandKey = null;
                 listingCategoryFilter = null;
                 listingSubcategoryFilter = null;
+                listingNewCollectionOnly = false;
                 renderBrandCards();
                 const st = document.getElementById('brand-status');
                 if (st) st.textContent = isRTL ? st.getAttribute('data-ar') : st.getAttribute('data-en');
@@ -1967,6 +1976,7 @@
             if (screenId === 'screen-categories') {
                 syncSearchInputsFromQuery();
                 loadHomeFeaturedGrid().catch(() => {});
+                loadHomeNewCollectionGrid().catch(() => {});
                 loadHomeBestsellers().catch(() => {});
                 injectHomeBanners().catch(() => {});
                 refreshAdoraHomeSubcategoryCounts().catch(() => {});
@@ -2210,7 +2220,7 @@
                     }</p>`;
                     return;
                 }
-                grid.innerHTML = products.map((p) => renderProductCardHtml(p)).join('');
+                grid.innerHTML = products.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             }
@@ -2443,7 +2453,7 @@
                 }</p>`;
                 return;
             }
-            grid.innerHTML = products.map((p) => renderProductCardHtml(p)).join('');
+            grid.innerHTML = products.map((p) => renderProductCardHtml(p, { compact: true })).join('');
         }
 
         function resetFilters() {
@@ -3272,6 +3282,7 @@
             const name = String(brandName || '').trim();
             if (!name) return;
             listingAdoraOnly = false;
+            listingNewCollectionOnly = false;
             listingSearchQuery = '';
             listingCategoryFilter = null;
             listingSubcategoryFilter = null;
@@ -3298,6 +3309,7 @@
             listingCategoryFilter = null;
             listingSubcategoryFilter = null;
             listingAdoraOnly = false;
+            listingNewCollectionOnly = false;
             renderBrandCards();
             const status = document.getElementById('brand-status');
             if (status) {
@@ -3313,6 +3325,7 @@
             listingBrandName = null;
             listingBrandMainCategory = null;
             activeBrandKey = null;
+            listingNewCollectionOnly = false;
             listingAdoraOnly = true;
             listingCategoryFilter = category ? String(category).trim() : null;
             const sub = subcategory != null ? String(subcategory).trim() : '';
@@ -3455,7 +3468,7 @@
                 const list = Array.isArray(rows) ? rows : [];
                 if (!list.length) return;
                 section.classList.remove('hidden');
-                wrap.innerHTML = list.map((p) => renderProductCardHtml(p)).join('');
+                wrap.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (_e) {
                 section.classList.add('hidden');
             }
@@ -3481,6 +3494,8 @@
                         if (listingBrandMainCategory && ['Men', 'Women', 'Kids'].includes(listingBrandMainCategory)) {
                             params.set('category', listingBrandMainCategory);
                         }
+                    } else if (listingNewCollectionOnly) {
+                        params.set('new_collection', '1');
                     } else if (listingAdoraOnly) {
                         params.set('adora_only', '1');
                         if (listingCategoryFilter) params.set('category', listingCategoryFilter);
@@ -3503,6 +3518,10 @@
                         titleEl.removeAttribute('data-en');
                         titleEl.removeAttribute('data-ar');
                         titleEl.textContent = isRTL ? `بحث: ${sq}` : `Search: ${sq}`;
+                    } else if (listingNewCollectionOnly) {
+                        titleEl.setAttribute('data-en', 'New collection');
+                        titleEl.setAttribute('data-ar', 'تشكيلة جديدة');
+                        titleEl.textContent = isRTL ? titleEl.getAttribute('data-ar') : titleEl.getAttribute('data-en');
                     } else if (listingBrandName) {
                         const catLab =
                             listingBrandMainCategory && ['Men', 'Women', 'Kids'].includes(listingBrandMainCategory)
@@ -3814,13 +3833,37 @@
             const input = document.getElementById('search-input');
             listingSearchQuery = input ? input.value.trim() : '';
             listingAdoraOnly = false;
+            listingNewCollectionOnly = false;
             if (input) input.value = '';
             syncSearchRotatingHintVisibility();
             navigateTo('screen-listing');
         }
 
+        function navigateToListingNewCollection() {
+            listingSearchQuery = '';
+            listingBrandName = null;
+            listingBrandMainCategory = null;
+            activeBrandKey = null;
+            listingCategoryFilter = null;
+            listingSubcategoryFilter = null;
+            listingAdoraOnly = false;
+            listingNewCollectionOnly = true;
+            renderBrandCards();
+            const status = document.getElementById('brand-status');
+            if (status) {
+                status.textContent = isRTL ? status.getAttribute('data-ar') : status.getAttribute('data-en');
+            }
+            navigateTo('screen-listing');
+        }
+
         function renderProductCardHtml(p, opts = {}) {
             const compact = opts.compact === true;
+            const br = resolveDisplayBrand(p.brand);
+            const brandHtml = br
+                ? `<p class="${
+                      compact ? 'text-[9px]' : 'text-[10px]'
+                  } text-violet-700 font-semibold line-clamp-1 mb-0.5">${escapeHtml(br)}</p>`
+                : '';
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
             const listP = productListPrice(p);
@@ -3828,14 +3871,16 @@
             const saleP = productSaleUnitPrice(p);
             const badge =
                 disc > 0
-                    ? `<span class="absolute ${compact ? 'top-1 left-1 text-[9px] px-1.5 py-0.5' : 'top-2 left-2'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    ? `<span class="absolute ${compact ? 'top-1 left-1 text-[9px] px-1.5 py-0.5' : 'top-1.5 left-1.5 text-[10px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
                     : '';
             const mediaCls = compact
-                ? 'relative aspect-[3/4] max-h-[150px] overflow-hidden bg-gray-100'
-                : 'relative aspect-[3/4] overflow-hidden bg-gray-100';
-            const padCls = compact ? 'p-2' : 'p-3';
-            const titleCls = compact ? 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5' : 'font-semibold text-gray-900 text-sm line-clamp-2 mb-1';
-            const priceMain = compact ? 'font-bold text-gray-900 text-xs' : 'font-bold text-gray-900';
+                ? 'relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100'
+                : 'relative aspect-[3/4] max-h-[168px] overflow-hidden bg-gray-100';
+            const padCls = compact ? 'p-1.5' : 'p-2';
+            const titleCls = compact
+                ? 'font-semibold text-gray-900 text-[11px] line-clamp-2 mb-0.5'
+                : 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5';
+            const priceMain = compact ? 'font-bold text-gray-900 text-[11px]' : 'font-bold text-gray-900 text-xs';
             const cardExtra = compact ? ' home-compact-product-card' : '';
             return `<div onclick="openProductDetail(${p.id})" class="product-card${cardExtra} bg-white rounded-2xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
                 <div class="${mediaCls}">
@@ -3843,6 +3888,7 @@
                     ${badge}
                 </div>
                 <div class="${padCls}">
+                    ${brandHtml}
                     <h3 class="${titleCls}">${escapeHtml(name)}</h3>
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <span class="${priceMain}">${formatSyp(saleP)}</span>
@@ -3882,8 +3928,9 @@
                             price: row.price,
                             discount: disc,
                             images: row.images,
+                            brand: row.brand,
                         };
-                        return renderProductCardHtml(cardProduct);
+                        return renderProductCardHtml(cardProduct, { compact: true });
                     })
                     .join('');
             } catch (e) {
@@ -4436,9 +4483,14 @@
                 const pid = Number(item.id);
                 const imgSrc = item.image ? escapeHtml(item.image) : escapeHtml(adoraPlaceholderImageUrl());
                 const safeTitle = escapeHtml(String(title || ''));
+                const br = item.brand ? escapeHtml(String(item.brand)) : '';
+                const brandLine = br
+                    ? `<p class="text-[9px] text-violet-700 font-semibold line-clamp-1 mb-0.5">${br}</p>`
+                    : '';
                 return `<div class="flash-card" role="button" tabindex="0" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                             <div class="flash-card-thumb"><img src="${imgSrc}" alt=""></div>
                             <p class="text-xs text-gray-500" data-en="Ends soon" data-ar="ينتهي قريباً">Ends soon</p>
+                            ${brandLine}
                             <h4>${safeTitle}</h4>
                             <div class="flash-price">
                                 <span class="old">${formatSyp(item.old)}</span>
@@ -4485,6 +4537,26 @@
             }
         }
 
+        async function loadHomeNewCollectionGrid() {
+            const grid = document.getElementById('home-new-collection-grid');
+            if (!grid) return;
+            try {
+                const products = await apiFetch('/api/products?new_collection=1', { requireAuth: false });
+                const list = Array.isArray(products) ? products.slice(0, 6) : [];
+                if (!list.length) {
+                    grid.innerHTML = `<p class="col-span-2 text-center text-white/85 text-xs py-4 leading-relaxed px-2">${
+                        isRTL
+                            ? 'فعّل «تشكيلة جديدة» على المنتجات من لوحة التحكم.'
+                            : 'Mark products as New collection in the admin panel.'
+                    }</p>`;
+                    return;
+                }
+                grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+            } catch (_e) {
+                grid.innerHTML = `<p class="col-span-2 text-center text-red-200 text-xs py-4">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
+            }
+        }
+
         async function loadHomeBestsellers() {
             const el = document.getElementById('home-bestsellers-scroll');
             if (!el) return;
@@ -4501,6 +4573,10 @@
                     .map((p) => {
                         const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
                         const name = isRTL ? p.name_ar : p.name_en;
+                        const br = resolveDisplayBrand(p.brand);
+                        const brandLine = br
+                            ? `<p class="text-[9px] text-violet-700 font-semibold line-clamp-1 mb-0.5">${escapeHtml(br)}</p>`
+                            : '';
                         const listP = productListPrice(p);
                         const disc = productDiscountPct(p);
                         const saleP = productSaleUnitPrice(p);
@@ -4514,6 +4590,7 @@
                             ${badge}
                         </div>
                         <div class="p-2">
+                            ${brandLine}
                             <h4 class="font-semibold text-[11px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
                             <div class="flex items-center gap-1 mt-0.5 flex-wrap">
                                 <span class="font-bold text-purple-600 text-[11px]">${formatSyp(saleP)}</span>
@@ -4601,6 +4678,7 @@
                         id: Number(p.id),
                         image: rawImg ? absoluteMediaUrl(rawImg) : '',
                         name: { en: p.name_en, ar: p.name_ar },
+                        brand: resolveDisplayBrand(p.brand),
                         old: oldPrice,
                         now: nowPrice,
                         discount: `${discountPercent}% OFF`,
@@ -5099,6 +5177,7 @@
             applyHomeContactFromApi().catch(() => {});
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
+            loadHomeNewCollectionGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
             injectHomeBanners().catch(() => {});
             refreshAdoraHomeSubcategoryCounts().catch(() => {});

@@ -255,6 +255,7 @@ async function initDb() {
   await migrateContactHomeSectionImages();
   await migrateContactHomeSubcategorySlides();
   await migrateContactHomeSectionsVisibility();
+  await migrateProductsNewCollectionColumn();
   await migrateListPriceSemanticsOnce();
   await mergeCategorySubcategoriesWithDefaults();
 
@@ -333,6 +334,10 @@ async function migrateContactHomeSubcategorySlides() {
 
 async function migrateContactHomeSectionsVisibility() {
   await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_sections_visibility_json TEXT`);
+}
+
+async function migrateProductsNewCollectionColumn() {
+  await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new_collection INTEGER NOT NULL DEFAULT 0`);
 }
 
 /** مرة واحدة: كان الحقل price يُفسَّر كسعر بعد الخصم؛ نحوّله إلى سعر قائمة (قبل الخصم) ليتوافق مع لوحة التحكم */

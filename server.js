@@ -662,6 +662,7 @@ app.get("/api/products", async (req, res) => {
       brand,
       featured,
       flash,
+      new_collection,
       q,
       min_price,
       max_price,
@@ -691,6 +692,7 @@ app.get("/api/products", async (req, res) => {
     }
     if (featured === "1") where.push("is_featured=1");
     if (flash === "1") where.push("is_flash_sale=1");
+    if (new_collection === "1") where.push("is_new_collection=1");
     const qtrim = q != null ? String(q).trim() : "";
     if (qtrim) {
       const variants = arabicSearchQueryVariants(qtrim);
@@ -885,6 +887,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
+      is_new_collection = 0,
       flash_sale_end_time = null,
     } = req.body;
     if (!name_ar || !name_en || !description || !category) {
@@ -894,8 +897,8 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
     const result = await run(
       `INSERT INTO products (
         name_ar, name_en, description, price, discount, category, subcategory, brand,
-        sizes_json, colors_json, stock, inventory_json, badge, is_featured, is_flash_sale, flash_sale_end_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sizes_json, colors_json, stock, inventory_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_ar,
         name_en,
@@ -912,6 +915,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
+        is_new_collection ? 1 : 0,
         flash_sale_end_time,
       ]
     );
@@ -944,13 +948,14 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
+      is_new_collection = 0,
       flash_sale_end_time = null,
     } = req.body;
     const invArr = Array.isArray(inventory) ? inventory : [];
     await run(
       `UPDATE products SET
         name_ar=?, name_en=?, description=?, price=?, discount=?, category=?, subcategory=?, brand=?,
-        sizes_json=?, colors_json=?, stock=?, inventory_json=?, badge=?, is_featured=?, is_flash_sale=?, flash_sale_end_time=?
+        sizes_json=?, colors_json=?, stock=?, inventory_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?
        WHERE id=?`,
       [
         name_ar,
@@ -968,6 +973,7 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
+        is_new_collection ? 1 : 0,
         flash_sale_end_time,
         id,
       ]

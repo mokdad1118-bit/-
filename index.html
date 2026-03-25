@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- Netlify / استضافة ثابتة: ضع هنا رابط خادم Node الكامل فقط (مثل https://adora-api.onrender.com) بدون / في النهاية. إذا فارغ يُفترض أن الـ API على نفس النطاق. -->
     <meta name="adora-api-base" content="">
     <script src="/adora-config.js"></script>
@@ -587,12 +587,34 @@
         .stagger-3 { animation-delay: 0.3s; }
         .stagger-4 { animation-delay: 0.4s; }
         
+        /* مسافة آمنة تحت شريط الحالة (آيفون / أندرويد) */
+        :root {
+            --adora-safe-top: env(safe-area-inset-top, 0px);
+            --adora-header-offset: calc(4rem + var(--adora-safe-top));
+        }
         .main-header {
+            padding-top: calc(0.75rem + var(--adora-safe-top));
+            padding-bottom: 0.75rem;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(0,0,0,0.05);
             transition: all 0.3s ease;
+        }
+        .adora-header-spacer {
+            height: var(--adora-header-offset);
+            flex-shrink: 0;
+        }
+        /* في قائمة المنتجات: شريط واحد (رجوع + بحث) بدون تكرار هيدر التطبيق */
+        #app-shell:has(#screen-listing.active) .main-header,
+        #app-shell:has(#screen-listing.active) .adora-header-spacer,
+        body.adora-screen-listing-active #app-shell .main-header,
+        body.adora-screen-listing-active #app-shell .adora-header-spacer {
+            display: none !important;
+        }
+        #screen-listing.active .adora-screen-toolbar--listing-top,
+        body.adora-screen-listing-active #screen-listing .adora-screen-toolbar--listing-top {
+            padding-top: max(0.75rem, var(--adora-safe-top));
         }
         
         .main-header.scrolled {
@@ -603,12 +625,16 @@
         .adora-screen-toolbar {
             position: -webkit-sticky;
             position: sticky;
-            top: 4.5rem;
+            top: var(--adora-header-offset);
             z-index: 35;
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        #app-shell:has(#screen-listing.active) .adora-screen-toolbar,
+        body.adora-screen-listing-active #app-shell .adora-screen-toolbar {
+            top: 0;
         }
         
         .logo-text {
@@ -2593,7 +2619,7 @@
     <div id="app-shell" class="hidden">
 
     <!-- Fixed Header -->
-    <header class="main-header fixed top-0 left-0 right-0 z-40 max-w-[428px] mx-auto px-4 py-3">
+    <header class="main-header fixed top-0 left-0 right-0 z-40 max-w-[428px] mx-auto px-4">
         <div class="flex items-center justify-between">
             <button onclick="toggleCategoriesMenu()" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100 transition">
                 <i class="fas fa-bars text-lg"></i>
@@ -2611,8 +2637,8 @@
         </div>
     </header>
 
-    <!-- Spacer for fixed header -->
-    <div class="h-16"></div>
+    <!-- Spacer for fixed header (+ safe area) -->
+    <div class="adora-header-spacer" aria-hidden="true"></div>
 
     <!-- ==================== CATEGORIES PAGE ==================== -->
     <div id="screen-categories" class="screen active bg-gray-50 pb-32">
@@ -2897,7 +2923,7 @@
                     </button>
                 </div>
             </div>
-            <div id="home-featured-grid" class="grid grid-cols-2 gap-2 min-h-[100px]">
+            <div id="home-featured-grid" class="grid grid-cols-2 gap-2 sm:gap-2.5 min-h-[100px]">
                 <p class="col-span-2 text-center text-gray-400 text-sm py-6" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
             </div>
         </div>
@@ -2905,18 +2931,21 @@
         <div id="banner-slot-below_curated" class="px-4 mt-4 space-y-3" data-adora-section="banners"></div>
 
         <div class="px-4 py-5 space-y-5">
-            <div data-adora-section="promo_collection" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-5 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
-                <div class="relative z-10">
-                    <span class="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold mb-3 border border-white/20">
-                        NEW COLLECTION
-                    </span>
-                    <h2 class="text-2xl font-bold mb-2">Summer 2026</h2>
-                    <p class="text-white/90 text-sm mb-4">Discover the latest trends</p>
-                    <button onclick="navigateToListingAll()" class="bg-white text-purple-600 px-6 py-2.5 rounded-full text-sm font-bold shadow-lg active:scale-95 transition-transform">
-                        Explore Now
-                    </button>
+            <div data-adora-section="promo_collection" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-4 sm:p-5 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
+                <div class="relative z-10 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div>
+                            <span class="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold mb-1 border border-white/20 tracking-wide" data-en="NEW COLLECTION" data-ar="تشكيلة جديدة">NEW COLLECTION</span>
+                            <h2 class="text-xl sm:text-2xl font-bold" data-en="Fresh drops" data-ar="وصل حديثاً">Fresh drops</h2>
+                            <p class="text-white/90 text-xs sm:text-sm mt-1" data-en="Picks you add from the admin panel." data-ar="منتجات تختارها من لوحة التحكم.">Picks you add from the admin panel.</p>
+                        </div>
+                        <button type="button" onclick="navigateToListingNewCollection()" class="shrink-0 bg-white text-purple-600 px-4 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg active:scale-95 transition-transform self-start" data-en="View all" data-ar="عرض الكل">View all</button>
+                    </div>
+                    <div id="home-new-collection-grid" class="grid grid-cols-2 gap-2 min-h-[80px]">
+                        <p class="col-span-2 text-center text-white/80 text-xs py-4" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                    </div>
                 </div>
-                <div class="absolute right-0 top-0 w-1/2 h-full opacity-20">
+                <div class="absolute right-0 top-0 w-1/2 h-full opacity-20 pointer-events-none">
                     <i class="fas fa-sun text-7xl absolute top-4 right-4"></i>
                 </div>
             </div>
@@ -2945,7 +2974,7 @@
 
     <!-- ==================== PRODUCT LISTING PAGE ==================== -->
     <div id="screen-listing" class="screen bg-gray-50">
-        <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
+        <div class="adora-screen-toolbar adora-screen-toolbar--listing-top px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between mb-2">
                 <button type="button" onclick="goBackFromListing()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-left text-gray-800"></i>
@@ -2997,7 +3026,7 @@
             </div>
         </div>
 
-        <div id="listing-products-grid" class="p-4 grid grid-cols-2 gap-4 pb-24 min-h-[40vh]">
+        <div id="listing-products-grid" class="p-3 grid grid-cols-2 gap-2.5 sm:gap-3 pb-24 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Open a brand to see products" data-ar="اختر شركة لعرض منتجاتها">Open a brand to see products</p>
         </div>
     </div>
@@ -3014,7 +3043,7 @@
             </div>
             <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed" data-en="Current promotions and discounted items." data-ar="عروض وتخفيضات حالية.">عروض وتخفيضات حالية.</p>
         </div>
-        <div id="offers-products-grid" class="p-4 grid grid-cols-2 gap-4 pb-24 min-h-[40vh]">
+        <div id="offers-products-grid" class="p-3 grid grid-cols-2 gap-2.5 sm:gap-3 pb-24 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
         </div>
     </div>
@@ -3030,7 +3059,7 @@
                 <span class="w-10" aria-hidden="true"></span>
             </div>
         </div>
-        <div id="wishlist-products-grid" class="p-4 grid grid-cols-2 gap-4 pb-24 min-h-[40vh]">
+        <div id="wishlist-products-grid" class="p-3 grid grid-cols-2 gap-2.5 sm:gap-3 pb-24 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
         </div>
     </div>
