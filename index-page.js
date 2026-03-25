@@ -586,7 +586,7 @@
             } catch (_e) {}
         }
 
-        /** الانتقال إلى قائمة منتجات أدورا للقسم الرئيسي (بدون فرعي) */
+        /** الانتقال إلى قائمة المنتجات للقسم الرئيسي (بدون فرعي) */
         function navigateToMainCategoryListing(category) {
             navigateToListingFiltered(category, null);
         }
@@ -2062,6 +2062,10 @@
             if (searchVoiceBtn) {
                 searchVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي' : 'Voice search');
             }
+            const listingBackBtn = document.getElementById('listing-back-btn');
+            if (listingBackBtn) {
+                listingBackBtn.setAttribute('aria-label', isRTL ? 'رجوع' : 'Back');
+            }
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
@@ -3003,7 +3007,9 @@
                 homeSubcatSlidesMerged = mergeHomeSubcategorySlides(data.home_subcategory_slides);
                 initHomeSubcategorySliderHosts();
                 applyHomeSectionsVisibility(data.home_sections_visibility);
-            } catch (_e) {}
+            } catch (_e) {
+                applyHomeSectionsVisibility(null);
+            }
         }
 
         function orderLineItemName(item, locale) {
@@ -3325,7 +3331,7 @@
             navigateTo('screen-listing');
         }
 
-        /** category/sub مثل Men, Shoes — تتطابق مع أقسام المتجر */
+        /** category/sub مثل Men, Shoes — تتطابق مع أقسام المتجر (كل العلامات، ليس فقط أدورا) */
         function navigateToListingFiltered(category, subcategory) {
             closeHomeCategoryPanel();
             listingSearchQuery = '';
@@ -3333,7 +3339,7 @@
             listingBrandMainCategory = null;
             activeBrandKey = null;
             listingNewCollectionOnly = false;
-            listingAdoraOnly = true;
+            listingAdoraOnly = false;
             listingCategoryFilter = category ? String(category).trim() : null;
             const sub = subcategory != null ? String(subcategory).trim() : '';
             listingSubcategoryFilter = sub || null;
@@ -5358,12 +5364,13 @@
             } catch (_e) {}
             captureProductDeepLinkFromUrl();
             initAdoraNavigationHistory();
-            applyHomeContactFromApi().catch(() => {});
+            applyHomeContactFromApi()
+                .then(() => injectHomeBanners())
+                .catch(() => injectHomeBanners());
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeNewCollectionGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
-            injectHomeBanners().catch(() => {});
             refreshAdoraHomeSubcategoryCounts().catch(() => {});
             updateProfileWishlistUi();
             initOnboardingStorageMigration();
