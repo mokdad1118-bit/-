@@ -2804,6 +2804,11 @@
                     ],
                 },
                 Women: {
+                    'T-Shirts': [
+                        `https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?${q}`,
+                        `https://images.unsplash.com/photo-1618354691373-d851c5c3a990?${q}`,
+                        `https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?${q}`,
+                    ],
                     Dresses: [
                         `https://images.unsplash.com/photo-1595777457583-95e059d581b8?${q}`,
                         `https://images.unsplash.com/photo-1496747611176-843222e1e57c?${q}`,
@@ -2841,6 +2846,16 @@
                     ],
                 },
                 Kids: {
+                    'T-Shirts': [
+                        `https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?${q}`,
+                        `https://images.unsplash.com/photo-1503341504253-dff4815485f1?${q}`,
+                        `https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?${q}`,
+                    ],
+                    Pants: [
+                        `https://images.unsplash.com/photo-1503944586555-7832668c7a95?${q}`,
+                        `https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?${q}`,
+                        `https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?${q}`,
+                    ],
                     Boys: [
                         `https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?${q}`,
                         `https://images.unsplash.com/photo-1503944586555-7832668c7a95?${q}`,
@@ -2908,18 +2923,18 @@
                 const sub = host.getAttribute('data-slide-sub');
                 const inner = host.querySelector('.subcat-slide-inner');
                 if (!cat || !sub || !inner) return;
+                const FALLBACK_SUBCAT =
+                    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80&auto=format&fit=crop';
                 let urls = merged?.[cat]?.[sub];
                 if (!Array.isArray(urls) || !urls.length) urls = defUrlsForSubcat(cat, sub);
                 urls = urls.map((u) => String(u || '').trim()).filter(Boolean);
-                if (!urls.length) return;
+                if (!urls.length) urls = [FALLBACK_SUBCAT];
                 inner.innerHTML = urls
                     .map(
                         (url, i) =>
                             `<img src="${escapeHtml(url)}" alt="" class="subcat-slide-layer${i === 0 ? ' subcat-slide-visible' : ''}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
                     )
                     .join('');
-                const FALLBACK_SUBCAT =
-                    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80&auto=format&fit=crop';
                 inner.querySelectorAll('img').forEach((im) => {
                     im.onerror = function () {
                         this.onerror = null;
@@ -2942,7 +2957,7 @@
         function defUrlsForSubcat(cat, sub) {
             const d = getDefaultHomeSubcatSlides();
             const u = d[cat]?.[sub];
-            return Array.isArray(u) && u.length ? u : [''];
+            return Array.isArray(u) && u.length ? u : [];
         }
 
         async function applyHomeContactFromApi() {

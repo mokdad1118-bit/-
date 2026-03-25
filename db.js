@@ -285,9 +285,9 @@ async function initDb() {
         "Men",
         JSON.stringify(["T-Shirts", "Pants", "Shoes", "Shirts", "Jackets", "Accessories", "Perfumes"]),
         "Women",
-        JSON.stringify(["Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"]),
+        JSON.stringify(["T-Shirts", "Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"]),
         "Kids",
-        JSON.stringify(["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"]),
+        JSON.stringify(["T-Shirts", "Pants", "Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"]),
       ]
     );
   }
@@ -305,8 +305,8 @@ async function initDb() {
 async function mergeCategorySubcategoriesWithDefaults() {
   const defaults = {
     Men: ["T-Shirts", "Pants", "Shoes", "Shirts", "Jackets", "Accessories", "Perfumes"],
-    Women: ["Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"],
-    Kids: ["Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"],
+    Women: ["T-Shirts", "Dresses", "Tops", "Pants", "Jackets", "Accessories", "Bags", "Perfumes"],
+    Kids: ["T-Shirts", "Pants", "Boys", "Girls", "Baby", "Shoes", "Sets", "Perfumes"],
   };
   for (const [name, subs] of Object.entries(defaults)) {
     const row = await get(`SELECT id, subcategories_json FROM categories WHERE name=?`, [name]);
