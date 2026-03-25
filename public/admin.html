@@ -622,6 +622,17 @@
               </p>
               <form id="admin-notif-form" class="space-y-3">
                 <div>
+                  <label class="text-sm font-semibold"><span data-en="Title (optional)" data-ar="عنوان الإشعار (اختياري)">عنوان الإشعار (اختياري)</span></label>
+                  <input
+                    id="admin-notif-title"
+                    type="text"
+                    maxlength="200"
+                    class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    placeholder="Adora"
+                  />
+                  <p class="text-xs text-gray-500 mt-1" data-en="Shown in the phone status bar and push banner. If empty, default is used." data-ar="يظهر في شريط الإشعارات؛ إذا تركته فارغاً يُستخدم عنوان افتراضي.">يظهر في شريط الإشعارات؛ إذا تركته فارغاً يُستخدم عنوان افتراضي.</p>
+                </div>
+                <div>
                   <label class="text-sm font-semibold"><span data-en="Message" data-ar="نص الإشعار">نص الإشعار</span></label>
                   <textarea
                     id="admin-notif-message"
@@ -642,12 +653,12 @@
                   <p class="text-xs text-gray-500 mt-1" data-en="Or upload a file — URL field will be filled with the server link." data-ar="أو ارفع ملفاً — يُملأ حقل الرابط تلقائياً برابط السيرفر.">أو ارفع ملفاً — يُملأ حقل الرابط تلقائياً برابط السيرفر.</p>
                 </div>
                 <div>
-                  <label class="text-sm font-semibold"><span data-en="Open link (https, optional)" data-ar="رابط عند الضغط (https — اختياري)">رابط عند الضغط (https — اختياري)</span></label>
+                  <label class="text-sm font-semibold"><span data-en="Open link (https or /path, optional)" data-ar="رابط عند الضغط (https أو مسار مثل /products — اختياري)">رابط عند الضغط (https أو مسار مثل /products — اختياري)</span></label>
                   <input
                     id="admin-notif-link"
-                    type="url"
+                    type="text"
                     class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                    placeholder="https://..."
+                    placeholder="https://... أو /products"
                   />
                 </div>
                 <div>

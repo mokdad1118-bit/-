@@ -224,6 +224,7 @@ async function initDb() {
 
   await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
+  await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS title TEXT`);
 
   await run(`CREATE TABLE IF NOT EXISTS site_ratings (
     id SERIAL PRIMARY KEY,

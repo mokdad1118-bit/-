@@ -1611,6 +1611,7 @@ async function sendAdminNotification(e) {
   e.preventDefault();
   const token = getToken();
   if (!token) return;
+  const title = document.getElementById("admin-notif-title")?.value.trim() || "";
   const message = document.getElementById("admin-notif-message")?.value.trim() || "";
   let image_url = document.getElementById("admin-notif-image")?.value.trim() || "";
   const link_url = document.getElementById("admin-notif-link")?.value.trim() || "";
@@ -1635,11 +1636,14 @@ async function sendAdminNotification(e) {
     }
   }
   const body = { message };
+  if (title) body.title = title.slice(0, 200);
   if (target) body.target_user_id = Number(target);
   if (image_url) body.image_url = image_url;
   if (link_url) body.link_url = link_url;
   try {
     await api("/api/admin/notifications/send", { method: "POST", token, body });
+    const titleEl = document.getElementById("admin-notif-title");
+    if (titleEl) titleEl.value = "";
     document.getElementById("admin-notif-message").value = "";
     const imgEl = document.getElementById("admin-notif-image");
     const linkEl = document.getElementById("admin-notif-link");

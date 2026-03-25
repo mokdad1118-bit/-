@@ -11,13 +11,18 @@ self.addEventListener("push", (event) => {
     if (event.data) data.body = String(event.data.text());
   }
   const title = data.title || "Adora";
+  const icon = data.icon || "/icons/adora-icon.svg";
   const options = {
     body: (data.body || "").slice(0, 500),
-    icon: data.icon || "/icons/adora-icon.svg",
-    badge: "/icons/adora-icon.svg",
+    icon,
+    badge: data.badge || icon,
     data: { url: typeof data.url === "string" && data.url ? data.url : "/" },
     tag: data.tag || "adora",
     renotify: true,
+    /* نغمة الإشعار: الافتراضية من النظام (لا نضع silent ولا رابط صوت مخصص) */
+    silent: false,
+    timestamp: Date.now(),
+    vibrate: [180, 80, 120],
   };
   if (data.image) options.image = data.image;
   event.waitUntil(self.registration.showNotification(title, options));

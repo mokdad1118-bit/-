@@ -304,15 +304,25 @@
             }
         }
 
+        function resolveNotificationOpenUrl(linkUrl) {
+            if (linkUrl == null || linkUrl === '') return '/';
+            const s = String(linkUrl).trim();
+            if (s.startsWith('/')) return s.length <= 2048 && !s.includes('..') ? s : '/';
+            if (/^https:\/\//i.test(s)) return s;
+            return '/';
+        }
+
         function showAdoraSystemNotification(payload) {
             if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-            const title = isRTL ? 'أدورا' : 'Adora';
+            const tRaw = payload?.title != null ? String(payload.title).trim() : '';
+            const title = tRaw ? tRaw.slice(0, 120) : isRTL ? 'أدورا' : 'Adora';
             const body = String(payload?.message || '').slice(0, 300);
             const opts = {
                 body,
                 icon: `${window.location.origin}/icons/adora-icon.svg`,
                 tag: `adora-${payload?.id || 'msg'}`,
-                data: { url: payload?.link_url && /^https:\/\//i.test(payload.link_url) ? payload.link_url : '/' },
+                data: { url: resolveNotificationOpenUrl(payload?.link_url) },
+                silent: false,
             };
             if (payload?.image_url && /^https:\/\//i.test(payload.image_url)) opts.image = payload.image_url;
             try {
@@ -1623,7 +1633,11 @@
             appSocket.on('notification:new', (payload) => {
                 syncAppBroadcastBadge().catch(() => {});
                 if (payload && payload.message) {
-                    showToast(payload.message);
+                    const toastLine =
+                        payload.title && String(payload.title).trim()
+                            ? `${String(payload.title).trim()}: ${payload.message}`
+                            : payload.message;
+                    showToast(toastLine);
                     void (async () => {
                         if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
                         try {
@@ -1804,6 +1818,8 @@
             restoreBodyScrollIfIdle();
         }
 
+        const ADORA_NOTIFICATIONS_CACHE_KEY = 'adora_notifications_cache_v1';
+
         async function syncAppBroadcastBadge() {
             const badge = document.getElementById('app-broadcast-badge');
             const sideBadge = document.getElementById('side-menu-notif-badge');
@@ -1815,9 +1831,19 @@
             }
             if (row) row.classList.remove('hidden');
             try {
-                const list = await apiFetch('/api/notifications', { requireAuth: true });
-                if (!Array.isArray(list)) return;
-                const unread = list.filter((x) => !x.read).length;
+                let unread = 0;
+                try {
+                    const cnt = await apiFetch('/api/notifications/unread-count', { requireAuth: true });
+                    if (cnt && Number.isFinite(Number(cnt.unread))) {
+                        unread = Number(cnt.unread);
+                    } else {
+                        throw new Error('no count');
+                    }
+                } catch {
+                    const list = await apiFetch('/api/notifications', { requireAuth: true });
+                    if (!Array.isArray(list)) return;
+                    unread = list.filter((x) => !x.read).length;
+                }
                 const label = unread > 99 ? '99+' : String(unread);
                 if (badge) {
                     badge.textContent = label;
@@ -1845,40 +1871,84 @@
             document.body.style.overflow = 'hidden';
             body.innerHTML = `<p class="text-center text-gray-500 py-6">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
             try {
-                const list = await apiFetch('/api/notifications', { requireAuth: true });
+                let list = [];
+                let offlineBanner = '';
+                try {
+                    list = await apiFetch('/api/notifications', { requireAuth: true });
+                    if (Array.isArray(list)) {
+                        try {
+                            localStorage.setItem(ADORA_NOTIFICATIONS_CACHE_KEY, JSON.stringify({ list, at: Date.now() }));
+                        } catch (_e) {
+                            /* ignore */
+                        }
+                    }
+                } catch (netErr) {
+                    try {
+                        const raw = localStorage.getItem(ADORA_NOTIFICATIONS_CACHE_KEY);
+                        const parsed = raw ? JSON.parse(raw) : null;
+                        if (parsed && Array.isArray(parsed.list) && parsed.list.length) {
+                            list = parsed.list;
+                            offlineBanner = `<p class="text-center text-amber-700 text-sm py-2">${isRTL ? 'تعذر التحديث — عرض آخر نسخة محفوظة.' : 'Offline — showing last saved list.'}</p>`;
+                        } else throw netErr;
+                    } catch {
+                        throw netErr;
+                    }
+                }
                 if (!Array.isArray(list) || list.length === 0) {
                     body.innerHTML = `<p class="text-center text-gray-500 py-8">${isRTL ? 'لا توجد رسائل بعد.' : 'No messages yet.'}</p>`;
                 } else {
-                    body.innerHTML = list
-                        .map((m) => {
-                            const isInApp = m.kind === 'in_app';
-                            const title = isInApp
-                                ? (isRTL ? 'إشعار' : 'Notification')
-                                : isRTL
-                                  ? m.title_ar
-                                  : m.title_en;
-                            const text = isInApp ? (m.message || '') : isRTL ? (m.body_ar || '') : (m.body_en || '');
-                            const dt = m.created_at
-                                ? new Date(m.created_at).toLocaleString(ADORA_NUMBER_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
-                                : '';
-                            const unread = !m.read ? ' border-violet-200 bg-violet-50/50' : '';
-                            const imgUrl =
-                                isInApp && m.image_url && /^https:\/\//i.test(String(m.image_url))
-                                    ? String(m.image_url)
+                    body.innerHTML =
+                        offlineBanner +
+                        list
+                            .map((m) => {
+                                const isInApp = m.kind === 'in_app';
+                                let title;
+                                if (isInApp) {
+                                    const custom = m.title != null && String(m.title).trim();
+                                    title = custom
+                                        ? String(m.title).trim()
+                                        : isRTL
+                                          ? 'إشعار'
+                                          : 'Notification';
+                                } else {
+                                    title = isRTL ? m.title_ar : m.title_en;
+                                }
+                                const text = isInApp ? (m.message || '') : isRTL ? (m.body_ar || '') : (m.body_en || '');
+                                const dt = m.created_at
+                                    ? new Date(m.created_at).toLocaleString(ADORA_NUMBER_LOCALE, {
+                                          dateStyle: 'medium',
+                                          timeStyle: 'short',
+                                      })
                                     : '';
-                            const linkUrl =
-                                isInApp && m.link_url && /^https:\/\//i.test(String(m.link_url))
-                                    ? String(m.link_url)
+                                const unread = !m.read ? ' border-violet-200 bg-violet-50/50' : '';
+                                const imgUrl =
+                                    isInApp && m.image_url && /^https:\/\//i.test(String(m.image_url))
+                                        ? String(m.image_url)
+                                        : '';
+                                let linkUrl = '';
+                                let linkLabel = isRTL ? 'فتح الرابط' : 'Open link';
+                                if (isInApp && m.link_url) {
+                                    const lu = String(m.link_url).trim();
+                                    if (lu.startsWith('/')) {
+                                        linkUrl = lu;
+                                        linkLabel = isRTL ? 'فتح في التطبيق' : 'Open in app';
+                                    } else if (/^https:\/\//i.test(lu)) {
+                                        linkUrl = lu;
+                                    }
+                                }
+                                const extAttrs = linkUrl.startsWith('http') ? ' target="_blank" rel="noopener noreferrer"' : '';
+                                const linkHtml = linkUrl
+                                    ? `<p class="mt-2"><a href="${escapeHtml(linkUrl)}"${extAttrs} class="text-violet-600 text-sm font-semibold break-all">${escapeHtml(linkLabel)}</a></p>`
                                     : '';
-                            return `<div class="rounded-2xl border border-gray-100 p-4${unread}">
+                                return `<div class="rounded-2xl border border-gray-100 p-4${unread}">
           <div class="font-bold text-gray-900 mb-1">${escapeHtml(title)}</div>
           ${text ? `<p class="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</p>` : ''}
           ${imgUrl ? `<img src="${escapeHtml(imgUrl)}" alt="" class="w-full max-h-44 object-cover rounded-xl mt-2" loading="lazy">` : ''}
-          ${linkUrl ? `<p class="mt-2"><a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="text-violet-600 text-sm font-semibold break-all">${isRTL ? 'فتح الرابط' : 'Open link'}</a></p>` : ''}
+          ${linkHtml}
           <p class="text-[10px] text-gray-400 mt-2">${escapeHtml(dt)}</p>
         </div>`;
-                        })
-                        .join('');
+                            })
+                            .join('');
                 }
                 const unreadRows = (Array.isArray(list) ? list : []).filter((x) => !x.read);
                 await Promise.all(

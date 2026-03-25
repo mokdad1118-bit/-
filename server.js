@@ -17,6 +17,19 @@ const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProd = NODE_ENV === "production";
 
+/** رابط إشعار: https كامل أو مسار داخل التطبيق يبدأ بـ / */
+function normalizeNotificationLink(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (s.length > 2048) return null;
+  if (s.startsWith("/")) {
+    if (s.includes("..")) return null;
+    return s;
+  }
+  return sanitizeHttpsUrl(s);
+}
+
 if (isProd) {
   app.set("trust proxy", 1);
 }
@@ -554,7 +567,7 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
     }));
 
     const inApp = await all(
-      `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications
+      `SELECT id, message, title, target_user_id, image_url, link_url, created_at FROM in_app_notifications
        WHERE (target_user_id IS NULL OR target_user_id = ?)
        AND created_at >= ?
        ORDER BY id DESC LIMIT 200`,
@@ -565,6 +578,7 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
     const inAppRows = inApp.map((n) => ({
       kind: "in_app",
       id: n.id,
+      title: n.title || null,
       message: n.message,
       image_url: n.image_url || null,
       link_url: n.link_url || null,
@@ -578,6 +592,31 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
     return res.json(merged);
   } catch (err) {
     return res.status(500).json({ error: "Failed to load notifications" });
+  }
+});
+
+/** عدد الإشعارات غير المقروءة (بث + in-app) — أخف من جلب القائمة كاملة */
+app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
+  try {
+    const urow = await get(`SELECT created_at FROM users WHERE id=?`, [req.user.id]);
+    const since = urow?.created_at ? new Date(urow.created_at).toISOString() : new Date(0).toISOString();
+    const bcRow = await get(
+      `SELECT COUNT(*)::int AS c FROM broadcast_messages bm
+       WHERE bm.created_at >= ?
+       AND NOT EXISTS (SELECT 1 FROM user_broadcast_reads r WHERE r.user_id = ? AND r.broadcast_id = bm.id)`,
+      [since, req.user.id]
+    );
+    const inRow = await get(
+      `SELECT COUNT(*)::int AS c FROM in_app_notifications n
+       WHERE n.created_at >= ?
+       AND (n.target_user_id IS NULL OR n.target_user_id = ?)
+       AND NOT EXISTS (SELECT 1 FROM in_app_notification_reads r WHERE r.user_id = ? AND r.notification_id = n.id)`,
+      [since, req.user.id, req.user.id]
+    );
+    const unread = Number(bcRow?.c || 0) + Number(inRow?.c || 0);
+    return res.json({ unread: Number.isFinite(unread) ? unread : 0 });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to count notifications" });
   }
 });
 
@@ -634,6 +673,7 @@ function emitInAppNotification(io, row, targetUserId) {
   const payload = {
     kind: "in_app",
     id: row.id,
+    title: row.title || null,
     message: row.message,
     image_url: row.image_url || null,
     link_url: row.link_url || null,
@@ -651,11 +691,13 @@ function emitInAppNotification(io, row, targetUserId) {
 
 app.post("/api/admin/notifications/send", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { message, target_user_id, image_url, link_url } = req.body || {};
+    const { message, title, target_user_id, image_url, link_url } = req.body || {};
     const text = message != null ? String(message).trim() : "";
     if (!text) return res.status(400).json({ error: "message required" });
+    let titleVal = title != null ? String(title).trim().slice(0, 200) : "";
+    if (!titleVal) titleVal = null;
     const img = sanitizeHttpsUrl(image_url);
-    const link = sanitizeHttpsUrl(link_url);
+    const link = normalizeNotificationLink(link_url);
     let uid = null;
     if (target_user_id != null && target_user_id !== "") {
       uid = Number(target_user_id);
@@ -663,14 +705,12 @@ app.post("/api/admin/notifications/send", requireAuth, requireAdmin, async (req,
       const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') != 'admin'`, [uid]);
       if (!u) return res.status(404).json({ error: "User not found" });
     }
-    const result = await run(`INSERT INTO in_app_notifications (message, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?)`, [
-      text,
-      uid,
-      img,
-      link,
-    ]);
+    const result = await run(
+      `INSERT INTO in_app_notifications (message, title, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?, ?)`,
+      [text, titleVal, uid, img, link]
+    );
     const row = await get(
-      `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
+      `SELECT id, message, title, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
       [result.id]
     );
     const io = req.app.get("io");
@@ -1345,14 +1385,12 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) =>
     if (order.user_id) {
       const msg = orderStatusNotifyMessageAr(status);
       try {
-        const ins = await run(`INSERT INTO in_app_notifications (message, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?)`, [
-          msg,
-          order.user_id,
-          null,
-          null,
-        ]);
+        const ins = await run(
+          `INSERT INTO in_app_notifications (message, title, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?, ?)`,
+          [msg, "تحديث الطلب", order.user_id, null, null]
+        );
         const row = await get(
-          `SELECT id, message, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
+          `SELECT id, message, title, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
           [ins.id]
         );
         emitInAppNotification(io, row, order.user_id);

@@ -35,6 +35,25 @@ function sanitizeHttpsUrl(s, maxLen = 2048) {
   }
 }
 
+/** أصل الواجهة العامة (أيقونات الـ Push تحتاج روابط مطلقة غالباً) */
+function getPublicAssetBase() {
+  const raw = process.env.PUBLIC_URL || (process.env.CORS_ORIGIN && String(process.env.CORS_ORIGIN).split(",")[0].trim());
+  if (!raw) return "";
+  return String(raw).replace(/\/$/, "");
+}
+
+/** عنوان فتح التطبيق عند الضغط: مسار / أو رابط https */
+function resolvePushOpenUrl(linkUrl) {
+  if (linkUrl == null || linkUrl === "") return "/";
+  const s = String(linkUrl).trim();
+  if (s.startsWith("/")) {
+    if (s.includes("..")) return "/";
+    return s.length > 2048 ? "/" : s;
+  }
+  const https = sanitizeHttpsUrl(s);
+  return https || "/";
+}
+
 async function removeDeadSubscription(endpoint) {
   await run(`DELETE FROM push_subscriptions WHERE endpoint=?`, [endpoint]);
 }
@@ -49,7 +68,8 @@ async function sendWebPushToSubscriptions(subscriptionRows, payload) {
         keys: { p256dh: row.p256dh, auth: row.auth },
       };
       try {
-        await webpush.sendNotification(sub, body, { TTL: 3600 });
+        /* urgency: high — أقرب لسلوك رسائل فورية (واتساب) عند إغلاق التطبيق أو توفير الشبكة */
+        await webpush.sendNotification(sub, body, { TTL: 86400, urgency: "high" });
       } catch (err) {
         const code = err && err.statusCode;
         if (code === 404 || code === 410) {
@@ -90,13 +110,19 @@ async function getEligibleSubscriptionRowsBroadcast() {
 
 function buildPushPayloadFromRow(row) {
   const img = row.image_url ? sanitizeHttpsUrl(row.image_url) : null;
-  const link = row.link_url ? sanitizeHttpsUrl(row.link_url) : null;
+  const base = getPublicAssetBase();
+  const iconPath = "/icons/adora-icon.svg";
+  const icon = base ? `${base}${iconPath}` : iconPath;
+  const badge = icon;
+  const titleRaw = row.title != null && String(row.title).trim() ? String(row.title).trim() : "";
+  const title = titleRaw.slice(0, 120) || "Adora";
   return {
-    title: "Adora",
+    title,
     body: String(row.message || "").slice(0, 500),
     tag: `adora-inapp-${row.id}`,
-    url: link || "/",
-    icon: "/icons/adora-icon.svg",
+    url: resolvePushOpenUrl(row.link_url),
+    icon,
+    badge,
     image: img || undefined,
   };
 }
