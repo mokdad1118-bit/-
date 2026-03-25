@@ -4056,16 +4056,20 @@
                 }</p>`;
                 return;
             }
-            container.innerHTML = flashSaleItems.map(item => {
+            container.innerHTML = flashSaleItems.map((item) => {
                 const title = isRTL ? item.name.ar : item.name.en;
-                return `<div class="flash-card">
+                const pid = Number(item.id);
+                const imgSrc = item.image ? escapeHtml(item.image) : escapeHtml(adoraPlaceholderImageUrl());
+                const safeTitle = escapeHtml(String(title || ''));
+                return `<div class="flash-card" role="button" tabindex="0" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
+                            <div class="flash-card-thumb"><img src="${imgSrc}" alt=""></div>
                             <p class="text-xs text-gray-500" data-en="Ends soon" data-ar="ينتهي قريباً">Ends soon</p>
-                            <h4>${title}</h4>
+                            <h4>${safeTitle}</h4>
                             <div class="flash-price">
                                 <span class="old">${formatSyp(item.old)}</span>
                                 <span class="current">${formatSyp(item.now)}</span>
                             </div>
-                            <span class="flash-badge">${item.discount}</span>
+                            <span class="flash-badge">${escapeHtml(String(item.discount || ''))}</span>
                         </div>`;
             }).join('');
         }
@@ -4215,7 +4219,10 @@
                     if (discountPercent > 0 && discountPercent < 100) {
                         oldPrice = nowPrice / (1 - discountPercent / 100);
                     }
+                    const rawImg = p.images && p.images.length ? p.images[0] : '';
                     return {
+                        id: Number(p.id),
+                        image: rawImg ? absoluteMediaUrl(rawImg) : '',
                         name: { en: p.name_en, ar: p.name_ar },
                         old: oldPrice,
                         now: nowPrice,
@@ -4756,5 +4763,6 @@
             syncFlashSaleFromApi().finally(() => {
                 renderFlashSale();
                 initFlashCountdown();
+                applyAppLanguage();
             });
         });
