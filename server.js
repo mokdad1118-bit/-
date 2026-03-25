@@ -10,6 +10,7 @@ const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -51,6 +52,51 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+const memoryUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: Number(process.env.UPLOAD_MAX_BYTES) || 10 * 1024 * 1024 },
+});
+
+function isCloudinaryConfigured() {
+  const url = process.env.CLOUDINARY_URL;
+  if (url && String(url).trim()) return true;
+  const n = process.env.CLOUDINARY_CLOUD_NAME;
+  const k = process.env.CLOUDINARY_API_KEY;
+  const s = process.env.CLOUDINARY_API_SECRET;
+  return !!(n && k && s && String(n).trim() && String(k).trim() && String(s).trim());
+}
+
+function initCloudinary() {
+  if (!isCloudinaryConfigured()) return;
+  if (process.env.CLOUDINARY_URL && String(process.env.CLOUDINARY_URL).trim()) {
+    cloudinary.config({ secure: true });
+  } else {
+    cloudinary.config({
+      cloud_name: String(process.env.CLOUDINARY_CLOUD_NAME).trim(),
+      api_key: String(process.env.CLOUDINARY_API_KEY).trim(),
+      api_secret: String(process.env.CLOUDINARY_API_SECRET).trim(),
+      secure: true,
+    });
+  }
+}
+initCloudinary();
+if (isCloudinaryConfigured()) {
+  // eslint-disable-next-line no-console
+  console.log("[Adora] Image uploads: Cloudinary (DB stores HTTPS URLs only)");
+}
+
+function uploadBufferToCloudinary(buffer) {
+  const folderRaw = process.env.CLOUDINARY_FOLDER || "adora";
+  const folder = String(folderRaw).trim().replace(/^\/+|\/+$/g, "") || "adora";
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({ folder, resource_type: "image" }, (err, result) => {
+      if (err) return reject(err);
+      if (!result?.secure_url) return reject(new Error("Cloudinary returned no URL"));
+      resolve(String(result.secure_url));
+    });
+    stream.end(buffer);
+  });
+}
 
 function publicUrl(fileName) {
   // Files are always exposed at /uploads/<file>, regardless of physical directory.
@@ -1701,14 +1747,28 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-app.post("/api/upload/image", requireAuth, requireAdmin, upload.single("file"), (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "file is required" });
-    return res.json({ url: publicUrl(req.file.filename) });
-  } catch (err) {
-    return res.status(500).json({ error: "Upload failed" });
+app.post(
+  "/api/upload/image",
+  requireAuth,
+  requireAdmin,
+  (req, res, next) => {
+    const mw = isCloudinaryConfigured() ? memoryUpload.single("file") : upload.single("file");
+    mw(req, res, next);
+  },
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "file is required" });
+      if (isCloudinaryConfigured()) {
+        const url = await uploadBufferToCloudinary(req.file.buffer);
+        return res.json({ url });
+      }
+      return res.json({ url: publicUrl(req.file.filename) });
+    } catch (err) {
+      const msg = err && err.message ? String(err.message) : "Upload failed";
+      return res.status(500).json({ error: msg });
+    }
   }
-});
+);
 
 const adminHtmlPath = path.join(__dirname, "public", "admin.html");
 function sendAdminPanel(_req, res) {
