@@ -57,6 +57,26 @@ function publicUrl(fileName) {
   return `/uploads/${fileName}`;
 }
 
+const DEFAULT_HOME_SECTIONS_VISIBILITY = {
+  banners: true,
+  main_categories: true,
+  brands: true,
+  top_brands: true,
+  flash_sale: true,
+  curated: true,
+  promo_collection: true,
+  bestsellers: true,
+};
+
+function mergeHomeSectionsVisibility(raw) {
+  const o = raw && typeof raw === "object" ? raw : {};
+  const out = { ...DEFAULT_HOME_SECTIONS_VISIBILITY };
+  for (const k of Object.keys(out)) {
+    if (Object.prototype.hasOwnProperty.call(o, k)) out[k] = Boolean(o[k]);
+  }
+  return out;
+}
+
 function safeJsonParse(raw, fallback) {
   try {
     return JSON.parse(raw || "");
@@ -1556,11 +1576,13 @@ app.get("/api/contact", async (_req, res) => {
     const row = await get(`SELECT * FROM contact_info LIMIT 1`);
     const home_main_section_images = safeJsonParse(row?.home_main_section_images_json, null);
     const home_subcategory_slides = safeJsonParse(row?.home_subcategory_slides_json, null);
+    const home_sections_visibility = mergeHomeSectionsVisibility(safeJsonParse(row?.home_sections_visibility_json, null));
     return res.json({
       ...row,
       phones: safeJsonParse(row.phones_json, []),
       home_main_section_images: home_main_section_images && typeof home_main_section_images === "object" ? home_main_section_images : null,
       home_subcategory_slides: home_subcategory_slides && typeof home_subcategory_slides === "object" ? home_subcategory_slides : null,
+      home_sections_visibility,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load contact" });
@@ -1572,7 +1594,7 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     const body = req.body || {};
     const { address, phones = [], whatsapp_phone = "" } = body;
     const cur = await get(
-      `SELECT id, home_main_section_images_json, home_subcategory_slides_json FROM contact_info ORDER BY id LIMIT 1`
+      `SELECT id, home_main_section_images_json, home_subcategory_slides_json, home_sections_visibility_json FROM contact_info ORDER BY id LIMIT 1`
     );
     let homeJson = cur?.home_main_section_images_json ?? null;
     if (body.home_main_section_images !== undefined && body.home_main_section_images !== null && typeof body.home_main_section_images === "object") {
@@ -1587,9 +1609,13 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     if (body.home_subcategory_slides !== undefined && body.home_subcategory_slides !== null && typeof body.home_subcategory_slides === "object") {
       slidesJson = JSON.stringify(body.home_subcategory_slides);
     }
+    let visJson = cur?.home_sections_visibility_json ?? null;
+    if (body.home_sections_visibility !== undefined && body.home_sections_visibility !== null && typeof body.home_sections_visibility === "object") {
+      visJson = JSON.stringify(mergeHomeSectionsVisibility(body.home_sections_visibility));
+    }
     await run(
-      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
-      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson]
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=?, home_sections_visibility_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson, visJson]
     );
     return res.json({ ok: true });
   } catch (err) {

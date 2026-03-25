@@ -1754,6 +1754,34 @@ function refilterAdminActiveTab() {
   else if (vis === "tab-banners") renderBannersTable();
 }
 
+const HOME_SECTION_VIS_KEYS = [
+  "banners",
+  "main_categories",
+  "brands",
+  "top_brands",
+  "flash_sale",
+  "curated",
+  "promo_collection",
+  "bestsellers",
+];
+
+function setHomeSectionsVisibilityToggles(vis) {
+  const v = vis && typeof vis === "object" ? vis : {};
+  for (const k of HOME_SECTION_VIS_KEYS) {
+    const el = document.getElementById(`contact-vis-${k}`);
+    if (el) el.checked = v[k] !== false;
+  }
+}
+
+function collectHomeSectionsVisibilityFromForm() {
+  const o = {};
+  for (const k of HOME_SECTION_VIS_KEYS) {
+    const el = document.getElementById(`contact-vis-${k}`);
+    o[k] = el ? !!el.checked : true;
+  }
+  return o;
+}
+
 async function loadContact() {
   try {
     const data = await api("/api/contact", {});
@@ -1776,6 +1804,7 @@ async function loadContact() {
       slidesTa.value =
         slides && typeof slides === "object" ? JSON.stringify(slides, null, 2) : "";
     }
+    setHomeSectionsVisibilityToggles(data.home_sections_visibility);
   } catch (e) {
     console.error(e);
   }
@@ -1799,7 +1828,7 @@ async function saveContact(e) {
     kids: kEl ? kEl.value.trim() : "",
   };
   const slidesTa = document.getElementById("contact-home-subcat-slides-json");
-  const body = { address, phones, whatsapp_phone, home_main_section_images };
+  const body = { address, phones, whatsapp_phone, home_main_section_images, home_sections_visibility: collectHomeSectionsVisibilityFromForm() };
   if (slidesTa && slidesTa.value.trim()) {
     try {
       const home_subcategory_slides = JSON.parse(slidesTa.value);

@@ -2733,6 +2733,36 @@
             return origin + (s.startsWith('/') ? s : `/${s}`);
         }
 
+        const DEFAULT_HOME_SECTIONS_VISIBILITY = {
+            banners: true,
+            main_categories: true,
+            brands: true,
+            top_brands: true,
+            flash_sale: true,
+            curated: true,
+            promo_collection: true,
+            bestsellers: true,
+        };
+
+        function mergeHomeSectionsVisibility(raw) {
+            const o = raw && typeof raw === 'object' ? raw : {};
+            const out = { ...DEFAULT_HOME_SECTIONS_VISIBILITY };
+            for (const k of Object.keys(out)) {
+                if (Object.prototype.hasOwnProperty.call(o, k)) out[k] = Boolean(o[k]);
+            }
+            return out;
+        }
+
+        function applyHomeSectionsVisibility(raw) {
+            const v = mergeHomeSectionsVisibility(raw);
+            Object.keys(DEFAULT_HOME_SECTIONS_VISIBILITY).forEach((key) => {
+                const on = v[key] !== false;
+                document.querySelectorAll(`[data-adora-section="${key}"]`).forEach((el) => {
+                    el.classList.toggle('hidden', !on);
+                });
+            });
+        }
+
         function getDefaultHomeSubcatSlides() {
             const q = 'w=800&q=85&auto=format&fit=crop';
             return {
@@ -2940,6 +2970,7 @@
                 }
                 homeSubcatSlidesMerged = mergeHomeSubcategorySlides(data.home_subcategory_slides);
                 initHomeSubcategorySliderHosts();
+                applyHomeSectionsVisibility(data.home_sections_visibility);
             } catch (_e) {}
         }
 
@@ -3196,12 +3227,12 @@
                 .map((brand) => {
                     const activeClass = activeBrandKey === brand.name ? ' active' : '';
                     const logoHtml = brand.logo
-                        ? `<img src="${escapeHtml(brand.logo)}" alt="" class="w-full h-full object-cover rounded-full" loading="lazy">`
-                        : escapeHtml(brand.name.charAt(0).toUpperCase());
+                        ? `<img src="${escapeHtml(brand.logo)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                        : `<span class="text-2xl font-bold text-purple-600">${escapeHtml(brand.name.charAt(0).toUpperCase())}</span>`;
                     const brandEnc = encodeURIComponent(brand.name);
-                    return `<button type="button" class="brand-card${activeClass}" data-brand-name="${brandEnc}">
-                            <div class="logo overflow-hidden">${logoHtml}</div>
-                            <div class="brand-name">${escapeHtml(brand.name)}</div>
+                    return `<button type="button" class="brand-strip-card${activeClass}" data-brand-name="${brandEnc}">
+                            <div class="brand-strip-logo">${logoHtml}</div>
+                            <div class="brand-strip-name">${escapeHtml(brand.name)}</div>
                         </button>`;
                 })
                 .join('');
@@ -3763,7 +3794,8 @@
             navigateTo('screen-listing');
         }
 
-        function renderProductCardHtml(p) {
+        function renderProductCardHtml(p, opts = {}) {
+            const compact = opts.compact === true;
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
             const listP = productListPrice(p);
@@ -3771,18 +3803,25 @@
             const saleP = productSaleUnitPrice(p);
             const badge =
                 disc > 0
-                    ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    ? `<span class="absolute ${compact ? 'top-1 left-1 text-[9px] px-1.5 py-0.5' : 'top-2 left-2'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
                     : '';
-            return `<div onclick="openProductDetail(${p.id})" class="product-card bg-white rounded-2xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
-                <div class="relative aspect-[3/4] overflow-hidden bg-gray-100">
+            const mediaCls = compact
+                ? 'relative aspect-[3/4] max-h-[150px] overflow-hidden bg-gray-100'
+                : 'relative aspect-[3/4] overflow-hidden bg-gray-100';
+            const padCls = compact ? 'p-2' : 'p-3';
+            const titleCls = compact ? 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5' : 'font-semibold text-gray-900 text-sm line-clamp-2 mb-1';
+            const priceMain = compact ? 'font-bold text-gray-900 text-xs' : 'font-bold text-gray-900';
+            const cardExtra = compact ? ' home-compact-product-card' : '';
+            return `<div onclick="openProductDetail(${p.id})" class="product-card${cardExtra} bg-white rounded-2xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
+                <div class="${mediaCls}">
                     <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                     ${badge}
                 </div>
-                <div class="p-3">
-                    <h3 class="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">${escapeHtml(name)}</h3>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-gray-900">${formatSyp(saleP)}</span>
-                        ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+                <div class="${padCls}">
+                    <h3 class="${titleCls}">${escapeHtml(name)}</h3>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="${priceMain}">${formatSyp(saleP)}</span>
+                        ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                     </div>
                 </div>
             </div>`;
@@ -4415,7 +4454,7 @@
                     }</p>`;
                     return;
                 }
-                grid.innerHTML = list.map((p) => renderProductCardHtml(p)).join('');
+                grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (_e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 text-sm py-6">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
             }
@@ -4444,16 +4483,16 @@
                             disc > 0
                                 ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
                                 : '';
-                        return `<div onclick="openProductDetail(${p.id})" class="flex-shrink-0 w-36 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
-                        <div class="aspect-[3/4] relative">
-                            <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="">
+                        return `<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[7.25rem] bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                        <div class="aspect-[3/4] max-h-[118px] relative">
+                            <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
                             ${badge}
                         </div>
-                        <div class="p-3">
-                            <h4 class="font-semibold text-sm text-gray-900 truncate">${escapeHtml(name)}</h4>
-                            <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                <span class="font-bold text-purple-600 text-sm">${formatSyp(saleP)}</span>
-                                ${disc > 0 ? `<span class="text-xs text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+                        <div class="p-2">
+                            <h4 class="font-semibold text-[11px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
+                            <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                <span class="font-bold text-purple-600 text-[11px]">${formatSyp(saleP)}</span>
+                                ${disc > 0 ? `<span class="text-[9px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -5007,7 +5046,7 @@
                     } catch (_) {}
                     return;
                 }
-                const btn = e.target.closest('.brand-card[data-brand-name], .top-brand-card[data-brand-name]');
+                const btn = e.target.closest('.brand-strip-card[data-brand-name], .top-brand-card[data-brand-name]');
                 if (!btn || !shell.contains(btn)) return;
                 const enc = btn.getAttribute('data-brand-name');
                 if (!enc) return;
