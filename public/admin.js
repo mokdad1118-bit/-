@@ -249,7 +249,10 @@ function setActiveTab(tabId) {
     loadSiteRatings().catch(() => {});
     loadAdminProductReviews().catch(() => {});
   }
-  if (tabId === "tab-notifications") loadNotificationTargetOptions().catch(() => {});
+  if (tabId === "tab-notifications") {
+    loadNotificationTargetOptions().catch(() => {});
+    loadPushDiagnostics().catch(() => {});
+  }
   if (tabId === "tab-brands") {
     populateBrandProductsBrandSelect();
     loadBrandProductsSection().catch(() => {});
@@ -1607,6 +1610,39 @@ async function loadNotificationTargetOptions() {
   }
 }
 
+async function refreshPushDiagnostics() {
+  const out = document.getElementById("push-diagnostics-text");
+  if (!out) return;
+  const token = getToken();
+  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  try {
+    const d = await api("/api/admin/push-diagnostics", { token });
+    const vapidOk = d.vapidConfigured
+      ? ar
+        ? "مفعّل"
+        : "on"
+      : ar
+        ? "غير مضبوط — أضف VAPID على Render"
+        : "missing — set VAPID on Render";
+    const lines = [
+      `${ar ? "VAPID" : "VAPID"}: ${vapidOk}`,
+      `${ar ? "اشتراكات محفوظة" : "Saved subscriptions"}: ${d.subscriptionRows ?? 0}`,
+      `${ar ? "مؤهلون للبث (إشعارات مفعّلة)" : "Eligible for broadcast"}: ${d.subscriptionsEligibleForBroadcastPush ?? 0}`,
+      ar ? d.hintAr : d.hintEn,
+    ];
+    out.textContent = lines.join("\n");
+    out.classList.remove("hidden");
+  } catch (e) {
+    out.textContent = ar ? `خطأ: ${e.message || e}` : `Error: ${e.message || e}`;
+    out.classList.remove("hidden");
+  }
+}
+
+async function loadPushDiagnostics() {
+  await refreshPushDiagnostics();
+}
+
 async function sendAdminNotification(e) {
   e.preventDefault();
   const token = getToken();
@@ -2082,6 +2118,7 @@ async function bootstrapAuthed() {
   });
   document.getElementById("contact-form").addEventListener("submit", saveContact);
   document.getElementById("admin-notif-form")?.addEventListener("submit", sendAdminNotification);
+  document.getElementById("btn-push-diagnostics")?.addEventListener("click", () => refreshPushDiagnostics().catch(() => {}));
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));
   document.getElementById("btn-refresh-product-reviews")?.addEventListener("click", () => loadAdminProductReviews().catch(() => {}));
   document.getElementById("btn-refresh-database-overview")?.addEventListener("click", () => loadDatabaseOverview().catch(() => {}));

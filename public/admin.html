@@ -620,6 +620,18 @@
               <p class="text-sm text-gray-600 mb-4" data-en="In-app list + real-time. With VAPID keys on the server, users also get mobile/system push (image &amp; link optional)." data-ar="قائمة داخل التطبيق وفورية. عند ضبط مفاتيح VAPID على السيرفر يصل إشعار للجوال/النظام (صورة ورابط اختياريان).">
                 قائمة داخل التطبيق وفورية؛ مع VAPID على السيرفر يصل إشعار للجوال (صورة ورابط اختياريان).
               </p>
+              <div class="mb-4 p-3 rounded-xl bg-gray-50 border border-gray-100 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-push-diagnostics"
+                  class="px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold hover:bg-gray-100 active:scale-95"
+                  data-en="Check Push setup"
+                  data-ar="فحص إعداد Push"
+                >
+                  فحص إعداد Push
+                </button>
+                <p id="push-diagnostics-text" class="text-xs text-gray-600 flex-1 min-w-[200px] hidden"></p>
+              </div>
               <form id="admin-notif-form" class="space-y-3">
                 <div>
                   <label class="text-sm font-semibold"><span data-en="Title (optional)" data-ar="عنوان الإشعار (اختياري)">عنوان الإشعار (اختياري)</span></label>

@@ -1,0 +1,3 @@
+# Netlify — لا تخزّن Service Worker بقوة (تحديثات Push والكاش)
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate

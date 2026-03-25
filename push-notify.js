@@ -74,6 +74,11 @@ async function sendWebPushToSubscriptions(subscriptionRows, payload) {
         const code = err && err.statusCode;
         if (code === 404 || code === 410) {
           await removeDeadSubscription(row.endpoint).catch(() => {});
+        } else {
+          const bodySnippet =
+            err && err.body != null ? String(err.body).slice(0, 500) : err && err.message ? String(err.message) : String(err);
+          // eslint-disable-next-line no-console
+          console.error("[Adora] Web Push send failed", { code, endpoint: row.endpoint?.slice?.(0, 80), body: bodySnippet });
         }
       }
     })

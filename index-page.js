@@ -259,6 +259,8 @@
             return outputArray;
         }
 
+        const ADORA_VAPID_FP_KEY = 'adora_vapid_public_fp';
+
         async function sendPushSubscriptionToServer(subscription) {
             const json = subscription.toJSON ? subscription.toJSON() : subscription;
             await apiFetch('/api/push/subscribe', {
@@ -270,18 +272,81 @@
 
         async function registerAdoraPushSubscription() {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-            const reg = await navigator.serviceWorker.ready;
-            const keyRes = await fetch(`${getApiOrigin()}/api/push/vapid-public-key`, { credentials: 'omit' });
+            let reg;
+            try {
+                reg = await navigator.serviceWorker.ready;
+            } catch (_e) {
+                console.warn('[Adora Push] service worker not ready');
+                return;
+            }
+            const keyUrl = `${getApiOrigin()}/api/push/vapid-public-key`;
+            let keyRes;
+            try {
+                keyRes = await fetch(keyUrl, { credentials: 'omit', mode: 'cors' });
+            } catch (_e) {
+                console.warn('[Adora Push] cannot fetch VAPID key (CORS or network). Check CORS_ORIGIN on Render.', keyUrl);
+                return;
+            }
+            if (!keyRes.ok) {
+                console.warn('[Adora Push] VAPID endpoint HTTP', keyRes.status, keyUrl);
+                return;
+            }
             const keyJson = await keyRes.json().catch(() => ({}));
             if (!keyJson.ok || !keyJson.publicKey) return;
+            const pubKey = String(keyJson.publicKey).trim();
             let sub = await reg.pushManager.getSubscription();
-            if (!sub) {
-                sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(keyJson.publicKey),
-                });
+            const fp = pubKey.slice(0, 48);
+            const prevFp = localStorage.getItem(ADORA_VAPID_FP_KEY);
+            if (sub && prevFp && prevFp !== fp) {
+                try {
+                    const j = sub.toJSON();
+                    if (j.endpoint) {
+                        await apiFetch('/api/push/unsubscribe', {
+                            method: 'POST',
+                            requireAuth: true,
+                            body: { endpoint: j.endpoint },
+                        }).catch(() => {});
+                    }
+                    await sub.unsubscribe();
+                } catch (_e) {
+                    /* ignore */
+                }
+                sub = null;
             }
-            await sendPushSubscriptionToServer(sub);
+            const trySub = async () => {
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(pubKey),
+                    });
+                }
+                await sendPushSubscriptionToServer(sub);
+                localStorage.setItem(ADORA_VAPID_FP_KEY, fp);
+            };
+            try {
+                await trySub();
+            } catch (e) {
+                const msg = e && e.message ? String(e.message) : String(e);
+                if (/user denied|not allowed|permission/i.test(msg)) {
+                    return;
+                }
+                console.warn('[Adora Push] subscribe or save failed — open app from Netlify URL, allow notifications, ensure VAPID on Render.', msg);
+                try {
+                    localStorage.removeItem(ADORA_VAPID_FP_KEY);
+                    if (sub) {
+                        await sub.unsubscribe().catch(() => {});
+                        sub = null;
+                    }
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(pubKey),
+                    });
+                    await sendPushSubscriptionToServer(sub);
+                    localStorage.setItem(ADORA_VAPID_FP_KEY, fp);
+                } catch (e2) {
+                    console.warn('[Adora Push] retry failed', e2 && e2.message ? e2.message : e2);
+                }
+            }
         }
 
         async function unregisterAdoraPushSubscription() {
@@ -298,6 +363,11 @@
                         }).catch(() => {});
                     }
                     await sub.unsubscribe();
+                }
+                try {
+                    localStorage.removeItem(ADORA_VAPID_FP_KEY);
+                } catch (_e) {
+                    /* ignore */
                 }
             } catch (_e) {
                 /* ignore */
@@ -5512,11 +5582,19 @@
             } else {
                 initSplash();
             }
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').catch(() => {});
-            }
-            updateOrderTrackingUI();
-            refreshProfileAndOrders().catch(() => {});
+            const adoraSwReady = (async () => {
+                if (!('serviceWorker' in navigator)) return;
+                try {
+                    await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+                    await navigator.serviceWorker.ready;
+                } catch (e) {
+                    console.warn('[Adora] SW register failed — Push needs /sw.js on this site (Netlify).', e);
+                }
+            })();
+            void adoraSwReady.finally(() => {
+                updateOrderTrackingUI();
+                refreshProfileAndOrders().catch(() => {});
+            });
             syncBrandsFromApi().catch(() => {});
             syncStoreStatsFromApi().catch(() => {});
             updateBrandSortButtons();

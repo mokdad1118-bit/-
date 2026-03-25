@@ -9,6 +9,11 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
+
+/** للتشخيص: مستخدم مؤهل لاستلام بث Push (إشعارات مفعّلة وليس في فترة كتم) */
+function sqlPushUserEligible() {
+  return `(COALESCE(u.notifications_enabled, 0) = 1 AND (u.notifications_snoozed_until IS NULL OR TRIM(COALESCE(u.notifications_snoozed_until::text, '')) = '' OR (u.notifications_snoozed_until)::timestamptz <= NOW()))`;
+}
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 
@@ -488,6 +493,30 @@ app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: "Failed to remove subscription" });
+  }
+});
+
+/** تشخيص Web Push — للمشرف: VAPID، عدد الاشتراكات، ملاحظة أن sw.js من نطاق الواجهة (Netlify) */
+app.get("/api/admin/push-diagnostics", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const vapidConfigured = isWebPushConfigured();
+    const total = await get(`SELECT COUNT(*)::int AS c FROM push_subscriptions`);
+    const eligible = await get(
+      `SELECT COUNT(*)::int AS c FROM push_subscriptions ps
+       INNER JOIN users u ON u.id = ps.user_id
+       WHERE ${sqlPushUserEligible()}`
+    );
+    return res.json({
+      vapidConfigured,
+      subscriptionRows: Number(total?.c ?? 0),
+      subscriptionsEligibleForBroadcastPush: Number(eligible?.c ?? 0),
+      hintAr:
+        "يُفتح التطبيق من رابط Netlify؛ ملف /sw.js يُقدَّم من نفس النطاق. السيرفر على Render يحفظ الاشتراك ويرسل Push فقط.",
+      hintEn:
+        "Users must open the PWA from your Netlify URL; /sw.js is served there. Render stores subscriptions and sends pushes.",
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to read push diagnostics" });
   }
 });
 
@@ -1819,6 +1848,15 @@ app.use((req, res, next) => {
     return res.status(404).end();
   }
   next();
+});
+
+/** عند فتح التطبيق من رابط Render مباشرة: لا تخزّن sw.js بقوة حتى يتحدّث الـ worker */
+app.get("/sw.js", (req, res) => {
+  res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.type("application/javascript; charset=utf-8");
+  res.sendFile(path.join(__dirname, "sw.js"), (err) => {
+    if (err) res.status(404).type("text/plain").send("sw.js not found");
+  });
 });
 
 app.use(express.static(path.join(__dirname)));
