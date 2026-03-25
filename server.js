@@ -444,11 +444,11 @@ app.put("/api/profile/notifications", requireAuth, async (req, res) => {
   }
 });
 
-/** مفتاح VAPID العام — للاشتراك في Web Push من المتصفح */
+/** مفتاح VAPID العام — للاشتراك في Web Push من المتصفح (200 + ok:false إذا غير مضبوط لتفادي أخطاء حمراء في كونسول المتصفح) */
 app.get("/api/push/vapid-public-key", (_req, res) => {
   const pub = process.env.VAPID_PUBLIC_KEY;
   if (!pub || !String(pub).trim()) {
-    return res.status(503).json({ ok: false, error: "Push not configured" });
+    return res.status(200).json({ ok: false, error: "Push not configured" });
   }
   return res.json({ ok: true, publicKey: String(pub).trim() });
 });
