@@ -575,7 +575,7 @@
                 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=640&q=80&auto=format&fit=crop',
                 'https://images.unsplash.com/photo-1503919545889-aef66e16bb32?w=640&q=80&auto=format&fit=crop',
                 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=640&q=80&auto=format&fit=crop',
-                'https://images.unsplash.com/photo-1519238263530-99bdd9d454bb?w=640&q=80&auto=format&fit=crop',
+                '/images/kids-perfume-category.png',
             ],
         };
         const MAIN_CAT_HERO_ROTATE_MS = 1400;
