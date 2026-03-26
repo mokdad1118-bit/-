@@ -2800,19 +2800,12 @@
 
         <div id="banner-slot-home_top" class="px-4 pt-1 space-y-1" data-adora-section="banners"></div>
 
-        <!-- السوق الشامل: منفصل عن أقسام الألبسة -->
-        <div class="px-4 pt-4 pb-1 space-y-3" data-adora-section="comprehensive_market">
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 shadow-sm">
-                        <i class="fas fa-store text-sm" aria-hidden="true"></i>
-                    </span>
-                    <div class="min-w-0">
-                        <h2 class="text-base font-extrabold text-purple-800 leading-tight" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
-                        <p class="text-[11px] text-gray-600 leading-snug mt-0.5" data-en="Malls, companies, appliances & more — one place for everything." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
-                    </div>
-                </div>
-                <button type="button" onclick="openMarketplaceBrowse({})" class="shrink-0 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-full border border-purple-100 active:scale-95 transition" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
+        <!-- السوق الشامل: منفصل عن أقسام الألبسة — عنوان متمركز بنبض، ثم الوصف، ثم عرض الكل، ثم الشريط -->
+        <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market">
+            <div class="flex flex-col items-center text-center gap-2.5">
+                <h2 class="adora-glow-title text-lg sm:text-xl max-w-[min(100%,20rem)] mx-auto leading-snug" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
+                <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="Malls, companies, electrical appliances & more — Adora's comprehensive market for everything you need." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
+                <button type="button" onclick="openMarketplaceBrowse({})" class="mt-0.5 text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-6 py-2.5 rounded-full border border-purple-200/80 shadow-sm shadow-purple-900/5 active:scale-[0.98] transition-transform" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
             </div>
             <div id="marketplace-home-strip" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1 min-h-[7.5rem] items-stretch">
                 <p class="text-xs text-gray-400 py-6 whitespace-nowrap" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
