@@ -4749,16 +4749,19 @@
             if (!grid) return;
             try {
                 const products = await apiFetch('/api/products?new_collection=1', { requireAuth: false });
-                const list = Array.isArray(products) ? products.slice(0, 6) : [];
+                const list = Array.isArray(products) ? products.slice(0, 36) : [];
                 if (!list.length) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-white/85 text-xs py-4 leading-relaxed px-2">${
+                    grid.className = '';
+                    grid.innerHTML = `<p class="text-center text-white/85 text-xs py-4 leading-relaxed px-3 w-[min(100vw-2rem,22rem)]">${
                         isRTL ? 'فعّل «الظهور في البانر» من إعدادات المنتج في لوحة التحكم.' : 'Enable the banner & list option on products in the admin panel.'
                     }</p>`;
                     return;
                 }
+                grid.className = 'home-new-collection-dual-row';
                 grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (_e) {
-                grid.innerHTML = `<p class="col-span-2 text-center text-red-200 text-xs py-4">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
+                grid.className = '';
+                grid.innerHTML = `<p class="text-center text-red-200 text-xs py-4 px-3 w-[min(100vw-2rem,22rem)]">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
             }
         }
 

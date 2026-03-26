@@ -564,6 +564,30 @@
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* عالم الأناقة: صفّان من البطاقات + تمرير أفقي */
+        .home-new-collection-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-inline: -0.25rem;
+            padding-inline: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+        .home-new-collection-dual-row {
+            display: grid;
+            grid-template-rows: repeat(2, auto);
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(9rem, 36vw);
+            gap: 0.45rem 0.55rem;
+            width: max-content;
+            max-width: none;
+            min-height: 10.5rem;
+            align-content: start;
+        }
+        .home-new-collection-dual-row .product-card {
+            width: 100%;
+            max-width: 11.5rem;
+        }
         
         @keyframes slideUp { 
             from { opacity: 0; transform: translateY(30px); } 
@@ -2973,8 +2997,10 @@
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Kids')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧒 <span data-en="Kids" data-ar="أطفال">أطفال</span></button>
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Games')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧸 <span data-en="Games" data-ar="ألعاب">ألعاب</span></button>
                     </div>
-                    <div id="home-new-collection-grid" class="grid grid-cols-2 gap-1.5 sm:gap-2 min-h-[72px]">
-                        <p class="col-span-2 text-center text-white/80 text-xs py-4" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                    <div id="home-new-collection-scroll" class="home-new-collection-scroll no-scrollbar">
+                        <div id="home-new-collection-grid">
+                            <p class="text-center text-white/80 text-xs py-6 px-4 w-[min(100vw-2rem,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                        </div>
                     </div>
                 </div>
                 <div class="absolute right-0 top-0 w-1/2 h-full opacity-20 pointer-events-none">
