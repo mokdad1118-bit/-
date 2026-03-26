@@ -9,6 +9,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
+const { registerMarketplaceRoutes } = require("./marketplace-routes");
 
 /** للتشخيص: مستخدم مؤهل لاستلام بث Push (إشعارات مفعّلة وليس في فترة كتم) */
 function sqlPushUserEligible() {
@@ -127,6 +128,7 @@ function uploadBufferToCloudinary(buffer) {
 
 const DEFAULT_HOME_SECTIONS_VISIBILITY = {
   banners: true,
+  comprehensive_market: true,
   main_categories: true,
   brands: true,
   top_brands: true,
@@ -139,6 +141,7 @@ const DEFAULT_HOME_SECTIONS_VISIBILITY = {
 /** Labels for admin UI + `/api/admin/home-sections/keys` — keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
 const HOME_SECTION_LABELS = {
   banners: { ar: "البانرات الترويجية (كل المواضع)", en: "Promo banners (all slots)" },
+  comprehensive_market: { ar: "السوق الشامل (مولات وشركات…)", en: "Comprehensive market (malls & companies)" },
   main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories (Men / Women / Kids)" },
   brands: { ar: "صف الشركات", en: "Brands row" },
   top_brands: { ar: "أفضل الشركات", en: "Top brands" },
@@ -225,6 +228,15 @@ function arabicSearchQueryVariants(q) {
   if (norm && /ه$/.test(norm)) set.add(norm.slice(0, -1) + "\u0629");
   if (norm && /ة$/.test(norm)) set.add(norm.slice(0, -1) + "\u0647");
   return [...set].filter(Boolean);
+}
+
+async function decrementMarketplaceStock(marketplaceProductId, qty) {
+  const id = Number(marketplaceProductId);
+  if (!Number.isFinite(id) || qty <= 0) return;
+  await run(
+    `UPDATE marketplace_products SET stock = GREATEST(0, COALESCE(stock,0) - ?), sales_count = COALESCE(sales_count,0) + ? WHERE id=?`,
+    [qty, qty, id]
+  );
 }
 
 async function decrementProductStock(productId, qty, size, color) {
@@ -1276,6 +1288,8 @@ app.delete("/api/categories/:id", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
+registerMarketplaceRoutes(app, { requireAuth, requireAdmin });
+
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 
 function orderStatusNotifyMessageAr(status) {
@@ -1313,6 +1327,22 @@ app.post("/api/orders", requireAuth, async (req, res) => {
     if (productLines.length === 0) {
       return res.status(400).json({ error: "Order must include at least one product" });
     }
+    for (const item of productLines) {
+      const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
+      const mpidRaw = item.marketplace_product_id != null ? Number(item.marketplace_product_id) : null;
+      const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
+      if (!mpid) continue;
+      const mp = await get(
+        `SELECT id, stock, name_ar FROM marketplace_products WHERE id=? AND is_active = 1`,
+        [mpid]
+      );
+      if (!mp) {
+        return res.status(400).json({ error: "Invalid marketplace product" });
+      }
+      if (Number(mp.stock) < qn) {
+        return res.status(400).json({ error: "Insufficient stock", detail: mp.name_ar || String(mpid) });
+      }
+    }
     /** الحالة الأولى دائماً «قيد الاستلام» — لا يُقبل تمرير حالة من الزبون */
     const status = "pending_receipt";
     const orderNo = await allocateNextOrderNo();
@@ -1325,13 +1355,19 @@ app.post("/api/orders", requireAuth, async (req, res) => {
 
     for (const item of productLines) {
       const brandLine = item.brand != null ? String(item.brand).trim() : "";
+      const mpidRaw = item.marketplace_product_id != null ? Number(item.marketplace_product_id) : null;
+      const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
+      const pidRaw = item.product_id != null ? Number(item.product_id) : null;
+      const pid = mpid ? null : Number.isFinite(pidRaw) && pidRaw > 0 ? pidRaw : null;
+      const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
       await run(
-        `INSERT INTO order_items (order_id, product_id, product_name, qty, price, image_url, color, size, brand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO order_items (order_id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           result.id,
-          item.product_id || null,
+          pid,
+          mpid,
           item.product_name || "Item",
-          Number(item.qty || 1),
+          qn,
           Number(item.price || 0),
           item.image_url != null ? String(item.image_url) : "",
           item.color != null ? String(item.color) : "",
@@ -1339,16 +1375,16 @@ app.post("/api/orders", requireAuth, async (req, res) => {
           brandLine,
         ]
       );
-      const pid = item.product_id != null ? Number(item.product_id) : null;
-      const qn = Number(item.qty || 1);
-      if (pid && qn > 0) {
+      if (mpid && qn > 0) {
+        await decrementMarketplaceStock(mpid, qn);
+      } else if (pid && qn > 0) {
         await decrementProductStock(pid, qn, item.size, item.color);
       }
     }
     await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), req.user.id]);
     const saved = await get(`SELECT * FROM orders WHERE id=?`, [result.id]);
     const items = await all(
-      `SELECT id, product_id, product_name, qty, price, image_url, color, size, brand
+      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [result.id]
     );
@@ -1370,7 +1406,7 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
       [orderId]
     );
     const items = await all(
-      `SELECT id, product_id, product_name, qty, price, image_url, color, size, brand
+      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [orderId]
     );

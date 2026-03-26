@@ -77,6 +77,9 @@
             <button data-tab="tab-categories" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
               <i class="fas fa-layer-group"></i><span data-en="Categories" data-ar="الأقسام">الأقسام</span>
             </button>
+            <button data-tab="tab-marketplace" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-store"></i><span data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</span>
+            </button>
             <button data-tab="tab-offers" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
               <i class="fas fa-tags"></i><span data-en="Elegant picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span>
             </button>
@@ -385,6 +388,131 @@
           </div>
 
           <!-- Categories -->
+          <div id="tab-marketplace" class="tab-panel hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <h2 class="text-lg font-bold mb-3" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
+              <p class="text-sm text-gray-600 mb-4" data-en="Manage marketplace sections, malls/companies, and products (separate from clothing catalog)." data-ar="إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).">إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <button type="button" data-mp-sub="sections" class="mp-subtab px-3 py-2 rounded-xl bg-purple-50 text-purple-700 text-sm font-bold border border-purple-100">الأقسام</button>
+                <button type="button" data-mp-sub="vendors" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200">المولات والشركات</button>
+                <button type="button" data-mp-sub="products" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200">المنتجات</button>
+              </div>
+
+              <div id="mp-pane-sections" class="mp-pane space-y-4">
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" id="btn-mp-refresh-sections" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث الجدول</button>
+                  <button type="button" id="btn-mp-new-section" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">قسم جديد</button>
+                </div>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600"><tr>
+                      <th class="text-start p-2">#</th>
+                      <th class="text-start p-2">slug</th>
+                      <th class="text-start p-2">اسم (ع)</th>
+                      <th class="text-start p-2">ترتيب</th>
+                      <th class="text-start p-2">نشط</th>
+                      <th class="text-start p-2">إجراءات</th>
+                    </tr></thead>
+                    <tbody id="mp-sections-tbody"></tbody>
+                  </table>
+                </div>
+                <form id="mp-section-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+                  <input type="hidden" id="mp-sec-id" />
+                  <div><label class="text-xs font-bold">slug</label><input id="mp-sec-slug" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">ترتيب</label><input id="mp-sec-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
+                  <div><label class="text-xs font-bold">الاسم عربي</label><input id="mp-sec-name-ar" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">الاسم English</label><input id="mp-sec-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">وصف فرعي عربي</label><input id="mp-sec-sub-ar" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">وصف فرعي EN</label><input id="mp-sec-sub-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">صورة الكرت (رابط)</label><input id="mp-sec-card" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://..." /></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-sec-active" checked class="rounded" /><label for="mp-sec-active" class="text-sm font-bold">نشط</label></div>
+                  <div class="md:col-span-2 flex gap-2">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ القسم</button>
+                  </div>
+                </form>
+              </div>
+
+              <div id="mp-pane-vendors" class="mp-pane hidden space-y-4">
+                <div class="flex flex-wrap gap-2 items-end">
+                  <div>
+                    <label class="text-xs font-bold block">القسم</label>
+                    <select id="mp-vendor-section-filter" class="mt-1 p-2 rounded-xl border border-gray-200 min-w-[12rem]"></select>
+                  </div>
+                  <button type="button" id="btn-mp-refresh-vendors" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+                  <button type="button" id="btn-mp-new-vendor" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">مول/شركة جديدة</button>
+                </div>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600"><tr>
+                      <th class="text-start p-2">#</th>
+                      <th class="text-start p-2">الاسم</th>
+                      <th class="text-start p-2">النوع</th>
+                      <th class="text-start p-2">ترتيب</th>
+                      <th class="text-start p-2">إجراءات</th>
+                    </tr></thead>
+                    <tbody id="mp-vendors-tbody"></tbody>
+                  </table>
+                </div>
+                <form id="mp-vendor-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+                  <input type="hidden" id="mp-v-id" />
+                  <div class="md:col-span-2"><label class="text-xs font-bold">القسم</label><select id="mp-v-section" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></select></div>
+                  <div><label class="text-xs font-bold">اسم عربي</label><input id="mp-v-name-ar" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">Name EN</label><input id="mp-v-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">النوع</label><select id="mp-v-type" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="company">شركة</option><option value="mall">مول</option></select></div>
+                  <div><label class="text-xs font-bold">ترتيب</label><input id="mp-v-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
+                  <div><label class="text-xs font-bold">شعار (رابط)</label><input id="mp-v-logo" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">غلاف (رابط)</label><input id="mp-v-cover" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-active" checked class="rounded" /><label for="mp-v-active" class="text-sm font-bold">نشط</label></div>
+                  <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ</button></div>
+                </form>
+              </div>
+
+              <div id="mp-pane-products" class="mp-pane hidden space-y-4">
+                <div class="flex flex-wrap gap-2 items-end">
+                  <div>
+                    <label class="text-xs font-bold block">القسم</label>
+                    <select id="mp-prod-section-filter" class="mt-1 p-2 rounded-xl border border-gray-200 min-w-[11rem]"></select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold block">المول/الشركة</label>
+                    <select id="mp-prod-vendor-filter" class="mt-1 p-2 rounded-xl border border-gray-200 min-w-[11rem]"></select>
+                  </div>
+                  <button type="button" id="btn-mp-refresh-products" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+                  <button type="button" id="btn-mp-new-product" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">منتج جديد</button>
+                </div>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[420px] overflow-y-auto">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 sticky top-0"><tr>
+                      <th class="text-start p-2">#</th>
+                      <th class="text-start p-2">المنتج</th>
+                      <th class="text-start p-2">سعر</th>
+                      <th class="text-start p-2">مخزون</th>
+                      <th class="text-start p-2">إجراءات</th>
+                    </tr></thead>
+                    <tbody id="mp-products-tbody"></tbody>
+                  </table>
+                </div>
+                <form id="mp-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+                  <input type="hidden" id="mp-p-id" />
+                  <div><label class="text-xs font-bold">القسم</label><select id="mp-p-section" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></select></div>
+                  <div><label class="text-xs font-bold">المول/الشركة</label><select id="mp-p-vendor" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></select></div>
+                  <div><label class="text-xs font-bold">اسم عربي</label><input id="mp-p-name-ar" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">Name EN</label><input id="mp-p-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">سعر</label><input id="mp-p-price" type="number" step="any" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div><label class="text-xs font-bold">مخزون</label><input id="mp-p-stock" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">وصف عربي</label><textarea id="mp-p-desc-ar" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></textarea></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">Description EN</label><textarea id="mp-p-desc-en" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></textarea></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">روابط الصور (سطر أو فاصلة لكل رابط)</label><textarea id="mp-p-images" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://..."></textarea></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">رفع صور إضافية</label><input type="file" id="mp-p-images-file" accept="image/*" multiple class="mt-1 block w-full text-sm" /></div>
+                  <div><label class="text-xs font-bold">ترتيب</label><input id="mp-p-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-offer" class="rounded" /><label for="mp-p-offer" class="text-sm font-bold">عرض ترويجي</label></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-active" checked class="rounded" /><label for="mp-p-active" class="text-sm font-bold">نشط</label></div>
+                  <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ المنتج</button></div>
+                </form>
+              </div>
+            </div>
+          </div>
+
           <div id="tab-categories" class="tab-panel hidden">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-3" data-en="Manage Categories" data-ar="إدارة الأقسام">إدارة الأقسام</h2>

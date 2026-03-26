@@ -88,6 +88,33 @@ async function columnNames(table) {
   return rows.map((r) => r.column_name);
 }
 
+/** أقسام السوق الشامل الافتراضية — تُزرع مرة عند قاعدة فارغة */
+async function seedMarketplaceDefaults() {
+  try {
+    const c = await get(`SELECT COUNT(*)::int AS n FROM marketplace_sections`);
+    if (c && Number(c.n) > 0) return;
+    const rows = [
+      ["malls", "مولات", "Malls", "تسوق من المولات", "Shop malls"],
+      ["companies", "شركات", "Companies", "علامات وشركات", "Brands & companies"],
+      ["appliances", "أدوات كهربائية", "Appliances", "أجهزة منزلية", "Home appliances"],
+      ["electronics", "إلكترونيات", "Electronics", "تقنية وإلكترونيات", "Tech & electronics"],
+      ["perfumes", "عطور", "Perfumes", "عطور ومستحضرات", "Fragrances"],
+      ["accessories", "اكسسوارات", "Accessories", "إكسسوارات ومجوهرات", "Accessories"],
+      ["shoes", "أحذية", "Shoes", "أحذية رجالية ونسائية", "Footwear"],
+      ["offers", "عروض", "Offers", "عروض وتخفيضات", "Deals & offers"],
+    ];
+    let i = 0;
+    for (const [slug, ar, en, sar, sen] of rows) {
+      await run(
+        `INSERT INTO marketplace_sections (slug, name_ar, name_en, subtitle_ar, subtitle_en, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [slug, ar, en, sar, sen, i++]
+      );
+    }
+  } catch (_e) {
+    /* ignore seed errors (e.g. concurrent deploy) */
+  }
+}
+
 async function initDb() {
   await run(`CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -225,6 +252,54 @@ async function initDb() {
   await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS image_url TEXT`);
   await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS link_url TEXT`);
   await run(`ALTER TABLE in_app_notifications ADD COLUMN IF NOT EXISTS title TEXT`);
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_sections (
+    id SERIAL PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    name_ar TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    subtitle_ar TEXT NOT NULL DEFAULT '',
+    subtitle_en TEXT NOT NULL DEFAULT '',
+    card_image_url TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_vendors (
+    id SERIAL PRIMARY KEY,
+    section_id INTEGER NOT NULL REFERENCES marketplace_sections(id) ON DELETE CASCADE,
+    name_ar TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    vendor_type TEXT NOT NULL DEFAULT 'company',
+    logo_url TEXT,
+    cover_image_url TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_products (
+    id SERIAL PRIMARY KEY,
+    section_id INTEGER NOT NULL REFERENCES marketplace_sections(id) ON DELETE CASCADE,
+    vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+    name_ar TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    description_ar TEXT NOT NULL DEFAULT '',
+    description_en TEXT NOT NULL DEFAULT '',
+    price DOUBLE PRECISION NOT NULL DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
+    images_json TEXT NOT NULL DEFAULT '[]',
+    is_offer INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    sales_count INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS marketplace_product_id INTEGER REFERENCES marketplace_products(id)`);
+
+  await seedMarketplaceDefaults();
 
   await run(`CREATE TABLE IF NOT EXISTS site_ratings (
     id SERIAL PRIMARY KEY,

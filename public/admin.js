@@ -259,6 +259,575 @@ function setActiveTab(tabId) {
   }
   if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
   if (tabId === "tab-banners") loadBanners().catch(() => {});
+  if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
+}
+
+let adminMpSectionsCache = [];
+let adminMpVendorsCache = [];
+let adminMpProductsCache = [];
+let adminMpListenersBound = false;
+
+function setMpSubtab(name) {
+  document.querySelectorAll(".mp-pane").forEach((p) => p.classList.add("hidden"));
+  const pane = document.getElementById(`mp-pane-${name}`);
+  if (pane) pane.classList.remove("hidden");
+  document.querySelectorAll(".mp-subtab").forEach((b) => {
+    const on = b.getAttribute("data-mp-sub") === name;
+    b.classList.toggle("bg-purple-50", on);
+    b.classList.toggle("text-purple-700", on);
+    b.classList.toggle("border-purple-100", on);
+    b.classList.toggle("bg-gray-50", !on);
+    b.classList.toggle("text-gray-700", !on);
+    b.classList.toggle("border-gray-200", !on);
+  });
+}
+
+function mpParseImageUrls(raw) {
+  return String(raw || "")
+    .split(/[\n,]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+async function loadMpSections() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    adminMpSectionsCache = await api("/api/admin/marketplace/sections", { token });
+  } catch (_e) {
+    adminMpSectionsCache = [];
+  }
+  renderMpSectionsTable();
+  fillMpSectionSelectsAll();
+}
+
+function fillMpSectionSelectsAll() {
+  const ar = getAdminLang() === "ar";
+  const secs = adminMpSectionsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  const opts = secs
+    .map((s) => {
+      const lab = ar ? s.name_ar || s.name_en : s.name_en || s.name_ar;
+      return `<option value="${s.id}">${escapeHtml(lab)}</option>`;
+    })
+    .join("");
+  const blank = ar ? "— الكل / اختر —" : "— All / choose —";
+  [
+    "mp-vendor-section-filter",
+    "mp-v-section",
+    "mp-prod-section-filter",
+    "mp-p-section",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    const needBlank = id !== "mp-v-section" && id !== "mp-p-section";
+    el.innerHTML = (needBlank ? `<option value="">${blank}</option>` : `<option value="">${ar ? "— اختر القسم —" : "— Section —"}</option>`) + opts;
+    if (cur && [...el.options].some((o) => o.value === cur)) el.value = cur;
+  });
+}
+
+function renderMpSectionsTable() {
+  const tbody = document.getElementById("mp-sections-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const rows = adminMpSectionsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">${ar ? "لا أقسام بعد." : "No sections yet."}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((s) => {
+      const name = ar ? s.name_ar || s.name_en : s.name_en || s.name_ar;
+      return `<tr class="border-t border-gray-100">
+        <td class="p-2">${s.id}</td>
+        <td class="p-2 font-mono text-xs">${escapeHtml(s.slug)}</td>
+        <td class="p-2">${escapeHtml(name)}</td>
+        <td class="p-2">${escapeHtml(String(s.sort_order))}</td>
+        <td class="p-2">${s.is_active ? adminT("yes") : adminT("no")}</td>
+        <td class="p-2 flex flex-wrap gap-1">
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-sec-up="${s.id}">↑</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-sec-down="${s.id}">↓</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-purple-50 text-purple-700" data-mp-sec-edit="${s.id}">${adminT("edit")}</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700" data-mp-sec-del="${s.id}">${adminT("delete")}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+async function mpReorderSectionsByMove(id, dir) {
+  const token = getToken();
+  if (!token) return;
+  const rows = adminMpSectionsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  const idx = rows.findIndex((r) => r.id === id);
+  const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= rows.length) return;
+  const next = rows.slice();
+  [next[idx], next[j]] = [next[j], next[idx]];
+  await api("/api/admin/marketplace/sections/reorder", {
+    method: "POST",
+    token,
+    body: { orderedIds: next.map((r) => r.id) },
+  });
+  await loadMpSections();
+}
+
+function mpFillSectionForm(s) {
+  document.getElementById("mp-sec-id").value = s ? s.id : "";
+  document.getElementById("mp-sec-slug").value = s ? s.slug || "" : "";
+  document.getElementById("mp-sec-name-ar").value = s ? s.name_ar || "" : "";
+  document.getElementById("mp-sec-name-en").value = s ? s.name_en || "" : "";
+  document.getElementById("mp-sec-sub-ar").value = s ? s.subtitle_ar || "" : "";
+  document.getElementById("mp-sec-sub-en").value = s ? s.subtitle_en || "" : "";
+  document.getElementById("mp-sec-card").value = s ? s.card_image_url || "" : "";
+  document.getElementById("mp-sec-sort").value = s ? String(s.sort_order ?? 0) : "0";
+  document.getElementById("mp-sec-active").checked = !s || Number(s.is_active) !== 0;
+}
+
+async function loadMpVendorsForAdminFilter() {
+  const token = getToken();
+  if (!token) return;
+  const sid = document.getElementById("mp-vendor-section-filter")?.value?.trim();
+  if (!sid) {
+    adminMpVendorsCache = [];
+    renderMpVendorsTable();
+    return;
+  }
+  try {
+    adminMpVendorsCache = await api(`/api/admin/marketplace/vendors?section_id=${encodeURIComponent(sid)}`, { token });
+  } catch (_e) {
+    adminMpVendorsCache = [];
+  }
+  renderMpVendorsTable();
+}
+
+function renderMpVendorsTable() {
+  const tbody = document.getElementById("mp-vendors-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const rows = adminMpVendorsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">${ar ? "لا مولات/شركات (اختر قسماً)." : "No vendors (pick a section)."}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((v) => {
+      const name = ar ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+      const ty = v.vendor_type === "mall" ? (ar ? "مول" : "Mall") : ar ? "شركة" : "Company";
+      return `<tr class="border-t border-gray-100">
+        <td class="p-2">${v.id}</td>
+        <td class="p-2">${escapeHtml(name)}</td>
+        <td class="p-2">${escapeHtml(ty)}</td>
+        <td class="p-2">${escapeHtml(String(v.sort_order))}</td>
+        <td class="p-2 flex flex-wrap gap-1">
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-v-up="${v.id}">↑</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-v-down="${v.id}">↓</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-purple-50 text-purple-700" data-mp-v-edit="${v.id}">${adminT("edit")}</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700" data-mp-v-del="${v.id}">${adminT("delete")}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+async function mpReorderVendorsByMove(id, dir) {
+  const token = getToken();
+  const sid = document.getElementById("mp-vendor-section-filter")?.value?.trim();
+  if (!token || !sid) return;
+  const rows = adminMpVendorsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  const idx = rows.findIndex((r) => r.id === id);
+  const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= rows.length) return;
+  const next = rows.slice();
+  [next[idx], next[j]] = [next[j], next[idx]];
+  await api("/api/admin/marketplace/vendors/reorder", {
+    method: "POST",
+    token,
+    body: { section_id: Number(sid), orderedIds: next.map((r) => r.id) },
+  });
+  await loadMpVendorsForAdminFilter();
+}
+
+function mpFillVendorForm(v) {
+  document.getElementById("mp-v-id").value = v ? v.id : "";
+  const sec = document.getElementById("mp-v-section");
+  if (sec && v) sec.value = String(v.section_id);
+  document.getElementById("mp-v-name-ar").value = v ? v.name_ar || "" : "";
+  document.getElementById("mp-v-name-en").value = v ? v.name_en || "" : "";
+  document.getElementById("mp-v-type").value = v && v.vendor_type === "mall" ? "mall" : "company";
+  document.getElementById("mp-v-logo").value = v ? v.logo_url || "" : "";
+  document.getElementById("mp-v-cover").value = v ? v.cover_image_url || "" : "";
+  document.getElementById("mp-v-sort").value = v ? String(v.sort_order ?? 0) : "0";
+  document.getElementById("mp-v-active").checked = !v || Number(v.is_active) !== 0;
+}
+
+async function fillMpVendorSelectForProductForm(sectionId) {
+  const token = getToken();
+  const sel = document.getElementById("mp-p-vendor");
+  if (!sel || !token) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${getAdminLang() === "ar" ? "— اختر المورد —" : "— Vendor —"}</option>`;
+  if (!sectionId) return;
+  try {
+    const rows = await api(`/api/admin/marketplace/vendors?section_id=${encodeURIComponent(sectionId)}`, { token });
+    const ar = getAdminLang() === "ar";
+    for (const v of rows || []) {
+      const lab = ar ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+      const o = document.createElement("option");
+      o.value = String(v.id);
+      o.textContent = lab;
+      sel.appendChild(o);
+    }
+    if (cur && [...sel.options].some((x) => x.value === cur)) sel.value = cur;
+  } catch (_e) {}
+}
+
+async function fillMpProdVendorFilterDropdown() {
+  const token = getToken();
+  const secSel = document.getElementById("mp-prod-section-filter");
+  const venSel = document.getElementById("mp-prod-vendor-filter");
+  if (!venSel || !token) return;
+  const cur = venSel.value;
+  const sid = secSel?.value?.trim();
+  venSel.innerHTML = `<option value="">${getAdminLang() === "ar" ? "— الكل —" : "— All —"}</option>`;
+  if (!sid) return;
+  try {
+    const rows = await api(`/api/admin/marketplace/vendors?section_id=${encodeURIComponent(sid)}`, { token });
+    const ar = getAdminLang() === "ar";
+    for (const v of rows || []) {
+      const lab = ar ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+      const o = document.createElement("option");
+      o.value = String(v.id);
+      o.textContent = lab;
+      venSel.appendChild(o);
+    }
+    if (cur && [...venSel.options].some((x) => x.value === cur)) venSel.value = cur;
+  } catch (_e) {}
+}
+
+async function loadMpProductsAdmin() {
+  const token = getToken();
+  if (!token) return;
+  const sid = document.getElementById("mp-prod-section-filter")?.value?.trim();
+  const vid = document.getElementById("mp-prod-vendor-filter")?.value?.trim();
+  const q = new URLSearchParams();
+  if (sid) q.set("section_id", sid);
+  if (vid) q.set("vendor_id", vid);
+  const qs = q.toString();
+  const path = qs ? `/api/admin/marketplace/products?${qs}` : "/api/admin/marketplace/products";
+  try {
+    adminMpProductsCache = await api(path, { token });
+  } catch (_e) {
+    adminMpProductsCache = [];
+  }
+  renderMpProductsTable();
+}
+
+function renderMpProductsTable() {
+  const tbody = document.getElementById("mp-products-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const rows = Array.isArray(adminMpProductsCache) ? adminMpProductsCache : [];
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((p) => {
+      const name = ar ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+      return `<tr class="border-t border-gray-100">
+        <td class="p-2">${p.id}</td>
+        <td class="p-2 max-w-[180px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
+        <td class="p-2">${escapeHtml(String(p.price))}</td>
+        <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
+        <td class="p-2 flex flex-wrap gap-1">
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-p-up="${p.id}">↑</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-p-down="${p.id}">↓</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-purple-50 text-purple-700" data-mp-p-edit="${p.id}">${adminT("edit")}</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700" data-mp-p-del="${p.id}">${adminT("delete")}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+async function mpReorderProductsByMove(id, dir) {
+  const token = getToken();
+  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  const vidFilter = document.getElementById("mp-prod-vendor-filter")?.value?.trim();
+  if (!vidFilter) {
+    alert(ar ? "اختر مول/شركة في الفلاتر أولاً لترتيب منتجاته فقط." : "Pick a vendor in the filters first to reorder that vendor's products.");
+    return;
+  }
+  const p = adminMpProductsCache.find((x) => x.id === id);
+  if (!p) return;
+  const vid = p.vendor_id;
+  const same = adminMpProductsCache.filter((x) => x.vendor_id === vid).sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  const idx = same.findIndex((r) => r.id === id);
+  const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= same.length) return;
+  const next = same.slice();
+  [next[idx], next[j]] = [next[j], next[idx]];
+  await api("/api/admin/marketplace/products/reorder", {
+    method: "POST",
+    token,
+    body: { vendor_id: vid, orderedIds: next.map((r) => r.id) },
+  });
+  await loadMpProductsAdmin();
+}
+
+function mpFillProductForm(p) {
+  document.getElementById("mp-p-id").value = p ? String(p.id) : "";
+  const secEl = document.getElementById("mp-p-section");
+  if (p) {
+    secEl.value = String(p.section_id);
+  } else if (secEl && secEl.options.length > 1) {
+    secEl.selectedIndex = 1;
+  }
+  document.getElementById("mp-p-name-ar").value = p ? p.name_ar || "" : "";
+  document.getElementById("mp-p-name-en").value = p ? p.name_en || "" : "";
+  document.getElementById("mp-p-desc-ar").value = p ? p.description_ar || "" : "";
+  document.getElementById("mp-p-desc-en").value = p ? p.description_en || "" : "";
+  document.getElementById("mp-p-price").value = p ? String(p.price ?? "") : "";
+  document.getElementById("mp-p-stock").value = p ? String(p.stock ?? 0) : "0";
+  const imgs = Array.isArray(p?.images) ? p.images : [];
+  document.getElementById("mp-p-images").value = imgs.join("\n");
+  document.getElementById("mp-p-sort").value = p ? String(p.sort_order ?? 0) : "0";
+  document.getElementById("mp-p-offer").checked = p && Number(p.is_offer) === 1;
+  document.getElementById("mp-p-active").checked = !p || Number(p.is_active) !== 0;
+  const f = document.getElementById("mp-p-images-file");
+  if (f) f.value = "";
+  const sid = p ? p.section_id : secEl?.value;
+  if (p) {
+    fillMpVendorSelectForProductForm(sid).then(() => {
+      const vs = document.getElementById("mp-p-vendor");
+      if (vs) vs.value = String(p.vendor_id);
+    });
+  } else {
+    fillMpVendorSelectForProductForm(sid || "").catch(() => {});
+  }
+}
+
+async function initMarketplaceAdminTab() {
+  setMpSubtab("sections");
+  await loadMpSections();
+  await loadMpVendorsForAdminFilter();
+  await fillMpProdVendorFilterDropdown();
+  await loadMpProductsAdmin();
+  bindMarketplaceAdminListeners();
+}
+
+function bindMarketplaceAdminListeners() {
+  if (adminMpListenersBound) return;
+  adminMpListenersBound = true;
+
+  document.querySelectorAll(".mp-subtab").forEach((b) => {
+    b.addEventListener("click", () => {
+      const sub = b.getAttribute("data-mp-sub");
+      if (sub) setMpSubtab(sub);
+    });
+  });
+
+  document.getElementById("btn-mp-refresh-sections")?.addEventListener("click", () => loadMpSections().catch(() => {}));
+  document.getElementById("btn-mp-new-section")?.addEventListener("click", () => mpFillSectionForm(null));
+
+  document.getElementById("mp-sections-tbody")?.addEventListener("click", (e) => {
+    const u = e.target.closest("[data-mp-sec-up]");
+    const d = e.target.closest("[data-mp-sec-down]");
+    const ed = e.target.closest("[data-mp-sec-edit]");
+    const del = e.target.closest("[data-mp-sec-del]");
+    if (u) mpReorderSectionsByMove(Number(u.getAttribute("data-mp-sec-up")), -1).catch((err) => alert(err.message || err));
+    if (d) mpReorderSectionsByMove(Number(d.getAttribute("data-mp-sec-down")), 1).catch((err) => alert(err.message || err));
+    if (ed) {
+      const id = Number(ed.getAttribute("data-mp-sec-edit"));
+      const s = adminMpSectionsCache.find((x) => x.id === id);
+      if (s) mpFillSectionForm(s);
+    }
+    if (del) {
+      const id = Number(del.getAttribute("data-mp-sec-del"));
+      if (!confirm(adminT("confirmDeleteCategory"))) return;
+      api(`/api/admin/marketplace/sections/${id}`, { method: "DELETE", token: getToken() })
+        .then(() => loadMpSections())
+        .catch((err) => alert(err.message || err));
+    }
+  });
+
+  document.getElementById("mp-section-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    const id = document.getElementById("mp-sec-id").value.trim();
+    const body = {
+      slug: document.getElementById("mp-sec-slug").value.trim(),
+      name_ar: document.getElementById("mp-sec-name-ar").value.trim(),
+      name_en: document.getElementById("mp-sec-name-en").value.trim(),
+      subtitle_ar: document.getElementById("mp-sec-sub-ar").value.trim(),
+      subtitle_en: document.getElementById("mp-sec-sub-en").value.trim(),
+      card_image_url: document.getElementById("mp-sec-card").value.trim() || null,
+      sort_order: Number(document.getElementById("mp-sec-sort").value || 0),
+      is_active: document.getElementById("mp-sec-active").checked ? 1 : 0,
+    };
+    try {
+      if (id) {
+        await api(`/api/admin/marketplace/sections/${id}`, { method: "PUT", token, body });
+      } else {
+        await api("/api/admin/marketplace/sections", { method: "POST", token, body });
+      }
+      await loadMpSections();
+      alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-vendor-section-filter")?.addEventListener("change", () => loadMpVendorsForAdminFilter().catch(() => {}));
+  document.getElementById("btn-mp-refresh-vendors")?.addEventListener("click", () => loadMpVendorsForAdminFilter().catch(() => {}));
+  document.getElementById("btn-mp-new-vendor")?.addEventListener("click", () => {
+    mpFillVendorForm(null);
+    const sid = document.getElementById("mp-vendor-section-filter")?.value;
+    if (sid) document.getElementById("mp-v-section").value = sid;
+  });
+
+  document.getElementById("mp-vendors-tbody")?.addEventListener("click", (e) => {
+    const u = e.target.closest("[data-mp-v-up]");
+    const d = e.target.closest("[data-mp-v-down]");
+    const ed = e.target.closest("[data-mp-v-edit]");
+    const del = e.target.closest("[data-mp-v-del]");
+    if (u) mpReorderVendorsByMove(Number(u.getAttribute("data-mp-v-up")), -1).catch((err) => alert(err.message || err));
+    if (d) mpReorderVendorsByMove(Number(d.getAttribute("data-mp-v-down")), 1).catch((err) => alert(err.message || err));
+    if (ed) {
+      const id = Number(ed.getAttribute("data-mp-v-edit"));
+      const v = adminMpVendorsCache.find((x) => x.id === id);
+      if (v) mpFillVendorForm(v);
+    }
+    if (del) {
+      const id = Number(del.getAttribute("data-mp-v-del"));
+      if (!confirm(adminT("confirmDeleteBrand"))) return;
+      api(`/api/admin/marketplace/vendors/${id}`, { method: "DELETE", token: getToken() })
+        .then(() => loadMpVendorsForAdminFilter())
+        .catch((err) => alert(err.message || err));
+    }
+  });
+
+  document.getElementById("mp-vendor-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    const id = document.getElementById("mp-v-id").value.trim();
+    const body = {
+      section_id: Number(document.getElementById("mp-v-section").value),
+      name_ar: document.getElementById("mp-v-name-ar").value.trim(),
+      name_en: document.getElementById("mp-v-name-en").value.trim(),
+      vendor_type: document.getElementById("mp-v-type").value === "mall" ? "mall" : "company",
+      logo_url: document.getElementById("mp-v-logo").value.trim() || null,
+      cover_image_url: document.getElementById("mp-v-cover").value.trim() || null,
+      sort_order: Number(document.getElementById("mp-v-sort").value || 0),
+      is_active: document.getElementById("mp-v-active").checked ? 1 : 0,
+    };
+    if (!Number.isFinite(body.section_id)) {
+      alert(getAdminLang() === "ar" ? "اختر القسم." : "Choose section.");
+      return;
+    }
+    try {
+      if (id) {
+        await api(`/api/admin/marketplace/vendors/${id}`, { method: "PUT", token, body });
+      } else {
+        await api("/api/admin/marketplace/vendors", { method: "POST", token, body });
+      }
+      const fsid = String(body.section_id);
+      const f = document.getElementById("mp-vendor-section-filter");
+      if (f) f.value = fsid;
+      await loadMpVendorsForAdminFilter();
+      alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-prod-section-filter")?.addEventListener("change", () => {
+    fillMpProdVendorFilterDropdown()
+      .then(() => loadMpProductsAdmin())
+      .catch(() => {});
+  });
+  document.getElementById("mp-prod-vendor-filter")?.addEventListener("change", () => loadMpProductsAdmin().catch(() => {}));
+  document.getElementById("btn-mp-refresh-products")?.addEventListener("click", () => loadMpProductsAdmin().catch(() => {}));
+  document.getElementById("btn-mp-new-product")?.addEventListener("click", () => mpFillProductForm(null));
+
+  document.getElementById("mp-p-section")?.addEventListener("change", () => {
+    const sid = document.getElementById("mp-p-section").value;
+    fillMpVendorSelectForProductForm(sid).catch(() => {});
+  });
+
+  document.getElementById("mp-products-tbody")?.addEventListener("click", (e) => {
+    const u = e.target.closest("[data-mp-p-up]");
+    const d = e.target.closest("[data-mp-p-down]");
+    const ed = e.target.closest("[data-mp-p-edit]");
+    const del = e.target.closest("[data-mp-p-del]");
+    if (u) mpReorderProductsByMove(Number(u.getAttribute("data-mp-p-up")), -1).catch((err) => alert(err.message || err));
+    if (d) mpReorderProductsByMove(Number(d.getAttribute("data-mp-p-down")), 1).catch((err) => alert(err.message || err));
+    if (ed) {
+      const id = Number(ed.getAttribute("data-mp-p-edit"));
+      const p = adminMpProductsCache.find((x) => x.id === id);
+      if (p) mpFillProductForm(p);
+    }
+    if (del) {
+      const id = Number(del.getAttribute("data-mp-p-del"));
+      if (!confirm(adminT("confirmDeleteProduct"))) return;
+      api(`/api/admin/marketplace/products/${id}`, { method: "DELETE", token: getToken() })
+        .then(() => loadMpProductsAdmin())
+        .catch((err) => alert(err.message || err));
+    }
+  });
+
+  document.getElementById("mp-product-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    const id = document.getElementById("mp-p-id").value.trim();
+    let images = mpParseImageUrls(document.getElementById("mp-p-images").value);
+    const fileInput = document.getElementById("mp-p-images-file");
+    if (fileInput && fileInput.files && fileInput.files.length) {
+      for (const file of fileInput.files) {
+        try {
+          const url = await uploadImageFile(file, token);
+          if (url) images.push(url);
+        } catch (err) {
+          alert(err.message || String(err));
+          return;
+        }
+      }
+    }
+    const body = {
+      section_id: Number(document.getElementById("mp-p-section").value),
+      vendor_id: Number(document.getElementById("mp-p-vendor").value),
+      name_ar: document.getElementById("mp-p-name-ar").value.trim(),
+      name_en: document.getElementById("mp-p-name-en").value.trim(),
+      description_ar: document.getElementById("mp-p-desc-ar").value.trim(),
+      description_en: document.getElementById("mp-p-desc-en").value.trim(),
+      price: Number(document.getElementById("mp-p-price").value || 0),
+      stock: Number(document.getElementById("mp-p-stock").value || 0),
+      images,
+      is_offer: document.getElementById("mp-p-offer").checked ? 1 : 0,
+      sort_order: Number(document.getElementById("mp-p-sort").value || 0),
+      is_active: document.getElementById("mp-p-active").checked ? 1 : 0,
+    };
+    if (!Number.isFinite(body.section_id) || !Number.isFinite(body.vendor_id)) {
+      alert(getAdminLang() === "ar" ? "اختر القسم والمورد." : "Choose section and vendor.");
+      return;
+    }
+    try {
+      if (id) {
+        await api(`/api/admin/marketplace/products/${id}`, { method: "PUT", token, body });
+      } else {
+        await api("/api/admin/marketplace/products", { method: "POST", token, body });
+      }
+      await loadMpProductsAdmin();
+      alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
 }
 
 async function loadBanners() {
@@ -1828,6 +2397,7 @@ function refilterAdminActiveTab() {
 
 const HOME_SECTION_VIS_KEYS_FALLBACK = [
   "banners",
+  "comprehensive_market",
   "main_categories",
   "brands",
   "top_brands",
