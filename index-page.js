@@ -2967,9 +2967,18 @@
                 sEl.textContent = sub || (isRTL ? 'ابحث في منتجات كل الشركات من مكان واحد.' : 'Search products from every partner in one place.');
                 const heroSrc = String(d.hero_image_url || d.image_url || '').trim();
                 if (img && heroSrc) {
-                    img.src = absoluteMediaUrl(heroSrc);
-                    img.hidden = false;
-                    img.alt = title || '';
+                    const abs = absoluteMediaUrl(heroSrc);
+                    if (abs) {
+                        try {
+                            img.loading = 'eager';
+                        } catch (_x) {}
+                        img.hidden = false;
+                        img.alt = title || '';
+                        img.src = abs;
+                    } else {
+                        img.removeAttribute('src');
+                        img.hidden = true;
+                    }
                 } else if (img) {
                     img.removeAttribute('src');
                     img.hidden = true;
@@ -3816,6 +3825,10 @@
             const s = String(u || '').trim();
             if (!s) return '';
             if (s.startsWith('http://') || s.startsWith('https://')) return s;
+            if (s.startsWith('//')) {
+                const proto = typeof window !== 'undefined' && window.location && window.location.protocol ? window.location.protocol : 'https:';
+                return `${proto}${s}`;
+            }
             const tail = s.replace(/^\/+/, '');
             if (tail.toLowerCase().startsWith('uploads/')) {
                 return adoraPlaceholderImageUrl();
