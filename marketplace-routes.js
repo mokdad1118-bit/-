@@ -170,26 +170,50 @@ function clampDiscountPercent(raw) {
   return Math.min(100, Math.max(0, n));
 }
 
+/** صورة بطاقة دخول السوق في التطبيق: المحفوظة في الإعدادات، أو أول صورة كرت من أقسام السوق */
+async function buildMarketplaceEntranceResponse(s) {
+  if (!s) {
+    return {
+      image_url: null,
+      hero_image_url: null,
+      title_ar: "",
+      title_en: "",
+      subtitle_ar: "",
+      subtitle_en: "",
+    };
+  }
+  const stored =
+    s.marketplace_entrance_image_url != null && String(s.marketplace_entrance_image_url).trim() !== ""
+      ? String(s.marketplace_entrance_image_url).trim()
+      : null;
+  let hero = stored;
+  if (!hero) {
+    const row = await get(
+      `SELECT card_image_url FROM marketplace_sections
+       WHERE COALESCE(is_active, 1) = 1
+         AND card_image_url IS NOT NULL
+         AND LENGTH(TRIM(COALESCE(card_image_url, ''))) > 0
+       ORDER BY sort_order ASC, id ASC
+       LIMIT 1`
+    );
+    if (row && row.card_image_url) hero = String(row.card_image_url).trim();
+  }
+  return {
+    image_url: stored,
+    hero_image_url: hero || null,
+    title_ar: s.marketplace_entrance_title_ar || "",
+    title_en: s.marketplace_entrance_title_en || "",
+    subtitle_ar: s.marketplace_entrance_subtitle_ar || "",
+    subtitle_en: s.marketplace_entrance_subtitle_en || "",
+  };
+}
+
 function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
   app.get("/api/marketplace/entrance", async (_req, res) => {
     try {
       const s = await getVendorPlatformSettings();
-      if (!s) {
-        return res.json({
-          image_url: null,
-          title_ar: "",
-          title_en: "",
-          subtitle_ar: "",
-          subtitle_en: "",
-        });
-      }
-      return res.json({
-        image_url: s.marketplace_entrance_image_url || null,
-        title_ar: s.marketplace_entrance_title_ar || "",
-        title_en: s.marketplace_entrance_title_en || "",
-        subtitle_ar: s.marketplace_entrance_subtitle_ar || "",
-        subtitle_en: s.marketplace_entrance_subtitle_en || "",
-      });
+      const payload = await buildMarketplaceEntranceResponse(s);
+      return res.json(payload);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load entrance" });
     }
@@ -221,13 +245,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         ]
       );
       const s = await getVendorPlatformSettings();
-      return res.json({
-        image_url: s.marketplace_entrance_image_url || null,
-        title_ar: s.marketplace_entrance_title_ar || "",
-        title_en: s.marketplace_entrance_title_en || "",
-        subtitle_ar: s.marketplace_entrance_subtitle_ar || "",
-        subtitle_en: s.marketplace_entrance_subtitle_en || "",
-      });
+      return res.json(await buildMarketplaceEntranceResponse(s));
     } catch (_e) {
       return res.status(500).json({ error: "Failed to save entrance" });
     }

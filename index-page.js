@@ -2965,8 +2965,9 @@
                 const sub = loc === 'ar' ? d.subtitle_ar || d.subtitle_en : d.subtitle_en || d.subtitle_ar;
                 tEl.textContent = title || (isRTL ? 'سوق الشركات في أدورا' : 'Adora partner market');
                 sEl.textContent = sub || (isRTL ? 'ابحث في منتجات كل الشركات من مكان واحد.' : 'Search products from every partner in one place.');
-                if (img && d.image_url && String(d.image_url).trim()) {
-                    img.src = absoluteMediaUrl(String(d.image_url).trim());
+                const heroSrc = String(d.hero_image_url || d.image_url || '').trim();
+                if (img && heroSrc) {
+                    img.src = absoluteMediaUrl(heroSrc);
                     img.hidden = false;
                     img.alt = title || '';
                 } else if (img) {
