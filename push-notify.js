@@ -35,11 +35,21 @@ function sanitizeHttpsUrl(s, maxLen = 2048) {
   }
 }
 
+/** مثل CORS: يقبل domain بدون https لـ PUBLIC_URL / أول CORS_ORIGIN */
+function normalizeFrontendBase(raw) {
+  if (raw == null || !String(raw).trim()) return "";
+  let s = String(raw).split(",")[0].trim().replace(/\/+$/, "");
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, "")}`;
+  }
+  return s.replace(/\/$/, "");
+}
+
 /** أصل الواجهة العامة (أيقونات الـ Push تحتاج روابط مطلقة غالباً) */
 function getPublicAssetBase() {
   const raw = process.env.PUBLIC_URL || (process.env.CORS_ORIGIN && String(process.env.CORS_ORIGIN).split(",")[0].trim());
-  if (!raw) return "";
-  return String(raw).replace(/\/$/, "");
+  return normalizeFrontendBase(raw);
 }
 
 /** عنوان فتح التطبيق عند الضغط: مسار / أو رابط https */

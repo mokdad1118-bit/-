@@ -39,15 +39,33 @@ if (isProd) {
   app.set("trust proxy", 1);
 }
 
+/** CORS يتطلب أصلاً كاملاً مثل https://example.com — إن وُضع example.com فقط نضيف https:// */
+function normalizeCorsOriginEntry(entry) {
+  let s = String(entry ?? "").trim();
+  if (!s) return "";
+  s = s.replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(s)) {
+    s = `https://${s.replace(/^\/+/, "")}`;
+  }
+  return s;
+}
+
+function parseCorsOriginEnv(raw) {
+  return String(raw ?? "")
+    .split(",")
+    .map((x) => normalizeCorsOriginEntry(x))
+    .filter(Boolean);
+}
+
 function corsOptions() {
   const raw = process.env.CORS_ORIGIN;
   if (!raw || !String(raw).trim()) {
     return { origin: true, credentials: true };
   }
-  const list = String(raw)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const list = parseCorsOriginEnv(raw);
+  if (!list.length) {
+    return { origin: true, credentials: true };
+  }
   return { origin: list.length === 1 ? list[0] : list, credentials: true };
 }
 
@@ -1866,10 +1884,10 @@ function socketIoCors() {
   if (!raw || !String(raw).trim()) {
     return { origin: "*", methods: ["GET", "POST"] };
   }
-  const list = String(raw)
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const list = parseCorsOriginEnv(raw);
+  if (!list.length) {
+    return { origin: "*", methods: ["GET", "POST"] };
+  }
   return { origin: list.length === 1 ? list[0] : list, methods: ["GET", "POST"] };
 }
 
