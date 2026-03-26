@@ -424,7 +424,12 @@
                   <div><label class="text-xs font-bold">الاسم English</label><input id="mp-sec-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">وصف فرعي عربي</label><input id="mp-sec-sub-ar" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">وصف فرعي EN</label><input id="mp-sec-sub-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">صورة الكرت (رابط)</label><input id="mp-sec-card" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://..." /></div>
+                  <div class="md:col-span-2 space-y-1">
+                    <label class="text-xs font-bold" data-en="Card image (URL)" data-ar="صورة الكرت (رابط)">صورة الكرت (رابط)</label>
+                    <input id="mp-sec-card" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://..." />
+                    <label class="text-xs font-semibold text-gray-600" data-en="Or upload from computer" data-ar="أو رفع من الجهاز">أو رفع من الجهاز</label>
+                    <input type="file" id="mp-sec-card-file" accept="image/*" class="mt-0.5 block w-full text-sm" />
+                  </div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-sec-active" checked class="rounded" /><label for="mp-sec-active" class="text-sm font-bold">نشط</label></div>
                   <div class="md:col-span-2 flex gap-2">
                     <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ القسم</button>
@@ -460,8 +465,18 @@
                   <div><label class="text-xs font-bold">Name EN</label><input id="mp-v-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div><label class="text-xs font-bold">النوع</label><select id="mp-v-type" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="company">شركة</option><option value="mall">مول</option></select></div>
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-v-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
-                  <div><label class="text-xs font-bold">شعار (رابط)</label><input id="mp-v-logo" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
-                  <div><label class="text-xs font-bold">غلاف (رابط)</label><input id="mp-v-cover" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                  <div class="space-y-1">
+                    <label class="text-xs font-bold" data-en="Logo (URL)" data-ar="شعار (رابط)">شعار (رابط)</label>
+                    <input id="mp-v-logo" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                    <label class="text-[11px] font-semibold text-gray-600" data-en="Upload logo" data-ar="رفع شعار">رفع شعار</label>
+                    <input type="file" id="mp-v-logo-file" accept="image/*" class="block w-full text-sm" />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-xs font-bold" data-en="Cover (URL)" data-ar="غلاف (رابط)">غلاف (رابط)</label>
+                    <input id="mp-v-cover" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                    <label class="text-[11px] font-semibold text-gray-600" data-en="Upload cover" data-ar="رفع غلاف">رفع غلاف</label>
+                    <input type="file" id="mp-v-cover-file" accept="image/*" class="block w-full text-sm" />
+                  </div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-active" checked class="rounded" /><label for="mp-v-active" class="text-sm font-bold">نشط</label></div>
                   <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ</button></div>
                 </form>

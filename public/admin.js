@@ -517,6 +517,8 @@ function mpFillSectionForm(s) {
   document.getElementById("mp-sec-card").value = s ? s.card_image_url || "" : "";
   document.getElementById("mp-sec-sort").value = s ? String(s.sort_order ?? 0) : "0";
   document.getElementById("mp-sec-active").checked = !s || Number(s.is_active) !== 0;
+  const cf = document.getElementById("mp-sec-card-file");
+  if (cf) cf.value = "";
 }
 
 async function loadMpVendorsForAdminFilter() {
@@ -594,6 +596,10 @@ function mpFillVendorForm(v) {
   document.getElementById("mp-v-cover").value = v ? v.cover_image_url || "" : "";
   document.getElementById("mp-v-sort").value = v ? String(v.sort_order ?? 0) : "0";
   document.getElementById("mp-v-active").checked = !v || Number(v.is_active) !== 0;
+  const lf = document.getElementById("mp-v-logo-file");
+  const cf = document.getElementById("mp-v-cover-file");
+  if (lf) lf.value = "";
+  if (cf) cf.value = "";
 }
 
 async function fillMpVendorSelectForProductForm(sectionId) {
@@ -793,13 +799,24 @@ function bindMarketplaceAdminListeners() {
     const token = getToken();
     if (!token) return;
     const id = document.getElementById("mp-sec-id").value.trim();
+    let card_image_url = document.getElementById("mp-sec-card").value.trim() || null;
+    const cardFile = document.getElementById("mp-sec-card-file")?.files?.[0];
+    if (cardFile) {
+      try {
+        const up = await uploadImageFile(cardFile, token);
+        if (up) card_image_url = up;
+      } catch (err) {
+        alert(err.message || String(err));
+        return;
+      }
+    }
     const body = {
       slug: document.getElementById("mp-sec-slug").value.trim(),
       name_ar: document.getElementById("mp-sec-name-ar").value.trim(),
       name_en: document.getElementById("mp-sec-name-en").value.trim(),
       subtitle_ar: document.getElementById("mp-sec-sub-ar").value.trim(),
       subtitle_en: document.getElementById("mp-sec-sub-en").value.trim(),
-      card_image_url: document.getElementById("mp-sec-card").value.trim() || null,
+      card_image_url,
       sort_order: Number(document.getElementById("mp-sec-sort").value || 0),
       is_active: document.getElementById("mp-sec-active").checked ? 1 : 0,
     };
@@ -809,6 +826,9 @@ function bindMarketplaceAdminListeners() {
       } else {
         await api("/api/admin/marketplace/sections", { method: "POST", token, body });
       }
+      const cfin = document.getElementById("mp-sec-card-file");
+      if (cfin) cfin.value = "";
+      if (card_image_url) document.getElementById("mp-sec-card").value = card_image_url;
       await loadMpSections();
       alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
     } catch (err) {
@@ -850,13 +870,35 @@ function bindMarketplaceAdminListeners() {
     const token = getToken();
     if (!token) return;
     const id = document.getElementById("mp-v-id").value.trim();
+    let logo_url = document.getElementById("mp-v-logo").value.trim() || null;
+    let cover_image_url = document.getElementById("mp-v-cover").value.trim() || null;
+    const logoFile = document.getElementById("mp-v-logo-file")?.files?.[0];
+    const coverFile = document.getElementById("mp-v-cover-file")?.files?.[0];
+    if (logoFile) {
+      try {
+        const up = await uploadImageFile(logoFile, token);
+        if (up) logo_url = up;
+      } catch (err) {
+        alert(err.message || String(err));
+        return;
+      }
+    }
+    if (coverFile) {
+      try {
+        const up = await uploadImageFile(coverFile, token);
+        if (up) cover_image_url = up;
+      } catch (err) {
+        alert(err.message || String(err));
+        return;
+      }
+    }
     const body = {
       section_id: Number(document.getElementById("mp-v-section").value),
       name_ar: document.getElementById("mp-v-name-ar").value.trim(),
       name_en: document.getElementById("mp-v-name-en").value.trim(),
       vendor_type: document.getElementById("mp-v-type").value === "mall" ? "mall" : "company",
-      logo_url: document.getElementById("mp-v-logo").value.trim() || null,
-      cover_image_url: document.getElementById("mp-v-cover").value.trim() || null,
+      logo_url,
+      cover_image_url,
       sort_order: Number(document.getElementById("mp-v-sort").value || 0),
       is_active: document.getElementById("mp-v-active").checked ? 1 : 0,
     };
@@ -870,6 +912,12 @@ function bindMarketplaceAdminListeners() {
       } else {
         await api("/api/admin/marketplace/vendors", { method: "POST", token, body });
       }
+      const lfin = document.getElementById("mp-v-logo-file");
+      const cfin = document.getElementById("mp-v-cover-file");
+      if (lfin) lfin.value = "";
+      if (cfin) cfin.value = "";
+      if (logo_url) document.getElementById("mp-v-logo").value = logo_url;
+      if (cover_image_url) document.getElementById("mp-v-cover").value = cover_image_url;
       const fsid = String(body.section_id);
       const f = document.getElementById("mp-vendor-section-filter");
       if (f) f.value = fsid;

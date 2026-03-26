@@ -1386,18 +1386,32 @@
             }
         }
 
-        /* بانرات الرئيسية — سلايدر بعرض كامل، ارتفاع 200px، زوايا 16px */
+        /* بانرات الرئيسية — تمرير أفقي + شريط تمرير + تلقائي كل 2s */
         .adora-banner-slider-viewport {
             border-radius: 16px;
             -webkit-tap-highlight-color: transparent;
         }
+        .adora-banner-slider-viewport.adora-banner-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124, 58, 237, 0.5) rgba(15, 23, 42, 0.07);
+        }
+        .adora-banner-slider-viewport.adora-banner-scroll::-webkit-scrollbar {
+            height: 7px;
+        }
+        .adora-banner-slider-viewport.adora-banner-scroll::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.45);
+            border-radius: 999px;
+        }
+        .adora-banner-slider-viewport.adora-banner-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.06);
+            border-radius: 999px;
+        }
         .adora-banner-slider-track {
             backface-visibility: hidden;
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .adora-banner-slider-track {
-                transition: none !important;
-            }
         }
         
         .filter-modal {

@@ -5228,7 +5228,7 @@
             }
         }
 
-        /** سلايدر بعرض 100% وارتفاع 200px، تبديل كل 3s — صور مثل 1200×400 تُعرض بـ object-cover */
+        /** بانر: تمرير أفقي يدوي + شريط تمرير، وتبديل تلقائي كل 2s (مع احترام تقليل الحركة) */
         function __mountAdoraBannerSlider(host, banners) {
             const n = banners.length;
             if (!n) {
@@ -5253,7 +5253,7 @@
                         ? `<a href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
                         : '';
                     if (hasImg) {
-                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200">
+                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
   <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-adora-banner-img="1" />
   <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
     ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
@@ -5262,7 +5262,7 @@
   </div>
 </div>`;
                     }
-                    return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 px-4 text-center">
+                    return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 px-4 text-center snap-start snap-always">
   <div class="max-w-full">
     ${title ? `<p class="text-[14px] font-bold text-white drop-shadow">${escapeHtml(title)}</p>` : ''}
     ${bodyTxt ? `<p class="mt-1 text-[12px] leading-snug text-white/95 line-clamp-3">${escapeHtml(bodyTxt)}</p>` : ''}
@@ -5271,8 +5271,8 @@
 </div>`;
                 })
                 .join('');
-            host.innerHTML = `<div class="adora-banner-slider-viewport relative w-full overflow-hidden shadow-md" style="height:200px;border-radius:16px">
-  <div dir="ltr" class="adora-banner-slider-track flex h-[200px] transition-transform duration-500 ease-out" style="will-change:transform">
+            host.innerHTML = `<div class="adora-banner-slider-viewport adora-banner-scroll relative w-full shadow-md snap-x snap-mandatory" style="height:200px;border-radius:16px">
+  <div dir="ltr" class="adora-banner-slider-track flex h-[200px]">
     ${slidesHtml}
   </div>
 </div>`;
@@ -5284,8 +5284,14 @@
             let idx = 0;
             let resizeTimer = null;
             let layoutZeroRetries = 0;
+            let scrollSyncTimer = null;
+
+            function slideW() {
+                return vp.offsetWidth || 0;
+            }
+
             function layout() {
-                const w = vp.offsetWidth;
+                const w = slideW();
                 if (!w) {
                     if (layoutZeroRetries < 12) {
                         layoutZeroRetries += 1;
@@ -5295,11 +5301,22 @@
                 }
                 layoutZeroRetries = 0;
                 slides.forEach((el) => {
+                    el.style.flexShrink = '0';
                     el.style.flex = `0 0 ${w}px`;
                     el.style.minWidth = `${w}px`;
+                    el.style.width = `${w}px`;
                 });
-                track.style.transform = `translate3d(-${idx * w}px,0,0)`;
+                idx = Math.max(0, Math.min(n - 1, idx));
+                vp.scrollTo({ left: idx * w, behavior: 'auto' });
             }
+
+            function syncIdxFromScroll() {
+                const w = slideW();
+                if (!w) return;
+                const i = Math.round(vp.scrollLeft / w);
+                idx = Math.max(0, Math.min(n - 1, i));
+            }
+
             function onResize() {
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(() => {
@@ -5307,9 +5324,20 @@
                     layout();
                 }, 80);
             }
+
             layout();
             setTimeout(() => layout(), 0);
             setTimeout(() => layout(), 120);
+
+            vp.addEventListener(
+                'scroll',
+                () => {
+                    clearTimeout(scrollSyncTimer);
+                    scrollSyncTimer = setTimeout(syncIdxFromScroll, 50);
+                },
+                { passive: true }
+            );
+
             if (typeof ResizeObserver !== 'undefined') {
                 try {
                     const ro = new ResizeObserver(() => layout());
@@ -5330,9 +5358,11 @@
             } catch (_e2) {}
             if (!reduced) {
                 const id = setInterval(() => {
+                    const w = slideW();
+                    if (!w) return;
                     idx = (idx + 1) % n;
-                    layout();
-                }, 3000);
+                    vp.scrollTo({ left: idx * w, behavior: 'smooth' });
+                }, 2000);
                 window.__adoraBannerCarouselTimers = window.__adoraBannerCarouselTimers || [];
                 window.__adoraBannerCarouselTimers.push(id);
             }
