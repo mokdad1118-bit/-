@@ -2876,8 +2876,7 @@
         <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market" data-home-order-key="comprehensive_market">
             <div class="flex flex-col items-center text-center gap-2.5">
                 <h2 class="adora-glow-title text-lg sm:text-xl max-w-[min(100%,20rem)] mx-auto leading-snug" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
-                <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="Malls, companies, electrical appliances & more — Adora's comprehensive market for everything you need." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
-                <button type="button" onclick="openMarketplaceBrowse({})" class="mt-0.5 text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-6 py-2.5 rounded-full border border-purple-200/80 shadow-sm shadow-purple-900/5 active:scale-[0.98] transition-transform" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
+                <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="A curated group of companies under Adora — open the market to search all products." data-ar="مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.">مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.</p>
             </div>
             <div id="partner-cta-home-above-marketplace" class="hidden px-1 pt-2">
                 <button type="button" class="partner-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openVendorJoinPage()">
@@ -2888,9 +2887,20 @@
                     </span>
                 </button>
             </div>
-            <div id="marketplace-home-strip" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1 min-h-[7.5rem] items-stretch">
-                <p class="text-xs text-gray-400 py-6 whitespace-nowrap" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
-            </div>
+            <button type="button" id="marketplace-home-entrance-card" onclick="openMarketplaceBrowse({})" class="w-full max-w-md mx-auto block rounded-2xl overflow-hidden border border-purple-100 shadow-lg shadow-purple-900/10 bg-gradient-to-br from-violet-600 to-purple-800 text-start active:scale-[0.99] transition-transform">
+                <div class="relative aspect-[16/9] w-full bg-gray-900/20">
+                    <img id="marketplace-home-entrance-img" src="" alt="" class="absolute inset-0 w-full h-full object-cover opacity-95" loading="lazy" decoding="async" referrerpolicy="no-referrer" hidden />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none" aria-hidden="true"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-white">
+                        <p id="marketplace-home-entrance-title" class="text-base sm:text-lg font-extrabold leading-tight drop-shadow-sm">—</p>
+                        <p id="marketplace-home-entrance-subtitle" class="mt-1 text-xs sm:text-sm text-white/90 leading-snug line-clamp-2">—</p>
+                    </div>
+                </div>
+                <div class="px-4 py-3 bg-white/10 backdrop-blur-sm flex items-center justify-between gap-2 text-white text-sm font-bold">
+                    <span data-en="Open market" data-ar="دخول السوق">دخول السوق</span>
+                    <i class="fas fa-arrow-left rtl:rotate-180 text-sm opacity-90" aria-hidden="true"></i>
+                </div>
+            </button>
             <div id="marketplace-home-highlights" class="hidden space-y-4 pt-3"></div>
         </div>
 
@@ -3411,31 +3421,11 @@
                 <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3"></i>
                 <input type="search" id="marketplace-search-input" enterkeyhint="search" autocomplete="off"
                     class="w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
-                    data-en-ph="Search product, company, or mall…"
-                    data-ar-ph="ابحث عن منتج، شركة، أو مول…"
-                    placeholder="ابحث عن منتج، شركة، أو مول…" />
+                    data-en-ph="Search by product or company (all vendors)…"
+                    data-ar-ph="ابحث باسم منتج أو شركة (كل المتاجر)…"
+                    placeholder="ابحث باسم منتج أو شركة (كل المتاجر)…" />
             </div>
-            <div class="flex flex-wrap gap-2 items-center">
-                <select id="marketplace-filter-section" class="text-xs font-semibold rounded-xl border border-gray-200 bg-white py-2 px-2 min-w-[7rem] max-w-[46%] focus:outline-none focus:ring-2 focus:ring-purple-500" onchange="onMarketplaceSectionFilterChange()">
-                    <option value="" data-en="All sections" data-ar="كل الأقسام">كل الأقسام</option>
-                </select>
-                <select id="marketplace-filter-vendor" class="text-xs font-semibold rounded-xl border border-gray-200 bg-white py-2 px-2 min-w-[7rem] max-w-[46%] focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    <option value="" data-en="All vendors" data-ar="كل الشركات/المولات">كل الشركات/المولات</option>
-                </select>
-                <select id="marketplace-filter-sort" class="text-xs font-semibold rounded-xl border border-gray-200 bg-white py-2 px-2 min-w-[6.5rem] focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    <option value="newest" data-en="Newest" data-ar="الأحدث">الأحدث</option>
-                    <option value="bestsellers" data-en="Bestsellers" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</option>
-                    <option value="price_asc" data-en="Price ↑" data-ar="السعر ↑">السعر ↑</option>
-                    <option value="price_desc" data-en="Price ↓" data-ar="السعر ↓">السعر ↓</option>
-                </select>
-                <input type="number" inputmode="decimal" min="0" step="1" id="marketplace-min-price" class="w-[4.5rem] text-xs rounded-xl border border-gray-200 py-2 px-2" placeholder="من" data-en-ph="Min" data-ar-ph="من" />
-                <input type="number" inputmode="decimal" min="0" step="1" id="marketplace-max-price" class="w-[4.5rem] text-xs rounded-xl border border-gray-200 py-2 px-2" placeholder="إلى" data-en-ph="Max" data-ar-ph="إلى" />
-                <label class="inline-flex items-center gap-1.5 text-xs font-bold text-purple-800 bg-purple-50 px-2 py-1.5 rounded-xl border border-purple-100 cursor-pointer">
-                    <input type="checkbox" id="marketplace-filter-offers" class="rounded border-gray-300 text-purple-600" />
-                    <span data-en="Offers" data-ar="عروض">عروض</span>
-                </label>
-                <button type="button" onclick="refreshMarketplaceProductList()" class="text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-xl active:scale-95" data-en="Apply" data-ar="تطبيق">تطبيق</button>
-            </div>
+            <p id="marketplace-browse-hint" class="text-[11px] text-gray-500 leading-relaxed px-0.5" data-en="Without a search term, featured picks are shown. Type to search across every company." data-ar="بدون كتابة يظهر اختيار منتجات مميزة. اكتب للبحث في جميع الشركات.">بدون كتابة يظهر اختيار منتجات مميزة. اكتب للبحث في جميع الشركات.</p>
         </div>
         <div id="marketplace-products-grid" class="p-3 grid grid-cols-2 gap-2.5 pb-32 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
@@ -3459,14 +3449,50 @@
                 <p id="marketplace-detail-section" class="text-xs text-gray-500 mt-0.5">—</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <span id="marketplace-detail-price-old" class="hidden text-lg text-gray-400 line-through font-semibold">—</span>
                 <span id="marketplace-detail-price" class="text-2xl font-bold text-purple-600">—</span>
+                <span id="marketplace-detail-discount-badge" class="hidden text-xs font-bold bg-rose-100 text-rose-800 px-2 py-1 rounded-full">—</span>
                 <span id="marketplace-detail-offer-badge" class="hidden text-xs font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-full" data-en="Offer" data-ar="عرض">عرض</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <span id="marketplace-detail-rating-avg" class="text-lg font-bold text-gray-900">—</span>
+                <span id="marketplace-detail-stars-display" class="text-amber-400 text-sm" aria-hidden="true"></span>
+                <span id="marketplace-detail-rating-count-label" class="text-sm text-gray-500" data-en="0 reviews" data-ar="0 تقييم">0 تقييم</span>
             </div>
             <p id="marketplace-detail-stock" class="text-sm text-gray-600">—</p>
             <div class="border-t border-gray-100 pt-4">
                 <h3 class="font-semibold text-gray-900 mb-2" data-en="Description" data-ar="الوصف">الوصف</h3>
                 <p id="marketplace-detail-desc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">—</p>
             </div>
+            <div class="border-t border-gray-100 mb-2">
+                <button type="button" onclick="document.getElementById('marketplace-review-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })" class="w-full py-4 flex justify-between items-center text-start">
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-gray-900" data-en="Reviews" data-ar="التقييمات">التقييمات</span>
+                        <span id="marketplace-reviews-count-badge" class="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-semibold">0</span>
+                    </div>
+                    <i class="fas fa-chevron-down text-gray-400" aria-hidden="true"></i>
+                </button>
+                <div id="marketplace-reviews-list" class="space-y-4 pb-4">
+                    <p class="text-sm text-gray-500 py-2" data-en="Loading reviews…" data-ar="جاري تحميل التقييمات…">جاري تحميل التقييمات…</p>
+                </div>
+            </div>
+        </div>
+        <div id="marketplace-review-panel" class="px-5 pt-2 pb-44 border-t border-amber-100 bg-amber-50/40 scroll-mt-4">
+            <h3 class="font-bold text-gray-900 mb-0.5" data-en="Rate this product" data-ar="قيّم هذا المنتج">قيّم هذا المنتج</h3>
+            <p class="text-xs text-gray-600 mb-2 leading-relaxed" data-en="Your stars and comment appear with your account name." data-ar="تظهر النجوم والتعليق مع اسم حسابك.">تظهر النجوم والتعليق مع اسم حسابك.</p>
+            <p id="marketplace-review-login-hint" class="text-xs text-amber-800 bg-amber-100 rounded-lg px-2 py-1.5 mb-2 hidden" data-en="Sign in to submit a review." data-ar="سجّل الدخول لإرسال تقييم.">سجّل الدخول لإرسال تقييم.</p>
+            <div id="marketplace-review-stars-row" class="flex gap-1 justify-center mb-2 dir-ltr" dir="ltr" role="group">
+                <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="1" aria-label="1"><i class="far fa-star text-gray-300"></i></button>
+                <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="2" aria-label="2"><i class="far fa-star text-gray-300"></i></button>
+                <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="3" aria-label="3"><i class="far fa-star text-gray-300"></i></button>
+                <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="4" aria-label="4"><i class="far fa-star text-gray-300"></i></button>
+                <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="5" aria-label="5"><i class="far fa-star text-gray-300"></i></button>
+            </div>
+            <textarea id="marketplace-review-comment" rows="3" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-amber-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
+            <button type="button" onclick="submitMarketplaceProductReview()" class="mt-2 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                <i class="fas fa-paper-plane text-sm"></i>
+                <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
+            </button>
         </div>
         <div class="sticky-bottom">
             <div class="flex items-center gap-4 mb-4">

@@ -339,6 +339,7 @@ async function initDb() {
   await migrateVendorPlatformPartnerCtaPlacements();
   await migrateVendorSubscriptionUserLink();
   await migrateVendorJoinTermsAndDocImages();
+  await migrateMarketplaceComprehensiveV2();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -645,6 +646,71 @@ async function migrateVendorSubscriptionUserLink() {
 }
 
 /** شروط نموذج انضمام كشركة + حقول صور الهوية/السجل */
+/** واجهة دخول السوق الشامل + أقسام داخل كل شركة + خصم المنتج + تقييمات */
+async function migrateMarketplaceComprehensiveV2() {
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS marketplace_entrance_image_url TEXT`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS marketplace_entrance_title_ar TEXT NOT NULL DEFAULT ''`
+  );
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS marketplace_entrance_title_en TEXT NOT NULL DEFAULT ''`
+  );
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS marketplace_entrance_subtitle_ar TEXT NOT NULL DEFAULT ''`
+  );
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS marketplace_entrance_subtitle_en TEXT NOT NULL DEFAULT ''`
+  );
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_vendor_departments (
+    id SERIAL PRIMARY KEY,
+    vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+    name_ar TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_mvdept_vendor ON marketplace_vendor_departments (vendor_id)`);
+
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES marketplace_vendor_departments(id) ON DELETE SET NULL`
+  );
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS discount_percent DOUBLE PRECISION NOT NULL DEFAULT 0`
+  );
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_product_reviews (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    marketplace_product_id INTEGER NOT NULL REFERENCES marketplace_products(id) ON DELETE CASCADE,
+    stars INTEGER NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT mp_reviews_user_product UNIQUE (user_id, marketplace_product_id)
+  )`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_mp_reviews_product ON marketplace_product_reviews (marketplace_product_id)`
+  );
+
+  const c = await get(`SELECT COUNT(*)::int AS n FROM marketplace_vendor_departments`);
+  if (c && Number(c.n) === 0) {
+    const vendors = await all(`SELECT id FROM marketplace_vendors`);
+    for (const v of vendors) {
+      const ins = await run(
+        `INSERT INTO marketplace_vendor_departments (vendor_id, name_ar, name_en, sort_order, is_active) VALUES (?, ?, ?, ?, 1)`,
+        [v.id, "رئيسي", "Main", 0]
+      );
+      const depId = ins.id;
+      if (depId)
+        await run(`UPDATE marketplace_products SET department_id=? WHERE vendor_id=? AND department_id IS NULL`, [
+          depId,
+          v.id,
+        ]);
+    }
+  }
+}
+
 async function migrateVendorJoinTermsAndDocImages() {
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_ar TEXT NOT NULL DEFAULT ''`);
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_en TEXT NOT NULL DEFAULT ''`);

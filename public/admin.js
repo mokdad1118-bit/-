@@ -684,6 +684,7 @@ async function loadVendorSubscriptionRequests() {
 let adminMpSectionsCache = [];
 let adminMpVendorsCache = [];
 let adminMpProductsCache = [];
+let adminMpDeptsCache = [];
 let adminMpListenersBound = false;
 
 function setMpSubtab(name) {
@@ -734,6 +735,7 @@ function fillMpSectionSelectsAll() {
     "mp-vendor-section-filter",
     "mp-v-section",
     "mp-prod-section-filter",
+    "mp-dept-section-filter",
     "mp-p-section",
   ].forEach((id) => {
     const el = document.getElementById(id);
@@ -944,6 +946,139 @@ async function fillMpProdVendorFilterDropdown() {
   } catch (_e) {}
 }
 
+async function fillMpDeptVendorFilterDropdown() {
+  const token = getToken();
+  const secSel = document.getElementById("mp-dept-section-filter");
+  const venSel = document.getElementById("mp-dept-vendor-filter");
+  if (!venSel || !token) return;
+  const cur = venSel.value;
+  const sid = secSel?.value?.trim();
+  venSel.innerHTML = `<option value="">${getAdminLang() === "ar" ? "— اختر الشركة —" : "— Choose vendor —"}</option>`;
+  if (!sid) return;
+  try {
+    const rows = await api(`/api/admin/marketplace/vendors?section_id=${encodeURIComponent(sid)}`, { token });
+    const ar = getAdminLang() === "ar";
+    for (const v of rows || []) {
+      const lab = ar ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+      const o = document.createElement("option");
+      o.value = String(v.id);
+      o.textContent = lab;
+      venSel.appendChild(o);
+    }
+    if (cur && [...venSel.options].some((x) => x.value === cur)) venSel.value = cur;
+  } catch (_e) {}
+}
+
+async function loadMpEntranceForm() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const d = await api("/api/marketplace/entrance", { token });
+    document.getElementById("mp-entrance-image").value = d.image_url || "";
+    document.getElementById("mp-entrance-title-ar").value = d.title_ar || "";
+    document.getElementById("mp-entrance-title-en").value = d.title_en || "";
+    document.getElementById("mp-entrance-sub-ar").value = d.subtitle_ar || "";
+    document.getElementById("mp-entrance-sub-en").value = d.subtitle_en || "";
+  } catch (_e) {}
+}
+
+async function loadMpDepartmentsAdmin() {
+  const token = getToken();
+  const vid = document.getElementById("mp-dept-vendor-filter")?.value?.trim();
+  if (!token || !vid) {
+    adminMpDeptsCache = [];
+    renderMpDepartmentsTable();
+    return;
+  }
+  try {
+    adminMpDeptsCache = await api(`/api/admin/marketplace/vendors/${encodeURIComponent(vid)}/departments`, { token });
+  } catch (_e) {
+    adminMpDeptsCache = [];
+  }
+  renderMpDepartmentsTable();
+}
+
+function renderMpDepartmentsTable() {
+  const tbody = document.getElementById("mp-departments-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const rows = Array.isArray(adminMpDeptsCache)
+    ? adminMpDeptsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id)
+    : [];
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">${
+      ar ? "لا أقسام (اختر شركة)." : "No departments (pick a vendor)."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((d) => {
+      return `<tr class="border-t border-gray-100">
+        <td class="p-2">${d.id}</td>
+        <td class="p-2">${escapeHtml(d.name_ar || "")}</td>
+        <td class="p-2">${escapeHtml(d.name_en || "")}</td>
+        <td class="p-2">${escapeHtml(String(d.sort_order ?? 0))}</td>
+        <td class="p-2">${d.is_active ? adminT("yes") : adminT("no")}</td>
+        <td class="p-2 flex flex-wrap gap-1">
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-d-up="${d.id}">↑</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-d-down="${d.id}">↓</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-purple-50 text-purple-700" data-mp-d-edit="${d.id}">${adminT("edit")}</button>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700" data-mp-d-del="${d.id}">${adminT("delete")}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function mpFillDepartmentForm(d) {
+  document.getElementById("mp-d-id").value = d ? String(d.id) : "";
+  document.getElementById("mp-d-name-ar").value = d ? d.name_ar || "" : "";
+  document.getElementById("mp-d-name-en").value = d ? d.name_en || "" : "";
+  document.getElementById("mp-d-sort").value = d ? String(d.sort_order ?? 0) : "0";
+  document.getElementById("mp-d-active").checked = !d || Number(d.is_active) !== 0;
+}
+
+async function mpReorderDepartmentsByMove(id, dir) {
+  const token = getToken();
+  const vid = document.getElementById("mp-dept-vendor-filter")?.value?.trim();
+  if (!token || !vid) return;
+  const rows = adminMpDeptsCache.slice().sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  const idx = rows.findIndex((r) => r.id === id);
+  const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= rows.length) return;
+  const next = rows.slice();
+  [next[idx], next[j]] = [next[j], next[idx]];
+  await api(`/api/admin/marketplace/vendors/${encodeURIComponent(vid)}/departments/reorder`, {
+    method: "POST",
+    token,
+    body: { orderedIds: next.map((r) => r.id) },
+  });
+  await loadMpDepartmentsAdmin();
+}
+
+async function fillMpDepartmentSelectForProductForm(vendorId) {
+  const token = getToken();
+  const sel = document.getElementById("mp-p-department");
+  if (!sel || !token) return;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${getAdminLang() === "ar" ? "— القسم داخل الشركة —" : "— Department —"}</option>`;
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid)) return;
+  try {
+    const rows = await api(`/api/admin/marketplace/vendors/${vid}/departments`, { token });
+    const ar = getAdminLang() === "ar";
+    for (const d of rows || []) {
+      if (Number(d.is_active) === 0) continue;
+      const lab = ar ? d.name_ar || d.name_en : d.name_en || d.name_ar;
+      const o = document.createElement("option");
+      o.value = String(d.id);
+      o.textContent = lab;
+      sel.appendChild(o);
+    }
+    if (cur && [...sel.options].some((x) => x.value === cur)) sel.value = cur;
+  } catch (_e) {}
+}
+
 async function loadMpProductsAdmin() {
   const token = getToken();
   if (!token) return;
@@ -1029,6 +1164,8 @@ function mpFillProductForm(p) {
   document.getElementById("mp-p-desc-ar").value = p ? p.description_ar || "" : "";
   document.getElementById("mp-p-desc-en").value = p ? p.description_en || "" : "";
   document.getElementById("mp-p-price").value = p ? String(p.price ?? "") : "";
+  const discEl = document.getElementById("mp-p-discount");
+  if (discEl) discEl.value = p ? String(p.discount_percent ?? 0) : "0";
   document.getElementById("mp-p-stock").value = p ? String(p.stock ?? 0) : "0";
   document.getElementById("mp-p-sku").value = p ? p.sku || "" : "";
   document.getElementById("mp-p-barcode").value = p ? p.barcode || "" : "";
@@ -1045,17 +1182,29 @@ function mpFillProductForm(p) {
     fillMpVendorSelectForProductForm(sid).then(() => {
       const vs = document.getElementById("mp-p-vendor");
       if (vs) vs.value = String(p.vendor_id);
+      return fillMpDepartmentSelectForProductForm(p.vendor_id);
+    }).then(() => {
+      const ds = document.getElementById("mp-p-department");
+      if (ds && p.department_id != null) ds.value = String(p.department_id);
     });
   } else {
-    fillMpVendorSelectForProductForm(sid || "").catch(() => {});
+    fillMpVendorSelectForProductForm(sid || "")
+      .then(() => {
+        const vs = document.getElementById("mp-p-vendor");
+        return fillMpDepartmentSelectForProductForm(vs?.value);
+      })
+      .catch(() => {});
   }
 }
 
 async function initMarketplaceAdminTab() {
   setMpSubtab("sections");
   await loadMpSections();
+  await loadMpEntranceForm();
   await loadMpVendorsForAdminFilter();
   await fillMpProdVendorFilterDropdown();
+  await fillMpDeptVendorFilterDropdown();
+  await loadMpDepartmentsAdmin();
   await loadMpProductsAdmin();
   bindMarketplaceAdminListeners();
 }
@@ -1246,9 +1395,97 @@ function bindMarketplaceAdminListeners() {
   document.getElementById("btn-mp-refresh-products")?.addEventListener("click", () => loadMpProductsAdmin().catch(() => {}));
   document.getElementById("btn-mp-new-product")?.addEventListener("click", () => mpFillProductForm(null));
 
+  document.getElementById("btn-mp-save-entrance")?.addEventListener("click", async () => {
+    const token = getToken();
+    if (!token) return;
+    const body = {
+      image_url: document.getElementById("mp-entrance-image").value.trim(),
+      title_ar: document.getElementById("mp-entrance-title-ar").value.trim(),
+      title_en: document.getElementById("mp-entrance-title-en").value.trim(),
+      subtitle_ar: document.getElementById("mp-entrance-sub-ar").value.trim(),
+      subtitle_en: document.getElementById("mp-entrance-sub-en").value.trim(),
+    };
+    try {
+      await api("/api/admin/marketplace/entrance", { method: "PUT", token, body });
+      alert(getAdminLang() === "ar" ? "تم حفظ واجهة الدخول." : "Entrance saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-dept-section-filter")?.addEventListener("change", () => {
+    fillMpDeptVendorFilterDropdown()
+      .then(() => loadMpDepartmentsAdmin())
+      .catch(() => {});
+  });
+  document.getElementById("mp-dept-vendor-filter")?.addEventListener("change", () => loadMpDepartmentsAdmin().catch(() => {}));
+  document.getElementById("btn-mp-refresh-departments")?.addEventListener("click", () => loadMpDepartmentsAdmin().catch(() => {}));
+  document.getElementById("btn-mp-new-department")?.addEventListener("click", () => mpFillDepartmentForm(null));
+
+  document.getElementById("mp-departments-tbody")?.addEventListener("click", (e) => {
+    const u = e.target.closest("[data-mp-d-up]");
+    const d = e.target.closest("[data-mp-d-down]");
+    const ed = e.target.closest("[data-mp-d-edit]");
+    const del = e.target.closest("[data-mp-d-del]");
+    if (u) mpReorderDepartmentsByMove(Number(u.getAttribute("data-mp-d-up")), -1).catch((err) => alert(err.message || err));
+    if (d) mpReorderDepartmentsByMove(Number(d.getAttribute("data-mp-d-down")), 1).catch((err) => alert(err.message || err));
+    if (ed) {
+      const id = Number(ed.getAttribute("data-mp-d-edit"));
+      const row = adminMpDeptsCache.find((x) => x.id === id);
+      if (row) mpFillDepartmentForm(row);
+    }
+    if (del) {
+      const id = Number(del.getAttribute("data-mp-d-del"));
+      if (!confirm(adminT("confirmDeleteCategory"))) return;
+      api(`/api/admin/marketplace/departments/${id}`, { method: "DELETE", token: getToken() })
+        .then(() => loadMpDepartmentsAdmin())
+        .catch((err) => alert(err.message || err));
+    }
+  });
+
+  document.getElementById("mp-department-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    const vid = document.getElementById("mp-dept-vendor-filter")?.value?.trim();
+    if (!vid) {
+      alert(getAdminLang() === "ar" ? "اختر الشركة أولاً." : "Choose a vendor first.");
+      return;
+    }
+    const id = document.getElementById("mp-d-id").value.trim();
+    const body = {
+      name_ar: document.getElementById("mp-d-name-ar").value.trim(),
+      name_en: document.getElementById("mp-d-name-en").value.trim(),
+      sort_order: Number(document.getElementById("mp-d-sort").value || 0),
+      is_active: document.getElementById("mp-d-active").checked ? 1 : 0,
+    };
+    try {
+      if (id) {
+        await api(`/api/admin/marketplace/departments/${id}`, { method: "PUT", token, body });
+      } else {
+        await api(`/api/admin/marketplace/vendors/${encodeURIComponent(vid)}/departments`, { method: "POST", token, body });
+      }
+      mpFillDepartmentForm(null);
+      await loadMpDepartmentsAdmin();
+      alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
   document.getElementById("mp-p-section")?.addEventListener("change", () => {
     const sid = document.getElementById("mp-p-section").value;
-    fillMpVendorSelectForProductForm(sid).catch(() => {});
+    fillMpVendorSelectForProductForm(sid)
+      .then(() => {
+        const vs = document.getElementById("mp-p-vendor");
+        return fillMpDepartmentSelectForProductForm(vs?.value);
+      })
+      .catch(() => {});
+  });
+
+  document.getElementById("mp-p-vendor")?.addEventListener("change", () => {
+    const vs = document.getElementById("mp-p-vendor");
+    fillMpDepartmentSelectForProductForm(vs?.value).catch(() => {});
   });
 
   document.getElementById("mp-products-tbody")?.addEventListener("click", (e) => {
@@ -1306,6 +1543,11 @@ function bindMarketplaceAdminListeners() {
       is_mp_featured: document.getElementById("mp-p-featured").checked ? 1 : 0,
       sort_order: Number(document.getElementById("mp-p-sort").value || 0),
       is_active: document.getElementById("mp-p-active").checked ? 1 : 0,
+      discount_percent: Number(document.getElementById("mp-p-discount")?.value || 0),
+      department_id: (() => {
+        const v = document.getElementById("mp-p-department")?.value?.trim();
+        return v ? Number(v) : undefined;
+      })(),
     };
     if (!Number.isFinite(body.section_id) || !Number.isFinite(body.vendor_id)) {
       alert(getAdminLang() === "ar" ? "اختر القسم والمورد." : "Choose section and vendor.");

@@ -20,9 +20,16 @@ function mapProductRow(row) {
   const is_listing_top_promo = slot === "listing_top" && row.promo_id != null ? 1 : 0;
   const is_home_featured_promo = slot === "home_featured" && row.promo_id != null ? 1 : 0;
   const { promo_id: _pid, promo_priority: _pp, promo_slot: _ps, ...rest } = row;
+  const disc = Math.min(100, Math.max(0, Number(row.discount_percent ?? 0)));
+  const listPrice = Number(row.price ?? 0);
+  const finalPrice =
+    disc > 0 && disc < 100 ? Math.round(listPrice * (100 - disc) * 100) / 10000 : listPrice;
   return {
     ...rest,
     images: safeJsonParse(row.images_json, []),
+    discount_percent: disc,
+    price: listPrice,
+    final_price: finalPrice,
     is_search_sponsored,
     is_section_featured_promo,
     is_listing_top_promo,
@@ -71,14 +78,17 @@ async function findMarketplaceProductDuplicate(vendorId, { name_ar, name_en, sku
 async function fetchMarketplaceProductsByPromotionSlot(slot, limit) {
   const rows = await all(
     `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-      mp.price, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+      mp.department_id,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+      mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
       pr.id AS promo_id, pr.priority AS promo_priority, pr.slot AS promo_slot
      FROM marketplace_product_promotions pr
      INNER JOIN marketplace_products mp ON mp.id = pr.product_id AND mp.is_active = 1
      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
      INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+     LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
      WHERE pr.slot = ? AND pr.is_active = 1
        AND pr.starts_at <= CURRENT_TIMESTAMP AND pr.ends_at >= CURRENT_TIMESTAMP
        AND (pr.max_impressions IS NULL OR pr.impressions_count < pr.max_impressions)
@@ -120,7 +130,109 @@ async function assertMarketplaceProductQuota(vendorId, settings, willBeActive) {
   return { ok: true };
 }
 
+async function resolveDepartmentIdForProduct(vendorId, departmentIdRaw) {
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid)) return { ok: false, error: "Invalid vendor" };
+  const want = departmentIdRaw != null ? Number(departmentIdRaw) : null;
+  if (Number.isFinite(want)) {
+    const d = await get(
+      `SELECT id FROM marketplace_vendor_departments WHERE id=? AND vendor_id=? AND is_active=1`,
+      [want, vid]
+    );
+    if (d) return { ok: true, department_id: want };
+  }
+  const def = await get(
+    `SELECT id FROM marketplace_vendor_departments WHERE vendor_id=? AND is_active=1 ORDER BY sort_order ASC, id ASC LIMIT 1`,
+    [vid]
+  );
+  if (!def) return { ok: false, error: "أنشئ قسماً داخل الشركة أولاً (من لوحة التحكم)." };
+  return { ok: true, department_id: Number(def.id) };
+}
+
+async function getMarketplaceProductMappedAdminById(id) {
+  const row = await get(
+    `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+            mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
+            ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
+     FROM marketplace_products mp
+     INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
+     INNER JOIN marketplace_sections ms ON ms.id = mp.section_id
+     LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
+     WHERE mp.id=?`,
+    [id]
+  );
+  return row ? mapProductRow(row) : null;
+}
+
+function clampDiscountPercent(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, n));
+}
+
 function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
+  app.get("/api/marketplace/entrance", async (_req, res) => {
+    try {
+      const s = await getVendorPlatformSettings();
+      if (!s) {
+        return res.json({
+          image_url: null,
+          title_ar: "",
+          title_en: "",
+          subtitle_ar: "",
+          subtitle_en: "",
+        });
+      }
+      return res.json({
+        image_url: s.marketplace_entrance_image_url || null,
+        title_ar: s.marketplace_entrance_title_ar || "",
+        title_en: s.marketplace_entrance_title_en || "",
+        subtitle_ar: s.marketplace_entrance_subtitle_ar || "",
+        subtitle_en: s.marketplace_entrance_subtitle_en || "",
+      });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load entrance" });
+    }
+  });
+
+  app.put("/api/admin/marketplace/entrance", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const b = req.body || {};
+      const image_url = b.image_url != null ? String(b.image_url).trim().slice(0, 2000) : "";
+      const title_ar = b.title_ar != null ? String(b.title_ar).trim().slice(0, 500) : "";
+      const title_en = b.title_en != null ? String(b.title_en).trim().slice(0, 500) : "";
+      const subtitle_ar = b.subtitle_ar != null ? String(b.subtitle_ar).trim().slice(0, 800) : "";
+      const subtitle_en = b.subtitle_en != null ? String(b.subtitle_en).trim().slice(0, 800) : "";
+      await run(
+        `UPDATE vendor_platform_settings SET
+          marketplace_entrance_image_url=?,
+          marketplace_entrance_title_ar=?,
+          marketplace_entrance_title_en=?,
+          marketplace_entrance_subtitle_ar=?,
+          marketplace_entrance_subtitle_en=?,
+          updated_at=CURRENT_TIMESTAMP
+         WHERE id=1`,
+        [
+          image_url || null,
+          title_ar,
+          title_en,
+          subtitle_ar,
+          subtitle_en,
+        ]
+      );
+      const s = await getVendorPlatformSettings();
+      return res.json({
+        image_url: s.marketplace_entrance_image_url || null,
+        title_ar: s.marketplace_entrance_title_ar || "",
+        title_en: s.marketplace_entrance_title_en || "",
+        subtitle_ar: s.marketplace_entrance_subtitle_ar || "",
+        subtitle_en: s.marketplace_entrance_subtitle_en || "",
+      });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to save entrance" });
+    }
+  });
+
   app.get("/api/marketplace/sections", async (_req, res) => {
     try {
       const rows = await all(
@@ -192,17 +304,24 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
 
       let sql = `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-                        mp.price, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+                        mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+                        mp.department_id,
                         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+                        mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
                         ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
                         ${promoSelect}
                  FROM marketplace_products mp
                  INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
                  INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+                 LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  ${promoJoin}
                  WHERE mp.is_active = 1`;
       const params = [];
       if (promoSlot) params.push(promoSlot);
+
+      if (!q) {
+        sql += ` AND COALESCE(mp.is_mp_featured,0) = 1`;
+      }
 
       if (sectionId != null && Number.isFinite(sectionId)) {
         sql += ` AND mp.section_id = ?`;
@@ -229,8 +348,9 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           mp.name_ar ILIKE ? OR mp.name_en ILIKE ?
           OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?
           OR ms.name_ar ILIKE ? OR ms.name_en ILIKE ?
+          OR mvd.name_ar ILIKE ? OR mvd.name_en ILIKE ?
         )`;
-        params.push(like, like, like, like, like, like);
+        params.push(like, like, like, like, like, like, like, like);
       }
 
       let orderBody = "mp.created_at DESC, mp.id DESC";
@@ -238,9 +358,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       else if (sort === "price_desc") orderBody = "mp.price DESC, mp.id DESC";
       else if (sort === "bestsellers") orderBody = "mp.sales_count DESC, mp.created_at DESC";
 
+      const featuredFirst = `(CASE WHEN COALESCE(mp.is_mp_featured,0) = 1 THEN 0 ELSE 1 END)`;
       const orderSql = promoSlot
-        ? `(CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
-        : orderBody;
+        ? `${featuredFirst} ASC, (CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
+        : `${featuredFirst} ASC, ${orderBody}`;
       sql += ` ORDER BY ${orderSql} LIMIT 200`;
 
       const rows = await all(sql, params);
@@ -261,10 +382,12 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
       const row = await get(
         `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+                mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
                 ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
          FROM marketplace_products mp
          INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
          INNER JOIN marketplace_sections ms ON ms.id = mp.section_id
+         LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
          WHERE mp.id = ? AND mp.is_active = 1 AND mv.is_active = 1 AND ms.is_active = 1`,
         [id]
       );
@@ -272,6 +395,66 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json(mapProductRow(row));
     } catch (err) {
       return res.status(500).json({ error: "Failed to load product" });
+    }
+  });
+
+  app.get("/api/marketplace/products/:id/reviews", async (req, res) => {
+    try {
+      const productId = Number(req.params.id);
+      if (!Number.isFinite(productId)) return res.status(400).json({ error: "Invalid id" });
+      const p = await get(`SELECT id FROM marketplace_products WHERE id=? AND is_active=1`, [productId]);
+      if (!p) return res.status(404).json({ error: "Not found" });
+      const agg = await get(
+        `SELECT AVG(stars) AS avg_stars, COUNT(*)::int AS cnt FROM marketplace_product_reviews WHERE marketplace_product_id=?`,
+        [productId]
+      );
+      const avg = agg && agg.avg_stars != null ? Number(agg.avg_stars) : null;
+      const count = agg && agg.cnt != null ? Number(agg.cnt) : 0;
+      const items = await all(
+        `SELECT r.id, r.stars, r.comment, r.created_at, u.name AS user_name
+         FROM marketplace_product_reviews r
+         JOIN users u ON u.id = r.user_id
+         WHERE r.marketplace_product_id = ?
+         ORDER BY r.id DESC
+         LIMIT 80`,
+        [productId]
+      );
+      return res.json({
+        average: avg != null && !Number.isNaN(avg) ? Math.round(avg * 10) / 10 : null,
+        count,
+        items,
+      });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load reviews" });
+    }
+  });
+
+  app.post("/api/marketplace/product-reviews", requireAuth, async (req, res) => {
+    try {
+      const marketplace_product_id = Number(req.body.marketplace_product_id);
+      if (!Number.isFinite(marketplace_product_id)) {
+        return res.status(400).json({ error: "marketplace_product_id is required" });
+      }
+      const raw = Number(req.body.stars);
+      const stars = Number.isFinite(raw) ? Math.min(5, Math.max(1, Math.round(raw))) : NaN;
+      if (!Number.isFinite(stars)) {
+        return res.status(400).json({ error: "stars must be 1–5" });
+      }
+      let comment = req.body.comment != null ? String(req.body.comment).trim() : "";
+      if (comment.length > 2000) comment = comment.slice(0, 2000);
+      const p = await get(`SELECT id FROM marketplace_products WHERE id=? AND is_active=1`, [marketplace_product_id]);
+      if (!p) return res.status(404).json({ error: "Product not found" });
+      await run(
+        `INSERT INTO marketplace_product_reviews (user_id, marketplace_product_id, stars, comment) VALUES (?, ?, ?, ?)
+         ON CONFLICT (user_id, marketplace_product_id) DO UPDATE SET
+           stars = EXCLUDED.stars,
+           comment = EXCLUDED.comment,
+           created_at = CURRENT_TIMESTAMP`,
+        [req.user.id, marketplace_product_id, stars, comment || null]
+      );
+      return res.status(201).json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to save review" });
     }
   });
 
@@ -585,15 +768,110 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
     }
   });
 
+  /* ---------- Admin: departments داخل كل شركة ---------- */
+  app.get("/api/admin/marketplace/vendors/:id/departments", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const vid = Number(req.params.id);
+      if (!Number.isFinite(vid)) return res.status(400).json({ error: "Invalid vendor id" });
+      const v = await get(`SELECT id FROM marketplace_vendors WHERE id=?`, [vid]);
+      if (!v) return res.status(404).json({ error: "Vendor not found" });
+      const rows = await all(
+        `SELECT id, vendor_id, name_ar, name_en, sort_order, is_active, created_at
+         FROM marketplace_vendor_departments WHERE vendor_id=? ORDER BY sort_order ASC, id ASC`,
+        [vid]
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load departments" });
+    }
+  });
+
+  app.post("/api/admin/marketplace/vendors/:id/departments", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const vid = Number(req.params.id);
+      if (!Number.isFinite(vid)) return res.status(400).json({ error: "Invalid vendor id" });
+      const v = await get(`SELECT id FROM marketplace_vendors WHERE id=?`, [vid]);
+      if (!v) return res.status(404).json({ error: "Vendor not found" });
+      const b = req.body || {};
+      const name_ar = b.name_ar != null ? String(b.name_ar).trim() : "";
+      const name_en = b.name_en != null ? String(b.name_en).trim() : "";
+      if (!name_ar || !name_en) return res.status(400).json({ error: "name_ar and name_en required" });
+      const sort_order = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : 999;
+      const ins = await run(
+        `INSERT INTO marketplace_vendor_departments (vendor_id, name_ar, name_en, sort_order, is_active)
+         VALUES (?, ?, ?, ?, 1)`,
+        [vid, name_ar, name_en, sort_order]
+      );
+      const row = await get(`SELECT * FROM marketplace_vendor_departments WHERE id=?`, [ins.id]);
+      return res.status(201).json(row);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to create department" });
+    }
+  });
+
+  app.put("/api/admin/marketplace/departments/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const cur = await get(`SELECT * FROM marketplace_vendor_departments WHERE id=?`, [id]);
+      if (!cur) return res.status(404).json({ error: "Not found" });
+      const b = req.body || {};
+      const name_ar = b.name_ar != null ? String(b.name_ar).trim() : cur.name_ar;
+      const name_en = b.name_en != null ? String(b.name_en).trim() : cur.name_en;
+      if (!name_ar || !name_en) return res.status(400).json({ error: "name_ar and name_en required" });
+      const sort_order = b.sort_order != null ? Number(b.sort_order) : cur.sort_order;
+      const is_active = b.is_active != null ? (Number(b.is_active) === 0 ? 0 : 1) : cur.is_active;
+      await run(`UPDATE marketplace_vendor_departments SET name_ar=?, name_en=?, sort_order=?, is_active=? WHERE id=?`, [
+        name_ar,
+        name_en,
+        sort_order,
+        is_active,
+        id,
+      ]);
+      return res.json(await get(`SELECT * FROM marketplace_vendor_departments WHERE id=?`, [id]));
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to update department" });
+    }
+  });
+
+  app.delete("/api/admin/marketplace/departments/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      await run(`DELETE FROM marketplace_vendor_departments WHERE id=?`, [Number(req.params.id)]);
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to delete department" });
+    }
+  });
+
+  app.post("/api/admin/marketplace/vendors/:id/departments/reorder", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const vid = Number(req.params.id);
+      if (!Number.isFinite(vid)) return res.status(400).json({ error: "Invalid vendor id" });
+      const { orderedIds } = req.body || {};
+      if (!Array.isArray(orderedIds)) return res.status(400).json({ error: "orderedIds required" });
+      let o = 0;
+      for (const raw of orderedIds) {
+        const did = Number(raw);
+        if (Number.isFinite(did)) {
+          await run(`UPDATE marketplace_vendor_departments SET sort_order=? WHERE id=? AND vendor_id=?`, [o++, did, vid]);
+        }
+      }
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to reorder departments" });
+    }
+  });
+
   /* ---------- Admin: products ---------- */
   app.get("/api/admin/marketplace/products", requireAuth, requireAdmin, async (req, res) => {
     try {
       const sid = req.query.section_id != null ? Number(req.query.section_id) : null;
       const vid = req.query.vendor_id != null ? Number(req.query.vendor_id) : null;
-      let sql = `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en, ms.slug AS section_slug
+      let sql = `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+                        mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en, ms.slug AS section_slug
                  FROM marketplace_products mp
                  INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
                  INNER JOIN marketplace_sections ms ON ms.id = mp.section_id
+                 LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  WHERE 1=1`;
       const params = [];
       if (sid != null && Number.isFinite(sid)) {
@@ -653,17 +931,23 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
       const quota = await assertMarketplaceProductQuota(vendor_id, settings, is_active === 1);
       if (!quota.ok) return res.status(400).json({ error: quota.error });
+      const discount_percent = clampDiscountPercent(b.discount_percent);
+      const depRes = await resolveDepartmentIdForProduct(vendor_id, b.department_id);
+      if (!depRes.ok) return res.status(400).json({ error: depRes.error });
+      const department_id = depRes.department_id;
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, name_ar, name_en, description_ar, description_en, price, stock, images_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
+          department_id,
           name_ar,
           name_en,
           description_ar,
           description_en,
           Number.isFinite(price) ? price : 0,
+          discount_percent,
           stock,
           JSON.stringify(images),
           is_offer,
@@ -674,7 +958,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           is_mp_featured,
         ]
       );
-      return res.status(201).json(mapProductRow(await get(`SELECT * FROM marketplace_products WHERE id=?`, [ins.id])));
+      const mapped = await getMarketplaceProductMappedAdminById(ins.id);
+      return res.status(201).json(mapped);
     } catch (err) {
       return res.status(500).json({ error: "Failed to create product" });
     }
@@ -711,6 +996,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const sort_order = b.sort_order != null ? Number(b.sort_order) : cur.sort_order;
       const is_active = b.is_active != null ? (Number(b.is_active) === 0 ? 0 : 1) : cur.is_active;
       const is_mp_featured = b.is_mp_featured != null ? (Number(b.is_mp_featured) === 1 ? 1 : 0) : cur.is_mp_featured ?? 0;
+      const discount_percent =
+        b.discount_percent !== undefined
+          ? clampDiscountPercent(b.discount_percent)
+          : clampDiscountPercent(cur.discount_percent);
+      const depRaw = b.department_id !== undefined ? b.department_id : cur.department_id;
+      const depRes = await resolveDepartmentIdForProduct(vendor_id, depRaw);
+      if (!depRes.ok) return res.status(400).json({ error: depRes.error });
+      const department_id = depRes.department_id;
       const settings = await getVendorPlatformSettings();
       const dup = await findMarketplaceProductDuplicate(
         vendor_id,
@@ -733,16 +1026,18 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         if (!quota.ok) return res.status(400).json({ error: quota.error });
       }
       await run(
-        `UPDATE marketplace_products SET section_id=?, vendor_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
-         price=?, stock=?, images_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=? WHERE id=?`,
+        `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
+         price=?, discount_percent=?, stock=?, images_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=? WHERE id=?`,
         [
           section_id,
           vendor_id,
+          department_id,
           name_ar,
           name_en,
           description_ar,
           description_en,
           price,
+          discount_percent,
           stock,
           images_json,
           is_offer,
@@ -754,7 +1049,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           id,
         ]
       );
-      return res.json(mapProductRow(await get(`SELECT * FROM marketplace_products WHERE id=?`, [id])));
+      return res.json(await getMarketplaceProductMappedAdminById(id));
     } catch (err) {
       return res.status(500).json({ error: "Failed to update product" });
     }

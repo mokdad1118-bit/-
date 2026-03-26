@@ -1053,6 +1053,7 @@
         let marketplaceBrowseSectionsCache = [];
         let marketplaceBrowseVendorsCache = [];
         let marketplaceDetailQty = 1;
+        let marketplaceReviewSelected = 0;
         let currentMarketplaceProductDetail = null;
 
         const ADORA_SESSION_STACK_KEY = 'adora_nav_stack_v1';
@@ -1999,6 +2000,7 @@
             connectAppSocket();
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
+            updateMarketplaceReviewLoginHint();
             updateProfileWishlistUi();
             loadDeliveryAddressField();
         }
@@ -2301,7 +2303,7 @@
                 loadHomeBestsellers().catch(() => {});
                 injectHomeBanners().catch(() => {});
                 refreshAdoraHomeSubcategoryCounts().catch(() => {});
-                loadMarketplaceHomeStrip().catch(() => {});
+                loadMarketplaceHomeEntrance().catch(() => {});
                 loadPartnerCtaConfig().catch(() => {});
                 loadMarketplaceHomeHighlights().catch(() => {});
                 bindVendorJoinPageFormOnce();
@@ -2321,6 +2323,7 @@
             }
             if (screenId === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
                 renderMarketplaceProductDetailUi();
+                loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
             }
             if (screenId === 'screen-order-tracking') {
                 if (latestOrderDbId) {
@@ -2397,15 +2400,10 @@
                 const mph = isRTL ? mpSearch.getAttribute('data-ar-ph') : mpSearch.getAttribute('data-en-ph');
                 if (mph) mpSearch.setAttribute('placeholder', mph);
             }
-            const mpMin = document.getElementById('marketplace-min-price');
-            const mpMax = document.getElementById('marketplace-max-price');
-            if (mpMin) {
-                const h = isRTL ? mpMin.getAttribute('data-ar-ph') : mpMin.getAttribute('data-en-ph');
-                if (h) mpMin.setAttribute('placeholder', h);
-            }
-            if (mpMax) {
-                const h = isRTL ? mpMax.getAttribute('data-ar-ph') : mpMax.getAttribute('data-en-ph');
-                if (h) mpMax.setAttribute('placeholder', h);
+            const mpRevTa = document.getElementById('marketplace-review-comment');
+            if (mpRevTa) {
+                const mph = isRTL ? mpRevTa.getAttribute('data-ar-ph') : mpRevTa.getAttribute('data-en-ph');
+                if (mph) mpRevTa.setAttribute('placeholder', mph);
             }
             const searchVoiceBtn = document.getElementById('search-voice-btn');
             if (searchVoiceBtn) {
@@ -2944,126 +2942,44 @@
             });
         }
 
-        async function ensureMarketplaceSectionsForFilters() {
-            const sel = document.getElementById('marketplace-filter-section');
-            if (!sel) return;
-            const cur = sel.value;
-            try {
-                const rows = await apiFetch('/api/marketplace/sections', { requireAuth: false });
-                marketplaceBrowseSectionsCache = Array.isArray(rows) ? rows : [];
-                const loc = isRTL ? 'ar' : 'en';
-                sel.innerHTML = '';
-                const o0 = document.createElement('option');
-                o0.value = '';
-                o0.textContent = loc === 'ar' ? 'كل الأقسام' : 'All sections';
-                sel.appendChild(o0);
-                for (const s of marketplaceBrowseSectionsCache) {
-                    const o = document.createElement('option');
-                    o.value = String(s.id);
-                    o.textContent = loc === 'ar' ? s.name_ar || s.name_en : s.name_en || s.name_ar;
-                    sel.appendChild(o);
-                }
-                if (cur && [...sel.options].some((x) => x.value === cur)) sel.value = cur;
-            } catch (_e) {}
-        }
-
-        async function populateMarketplaceVendorDropdown() {
-            const sel = document.getElementById('marketplace-filter-vendor');
-            const secSel = document.getElementById('marketplace-filter-section');
-            if (!sel || !secSel) return;
-            const sid = secSel.value;
-            const cur = sel.value;
-            sel.innerHTML = '';
-            const o0 = document.createElement('option');
-            o0.value = '';
-            o0.textContent = isRTL ? 'كل الشركات/المولات' : 'All vendors';
-            sel.appendChild(o0);
-            const qs = sid ? `?section_id=${encodeURIComponent(sid)}` : '';
-            try {
-                const rows = await apiFetch(`/api/marketplace/vendors${qs}`, { requireAuth: false });
-                marketplaceBrowseVendorsCache = Array.isArray(rows) ? rows : [];
-                const loc = isRTL ? 'ar' : 'en';
-                for (const v of marketplaceBrowseVendorsCache) {
-                    const o = document.createElement('option');
-                    o.value = String(v.id);
-                    const base = loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar;
-                    const premium =
-                        Number(v.is_premium) === 1 && (!v.premium_until || new Date(v.premium_until).getTime() > Date.now());
-                    o.textContent = premium ? `${base} ★` : base;
-                    sel.appendChild(o);
-                }
-                if (cur && [...sel.options].some((x) => x.value === cur)) sel.value = cur;
-            } catch (_e) {}
-        }
-
-        function onMarketplaceSectionFilterChange() {
-            const ven = document.getElementById('marketplace-filter-vendor');
-            if (ven) ven.value = '';
-            populateMarketplaceVendorDropdown().catch(() => {});
-        }
-
         async function initMarketplaceBrowseScreen() {
             attachMarketplaceSearchListeners();
             const preset = marketplaceBrowsePreset;
             marketplaceBrowsePreset = null;
-            await ensureMarketplaceSectionsForFilters();
-            if (preset && preset.sectionId != null) {
-                const el = document.getElementById('marketplace-filter-section');
-                if (el) el.value = String(preset.sectionId);
-            }
             if (preset && preset.q) {
                 const si = document.getElementById('marketplace-search-input');
                 if (si) si.value = String(preset.q);
             }
-            await populateMarketplaceVendorDropdown();
-            if (preset && preset.vendorId != null) {
-                const el = document.getElementById('marketplace-filter-vendor');
-                if (el) el.value = String(preset.vendorId);
-            }
-            syncMarketplaceSortSelectLabels();
             await refreshMarketplaceProductList();
         }
 
-        function syncMarketplaceSortSelectLabels() {
-            const sel = document.getElementById('marketplace-filter-sort');
-            if (!sel) return;
-            const loc = isRTL ? 'ar' : 'en';
-            sel.querySelectorAll('option').forEach((opt) => {
-                const t = loc === 'ar' ? opt.getAttribute('data-ar') : opt.getAttribute('data-en');
-                if (t) opt.textContent = t;
-            });
-        }
-
-        async function loadMarketplaceHomeStrip() {
-            const host = document.getElementById('marketplace-home-strip');
-            if (!host) return;
+        async function loadMarketplaceHomeEntrance() {
+            const img = document.getElementById('marketplace-home-entrance-img');
+            const tEl = document.getElementById('marketplace-home-entrance-title');
+            const sEl = document.getElementById('marketplace-home-entrance-subtitle');
+            if (!tEl || !sEl) return;
             try {
-                const sections = await apiFetch('/api/marketplace/sections', { requireAuth: false });
-                const list = Array.isArray(sections) ? sections : [];
-                if (!list.length) {
-                    host.innerHTML = `<p class="text-xs text-gray-400 py-4 whitespace-normal">${isRTL ? 'لا أقسام بعد — أضفها من لوحة التحكم.' : 'No sections yet — add them in admin.'}</p>`;
-                    return;
-                }
+                const d = await apiFetch('/api/marketplace/entrance', { requireAuth: false });
                 const loc = isRTL ? 'ar' : 'en';
-                host.innerHTML = list
-                    .map((s) => {
-                        const title = loc === 'ar' ? s.name_ar || s.name_en : s.name_en || s.name_ar;
-                        const imgUrl = absoluteMediaUrl(s.card_image_url || '');
-                        const imgHtml = imgUrl
-                            ? `<img src="${escapeHtml(imgUrl)}" class="absolute inset-0 w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-                            : '';
-                        return `<button type="button" onclick="openMarketplaceBrowse({ sectionId: ${Number(s.id)} })" class="flex-shrink-0 w-[42%] max-w-[11.5rem] rounded-2xl overflow-hidden border border-gray-100 shadow-md shadow-purple-900/5 relative min-h-[6.75rem] bg-gradient-to-br from-purple-100 to-violet-50 active:scale-[0.98] transition-transform text-start">
-                            <span class="block relative h-28 w-full overflow-hidden bg-gray-100">${imgHtml}
-                            <span class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none" aria-hidden="true"></span></span>
-                            <span class="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 text-white text-xs font-bold drop-shadow-sm pointer-events-none">
-                                <i class="fas fa-store text-[10px] opacity-90" aria-hidden="true"></i>
-                                <span class="truncate">${escapeHtml(title)}</span>
-                            </span>
-                        </button>`;
-                    })
-                    .join('');
+                const title = loc === 'ar' ? d.title_ar || d.title_en : d.title_en || d.title_ar;
+                const sub = loc === 'ar' ? d.subtitle_ar || d.subtitle_en : d.subtitle_en || d.subtitle_ar;
+                tEl.textContent = title || (isRTL ? 'سوق الشركات في أدورا' : 'Adora partner market');
+                sEl.textContent = sub || (isRTL ? 'ابحث في منتجات كل الشركات من مكان واحد.' : 'Search products from every partner in one place.');
+                if (img && d.image_url && String(d.image_url).trim()) {
+                    img.src = absoluteMediaUrl(String(d.image_url).trim());
+                    img.hidden = false;
+                    img.alt = title || '';
+                } else if (img) {
+                    img.removeAttribute('src');
+                    img.hidden = true;
+                }
             } catch (_e) {
-                host.innerHTML = `<p class="text-xs text-red-500 py-4">${isRTL ? 'تعذر تحميل السوق الشامل.' : 'Could not load marketplace.'}</p>`;
+                tEl.textContent = isRTL ? 'سوق الشركات في أدورا' : 'Adora partner market';
+                sEl.textContent = isRTL ? 'ادخل وابحث في كل المنتجات.' : 'Enter and search all products.';
+                if (img) {
+                    img.removeAttribute('src');
+                    img.hidden = true;
+                }
             }
         }
 
@@ -3073,23 +2989,21 @@
             const params = new URLSearchParams();
             const q = (document.getElementById('marketplace-search-input')?.value || '').trim();
             if (q) params.set('q', q);
-            const sid = document.getElementById('marketplace-filter-section')?.value;
-            if (sid) params.set('section_id', sid);
-            const vid = document.getElementById('marketplace-filter-vendor')?.value;
-            if (vid) params.set('vendor_id', vid);
-            const sort = document.getElementById('marketplace-filter-sort')?.value || 'newest';
-            params.set('sort', sort);
-            const minP = document.getElementById('marketplace-min-price')?.value;
-            const maxP = document.getElementById('marketplace-max-price')?.value;
-            if (minP !== '' && minP != null && Number.isFinite(Number(minP))) params.set('min_price', String(Number(minP)));
-            if (maxP !== '' && maxP != null && Number.isFinite(Number(maxP))) params.set('max_price', String(Number(maxP)));
-            if (document.getElementById('marketplace-filter-offers')?.checked) params.set('is_offer', '1');
+            params.set('sort', 'newest');
             grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
             try {
                 const products = await apiFetch(`/api/marketplace/products?${params.toString()}`, { requireAuth: false });
                 const arr = Array.isArray(products) ? products : [];
                 if (!arr.length) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${isRTL ? 'لا نتائج.' : 'No results.'}</p>`;
+                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${
+                        q
+                            ? isRTL
+                                ? 'لا نتائج.'
+                                : 'No results.'
+                            : isRTL
+                              ? 'لا توجد منتجات مميزة بعد. اكتب في البحث أو أضف منتجات مميزة من لوحة التحكم.'
+                              : 'No featured products yet. Search or add featured items in admin.'
+                    }</p>`;
                     return;
                 }
                 const loc = isRTL ? 'ar' : 'en';
@@ -3101,26 +3015,32 @@
                         const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                         const offer = Number(p.is_offer) === 1;
                         const sponsored = Number(p.is_search_sponsored) === 1;
-                        const listingTop = Number(p.is_listing_top_promo) === 1;
-                        const sectionPromo = Number(p.is_section_featured_promo) === 1;
                         let promoLeft = '';
                         if (sponsored) {
                             promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
-                        } else if (listingTop) {
-                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'أعلى القائمة' : 'Top'}</span>`;
-                        } else if (sectionPromo) {
-                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-teal-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'قسم' : 'Section'}</span>`;
                         }
+                        const disc = Number(p.discount_percent || 0);
+                        const finalP = p.final_price != null ? Number(p.final_price) : Number(p.price || 0);
+                        const listP = Number(p.price || 0);
+                        const priceHtml =
+                            disc > 0 && disc < 100
+                                ? `<p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(finalP))} <span class="text-[10px] font-semibold text-gray-400 line-through">${escapeHtml(formatSyp(listP))}</span></p>`
+                                : `<p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(listP))}</p>`;
+                        const featBadge =
+                            Number(p.is_mp_featured) === 1
+                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm">${isRTL ? 'مميز' : 'Featured'}</span>`
+                                : '';
                         return `<div role="button" tabindex="0" onclick="openMarketplaceProductDetail(${Number(p.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${Number(p.id)});}" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer active:scale-[0.99] transition-transform">
                             <div class="aspect-square bg-gray-100 relative">
                                 <img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                                 ${promoLeft}
                                 ${offer ? `<span class="absolute top-2 right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
+                                ${featBadge}
                             </div>
                             <div class="p-2.5 space-y-0.5">
                                 <p class="text-xs font-bold text-gray-900 line-clamp-2 leading-snug">${escapeHtml(title)}</p>
                                 <p class="text-[10px] text-purple-700 font-semibold truncate">${escapeHtml(vendor || '')}</p>
-                                <p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(Number(p.price || 0)))}</p>
+                                ${priceHtml}
                             </div>
                         </div>`;
                     })
@@ -3149,18 +3069,35 @@
             const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
             const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
             const sec = loc === 'ar' ? p.section_name_ar || p.section_name_en : p.section_name_en || p.section_name_ar;
+            const dept = loc === 'ar' ? p.department_name_ar || p.department_name_en : p.department_name_en || p.department_name_ar;
+            const secLine = [sec, dept].filter(Boolean).join(' · ');
             const desc = loc === 'ar' ? p.description_ar || p.description_en : p.description_en || p.description_ar;
             const tEl = document.getElementById('marketplace-detail-title');
             const vEl = document.getElementById('marketplace-detail-vendor');
             const sEl = document.getElementById('marketplace-detail-section');
             const priceEl = document.getElementById('marketplace-detail-price');
+            const priceOldEl = document.getElementById('marketplace-detail-price-old');
+            const discBadge = document.getElementById('marketplace-detail-discount-badge');
             const stEl = document.getElementById('marketplace-detail-stock');
             const dEl = document.getElementById('marketplace-detail-desc');
             const off = document.getElementById('marketplace-detail-offer-badge');
+            const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
+            const listP = Number(p.price || 0);
+            const finalP = p.final_price != null ? Number(p.final_price) : listP;
             if (tEl) tEl.textContent = title || '—';
             if (vEl) vEl.textContent = vendor || '—';
-            if (sEl) sEl.textContent = sec || '';
-            if (priceEl) priceEl.textContent = formatSyp(Number(p.price || 0));
+            if (sEl) sEl.textContent = secLine || '';
+            if (priceEl) priceEl.textContent = formatSyp(discPct > 0 && discPct < 100 ? finalP : listP);
+            if (priceOldEl) {
+                const showOld = discPct > 0 && discPct < 100;
+                priceOldEl.classList.toggle('hidden', !showOld);
+                priceOldEl.textContent = showOld ? formatSyp(listP) : '';
+            }
+            if (discBadge) {
+                const showD = discPct > 0 && discPct < 100;
+                discBadge.classList.toggle('hidden', !showD);
+                discBadge.textContent = showD ? (isRTL ? `-${discPct}%` : `-${discPct}%`) : '';
+            }
             if (stEl) {
                 const st = Number(p.stock != null ? p.stock : 0);
                 stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
@@ -3183,6 +3120,104 @@
             const qd = document.getElementById('marketplace-qty-display');
             if (qd) qd.textContent = String(marketplaceDetailQty);
         }
+
+        function updateMarketplaceReviewLoginHint() {
+            const hint = document.getElementById('marketplace-review-login-hint');
+            if (!hint) return;
+            hint.classList.toggle('hidden', !!getStoredJwtToken());
+        }
+
+        function setMarketplaceReviewStarCount(n) {
+            marketplaceReviewSelected = Math.min(5, Math.max(0, n));
+            document.querySelectorAll('.mp-product-review-star').forEach((btn) => {
+                const v = Number(btn.getAttribute('data-star'));
+                const icon = btn.querySelector('i');
+                if (!icon) return;
+                const on = marketplaceReviewSelected >= 1 && v <= marketplaceReviewSelected;
+                icon.className = on ? 'fas fa-star text-amber-400' : 'far fa-star text-gray-300';
+            });
+        }
+
+        function initMarketplaceProductReviewStars() {
+            document.querySelectorAll('.mp-product-review-star').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const v = Number(btn.getAttribute('data-star'));
+                    if (v >= 1 && v <= 5) setMarketplaceReviewStarCount(v);
+                });
+            });
+        }
+
+        async function loadMarketplaceProductReviewsForDetail(marketplaceProductId) {
+            setMarketplaceReviewStarCount(0);
+            marketplaceReviewSelected = 0;
+            const ta = document.getElementById('marketplace-review-comment');
+            if (ta) ta.value = '';
+            updateMarketplaceReviewLoginHint();
+            const listEl = document.getElementById('marketplace-reviews-list');
+            const badge = document.getElementById('marketplace-reviews-count-badge');
+            if (listEl) {
+                listEl.innerHTML = `<p class="text-sm text-gray-500 py-2">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            }
+            try {
+                const data = await apiFetch(`/api/marketplace/products/${Number(marketplaceProductId)}/reviews`, { requireAuth: false });
+                const avg = data.average;
+                const count = Number(data.count || 0);
+                const avgEl = document.getElementById('marketplace-detail-rating-avg');
+                if (avgEl) avgEl.textContent = avg != null ? String(avg) : '—';
+                const disp = document.getElementById('marketplace-detail-stars-display');
+                if (disp) disp.innerHTML = renderFiveStarsDisplayHtml(avg);
+                const cntEl = document.getElementById('marketplace-detail-rating-count-label');
+                if (cntEl) {
+                    cntEl.textContent = isRTL ? `${count} تقييم` : `${count} review${count === 1 ? '' : 's'}`;
+                }
+                if (badge) badge.textContent = String(count);
+                const items = Array.isArray(data.items) ? data.items : [];
+                if (listEl) {
+                    if (!items.length) {
+                        listEl.innerHTML = `<p class="text-sm text-gray-500 py-2">${isRTL ? 'لا تقييمات بعد. كن أول من يقيّم بالأسفل.' : 'No reviews yet. Be the first below.'}</p>`;
+                    } else {
+                        listEl.innerHTML = items.map((r) => renderProductReviewCardHtml(r)).join('');
+                    }
+                }
+            } catch (_e) {
+                if (listEl) {
+                    listEl.innerHTML = `<p class="text-sm text-red-500 py-2">${isRTL ? 'تعذر تحميل التقييمات' : 'Could not load reviews'}</p>`;
+                }
+            }
+        }
+
+        async function submitMarketplaceProductReview() {
+            if (!currentMarketplaceProductDetail || !currentMarketplaceProductDetail.id) return;
+            if (!getStoredJwtToken()) {
+                openAuthModal('login', isRTL ? 'سجّل الدخول لإرسال تقييم' : 'Log in to submit a review');
+                return;
+            }
+            if (marketplaceReviewSelected < 1 || marketplaceReviewSelected > 5) {
+                showToast(isRTL ? 'اختر من نجمة إلى خمس نجوم' : 'Choose 1–5 stars');
+                return;
+            }
+            const ta = document.getElementById('marketplace-review-comment');
+            const comment = ta ? ta.value.trim() : '';
+            try {
+                await apiFetch('/api/marketplace/product-reviews', {
+                    method: 'POST',
+                    requireAuth: true,
+                    body: {
+                        marketplace_product_id: currentMarketplaceProductDetail.id,
+                        stars: marketplaceReviewSelected,
+                        comment: comment || undefined,
+                    },
+                });
+                if (ta) ta.value = '';
+                setMarketplaceReviewStarCount(0);
+                marketplaceReviewSelected = 0;
+                showToast(isRTL ? 'تم إرسال تقييمك' : 'Your review was sent');
+                await loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id);
+            } catch (e) {
+                showToast(e.message || (isRTL ? 'تعذر الإرسال' : 'Could not send'));
+            }
+        }
+        window.submitMarketplaceProductReview = submitMarketplaceProductReview;
 
         function updateMarketplaceDetailQty(delta) {
             const p = currentMarketplaceProductDetail;
@@ -3210,13 +3245,15 @@
             const imgs = Array.isArray(p.images) ? p.images : [];
             const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
             const vendorLabel = isRTL ? p.vendor_name_ar || p.vendor_name_en || '' : p.vendor_name_en || p.vendor_name_ar || '';
+            const listUnit = Number(p.price || 0);
+            const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
             const line = {
                 marketplaceProductId: p.id,
                 name: { ar: p.name_ar, en: p.name_en },
                 qty,
-                unitPrice: Number(p.price || 0),
-                price: Number(p.price || 0),
-                discountPct: 0,
+                unitPrice: listUnit,
+                price: listUnit,
+                discountPct: discPct,
                 image: img0,
                 brand: vendorLabel,
                 size: '',
@@ -3233,8 +3270,9 @@
                 }
                 existing.qty = nextQty;
                 existing.selected = true;
-                existing.unitPrice = Number(p.price || 0);
-                existing.price = Number(p.price || 0);
+                existing.unitPrice = listUnit;
+                existing.price = listUnit;
+                existing.discountPct = discPct;
                 if (img0) existing.image = img0;
                 existing.name = { ar: p.name_ar, en: p.name_en };
                 existing.brand = vendorLabel;
@@ -6622,6 +6660,9 @@
             if (confirm(isRTL ? 'هل أنت متأكد من تسجيل الخروج؟' : 'Are you sure you want to logout?')) {
                 disconnectAppSocket();
                 clearStoredJwtToken();
+                updateSiteRatingLoginHint();
+                updateProductReviewLoginHint();
+                updateMarketplaceReviewLoginHint();
                 shouldPersistOrderStatusUpdates = false;
                 latestOrderDbId = null;
                 latestOrderCreatedAt = null;
@@ -6698,7 +6739,7 @@
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeNewCollectionGrid().catch(() => {});
-            loadMarketplaceHomeStrip().catch(() => {});
+            loadMarketplaceHomeEntrance().catch(() => {});
             loadPartnerCtaConfig().catch(() => {});
             loadMarketplaceHomeHighlights().catch(() => {});
             bindVendorJoinPageFormOnce();
@@ -6709,8 +6750,10 @@
             initAdoraAuthParticles();
             initSiteRatingStars();
             initProductReviewStars();
+            initMarketplaceProductReviewStars();
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
+            updateMarketplaceReviewLoginHint();
             applyAppLanguage();
             document.addEventListener('keydown', (e) => {
                 if (e.key !== 'Escape') return;
