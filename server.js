@@ -170,13 +170,67 @@ const HOME_SECTION_LABELS = {
   banners: { ar: "البانرات الترويجية (كل المواضع)", en: "Promo banners (all slots)" },
   comprehensive_market: { ar: "السوق الشامل (مولات وشركات…)", en: "Comprehensive market (malls & companies)" },
   main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories (Men / Women / Kids)" },
-  brands: { ar: "صف الشركات", en: "Brands row" },
-  top_brands: { ar: "أفضل الشركات", en: "Top brands" },
-  flash_sale: { ar: "عروض سريعة", en: "Flash sale" },
+  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies available in the app" },
+  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
+  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
   curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
-  promo_collection: { ar: "شريط المجموعة الترويجية / وصل حديثاً", en: "Promo collection / New collection strip" },
+  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection / promo strip" },
   bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
+
+/** ترتيب الكتل داخل #home-reorder-root (البانر العلوي ثابت فوق الحاوية) */
+const HOME_SECTION_ORDER_KEYS = [
+  "comprehensive_market",
+  "main_categories",
+  "home_subcat_overlay",
+  "banner_below_categories",
+  "brands",
+  "banner_below_brands",
+  "top_brands",
+  "banner_below_top_brands",
+  "flash_sale",
+  "banner_below_flash",
+  "curated",
+  "banner_below_curated",
+  "promo_collection",
+  "banner_below_trending",
+  "bestsellers",
+];
+
+const HOME_SECTION_ORDER_LABELS = {
+  comprehensive_market: { ar: "السوق الشامل", en: "Comprehensive market" },
+  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories" },
+  home_subcat_overlay: { ar: "لوحة الفئات الفرعية (منبثقة)", en: "Subcategory bottom sheet (fixed overlay)" },
+  banner_below_categories: { ar: "بانر تحت الأقسام الرئيسية", en: "Banner below main categories" },
+  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies in the app" },
+  banner_below_brands: { ar: "بانر تحت صف الشركات", en: "Banner below companies row" },
+  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
+  banner_below_top_brands: { ar: "بانر تحت العلامات المميزة", en: "Banner below featured brands" },
+  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
+  banner_below_flash: { ar: "بانر تحت العروض المحدودة", en: "Banner below flash offers" },
+  curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
+  banner_below_curated: { ar: "بانر تحت الاختيارات الأنيقة", en: "Banner below curated" },
+  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection strip" },
+  banner_below_trending: { ar: "بانر قبل الأكثر مبيعاً", en: "Banner before bestsellers" },
+  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
+};
+
+function mergeHomeSectionsOrder(raw) {
+  const allowed = new Set(HOME_SECTION_ORDER_KEYS);
+  const def = [...HOME_SECTION_ORDER_KEYS];
+  if (!Array.isArray(raw)) return def;
+  const seen = new Set();
+  const out = [];
+  for (const k of raw) {
+    if (typeof k !== "string" || !allowed.has(k) || seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  for (const k of def) {
+    if (!seen.has(k)) out.push(k);
+  }
+  return out;
+}
 
 function mergeHomeSectionsVisibility(raw) {
   const o = raw && typeof raw === "object" ? raw : {};
@@ -786,7 +840,11 @@ app.get("/api/admin/home-sections/keys", requireAuth, requireAdmin, async (_req,
         default: defaults[key] !== false,
       };
     });
-    return res.json({ keys, defaults, sections });
+    const order_sections = HOME_SECTION_ORDER_KEYS.map((key) => {
+      const lab = HOME_SECTION_ORDER_LABELS[key] || { ar: key, en: key };
+      return { key, label_ar: lab.ar, label_en: lab.en };
+    });
+    return res.json({ keys, defaults, sections, order_keys: HOME_SECTION_ORDER_KEYS, order_sections });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load home section keys" });
   }
@@ -2054,12 +2112,14 @@ app.get("/api/contact", async (_req, res) => {
     const home_main_section_images = safeJsonParse(row?.home_main_section_images_json, null);
     const home_subcategory_slides = safeJsonParse(row?.home_subcategory_slides_json, null);
     const home_sections_visibility = mergeHomeSectionsVisibility(safeJsonParse(row?.home_sections_visibility_json, null));
+    const home_sections_order = mergeHomeSectionsOrder(safeJsonParse(row?.home_sections_order_json, null));
     return res.json({
       ...row,
       phones: safeJsonParse(row.phones_json, []),
       home_main_section_images: home_main_section_images && typeof home_main_section_images === "object" ? home_main_section_images : null,
       home_subcategory_slides: home_subcategory_slides && typeof home_subcategory_slides === "object" ? home_subcategory_slides : null,
       home_sections_visibility,
+      home_sections_order,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load contact" });
@@ -2071,7 +2131,7 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     const body = req.body || {};
     const { address, phones = [], whatsapp_phone = "" } = body;
     const cur = await get(
-      `SELECT id, home_main_section_images_json, home_subcategory_slides_json, home_sections_visibility_json FROM contact_info ORDER BY id LIMIT 1`
+      `SELECT id, home_main_section_images_json, home_subcategory_slides_json, home_sections_visibility_json, home_sections_order_json FROM contact_info ORDER BY id LIMIT 1`
     );
     let homeJson = cur?.home_main_section_images_json ?? null;
     if (body.home_main_section_images !== undefined && body.home_main_section_images !== null && typeof body.home_main_section_images === "object") {
@@ -2090,9 +2150,13 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     if (body.home_sections_visibility !== undefined && body.home_sections_visibility !== null && typeof body.home_sections_visibility === "object") {
       visJson = JSON.stringify(mergeHomeSectionsVisibility(body.home_sections_visibility));
     }
+    let orderJson = cur?.home_sections_order_json ?? null;
+    if (body.home_sections_order !== undefined && body.home_sections_order !== null && Array.isArray(body.home_sections_order)) {
+      orderJson = JSON.stringify(mergeHomeSectionsOrder(body.home_sections_order));
+    }
     await run(
-      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=?, home_sections_visibility_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
-      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson, visJson]
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=?, home_sections_visibility_json=?, home_sections_order_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson, visJson, orderJson]
     );
     return res.json({ ok: true });
   } catch (err) {

@@ -380,6 +380,7 @@ function setActiveTab(tabId) {
     loadOffers().catch(() => {});
   }
   if (tabId === "tab-contact") loadContact().catch(() => {});
+  if (tabId === "tab-home-layout") loadHomeLayoutTab().catch(() => {});
   if (tabId === "tab-ratings") {
     loadSiteRatings().catch(() => {});
     loadAdminProductReviews().catch(() => {});
@@ -2953,8 +2954,10 @@ const HOME_SECTION_VIS_KEYS_FALLBACK = [
 /** Populated from GET /api/admin/home-sections/keys */
 let homeSectionVisKeysRuntime = HOME_SECTION_VIS_KEYS_FALLBACK.slice();
 
+const HOME_SECTION_ORDER_VIS_PREFIX = "layout-vis-";
+
 async function renderHomeSectionsCheckboxes() {
-  const container = document.getElementById("home-sections-all-checkboxes");
+  const container = document.getElementById("home-layout-sections-checkboxes");
   if (!container) return;
   const token = getToken();
   const langAr = document.documentElement.getAttribute("lang") !== "en";
@@ -2968,7 +2971,7 @@ async function renderHomeSectionsCheckboxes() {
       wrap.className = "flex items-center gap-2 cursor-pointer";
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.id = `contact-vis-${s.key}`;
+      cb.id = `${HOME_SECTION_ORDER_VIS_PREFIX}${s.key}`;
       cb.className = "rounded border-gray-300";
       cb.checked = s.default !== false;
       const span = document.createElement("span");
@@ -2988,7 +2991,7 @@ async function renderHomeSectionsCheckboxes() {
       wrap.className = "flex items-center gap-2 cursor-pointer";
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.id = `contact-vis-${k}`;
+      cb.id = `${HOME_SECTION_ORDER_VIS_PREFIX}${k}`;
       cb.className = "rounded border-gray-300";
       cb.checked = true;
       const span = document.createElement("span");
@@ -3000,11 +3003,14 @@ async function renderHomeSectionsCheckboxes() {
   }
 }
 
+/** ترتيب الكتل على الرئيسية — يُحمّل من السيرفر */
+let homeSectionOrderKeysRuntime = [];
+
 function setHomeSectionsVisibilityToggles(vis) {
   const v = vis && typeof vis === "object" ? vis : {};
   const keys = homeSectionVisKeysRuntime.length ? homeSectionVisKeysRuntime : HOME_SECTION_VIS_KEYS_FALLBACK;
   for (const k of keys) {
-    const el = document.getElementById(`contact-vis-${k}`);
+    const el = document.getElementById(`${HOME_SECTION_ORDER_VIS_PREFIX}${k}`);
     if (el) el.checked = v[k] !== false;
   }
 }
@@ -3013,15 +3019,141 @@ function collectHomeSectionsVisibilityFromForm() {
   const o = {};
   const keys = homeSectionVisKeysRuntime.length ? homeSectionVisKeysRuntime : HOME_SECTION_VIS_KEYS_FALLBACK;
   for (const k of keys) {
-    const el = document.getElementById(`contact-vis-${k}`);
+    const el = document.getElementById(`${HOME_SECTION_ORDER_VIS_PREFIX}${k}`);
     o[k] = el ? !!el.checked : true;
   }
   return o;
 }
 
+function renderHomeSectionsOrderList(order) {
+  const ul = document.getElementById("home-sections-order-list");
+  if (!ul) return;
+  const langAr = document.documentElement.getAttribute("lang") !== "en";
+  const keys = Array.isArray(order) && order.length ? order : homeSectionOrderKeysRuntime;
+  if (!keys.length) {
+    ul.innerHTML = `<li class="text-xs text-gray-400">${langAr ? "جاري التحميل…" : "Loading…"}</li>`;
+    return;
+  }
+  ul.innerHTML = "";
+  const metaByKey = {};
+  try {
+    const raw = ul.getAttribute("data-order-labels");
+    if (raw) {
+      const arr = JSON.parse(raw);
+      for (const row of arr) {
+        if (row && row.key) metaByKey[row.key] = row;
+      }
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+  keys.forEach((key, idx) => {
+    const row = metaByKey[key];
+    const lab = row ? (langAr ? row.label_ar : row.label_en) : key;
+    const li = document.createElement("li");
+    li.className =
+      "flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/80 px-3 py-2 text-sm";
+    li.dataset.key = key;
+    li.innerHTML = `<span class="flex-1 min-w-0 font-medium text-gray-800">${escapeHtml(String(lab || key))}</span>
+      <button type="button" class="home-order-move px-2 py-1 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40" data-dir="up" aria-label="Up" ${idx === 0 ? "disabled" : ""}><i class="fas fa-arrow-up text-xs"></i></button>
+      <button type="button" class="home-order-move px-2 py-1 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40" data-dir="down" aria-label="Down" ${
+        idx === keys.length - 1 ? "disabled" : ""
+      }><i class="fas fa-arrow-down text-xs"></i></button>`;
+    ul.appendChild(li);
+  });
+  refreshHomeOrderMoveButtons(ul);
+}
+
+function refreshHomeOrderMoveButtons(ul) {
+  [...ul.children].forEach((row, idx) => {
+    const up = row.querySelector('[data-dir="up"]');
+    const down = row.querySelector('[data-dir="down"]');
+    if (up) up.disabled = idx === 0;
+    if (down) down.disabled = idx === ul.children.length - 1;
+  });
+}
+
+function bindHomeSectionsOrderList() {
+  const ul = document.getElementById("home-sections-order-list");
+  if (!ul || ul.dataset.bound === "1") return;
+  ul.dataset.bound = "1";
+  ul.addEventListener("click", (e) => {
+    const btn = e.target.closest(".home-order-move");
+    if (!btn || btn.disabled) return;
+    const li = btn.closest("li");
+    if (!li || !ul.contains(li)) return;
+    const dir = btn.getAttribute("data-dir");
+    if (dir === "up") {
+      const prev = li.previousElementSibling;
+      if (prev) ul.insertBefore(li, prev);
+    } else if (dir === "down") {
+      const next = li.nextElementSibling;
+      if (next) ul.insertBefore(next, li);
+    }
+    refreshHomeOrderMoveButtons(ul);
+  });
+}
+
+function collectHomeSectionsOrderFromList() {
+  const ul = document.getElementById("home-sections-order-list");
+  if (!ul) return [];
+  return [...ul.querySelectorAll("li[data-key]")].map((li) => li.dataset.key).filter(Boolean);
+}
+
+async function loadHomeLayoutTab() {
+  bindHomeSectionsOrderList();
+  await renderHomeSectionsCheckboxes();
+  try {
+    const data = await api("/api/contact", {});
+    const token = getToken();
+    const meta = await api("/api/admin/home-sections/keys", { token });
+    homeSectionOrderKeysRuntime = Array.isArray(meta.order_keys) && meta.order_keys.length ? meta.order_keys : [];
+    const ul = document.getElementById("home-sections-order-list");
+    if (ul && Array.isArray(meta.order_sections)) {
+      ul.setAttribute("data-order-labels", JSON.stringify(meta.order_sections));
+    }
+    setHomeSectionsVisibilityToggles(data.home_sections_visibility);
+    const ord = Array.isArray(data.home_sections_order) && data.home_sections_order.length ? data.home_sections_order : homeSectionOrderKeysRuntime;
+    renderHomeSectionsOrderList(ord);
+  } catch (e) {
+    console.error(e);
+    renderHomeSectionsOrderList(homeSectionOrderKeysRuntime);
+  }
+}
+
+async function saveHomeLayout() {
+  const token = getToken();
+  let cur = {};
+  try {
+    cur = await api("/api/contact", {});
+  } catch (_e) {
+    alert("Failed to load settings");
+    return;
+  }
+  const body = {
+    address: cur.address || "",
+    phones: Array.isArray(cur.phones) ? cur.phones : [],
+    whatsapp_phone: cur.whatsapp_phone || "",
+    home_main_section_images:
+      cur.home_main_section_images && typeof cur.home_main_section_images === "object"
+        ? cur.home_main_section_images
+        : { men: "", women: "", kids: "" },
+    home_sections_visibility: collectHomeSectionsVisibilityFromForm(),
+    home_sections_order: collectHomeSectionsOrderFromList(),
+  };
+  if (cur.home_subcategory_slides != null && typeof cur.home_subcategory_slides === "object") {
+    body.home_subcategory_slides = cur.home_subcategory_slides;
+  }
+  try {
+    await api("/api/contact", { method: "PUT", token, body });
+    alert(adminT("contactSaved") || "Saved");
+  } catch (e) {
+    alert(e.message || String(e));
+  }
+}
+
 async function loadContact() {
   try {
-    await renderHomeSectionsCheckboxes();
     const data = await api("/api/contact", {});
     const addr = document.getElementById("contact-address");
     const phones = document.getElementById("contact-phones");
@@ -3042,7 +3174,6 @@ async function loadContact() {
       slidesTa.value =
         slides && typeof slides === "object" ? JSON.stringify(slides, null, 2) : "";
     }
-    setHomeSectionsVisibilityToggles(data.home_sections_visibility);
   } catch (e) {
     console.error(e);
   }
@@ -3101,7 +3232,7 @@ async function saveContact(e) {
     kids,
   };
   const slidesTa = document.getElementById("contact-home-subcat-slides-json");
-  const body = { address, phones, whatsapp_phone, home_main_section_images, home_sections_visibility: collectHomeSectionsVisibilityFromForm() };
+  const body = { address, phones, whatsapp_phone, home_main_section_images };
   if (slidesTa && slidesTa.value.trim()) {
     try {
       const home_subcategory_slides = JSON.parse(slidesTa.value);
@@ -3230,6 +3361,7 @@ async function bootstrapAuthed() {
     }
   });
   document.getElementById("contact-form").addEventListener("submit", saveContact);
+  document.getElementById("btn-save-home-layout")?.addEventListener("click", () => saveHomeLayout().catch(() => {}));
   document.getElementById("admin-notif-form")?.addEventListener("submit", sendAdminNotification);
   document.getElementById("btn-push-diagnostics")?.addEventListener("click", () => refreshPushDiagnostics().catch(() => {}));
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));

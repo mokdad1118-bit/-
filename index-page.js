@@ -3799,6 +3799,53 @@
             bestsellers: true,
         };
 
+        const DEFAULT_HOME_SECTIONS_ORDER = [
+            'comprehensive_market',
+            'main_categories',
+            'home_subcat_overlay',
+            'banner_below_categories',
+            'brands',
+            'banner_below_brands',
+            'top_brands',
+            'banner_below_top_brands',
+            'flash_sale',
+            'banner_below_flash',
+            'curated',
+            'banner_below_curated',
+            'promo_collection',
+            'banner_below_trending',
+            'bestsellers',
+        ];
+
+        function mergeHomeSectionsOrder(raw) {
+            const allowed = new Set(DEFAULT_HOME_SECTIONS_ORDER);
+            const def = [...DEFAULT_HOME_SECTIONS_ORDER];
+            if (!Array.isArray(raw)) return def;
+            const seen = new Set();
+            const out = [];
+            for (const k of raw) {
+                if (typeof k !== 'string' || !allowed.has(k) || seen.has(k)) continue;
+                seen.add(k);
+                out.push(k);
+            }
+            for (const k of def) {
+                if (!seen.has(k)) out.push(k);
+            }
+            return out;
+        }
+
+        let cachedHomeSectionsOrder = null;
+
+        function applyHomeSectionOrder(raw) {
+            const root = document.getElementById('home-reorder-root');
+            if (!root) return;
+            const order = mergeHomeSectionsOrder(raw);
+            for (const key of order) {
+                const el = root.querySelector(`[data-home-order-key="${key}"]`);
+                if (el) root.appendChild(el);
+            }
+        }
+
         function mergeHomeSectionsVisibility(raw) {
             const o = raw && typeof raw === 'object' ? raw : {};
             const out = { ...DEFAULT_HOME_SECTIONS_VISIBILITY };
@@ -4053,10 +4100,14 @@
                 homeSubcatSlidesMerged = mergeHomeSubcategorySlides(data.home_subcategory_slides);
                 initHomeSubcategorySliderHosts();
                 cachedHomeSectionsVisibility = data.home_sections_visibility;
+                cachedHomeSectionsOrder = data.home_sections_order;
+                applyHomeSectionOrder(data.home_sections_order);
                 applyHomeSectionsVisibility(data.home_sections_visibility);
                 refreshBestsellersSectionCombinedVisibility();
             } catch (_e) {
                 cachedHomeSectionsVisibility = null;
+                cachedHomeSectionsOrder = null;
+                applyHomeSectionOrder(null);
                 applyHomeSectionsVisibility(null);
                 refreshBestsellersSectionCombinedVisibility();
             }

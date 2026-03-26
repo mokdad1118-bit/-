@@ -2871,8 +2871,9 @@
 
         <div id="banner-slot-home_top" class="px-4 pt-1 space-y-1" data-adora-section="banners"></div>
 
+        <div id="home-reorder-root">
         <!-- السوق الشامل: منفصل عن أقسام الألبسة — عنوان متمركز بنبض، ثم الوصف، ثم عرض الكل، ثم الشريط -->
-        <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market">
+        <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market" data-home-order-key="comprehensive_market">
             <div class="flex flex-col items-center text-center gap-2.5">
                 <h2 class="adora-glow-title text-lg sm:text-xl max-w-[min(100%,20rem)] mx-auto leading-snug" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="Malls, companies, electrical appliances & more — Adora's comprehensive market for everything you need." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
@@ -2893,7 +2894,7 @@
             <div id="marketplace-home-highlights" class="hidden space-y-4 pt-3"></div>
         </div>
 
-        <div data-adora-section="main_categories">
+        <div data-adora-section="main_categories" data-home-order-key="main_categories">
         <div class="px-4 pt-2 pb-3 flex justify-center">
             <h2 class="adora-glow-title px-2" data-en="Adora | أدورا" data-ar="أدورا | Adora">أدورا | Adora</h2>
         </div>
@@ -2933,7 +2934,7 @@
         </div>
 
         <!-- الفئات الفرعية: لوحة سفلية تفتح من كرت القسم الرئيسي -->
-        <div id="home-subcat-overlay" class="home-subcat-overlay fixed inset-0 z-[60] hidden flex flex-col justify-end" aria-hidden="true" role="dialog">
+        <div id="home-subcat-overlay" class="home-subcat-overlay fixed inset-0 z-[60] hidden flex flex-col justify-end" data-home-order-key="home_subcat_overlay" aria-hidden="true" role="dialog">
             <div class="absolute inset-0 bg-black/45" onclick="closeHomeCategoryPanel()" aria-hidden="true"></div>
             <div class="relative z-10 w-full max-w-lg mx-auto bg-white rounded-t-[1.75rem] shadow-2xl max-h-[78vh] flex flex-col" onclick="event.stopPropagation()">
                 <div class="home-subcat-sheet-header flex-shrink-0 sticky top-0 z-[30] px-4 pt-3 pb-2.5 border-b border-gray-100 bg-white rounded-t-[1.75rem] flex items-center justify-between gap-2 shadow-sm">
@@ -3084,10 +3085,10 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_categories" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_categories" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_categories"></div>
 
         <!-- Brands Section -->
-        <div class="px-4 mt-6 space-y-4" data-adora-section="brands">
+        <div class="px-4 mt-6 space-y-4" data-adora-section="brands" data-home-order-key="brands">
             <div class="flex flex-col items-center text-center gap-2">
                 <h2 class="adora-glow-title text-base sm:text-lg px-2 max-w-[22rem]" data-en="Companies available in the app" data-ar="الشركات المتاحة داخل التطبيق">الشركات المتاحة داخل التطبيق</h2>
                 <p class="text-xs text-gray-500 font-normal leading-relaxed" data-en="Tap to view products" data-ar="اضغط لعرض المنتجات">اضغط لعرض المنتجات</p>
@@ -3100,18 +3101,18 @@
             <div id="brand-status" class="text-xs text-gray-500 text-center" data-en="Tap any brand to filter products" data-ar="اضغط على أي شركة لفلترة المنتجات">اضغط على أي شركة لفلترة المنتجات</div>
         </div>
 
-        <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_brands"></div>
 
-        <div class="px-4 py-4 mt-3 bg-white rounded-3xl shadow-sm border border-gray-100 space-y-4 mx-4" data-adora-section="top_brands">
+        <div class="px-4 py-4 mt-3 bg-white rounded-3xl shadow-sm border border-gray-100 space-y-4 mx-4" data-adora-section="top_brands" data-home-order-key="top_brands">
             <div class="flex justify-center px-1">
                 <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Featured names" data-ar="العلامات المميزة">العلامات المميزة</h3>
             </div>
             <div id="top-brands" class="flex gap-4 overflow-x-auto no-scrollbar"></div>
         </div>
 
-        <div id="banner-slot-below_top_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_top_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_top_brands"></div>
 
-        <div class="px-4 space-y-3 mt-3 home-compact-flash" data-adora-section="flash_sale">
+        <div class="px-4 space-y-3 mt-3 home-compact-flash" data-adora-section="flash_sale" data-home-order-key="flash_sale">
             <div class="flash-sale-section bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-3 space-y-3">
                 <div class="flash-sale-header">
                     <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
@@ -3124,9 +3125,9 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_flash" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_flash" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_flash"></div>
 
-        <div class="px-4 py-4 space-y-3 mt-3 home-compact-curated" data-adora-section="curated">
+        <div class="px-4 py-4 space-y-3 mt-3 home-compact-curated" data-adora-section="curated" data-home-order-key="curated">
             <div class="flex flex-col items-center text-center gap-1 px-1">
                 <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</h3>
                 <p class="text-xs text-purple-700 font-semibold" data-en="Hand-picked styles from Adora" data-ar="تشكيلة مختارة من أدورا">تشكيلة مختارة من أدورا</p>
@@ -3143,10 +3144,10 @@
             </div>
         </div>
 
-        <div id="banner-slot-below_curated" class="px-4 mt-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_curated" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_curated"></div>
 
-        <div class="px-4 py-5 space-y-5">
-            <div data-adora-section="promo_collection" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-4 sm:p-5 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
+        <div class="px-4 pt-5 pb-2" data-adora-section="promo_collection" data-home-order-key="promo_collection">
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-4 sm:p-5 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
                 <div class="relative z-10 space-y-3">
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div class="space-y-1">
@@ -3171,10 +3172,12 @@
                     <i class="fas fa-sun text-7xl absolute top-4 right-4"></i>
                 </div>
             </div>
+        </div>
 
-            <div id="banner-slot-below_trending" class="mb-2 space-y-1" data-adora-section="banners"></div>
+        <div id="banner-slot-below_trending" class="px-4 mb-2 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_trending"></div>
 
-            <div class="home-compact-bestsellers bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-4 space-y-3" data-adora-section="bestsellers">
+        <div class="px-4 pb-5 pt-2" data-adora-section="bestsellers" data-home-order-key="bestsellers">
+            <div class="home-compact-bestsellers bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-4 space-y-3">
                 <div class="flex flex-col items-center text-center gap-1 mb-1 px-1">
                     <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Trending Now" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</h3>
                     <p class="text-[11px] text-gray-500 w-full max-w-md" data-en="Based on real order volume" data-ar="حسب المبيعات الفعلية">حسب المبيعات الفعلية</p>
@@ -3187,6 +3190,7 @@
                     <p class="text-sm text-gray-400 py-8 px-2" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
                 </div>
             </div>
+        </div>
         </div>
     </div>
 
