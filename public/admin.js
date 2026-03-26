@@ -975,6 +975,8 @@ async function loadMpEntranceForm() {
   try {
     const d = await api("/api/marketplace/entrance", { token });
     document.getElementById("mp-entrance-image").value = d.image_url || "";
+    const mpEntFile = document.getElementById("mp-entrance-image-file");
+    if (mpEntFile) mpEntFile.value = "";
     document.getElementById("mp-entrance-title-ar").value = d.title_ar || "";
     document.getElementById("mp-entrance-title-en").value = d.title_en || "";
     document.getElementById("mp-entrance-sub-ar").value = d.subtitle_ar || "";
@@ -1398,8 +1400,19 @@ function bindMarketplaceAdminListeners() {
   document.getElementById("btn-mp-save-entrance")?.addEventListener("click", async () => {
     const token = getToken();
     if (!token) return;
+    let image_url = document.getElementById("mp-entrance-image").value.trim() || "";
+    const entranceImgFile = document.getElementById("mp-entrance-image-file")?.files?.[0];
+    if (entranceImgFile) {
+      try {
+        const up = await uploadImageFile(entranceImgFile, token);
+        if (up) image_url = up;
+      } catch (err) {
+        alert(err.message || String(err));
+        return;
+      }
+    }
     const body = {
-      image_url: document.getElementById("mp-entrance-image").value.trim(),
+      image_url,
       title_ar: document.getElementById("mp-entrance-title-ar").value.trim(),
       title_en: document.getElementById("mp-entrance-title-en").value.trim(),
       subtitle_ar: document.getElementById("mp-entrance-sub-ar").value.trim(),
@@ -1407,6 +1420,9 @@ function bindMarketplaceAdminListeners() {
     };
     try {
       await api("/api/admin/marketplace/entrance", { method: "PUT", token, body });
+      const fin = document.getElementById("mp-entrance-image-file");
+      if (fin) fin.value = "";
+      if (image_url) document.getElementById("mp-entrance-image").value = image_url;
       alert(getAdminLang() === "ar" ? "تم حفظ واجهة الدخول." : "Entrance saved.");
     } catch (err) {
       alert(err.message || String(err));
