@@ -337,6 +337,7 @@ async function initDb() {
   await migrateVendorPlatformV1();
   await migrateVendorPlatformPartnerCtaPlacements();
   await migrateVendorSubscriptionUserLink();
+  await migrateVendorJoinTermsAndDocImages();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -636,6 +637,16 @@ async function migrateVendorSubscriptionUserLink() {
   } catch (_e) {
     /* ignore */
   }
+}
+
+/** شروط نموذج انضمام كشركة + حقول صور الهوية/السجل */
+async function migrateVendorJoinTermsAndDocImages() {
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_ar TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_en TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS doc_type TEXT NOT NULL DEFAULT 'national_id'`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_front_url TEXT`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_back_url TEXT`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS commercial_register_url TEXT`);
 }
 
 async function migrateOrderStatusesToV2() {

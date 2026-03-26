@@ -1,8 +1,31 @@
 /**
  * لوحة تحكم منصة البائعين: إعدادات، طلبات الانضمام، إعلانات المنتجات، تقارير العمولة
  */
+const multer = require("multer");
 const { get, all, run } = require("./db");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
+const { sanitizeHttpsUrl } = require("./push-notify");
+
+const vendorJoinUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|jpg|pjpeg|png|webp)$/i.test(file.mimetype || "");
+    cb(null, ok);
+  },
+});
+const vendorJoinUploadFields = vendorJoinUpload.fields([
+  { name: "id_front", maxCount: 1 },
+  { name: "id_back", maxCount: 1 },
+  { name: "commercial_register", maxCount: 1 },
+]);
+
+function vendorJoinMultipartMiddleware(req, res, next) {
+  if (req.is("multipart/form-data")) {
+    return vendorJoinUploadFields(req, res, next);
+  }
+  next();
+}
 
 const PROMOTION_SLOTS = ["search_sponsored", "home_featured", "section_featured", "listing_top"];
 
@@ -88,7 +111,7 @@ function buildVendorSubStatusNotification(status, companyName, adminMessage) {
   return map[key] || map.pending;
 }
 
-function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optionalAuth, notifyUserInApp }) {
+function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optionalAuth, notifyUserInApp, uploadVendorJoinImageBuffer, isVendorJoinUploadReady }) {
   app.get("/api/public/vendor-platform/home", async (_req, res) => {
     try {
       const s = await getVendorPlatformSettings();
@@ -100,6 +123,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_subtitle_ar: "",
           partner_cta_subtitle_en: "",
           partner_cta_placements: ["home_under_search"],
+          vendor_join_terms_ar: "",
+          vendor_join_terms_en: "",
         });
       }
       const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
@@ -110,6 +135,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         partner_cta_subtitle_ar: s.partner_cta_subtitle_ar || "",
         partner_cta_subtitle_en: s.partner_cta_subtitle_en || "",
         partner_cta_placements: placements,
+        vendor_join_terms_ar: s.vendor_join_terms_ar || "",
+        vendor_join_terms_en: s.vendor_join_terms_en || "",
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load public settings" });
@@ -170,6 +197,10 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       }
       const bestsellers_boost_enabled =
         b.bestsellers_boost_enabled != null ? (Number(b.bestsellers_boost_enabled) === 0 ? 0 : 1) : cur.bestsellers_boost_enabled;
+      const vendor_join_terms_ar =
+        b.vendor_join_terms_ar != null ? String(b.vendor_join_terms_ar).slice(0, 8000) : cur.vendor_join_terms_ar ?? "";
+      const vendor_join_terms_en =
+        b.vendor_join_terms_en != null ? String(b.vendor_join_terms_en).slice(0, 8000) : cur.vendor_join_terms_en ?? "";
 
       await run(
         `UPDATE vendor_platform_settings SET
@@ -177,6 +208,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           ads_module_enabled=?, partner_banner_enabled=?, partner_banner_text_ar=?, partner_banner_text_en=?,
           partner_cta_subtitle_ar=?, partner_cta_subtitle_en=?, partner_cta_placements_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
+          vendor_join_terms_ar=?, vendor_join_terms_en=?,
           updated_at=CURRENT_TIMESTAMP
          WHERE id=1`,
         [
@@ -194,6 +226,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           featured_products_mode,
           featured_vendor_ids_json,
           bestsellers_boost_enabled,
+          vendor_join_terms_ar,
+          vendor_join_terms_en,
         ]
       );
       return res.json(await getVendorPlatformSettings());
@@ -202,30 +236,87 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
     }
   });
 
-  app.post("/api/vendor-subscription-requests", optionalAuth, async (req, res) => {
+  app.post("/api/vendor-subscription-requests", optionalAuth, vendorJoinMultipartMiddleware, async (req, res) => {
     try {
+      const uploadReady = typeof isVendorJoinUploadReady === "function" ? isVendorJoinUploadReady() : false;
+      const multipart = req.is("multipart/form-data");
       const b = req.body || {};
       const full_name = b.full_name != null ? String(b.full_name).trim().slice(0, 200) : "";
       const phone = b.phone != null ? String(b.phone).trim().slice(0, 40) : "";
       const company_name = b.company_name != null ? String(b.company_name).trim().slice(0, 200) : "";
       const email = b.email != null ? String(b.email).trim().slice(0, 200) : "";
-      const id_document = b.id_document != null ? String(b.id_document).trim().slice(0, 500) : "";
-      const terms_accepted = Number(b.terms_accepted) === 1 ? 1 : 0;
-      if (!full_name || !phone || !company_name || !email || !id_document) {
+      const terms_accepted = Number(b.terms_accepted) === 1 || String(b.terms_accepted).trim() === "1" ? 1 : 0;
+      let doc_type = String(b.doc_type || "national_id").trim().toLowerCase();
+      if (doc_type === "commercial" || doc_type === "commercial_register") doc_type = "commercial";
+      else doc_type = "national_id";
+
+      let id_front_url = null;
+      let id_back_url = null;
+      let commercial_register_url = null;
+
+      if (multipart) {
+        if (!uploadReady || typeof uploadVendorJoinImageBuffer !== "function") {
+          return res.status(503).json({
+            error:
+              "رفع الصور غير متاح — أضف إعدادات Cloudinary على الخادم (CLOUDINARY_URL أو اسم السحابة والمفاتيح).",
+          });
+        }
+        try {
+          const fFront = req.files?.id_front?.[0];
+          const fBack = req.files?.id_back?.[0];
+          const fCom = req.files?.commercial_register?.[0];
+          if (fFront) id_front_url = await uploadVendorJoinImageBuffer(fFront.buffer);
+          if (fBack) id_back_url = await uploadVendorJoinImageBuffer(fBack.buffer);
+          if (fCom) commercial_register_url = await uploadVendorJoinImageBuffer(fCom.buffer);
+        } catch (e) {
+          const msg = e && e.message ? String(e.message) : "Upload failed";
+          return res.status(500).json({ error: msg });
+        }
+      } else {
+        id_front_url = sanitizeHttpsUrl(b.id_front_url);
+        id_back_url = sanitizeHttpsUrl(b.id_back_url);
+        commercial_register_url = sanitizeHttpsUrl(b.commercial_register_url);
+      }
+
+      if (doc_type === "national_id") {
+        if (!id_front_url && !id_back_url) {
+          return res.status(400).json({
+            error: "يجب رفع صورة واجهة الهوية أو الخلفية (أو كليهما).",
+          });
+        }
+      } else if (!commercial_register_url) {
+        return res.status(400).json({ error: "يجب رفع صورة السجل التجاري." });
+      }
+
+      const id_document = "";
+      if (!full_name || !phone || !company_name || !email) {
         return res.status(400).json({ error: "All fields are required" });
       }
       if (!terms_accepted) {
         return res.status(400).json({ error: "You must accept the terms" });
       }
+
       let user_id = null;
       if (req.user && String(req.user.role || "").trim().toLowerCase() !== "admin") {
         const uid = Number(req.user.id);
         if (Number.isFinite(uid) && uid > 0) user_id = uid;
       }
       const ins = await run(
-        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status, user_id)
-         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        [full_name, phone, company_name, email, id_document, terms_accepted, user_id]
+        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status, user_id, doc_type, id_front_url, id_back_url, commercial_register_url)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+        [
+          full_name,
+          phone,
+          company_name,
+          email,
+          id_document,
+          terms_accepted,
+          user_id,
+          doc_type,
+          id_front_url,
+          id_back_url,
+          commercial_register_url,
+        ]
       );
       return res.status(201).json({ ok: true, id: ins.id });
     } catch (_e) {
@@ -243,7 +334,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const email = urow.email != null ? String(urow.email).trim() : "";
       const phone = urow.phone != null ? String(urow.phone).trim() : "";
       const rows = await all(
-        `SELECT id, full_name, phone, company_name, email, status, admin_message, created_at, updated_at, user_id
+        `SELECT id, full_name, phone, company_name, email, status, admin_message, created_at, updated_at, user_id,
+                doc_type, id_front_url, id_back_url, commercial_register_url
          FROM vendor_subscription_requests
          WHERE user_id = ?
             OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND LOWER(TRIM(email)) = LOWER(TRIM(?)))

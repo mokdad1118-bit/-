@@ -1523,6 +1523,8 @@ registerVendorPlatformRoutes(app, {
   requireAdmin,
   optionalAuth,
   notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
+  uploadVendorJoinImageBuffer: uploadBufferToCloudinary,
+  isVendorJoinUploadReady: isCloudinaryConfigured,
 });
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];

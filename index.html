@@ -3333,13 +3333,38 @@
                         <label class="text-xs font-bold text-gray-600" data-en="Email" data-ar="البريد الإلكتروني">البريد الإلكتروني</label>
                         <input id="vj-p-email" required type="email" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
                     </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-600" data-en="ID / commercial registration" data-ar="الهوية أو السجل التجاري">الهوية أو السجل التجاري</label>
-                        <input id="vj-p-id-doc" required class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    <div class="space-y-2">
+                        <p class="text-xs font-bold text-gray-600" data-en="Verification document" data-ar="نوع الوثيقة">نوع الوثيقة</p>
+                        <div class="flex flex-col gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-800">
+                                <input type="radio" name="vj-doc-type" value="national_id" checked class="rounded-full border-gray-300 text-purple-600" />
+                                <span data-en="National ID — upload front and/or back" data-ar="الهوية الشخصية — ارفع الوجه و/أو الخلف">الهوية الشخصية — ارفع الوجه و/أو الخلف</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-800">
+                                <input type="radio" name="vj-doc-type" value="commercial" class="rounded-full border-gray-300 text-purple-600" />
+                                <span data-en="Commercial registration — upload certificate image" data-ar="سجل تجاري — ارفع صورة السجل فقط">سجل تجاري — ارفع صورة السجل فقط</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="vj-national-uploads" class="space-y-2 rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
+                        <p class="text-[11px] font-bold text-gray-600" data-en="ID images (at least one required)" data-ar="صور الهوية (مطلوبة واحدة على الأقل)">صور الهوية (مطلوبة واحدة على الأقل)</p>
+                        <div>
+                            <label class="text-[11px] font-semibold text-gray-500" data-en="Front of ID" data-ar="وجه الهوية">وجه الهوية</label>
+                            <input id="vj-p-id-front" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 block w-full text-xs text-gray-700 file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-purple-800" />
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-gray-500" data-en="Back of ID" data-ar="خلفية الهوية">خلفية الهوية</label>
+                            <input id="vj-p-id-back" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 block w-full text-xs text-gray-700 file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-purple-800" />
+                        </div>
+                    </div>
+                    <div id="vj-commercial-upload" class="hidden space-y-2 rounded-2xl border border-gray-200 bg-gray-50/80 p-3">
+                        <p class="text-[11px] font-bold text-gray-600" data-en="Commercial registration image (required)" data-ar="صورة السجل التجاري (إلزامي)">صورة السجل التجاري (إلزامي)</p>
+                        <input id="vj-p-commercial-img" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 block w-full text-xs text-gray-700 file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-purple-800" />
                     </div>
                     <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-2">
                         <p class="font-bold text-violet-900" data-en="Partner terms" data-ar="الشروط">الشروط</p>
-                        <ul class="list-disc ps-4 space-y-1 leading-relaxed">
+                        <div id="vendor-join-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800"></div>
+                        <ul id="vendor-join-terms-default" class="list-disc ps-4 space-y-1 leading-relaxed">
                             <li data-en="Clear product photos" data-ar="صور واضحة للمنتج">صور واضحة للمنتج</li>
                             <li data-en="Professional description" data-ar="وصف احترافي">وصف احترافي</li>
                             <li data-en="Fair pricing" data-ar="سعر مناسب">سعر مناسب</li>

@@ -452,6 +452,10 @@ async function loadVendorPlatformSettingsUi() {
   }
   document.getElementById("vp-featured-vendors").value = Array.isArray(ids) ? ids.join(", ") : "";
   document.getElementById("vp-bestsellers-boost").checked = Number(s.bestsellers_boost_enabled) !== 0;
+  const jtAr = document.getElementById("vp-join-terms-ar");
+  const jtEn = document.getElementById("vp-join-terms-en");
+  if (jtAr) jtAr.value = s.vendor_join_terms_ar || "";
+  if (jtEn) jtEn.value = s.vendor_join_terms_en || "";
 }
 
 async function loadVendorPromotionsUi() {
@@ -554,6 +558,8 @@ async function initVendorPlatformAdminTab() {
         partner_cta_subtitle_ar: document.getElementById("vp-cta-sub-ar")?.value?.trim() ?? "",
         partner_cta_subtitle_en: document.getElementById("vp-cta-sub-en")?.value?.trim() ?? "",
         partner_cta_placements,
+        vendor_join_terms_ar: document.getElementById("vp-join-terms-ar")?.value ?? "",
+        vendor_join_terms_en: document.getElementById("vp-join-terms-en")?.value ?? "",
         featured_products_mode: document.getElementById("vp-featured-mode").value,
         featured_vendor_ids: vendorIds,
         bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost").checked ? 1 : 0,
@@ -613,9 +619,23 @@ async function loadVendorSubscriptionRequests() {
   if (!tbody) return;
   const ar = getAdminLang() === "ar";
   if (!Array.isArray(rows) || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
     return;
   }
+  const docCell = (r) => {
+    const parts = [];
+    if (r.id_front_url) parts.push(`<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_front_url)}">${ar ? "وجه الهوية" : "ID front"}</a>`);
+    if (r.id_back_url) parts.push(`<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_back_url)}">${ar ? "خلف الهوية" : "ID back"}</a>`);
+    if (r.commercial_register_url) {
+      parts.push(
+        `<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.commercial_register_url)}">${ar ? "سجل تجاري" : "Commercial"}</a>`
+      );
+    }
+    if (!parts.length && r.id_document) {
+      parts.push(`<span class="text-[11px] text-gray-500">${escapeHtml(String(r.id_document).slice(0, 80))}</span>`);
+    }
+    return parts.length ? `<div class="max-w-[140px] space-y-0.5">${parts.join("")}</div>` : "—";
+  };
   tbody.innerHTML = rows
     .map((r) => {
       return `<tr class="border-t border-gray-100 align-top">
@@ -624,6 +644,7 @@ async function loadVendorSubscriptionRequests() {
         <td class="p-2 max-w-[100px]">${escapeHtml(r.company_name || "")}</td>
         <td class="p-2 whitespace-nowrap">${escapeHtml(r.phone || "")}</td>
         <td class="p-2 max-w-[120px] truncate" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
+        <td class="p-2 align-top text-[11px]">${docCell(r)}</td>
         <td class="p-2">
           <select class="w-full text-xs p-1 rounded border border-gray-200 vp-sub-status" data-vp-sub-id="${r.id}">
             <option value="pending"${r.status === "pending" ? " selected" : ""}>${VP_SUB_STATUS_LABELS_AR.pending}</option>

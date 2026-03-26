@@ -2313,6 +2313,7 @@
             }
             if (screenId === 'screen-vendor-join') {
                 syncVendorJoinHeroFromConfig();
+                syncVendorJoinTermsFromConfig();
                 bindVendorJoinPageFormOnce();
             }
             if (screenId === 'screen-offers' || screenId === 'screen-listing') {
@@ -2419,6 +2420,7 @@
             refreshSideMenuHeader().catch(() => {});
             syncPartnerCtaDom();
             syncVendorJoinHeroFromConfig();
+            syncVendorJoinTermsFromConfig();
         }
 
         function toggleLanguage() {
@@ -2685,10 +2687,34 @@
             }
             syncPartnerCtaDom();
             syncVendorJoinHeroFromConfig();
+            syncVendorJoinTermsFromConfig();
+        }
+
+        function syncVendorJoinTermsFromConfig() {
+            const customEl = document.getElementById('vendor-join-terms-custom');
+            const defaultEl = document.getElementById('vendor-join-terms-default');
+            if (!customEl || !defaultEl) return;
+            const primary = isRTL
+                ? String(partnerCtaConfig?.vendor_join_terms_ar || '').trim()
+                : String(partnerCtaConfig?.vendor_join_terms_en || '').trim();
+            const secondary = isRTL
+                ? String(partnerCtaConfig?.vendor_join_terms_en || '').trim()
+                : String(partnerCtaConfig?.vendor_join_terms_ar || '').trim();
+            const text = primary || secondary;
+            if (text) {
+                customEl.textContent = text;
+                customEl.classList.remove('hidden');
+                defaultEl.classList.add('hidden');
+            } else {
+                customEl.textContent = '';
+                customEl.classList.add('hidden');
+                defaultEl.classList.remove('hidden');
+            }
         }
 
         function openVendorJoinPage() {
             syncVendorJoinHeroFromConfig();
+            syncVendorJoinTermsFromConfig();
             navigateTo('screen-vendor-join');
         }
         window.openVendorJoinPage = openVendorJoinPage;
@@ -2814,10 +2840,25 @@
             });
         }
 
+        function syncVendorJoinDocTypePanels() {
+            const commercial = document.querySelector('input[name="vj-doc-type"][value="commercial"]')?.checked;
+            document.getElementById('vj-national-uploads')?.classList.toggle('hidden', !!commercial);
+            document.getElementById('vj-commercial-upload')?.classList.toggle('hidden', !commercial);
+        }
+
+        function bindVendorJoinDocTypeOnce() {
+            const form = document.getElementById('vendor-join-page-form');
+            if (!form || form.dataset.adoraVjDocBound === '1') return;
+            form.dataset.adoraVjDocBound = '1';
+            document.querySelectorAll('input[name="vj-doc-type"]').forEach((r) => r.addEventListener('change', syncVendorJoinDocTypePanels));
+            syncVendorJoinDocTypePanels();
+        }
+
         function bindVendorJoinPageFormOnce() {
             const form = document.getElementById('vendor-join-page-form');
             if (!form || form.dataset.adoraVjBound === '1') return;
             form.dataset.adoraVjBound = '1';
+            bindVendorJoinDocTypeOnce();
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const msg = document.getElementById('vendor-join-page-msg');
@@ -2825,21 +2866,56 @@
                     msg.classList.add('hidden');
                     msg.textContent = '';
                 }
-                const body = {
-                    full_name: document.getElementById('vj-p-full-name')?.value?.trim() || '',
-                    phone: document.getElementById('vj-p-phone')?.value?.trim() || '',
-                    company_name: document.getElementById('vj-p-company')?.value?.trim() || '',
-                    email: document.getElementById('vj-p-email')?.value?.trim() || '',
-                    id_document: document.getElementById('vj-p-id-doc')?.value?.trim() || '',
-                    terms_accepted: document.getElementById('vj-p-terms')?.checked ? 1 : 0,
-                };
+                const docCommercial = document.querySelector('input[name="vj-doc-type"][value="commercial"]')?.checked;
+                const ff = document.getElementById('vj-p-id-front')?.files?.[0];
+                const fb = document.getElementById('vj-p-id-back')?.files?.[0];
+                const fc = document.getElementById('vj-p-commercial-img')?.files?.[0];
+                if (!docCommercial) {
+                    if (!ff && !fb) {
+                        if (msg) {
+                            msg.textContent = isRTL
+                                ? 'ارفع صورة وجه الهوية أو الخلفية (أو كليهما).'
+                                : 'Upload the front and/or back of your ID.';
+                            msg.className =
+                                'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                            msg.classList.remove('hidden');
+                        }
+                        return;
+                    }
+                } else if (!fc) {
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'ارفع صورة السجل التجاري.'
+                            : 'Upload your commercial registration image.';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                        msg.classList.remove('hidden');
+                    }
+                    return;
+                }
+                const fd = new FormData();
+                fd.append('full_name', document.getElementById('vj-p-full-name')?.value?.trim() || '');
+                fd.append('phone', document.getElementById('vj-p-phone')?.value?.trim() || '');
+                fd.append('company_name', document.getElementById('vj-p-company')?.value?.trim() || '');
+                fd.append('email', document.getElementById('vj-p-email')?.value?.trim() || '');
+                fd.append('doc_type', docCommercial ? 'commercial' : 'national_id');
+                fd.append('terms_accepted', document.getElementById('vj-p-terms')?.checked ? '1' : '0');
+                if (ff) fd.append('id_front', ff);
+                if (fb) fd.append('id_back', fb);
+                if (fc) fd.append('commercial_register', fc);
                 try {
-                    await apiFetch('/api/vendor-subscription-requests', {
+                    const headers = {};
+                    const tok = getStoredJwtToken();
+                    if (tok) headers['Authorization'] = `Bearer ${tok}`;
+                    const res = await fetch(`${getApiOrigin()}/api/vendor-subscription-requests`, {
                         method: 'POST',
-                        body,
-                        requireAuth: false,
-                        attachAuthIfAvailable: true,
+                        headers,
+                        body: fd,
                     });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        throw new Error(data.error || (isRTL ? 'تعذر الإرسال' : 'Could not submit'));
+                    }
                     refreshVendorSubscriptionSideMenu().catch(() => {});
                     if (msg) {
                         msg.textContent = isRTL
@@ -2850,6 +2926,7 @@
                         msg.classList.remove('hidden');
                     }
                     form.reset();
+                    syncVendorJoinDocTypePanels();
                     setTimeout(() => backFromVendorJoin(), 2400);
                 } catch (err) {
                     if (msg) {
@@ -6017,6 +6094,11 @@
                 container.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${ar ? 'لا توجد طلبات مرتبطة بحسابك.' : 'No subscription requests linked to your account.'}</p>`;
                 return;
             }
+            const escAttr = (u) =>
+                String(u || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
             container.innerHTML = list
                 .map((r) => {
                     const st = vendorSubStatusLabel(r.status);
@@ -6028,6 +6110,24 @@
                             : '';
                     const dt = r.updated_at || r.created_at || '';
                     const dstr = dt ? new Date(dt).toLocaleString(ar ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+                    const links = [];
+                    if (r.id_front_url) {
+                        links.push(
+                            `<a href="${escAttr(r.id_front_url)}" target="_blank" rel="noopener noreferrer" class="text-purple-600 underline text-xs font-semibold">${ar ? 'وجه الهوية' : 'ID front'}</a>`
+                        );
+                    }
+                    if (r.id_back_url) {
+                        links.push(
+                            `<a href="${escAttr(r.id_back_url)}" target="_blank" rel="noopener noreferrer" class="text-purple-600 underline text-xs font-semibold">${ar ? 'خلف الهوية' : 'ID back'}</a>`
+                        );
+                    }
+                    if (r.commercial_register_url) {
+                        links.push(
+                            `<a href="${escAttr(r.commercial_register_url)}" target="_blank" rel="noopener noreferrer" class="text-purple-600 underline text-xs font-semibold">${ar ? 'السجل التجاري' : 'Commercial reg.'}</a>`
+                        );
+                    }
+                    const docRow =
+                        links.length > 0 ? `<div class="flex flex-wrap gap-3 mt-2">${links.join('')}</div>` : '';
                     return `<div class="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
@@ -6036,6 +6136,7 @@
               </div>
               <span class="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-800">${st}</span>
             </div>
+            ${docRow}
             ${msg}
           </div>`;
                 })

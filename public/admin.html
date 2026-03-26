@@ -566,6 +566,12 @@
                   </div>
                   <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل الدعوة» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
                 </div>
+                <div class="md:col-span-2 border border-violet-100 rounded-xl p-3 space-y-2">
+                  <p class="text-xs font-bold text-gray-700">شروط نموذج «انضم كشركة» (تظهر في التطبيق)</p>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">نص الشروط (عربي)</label><textarea id="vp-join-terms-ar" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="فقرة أو سطر لكل بند…"></textarea></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">Terms (English)</label><textarea id="vp-join-terms-en" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="One line per bullet or full paragraph…"></textarea></div>
+                  <p class="text-[11px] text-gray-500 leading-relaxed">إذا تركت الحقلين فارغين يُعرض في التطبيق قائمة الشروط الافتراضية.</p>
+                </div>
                 <div><label class="text-xs font-bold">وضع المنتجات المميزة بالرئيسية</label><select id="vp-featured-mode" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="manual">يدوي (علامة منتج مميز)</option><option value="auto_bestsellers">تلقائي (الأكثر مبيعاً)</option><option value="by_vendor">من شركات محددة (معرّفات)</option></select></div>
                 <div><label class="text-xs font-bold">معرّفات الشركات (فاصلة)</label><input id="vp-featured-vendors" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="1, 2, 3" /></div>
                 <div class="flex items-center gap-2 md:col-span-2"><input type="checkbox" id="vp-bestsellers-boost" class="rounded" /><label for="vp-bestsellers-boost" class="text-sm font-bold">إظهار قسم الأكثر مبيعاً في الرئيسية</label></div>
@@ -613,7 +619,7 @@
               <div class="overflow-x-auto border border-gray-100 rounded-xl">
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50 text-gray-600"><tr>
-                    <th class="text-start p-2">#</th><th class="text-start p-2">الاسم</th><th class="text-start p-2">الشركة</th><th class="text-start p-2">الجوال</th><th class="text-start p-2">البريد</th><th class="text-start p-2">الحالة</th><th class="text-start p-2">إجراءات</th>
+                    <th class="text-start p-2">#</th><th class="text-start p-2">الاسم</th><th class="text-start p-2">الشركة</th><th class="text-start p-2">الجوال</th><th class="text-start p-2">البريد</th><th class="text-start p-2">وثائق</th><th class="text-start p-2">الحالة</th><th class="text-start p-2">إجراءات</th>
                   </tr></thead>
                   <tbody id="vp-sub-tbody"></tbody>
                 </table>
