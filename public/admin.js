@@ -2002,11 +2002,11 @@ function renderUsersTable() {
   const f = getAdminFilter();
   const filtered = f
     ? adminUsersCache.filter((u) =>
-        `${u.name} ${u.phone} ${u.role || ""}`.toLowerCase().includes(f)
+        `${u.name} ${u.phone || ""} ${u.email || ""} ${u.role || ""}`.toLowerCase().includes(f)
       )
     : adminUsersCache;
   if (!adminUsersCache.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-500">${
       ar ? "لا يوجد مستخدمون مسجّلون بعد (بعد التسجيل في التطبيق يظهرون هنا)." : "No registered app users yet — they appear after sign-up in the app."
     }</td></tr>`;
     return;
@@ -2034,7 +2034,8 @@ function renderUsersTable() {
       return `
         <tr>
           <td class="py-2 font-semibold">${escapeHtml(u.name)}</td>
-          <td class="py-2 font-mono text-xs">${escapeHtml(u.phone)}</td>
+          <td class="py-2 font-mono text-xs">${escapeHtml(u.email || "—")}</td>
+          <td class="py-2 font-mono text-xs">${escapeHtml(u.phone || "—")}</td>
           <td class="py-2 text-xs text-gray-600">${escapeHtml(u.role || "user")}</td>
           <td class="py-2 text-xs">${escapeHtml(pushLabel)}</td>
           <td class="py-2 whitespace-nowrap">${escapeHtml(reg)}</td>
@@ -2377,7 +2378,7 @@ async function loadNotificationTargetOptions() {
   for (const u of list) {
     const o = document.createElement("option");
     o.value = String(u.id);
-    o.textContent = `${u.name} — ${u.phone}`;
+    o.textContent = `${u.name} — ${u.email || u.phone || "—"}`;
     sel.appendChild(o);
   }
 }

@@ -1,4 +1,5 @@
 require("dotenv").config();
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 const express = require("express");
@@ -10,6 +11,30 @@ const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const { registerMarketplaceRoutes } = require("./marketplace-routes");
+const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
+
+const SIGNUP_SEND_COOLDOWN_MS = 45 * 1000;
+const SIGNUP_RESEND_COOLDOWN_MS = 60 * 1000;
+const SIGNUP_OTP_TTL_MS = 5 * 60 * 1000;
+
+function hashEmailOtp(code) {
+  const pepper = String(process.env.OTP_PEPPER || process.env.JWT_SECRET || "adora-otp-dev");
+  return crypto.createHmac("sha256", pepper).update(String(code).trim()).digest("hex");
+}
+
+function verifyEmailOtp(code, storedHash) {
+  const h = hashEmailOtp(code);
+  let a;
+  let b;
+  try {
+    a = Buffer.from(h, "hex");
+    b = Buffer.from(String(storedHash || ""), "hex");
+  } catch (_e) {
+    return false;
+  }
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 /** للتشخيص: مستخدم مؤهل لاستلام بث Push (إشعارات مفعّلة وليس في فترة كتم) */
 function sqlPushUserEligible() {
@@ -278,36 +303,181 @@ function mapProductRow(p) {
   };
 }
 
-app.post("/api/auth/signup", async (req, res) => {
+/** إرسال رمز التحقق للبريد — إنشاء حساب فقط بعد /api/auth/signup/verify */
+app.post("/api/auth/signup/send-code", async (req, res) => {
   try {
-    const { name, phone, password } = req.body;
-    if (!name || !phone || !password) {
+    if (!isEmailTransportConfigured()) {
+      return res.status(503).json({
+        error: "Email delivery is not configured on the server (EMAIL_HOST, EMAIL_USER, EMAIL_PASS)",
+      });
+    }
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim();
+    const password = String(req.body?.password || "");
+    if (!name || !email || !password) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const existing = await get(`SELECT id FROM users WHERE phone=?`, [phone]);
-    if (existing) return res.status(409).json({ error: "Phone already exists" });
-    const hash = await bcrypt.hash(password, 10);
-    const result = await run(
-      `INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, 'user')`,
-      [name, phone, hash]
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+    const norm = email.toLowerCase();
+    const existing = await get(`SELECT id FROM users WHERE LOWER(TRIM(email)) = ?`, [norm]);
+    if (existing) return res.status(409).json({ error: "Email already registered" });
+
+    const row = await get(`SELECT last_sent_at FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+    const nowMs = Date.now();
+    if (row && row.last_sent_at) {
+      const last = new Date(row.last_sent_at).getTime();
+      if (last > nowMs - SIGNUP_SEND_COOLDOWN_MS) {
+        const retry_after_sec = Math.ceil((SIGNUP_SEND_COOLDOWN_MS - (nowMs - last)) / 1000);
+        return res.status(429).json({
+          error: "Please wait before requesting another code",
+          retry_after_sec,
+        });
+      }
+    }
+
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+    const otpHash = hashEmailOtp(code);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const expiresAt = new Date(nowMs + SIGNUP_OTP_TTL_MS).toISOString();
+    const lastSent = new Date(nowMs).toISOString();
+
+    await run(
+      `INSERT INTO pending_email_signups (email_normalized, name, password_hash, otp_hash, expires_at, last_sent_at, resend_count)
+       VALUES (?, ?, ?, ?, ?, ?, 1)
+       ON CONFLICT (email_normalized) DO UPDATE SET
+         name = EXCLUDED.name,
+         password_hash = EXCLUDED.password_hash,
+         otp_hash = EXCLUDED.otp_hash,
+         expires_at = EXCLUDED.expires_at,
+         last_sent_at = EXCLUDED.last_sent_at,
+         resend_count = pending_email_signups.resend_count + 1`,
+      [norm, name, passwordHash, otpHash, expiresAt, lastSent]
     );
+
+    try {
+      await sendSignupOtpEmail({ to: email, code, name });
+    } catch (mailErr) {
+      console.error("[auth] signup email:", mailErr?.message || mailErr);
+      return res.status(502).json({ error: "Failed to send verification email. Try again later." });
+    }
+
+    return res.json({ ok: true, expires_in_sec: Math.floor(SIGNUP_OTP_TTL_MS / 1000) });
+  } catch (err) {
+    console.error("[auth] signup/send-code:", err?.message || err);
+    return res.status(500).json({ error: "Failed to send verification code" });
+  }
+});
+
+app.post("/api/auth/signup/resend-code", async (req, res) => {
+  try {
+    if (!isEmailTransportConfigured()) {
+      return res.status(503).json({ error: "Email delivery is not configured on the server" });
+    }
+    const email = String(req.body?.email || "").trim();
+    if (!email) return res.status(400).json({ error: "Missing email" });
+    const norm = email.toLowerCase();
+    const row = await get(`SELECT * FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+    if (!row) return res.status(404).json({ error: "No pending signup for this email" });
+    const nowMs = Date.now();
+    if (new Date(row.expires_at).getTime() < nowMs) {
+      await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+      return res.status(410).json({ error: "Code expired. Please start signup again." });
+    }
+    const last = new Date(row.last_sent_at).getTime();
+    if (last > nowMs - SIGNUP_RESEND_COOLDOWN_MS) {
+      const retry_after_sec = Math.ceil((SIGNUP_RESEND_COOLDOWN_MS - (nowMs - last)) / 1000);
+      return res.status(429).json({ error: "Please wait before resending", retry_after_sec });
+    }
+
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+    const otpHash = hashEmailOtp(code);
+    const expiresAt = new Date(nowMs + SIGNUP_OTP_TTL_MS).toISOString();
+    const lastSent = new Date(nowMs).toISOString();
+    await run(
+      `UPDATE pending_email_signups SET otp_hash=?, expires_at=?, last_sent_at=?, resend_count = resend_count + 1 WHERE email_normalized=?`,
+      [otpHash, expiresAt, lastSent, norm]
+    );
+    try {
+      await sendSignupOtpEmail({ to: email, code, name: row.name });
+    } catch (mailErr) {
+      console.error("[auth] resend email:", mailErr?.message || mailErr);
+      return res.status(502).json({ error: "Failed to send email. Try again later." });
+    }
+    return res.json({ ok: true, expires_in_sec: Math.floor(SIGNUP_OTP_TTL_MS / 1000) });
+  } catch (err) {
+    console.error("[auth] signup/resend:", err?.message || err);
+    return res.status(500).json({ error: "Failed to resend code" });
+  }
+});
+
+app.post("/api/auth/signup/verify", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim();
+    const code = String(req.body?.code || "").trim().replace(/\s/g, "");
+    if (!email || !code) return res.status(400).json({ error: "Missing email or code" });
+    const norm = email.toLowerCase();
+    const row = await get(`SELECT * FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+    if (!row) return res.status(404).json({ error: "No pending signup for this email" });
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+      return res.status(410).json({ error: "Code expired. Please request a new code." });
+    }
+    if (!verifyEmailOtp(code, row.otp_hash)) {
+      return res.status(401).json({ error: "Invalid verification code" });
+    }
+    const dup = await get(`SELECT id FROM users WHERE LOWER(TRIM(email)) = ?`, [norm]);
+    if (dup) {
+      await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+      return res.status(409).json({ error: "Email already registered" });
+    }
+
+    const result = await run(
+      `INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, NULL, ?, 'user')`,
+      [row.name, norm, row.password_hash]
+    );
+    await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
     const now = new Date().toISOString();
     await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [now, result.id]);
     const user = await get(
-      `SELECT id, name, phone, role, credentials_acknowledged, notifications_enabled FROM users WHERE id=?`,
+      `SELECT id, name, phone, email, role, credentials_acknowledged, notifications_enabled FROM users WHERE id=?`,
       [result.id]
     );
-    const token = signToken({ id: user.id, name: user.name, phone: user.phone, role: user.role });
-    return res.json({ token, user });
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      phone: user.phone,
+      email: user.email,
+    });
+    const payload = {
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      notifications_enabled: user.notifications_enabled,
+      credentials_acknowledged: user.credentials_acknowledged,
+    };
+    return res.json({ token, user: payload });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to sign up" });
+    console.error("[auth] signup/verify:", err?.message || err);
+    return res.status(500).json({ error: "Failed to complete signup" });
   }
 });
 
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { phone, password } = req.body;
-    const user = await get(`SELECT * FROM users WHERE phone=?`, [phone]);
+    const raw = String(req.body?.phone ?? req.body?.email ?? req.body?.identifier ?? "").trim();
+    const password = String(req.body?.password || "");
+    if (!raw || !password) return res.status(400).json({ error: "Missing credentials" });
+    const user = await get(
+      `SELECT * FROM users WHERE phone = ? OR LOWER(TRIM(email)) = LOWER(TRIM(?))`,
+      [raw, raw]
+    );
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: "Invalid credentials" });
@@ -316,11 +486,17 @@ app.post("/api/auth/login", async (req, res) => {
       id: user.id,
       name: user.name,
       phone: user.phone,
+      email: user.email,
       role: user.role,
       notifications_enabled: user.notifications_enabled,
       credentials_acknowledged: user.credentials_acknowledged,
     };
-    const token = signToken(payload);
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      phone: user.phone,
+      email: user.email,
+    });
     return res.json({ token, user: payload });
   } catch (err) {
     return res.status(500).json({ error: "Failed to login" });
@@ -378,7 +554,7 @@ app.get("/api/stats", sendPublicStatsJson);
 async function loadUserProfileBundle(userId) {
   await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), userId]);
   const user = await get(
-    `SELECT id, name, phone, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at
+    `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at
      FROM users WHERE id=?`,
     [userId]
   );
@@ -412,18 +588,49 @@ app.get("/api/profile", requireAuth, async (req, res) => {
 
 app.put("/api/profile", requireAuth, async (req, res) => {
   try {
-    const { name, phone } = req.body;
-    const n = name != null ? String(name).trim() : "";
-    const p = phone != null ? String(phone).trim() : "";
-    if (!n || !p) return res.status(400).json({ error: "Missing name or phone" });
-    const dup = await get(`SELECT id FROM users WHERE phone=? AND id!=?`, [p, req.user.id]);
-    if (dup) return res.status(409).json({ error: "Phone already exists" });
-    await run(`UPDATE users SET name=?, phone=? WHERE id=?`, [n, p, req.user.id]);
+    const cur = await get(`SELECT name, phone, email FROM users WHERE id=?`, [req.user.id]);
+    if (!cur) return res.status(404).json({ error: "User not found" });
+    const { name, phone, email } = req.body || {};
+    const n = name != null ? String(name).trim() : String(cur.name || "").trim();
+    if (!n) return res.status(400).json({ error: "Missing name" });
+    let nextPhone = cur.phone ?? null;
+    let nextEmail = cur.email ?? null;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "phone")) {
+      const p = phone != null ? String(phone).trim() : "";
+      nextPhone = p || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "email")) {
+      const e = email != null ? String(email).trim() : "";
+      nextEmail = e || null;
+    }
+    if (!nextPhone && !nextEmail) {
+      return res.status(400).json({ error: "Profile must keep at least phone or email" });
+    }
+    if (nextEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+    if (nextPhone) {
+      const dupP = await get(`SELECT id FROM users WHERE phone=? AND id!=?`, [nextPhone, req.user.id]);
+      if (dupP) return res.status(409).json({ error: "Phone already exists" });
+    }
+    if (nextEmail) {
+      const dupE = await get(`SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) AND id!=?`, [
+        nextEmail,
+        req.user.id,
+      ]);
+      if (dupE) return res.status(409).json({ error: "Email already exists" });
+    }
+    await run(`UPDATE users SET name=?, phone=?, email=? WHERE id=?`, [n, nextPhone, nextEmail, req.user.id]);
     const user = await get(
-      `SELECT id, name, phone, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at FROM users WHERE id=?`,
+      `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at FROM users WHERE id=?`,
       [req.user.id]
     );
-    const token = signToken({ id: user.id, name: user.name, phone: user.phone, role: user.role });
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      phone: user.phone,
+      email: user.email,
+    });
     return res.json({ token, user });
   } catch (err) {
     return res.status(500).json({ error: "Failed to update profile" });
@@ -586,7 +793,7 @@ app.get("/api/admin/home-sections/keys", requireAuth, requireAdmin, async (_req,
 app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const rows = await all(
-      `SELECT u.id, u.name, u.phone, u.role, u.created_at, u.last_activity_at,
+      `SELECT u.id, u.name, u.phone, u.email, u.role, u.created_at, u.last_activity_at,
         u.notifications_enabled, u.notifications_snoozed_until,
         (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count,
         (SELECT MAX(o.created_at) FROM orders o WHERE o.user_id = u.id) AS last_order_at
@@ -784,7 +991,7 @@ app.get("/api/admin/orders/:id", requireAuth, requireAdmin, async (req, res) => 
   try {
     const id = Number(req.params.id);
     const order = await get(
-      `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone
+      `SELECT o.*, u.name AS customer_name, COALESCE(NULLIF(TRIM(u.phone), ''), u.email) AS customer_phone
        FROM orders o
        LEFT JOIN users u ON u.id = o.user_id
        WHERE o.id=?`,
@@ -1431,13 +1638,13 @@ app.get("/api/orders", requireAuth, async (req, res) => {
     const rows =
       req.user.role === "admin"
         ? await all(
-            `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone
+            `SELECT o.*, u.name AS customer_name, COALESCE(NULLIF(TRIM(u.phone), ''), u.email) AS customer_phone
              FROM orders o
              LEFT JOIN users u ON u.id = o.user_id
              ORDER BY o.created_at DESC NULLS LAST, ${ORDER_STATUS_SORT_SQL} ASC, o.id DESC`
           )
         : await all(
-            `SELECT o.*, u.name AS customer_name, u.phone AS customer_phone
+            `SELECT o.*, u.name AS customer_name, COALESCE(NULLIF(TRIM(u.phone), ''), u.email) AS customer_phone
              FROM orders o
              LEFT JOIN users u ON u.id = o.user_id
              WHERE o.user_id=?

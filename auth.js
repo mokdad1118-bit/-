@@ -3,9 +3,12 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "adora-dev-secret";
 
 function signToken(user) {
-  return jwt.sign({ id: user.id, role: user.role, phone: user.phone }, JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  const payload = { id: user.id, role: user.role };
+  const phone = user.phone != null ? String(user.phone).trim() : "";
+  const email = user.email != null ? String(user.email).trim() : "";
+  if (phone) payload.phone = phone;
+  if (email) payload.email = email;
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
 }
 
 function requireAuth(req, res, next) {

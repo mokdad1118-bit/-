@@ -320,6 +320,7 @@ async function initDb() {
   )`);
 
   await migrateUsersColumns();
+  await migrateUsersEmailAndPendingSignups();
   await migrateOrderItemsColumns();
   await migrateOrderItemsBrandColumn();
   await migrateProductsInventoryJson();
@@ -442,6 +443,35 @@ async function migrateUsersColumns() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS credentials_acknowledged INTEGER NOT NULL DEFAULT 0`
   );
   await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TEXT`);
+}
+
+/** بريد للتحقق عند التسجيل + جدول انتظار OTP — الهاتف اختياري للمستخدمين الجدد */
+async function migrateUsersEmailAndPendingSignups() {
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`);
+  try {
+    await run(`ALTER TABLE users ALTER COLUMN phone DROP NOT NULL`);
+  } catch (_e) {
+    /* قد يكون مُنفَّذاً أو غير مدعوم */
+  }
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower
+    ON users (LOWER(TRIM(email)))
+    WHERE email IS NOT NULL AND TRIM(email) <> ''
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS pending_email_signups (
+      id SERIAL PRIMARY KEY,
+      email_normalized TEXT NOT NULL,
+      name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      otp_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      last_sent_at TIMESTAMPTZ NOT NULL,
+      resend_count INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT pending_email_signups_email_unique UNIQUE (email_normalized)
+    )
+  `);
 }
 
 /** أرقام قديمة عشوائية أو غير ORD-##### → إعادة ترقيم متسلسل حسب تاريخ الإنشاء */

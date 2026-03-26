@@ -1558,6 +1558,61 @@
             };
         }
 
+        let __adoraSignupResendTimer = null;
+
+        function stopSignupResendCountdown() {
+            if (__adoraSignupResendTimer) {
+                clearTimeout(__adoraSignupResendTimer);
+                __adoraSignupResendTimer = null;
+            }
+        }
+
+        function startSignupResendCountdown(sec) {
+            const btn = document.getElementById('auth-signup-resend-btn');
+            const label = document.getElementById('auth-signup-resend-label');
+            stopSignupResendCountdown();
+            let s = Math.max(0, Number(sec) || 0);
+            const tick = () => {
+                if (btn) btn.disabled = s > 0;
+                if (label) {
+                    label.textContent =
+                        s > 0
+                            ? isRTL
+                                ? `إعادة الإرسال خلال ${s} ث`
+                                : `Resend in ${s}s`
+                            : isRTL
+                              ? 'إعادة إرسال الرمز'
+                              : 'Resend code';
+                }
+                if (s <= 0) {
+                    __adoraSignupResendTimer = null;
+                    return;
+                }
+                s -= 1;
+                __adoraSignupResendTimer = setTimeout(tick, 1000);
+            };
+            tick();
+        }
+
+        function resetSignupEmailOtpUi() {
+            const form = document.getElementById('auth-form-signup');
+            const otpPanel = document.getElementById('auth-signup-otp-panel');
+            const otpInput = document.getElementById('auth-signup-otp-code');
+            if (form) form.classList.remove('hidden');
+            if (otpPanel) otpPanel.classList.add('hidden');
+            if (otpInput) otpInput.value = '';
+            stopSignupResendCountdown();
+            const btn = document.getElementById('auth-signup-resend-btn');
+            if (btn) btn.disabled = false;
+            const label = document.getElementById('auth-signup-resend-label');
+            if (label) {
+                label.textContent = isRTL ? 'إعادة إرسال الرمز' : 'Resend code';
+            }
+        }
+        try {
+            window.resetSignupEmailOtpUi = resetSignupEmailOtpUi;
+        } catch (_e) {}
+
         function setAuthMode(mode) {
             const loginTab = document.getElementById('auth-tab-login');
             const signupTab = document.getElementById('auth-tab-signup');
@@ -1572,6 +1627,7 @@
 
             formSignup.classList.toggle('hidden', isLogin);
             formLogin.classList.toggle('hidden', !isLogin);
+            if (isLogin) resetSignupEmailOtpUi();
         }
 
         function openAuthModal(mode = 'signup', message = '') {
@@ -1586,6 +1642,7 @@
                 msgEl.classList.toggle('hidden', !message);
             }
             setAuthMode(mode);
+            if (mode === 'signup') resetSignupEmailOtpUi();
             adoraParticleModal.start();
         }
 
@@ -1665,10 +1722,76 @@
             }
         }
 
-        async function handleSignup() {
-            const name = document.getElementById('auth-name').value.trim();
-            const phone = document.getElementById('auth-phone').value.trim();
-            const password = document.getElementById('auth-password').value;
+        async function apiFetchAuthSignup(path, body) {
+            const res = await fetch(`${getApiOrigin()}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const err = new Error(data.error || `Request failed (${res.status})`);
+                err.status = res.status;
+                err.retry_after_sec = data.retry_after_sec;
+                throw err;
+            }
+            return data;
+        }
+
+        async function handleSignupSendCode() {
+            const name = document.getElementById('auth-name')?.value.trim() || '';
+            const email = document.getElementById('auth-email')?.value.trim() || '';
+            const password = document.getElementById('auth-password')?.value || '';
+            const msgEl = document.getElementById('auth-message');
+            const showMsg = (t) => {
+                if (msgEl) {
+                    msgEl.textContent = t;
+                    msgEl.classList.remove('hidden');
+                }
+            };
+            if (msgEl) msgEl.classList.add('hidden');
+            if (!name || !email || !password) {
+                showMsg(isRTL ? 'أدخل الاسم والبريد وكلمة المرور' : 'Enter name, email, and password');
+                return;
+            }
+            if (password.length < 6) {
+                showMsg(isRTL ? 'كلمة المرور 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+                return;
+            }
+            try {
+                await apiFetchAuthSignup('/api/auth/signup/send-code', { name, email, password });
+                const form = document.getElementById('auth-form-signup');
+                const otpPanel = document.getElementById('auth-signup-otp-panel');
+                const disp = document.getElementById('auth-signup-otp-email-display');
+                if (form) form.classList.add('hidden');
+                if (otpPanel) otpPanel.classList.remove('hidden');
+                if (disp) disp.textContent = email;
+                document.getElementById('auth-signup-otp-code')?.focus();
+                startSignupResendCountdown(60);
+                showMsg('');
+                if (msgEl) msgEl.classList.add('hidden');
+            } catch (e) {
+                const wait = e.retry_after_sec;
+                if (wait != null) startSignupResendCountdown(wait);
+                showMsg(e.message || String(e));
+            }
+        }
+
+        async function handleSignupVerifyCode() {
+            const email = document.getElementById('auth-email')?.value.trim() || '';
+            const code = document.getElementById('auth-signup-otp-code')?.value.trim().replace(/\s/g, '') || '';
+            const password = document.getElementById('auth-password')?.value || '';
+            const msgEl = document.getElementById('auth-message');
+            const showMsg = (t) => {
+                if (msgEl) {
+                    msgEl.textContent = t;
+                    msgEl.classList.remove('hidden');
+                }
+            };
+            if (!code || code.length < 4) {
+                showMsg(isRTL ? 'أدخل رمز التحقق' : 'Enter the verification code');
+                return;
+            }
             let resumeOrder = null;
             if (pendingOrderPayload) {
                 resumeOrder = { payload: pendingOrderPayload, source: pendingOrderSource };
@@ -1676,11 +1799,7 @@
                 pendingOrderSource = null;
             }
             try {
-                const data = await apiFetch('/api/auth/signup', {
-                    method: 'POST',
-                    requireAuth: false,
-                    body: { name, phone, password },
-                });
+                const data = await apiFetchAuthSignup('/api/auth/signup/verify', { email, code });
                 setStoredJwtToken(data.token);
                 setAuthMode('signup');
                 await completeAuthTransitionToApp(async () => {
@@ -1688,7 +1807,7 @@
                     pendingAfterSignupCredentials = resumeOrder;
                     const pEl = document.getElementById('signup-cred-phone');
                     const pwEl = document.getElementById('signup-cred-password');
-                    if (pEl) pEl.textContent = phone;
+                    if (pEl) pEl.textContent = email;
                     if (pwEl) pwEl.textContent = password;
                     document.getElementById('signup-credentials-modal')?.classList.remove('hidden');
                     document.body.style.overflow = 'hidden';
@@ -1698,7 +1817,28 @@
                     pendingOrderPayload = resumeOrder.payload;
                     pendingOrderSource = resumeOrder.source;
                 }
-                openAuthModal('signup', isRTL ? `فشل إنشاء الحساب: ${e.message}` : `Sign up failed: ${e.message}`);
+                showMsg(e.message || String(e));
+            }
+        }
+
+        async function handleSignupResendCode() {
+            const email = document.getElementById('auth-email')?.value.trim() || '';
+            const msgEl = document.getElementById('auth-message');
+            if (!email) return;
+            try {
+                await apiFetchAuthSignup('/api/auth/signup/resend-code', { email });
+                if (msgEl) {
+                    msgEl.textContent = isRTL ? 'تم إرسال رمز جديد' : 'A new code was sent';
+                    msgEl.classList.remove('hidden');
+                }
+                startSignupResendCountdown(60);
+            } catch (e) {
+                const wait = e.retry_after_sec;
+                if (wait != null) startSignupResendCountdown(wait);
+                if (msgEl) {
+                    msgEl.textContent = e.message || String(e);
+                    msgEl.classList.remove('hidden');
+                }
             }
         }
 
@@ -1792,7 +1932,10 @@
                 const ch = nm ? nm.charAt(0).toUpperCase() : isRTL ? '؟' : '?';
                 avEl.textContent = ch;
             }
-            if (profilePhoneEl) profilePhoneEl.textContent = data.user.phone || '';
+            if (profilePhoneEl) {
+                const sub = [data.user.phone, data.user.email].filter(Boolean).join(' · ');
+                profilePhoneEl.textContent = sub;
+            }
             const memberEl = document.getElementById('profile-member-since');
             if (memberEl) {
                 const ca = data.user?.created_at;
@@ -3265,7 +3408,11 @@
             try {
                 const bundle = await apiFetch('/api/profile', { requireAuth: true });
                 customerName = bundle?.user?.name ? String(bundle.user.name) : '';
-                customerPhone = bundle?.user?.phone ? String(bundle.user.phone) : '';
+                customerPhone = bundle?.user?.phone
+                    ? String(bundle.user.phone)
+                    : bundle?.user?.email
+                      ? String(bundle.user.email)
+                      : '';
             } catch (_e) {}
             const savedAddr = getSavedDeliveryAddressText();
             const shipAr = order.shippingAddress?.ar ?? getShippingAddress().ar;
@@ -5781,8 +5928,10 @@
                 const data = await apiFetch('/api/profile', { requireAuth: true });
                 const name = document.getElementById('profile-edit-name');
                 const phone = document.getElementById('profile-edit-phone');
+                const em = document.getElementById('profile-edit-email');
                 if (name) name.value = data.user?.name || '';
                 if (phone) phone.value = data.user?.phone || '';
+                if (em) em.value = data.user?.email || '';
             } catch {
                 showToast(isRTL ? 'تعذر تحميل الملف' : 'Unable to load profile');
                 return;
@@ -5804,7 +5953,10 @@
                 'New password must be at least 6 characters': 'كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف',
                 'Missing password fields': 'أدخل حقول كلمة المرور كاملة',
                 'Phone already exists': 'رقم الهاتف مستخدم مسبقاً',
+                'Email already exists': 'البريد الإلكتروني مستخدم مسبقاً',
                 'Missing name or phone': 'الاسم والهاتف مطلوبان',
+                'Profile must keep at least phone or email': 'احتفظ ببريد أو هاتف على الأقل',
+                'Invalid email address': 'عنوان البريد غير صالح',
             };
             const en = Object.fromEntries(Object.entries(ar).map(([k, v]) => [v, k]));
             if (isRTL && ar[m]) return ar[m];
@@ -5815,6 +5967,7 @@
         async function saveProfileEdit() {
             const name = document.getElementById('profile-edit-name')?.value.trim();
             const phone = document.getElementById('profile-edit-phone')?.value.trim();
+            const email = document.getElementById('profile-edit-email')?.value.trim();
             const curPw = document.getElementById('profile-edit-current-password')?.value || '';
             const newPw = document.getElementById('profile-edit-new-password')?.value || '';
             const confPw = document.getElementById('profile-edit-confirm-password')?.value || '';
@@ -5825,8 +5978,8 @@
                     err.classList.remove('hidden');
                 }
             };
-            if (!name || !phone) {
-                showErr(isRTL ? 'أدخل الاسم ورقم الهاتف' : 'Enter name and phone');
+            if (!name || (!phone && !email)) {
+                showErr(isRTL ? 'أدخل الاسم وبريد أو هاتف على الأقل' : 'Enter name and at least email or phone');
                 return;
             }
             const wantsPw = curPw.length > 0 || newPw.length > 0 || confPw.length > 0;
@@ -5860,7 +6013,7 @@
                 const data = await apiFetch('/api/profile', {
                     method: 'PUT',
                     requireAuth: true,
-                    body: { name, phone },
+                    body: { name, phone, email },
                 });
                 if (data.token) setStoredJwtToken(data.token);
                 closeProfileEditModal();

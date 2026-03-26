@@ -2706,18 +2706,39 @@
                         <input id="auth-name" type="text" class="adora-auth-input" data-en-placeholder="Your name" data-ar-placeholder="اسمك" placeholder="" />
                     </div>
                     <div class="auth-field-enter" style="animation-delay: 0.1s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Phone" data-ar="رقم الهاتف">Phone</label>
-                        <input id="auth-phone" type="text" class="adora-auth-input" inputmode="tel" autocomplete="tel" data-en-placeholder="+966 5XX XXX XXX" data-ar-placeholder="+٩٦٦ ٥xx xxx xxx" placeholder="" />
+                        <label class="text-sm font-semibold adora-auth-label" data-en="Email" data-ar="البريد الإلكتروني">Email</label>
+                        <input id="auth-email" type="email" class="adora-auth-input" inputmode="email" autocomplete="email" data-en-placeholder="you@example.com" data-ar-placeholder="you@example.com" placeholder="" />
                     </div>
                     <div class="auth-field-enter" style="animation-delay: 0.15s">
                         <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
                         <input id="auth-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
                     </div>
-                    <button type="button" onclick="handleSignup()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.2s">
-                        <i class="fas fa-user-plus"></i>
-                        <span data-en="Create account" data-ar="إنشاء الحساب">Create account</span>
+                    <p class="text-[11px] text-violet-200/90 leading-relaxed" data-en="We will email you a 6-digit code (valid 5 minutes). Not required again after you sign up." data-ar="سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.">سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.</p>
+                    <button type="button" onclick="handleSignupSendCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.2s">
+                        <i class="fas fa-envelope"></i>
+                        <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
                     </button>
                 </form>
+
+                <div id="auth-signup-otp-panel" class="space-y-4 hidden">
+                    <p class="text-sm text-violet-100/90 leading-relaxed text-center" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
+                    <p class="text-center text-xs text-violet-200/80 break-all" id="auth-signup-otp-email-display"></p>
+                    <div>
+                        <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
+                        <input id="auth-signup-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
+                    </div>
+                    <button type="button" onclick="handleSignupVerifyCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
+                        <span data-en="Verify & create account" data-ar="تأكيد وإنشاء الحساب">تأكيد وإنشاء الحساب</span>
+                    </button>
+                    <div class="flex flex-col items-center gap-2">
+                        <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                            <span id="auth-signup-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
+                        </button>
+                        <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-violet-300/90 hover:text-white">
+                            <span data-en="Change email" data-ar="تغيير البريد">تغيير البريد</span>
+                        </button>
+                    </div>
+                </div>
 
                 <form id="auth-form-login" class="space-y-3 hidden">
                     <div class="auth-field-enter" style="animation-delay: 0.05s">
@@ -4095,8 +4116,12 @@
                     <input id="profile-edit-name" type="text" class="w-full mt-1 p-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" autocomplete="name" />
                 </div>
                 <div>
-                    <label class="text-sm font-semibold text-gray-800" data-en="Phone (login)" data-ar="رقم الهاتف (لتسجيل الدخول)">رقم الهاتف (لتسجيل الدخول)</label>
-                    <input id="profile-edit-phone" type="text" inputmode="numeric" class="w-full mt-1 p-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" autocomplete="tel" />
+                    <label class="text-sm font-semibold text-gray-800" data-en="Email (login)" data-ar="البريد (لتسجيل الدخول)">البريد (لتسجيل الدخول)</label>
+                    <input id="profile-edit-email" type="email" class="w-full mt-1 p-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" autocomplete="email" />
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-800" data-en="Phone (optional)" data-ar="الهاتف (اختياري)">الهاتف (اختياري)</label>
+                    <input id="profile-edit-phone" type="text" inputmode="tel" class="w-full mt-1 p-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" autocomplete="tel" />
                 </div>
                 <div class="border-t border-gray-100 pt-4 mt-2 space-y-3">
                     <p class="text-sm font-semibold text-gray-800" data-en="Change password (optional)" data-ar="تغيير كلمة المرور (اختياري)">تغيير كلمة المرور (اختياري)</p>
@@ -4154,7 +4179,7 @@
             </div>
             <div class="space-y-2 rounded-2xl bg-gray-50 border border-gray-200 p-4 mb-4">
                 <div>
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider" data-en="Username (phone)" data-ar="اسم المستخدم (الهاتف)">اسم المستخدم (الهاتف)</p>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider" data-en="Email (login)" data-ar="البريد الإلكتروني">البريد الإلكتروني</p>
                     <p id="signup-cred-phone" class="font-mono font-bold text-gray-900 text-lg break-all"></p>
                 </div>
                 <div>
