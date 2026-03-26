@@ -1064,6 +1064,7 @@
             'screen-listing',
             'screen-offers',
             'screen-wishlist',
+            'screen-vendor-join',
             'screen-marketplace',
             'screen-marketplace-product',
             'screen-cart',
@@ -2300,12 +2301,21 @@
                 injectHomeBanners().catch(() => {});
                 refreshAdoraHomeSubcategoryCounts().catch(() => {});
                 loadMarketplaceHomeStrip().catch(() => {});
-                loadVendorJoinBanner().catch(() => {});
+                loadPartnerCtaConfig().catch(() => {});
                 loadMarketplaceHomeHighlights().catch(() => {});
-                bindVendorJoinFormOnce();
+                bindVendorJoinPageFormOnce();
             }
             if (screenId === 'screen-marketplace') {
-                initMarketplaceBrowseScreen().catch(() => {});
+                initMarketplaceBrowseScreen()
+                    .then(() => syncPartnerCtaDom())
+                    .catch(() => {});
+            }
+            if (screenId === 'screen-vendor-join') {
+                syncVendorJoinHeroFromConfig();
+                bindVendorJoinPageFormOnce();
+            }
+            if (screenId === 'screen-offers' || screenId === 'screen-listing') {
+                syncPartnerCtaDom();
             }
             if (screenId === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
                 renderMarketplaceProductDetailUi();
@@ -2406,6 +2416,8 @@
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
+            syncPartnerCtaDom();
+            syncVendorJoinHeroFromConfig();
         }
 
         function toggleLanguage() {
@@ -2586,38 +2598,118 @@
             navigateTo('screen-marketplace');
         }
 
-        function openVendorJoinModal() {
-            const m = document.getElementById('vendor-join-modal');
-            const msg = document.getElementById('vendor-join-msg');
-            if (msg) {
-                msg.classList.add('hidden');
-                msg.textContent = '';
-            }
-            if (m) m.classList.remove('hidden');
-        }
-        function closeVendorJoinModal() {
-            document.getElementById('vendor-join-modal')?.classList.add('hidden');
-        }
-        window.openVendorJoinModal = openVendorJoinModal;
-        window.closeVendorJoinModal = closeVendorJoinModal;
+        let partnerCtaConfig = null;
 
-        async function loadVendorJoinBanner() {
-            const wrap = document.getElementById('vendor-join-banner-wrap');
-            const txt = document.getElementById('vendor-join-banner-text');
-            if (!wrap || !txt) return;
-            try {
-                const h = await apiFetch('/api/public/vendor-platform/home', { requireAuth: false });
-                if (!h || Number(h.partner_banner_enabled) !== 1) {
-                    wrap.classList.add('hidden');
-                    return;
-                }
-                wrap.classList.remove('hidden');
-                const t = isRTL ? h.partner_banner_text_ar || h.partner_banner_text_en : h.partner_banner_text_en || h.partner_banner_text_ar;
-                txt.textContent = t || (isRTL ? 'انضم كشركة في Adora' : 'Join Adora as a company');
-            } catch (_e) {
-                wrap.classList.add('hidden');
+        function partnerCtaPlacementOn(key) {
+            if (!partnerCtaConfig || Number(partnerCtaConfig.partner_banner_enabled) !== 1) return false;
+            const pl = partnerCtaConfig.partner_cta_placements;
+            return Array.isArray(pl) && pl.includes(key);
+        }
+
+        function syncVendorJoinHeroFromConfig() {
+            if (!partnerCtaConfig) return;
+            const title = isRTL
+                ? partnerCtaConfig.partner_banner_text_ar || partnerCtaConfig.partner_banner_text_en
+                : partnerCtaConfig.partner_banner_text_en || partnerCtaConfig.partner_banner_text_ar;
+            const sub = isRTL
+                ? partnerCtaConfig.partner_cta_subtitle_ar || partnerCtaConfig.partner_cta_subtitle_en
+                : partnerCtaConfig.partner_cta_subtitle_en || partnerCtaConfig.partner_cta_subtitle_ar;
+            const ht = document.getElementById('vendor-join-hero-title');
+            const hs = document.getElementById('vendor-join-hero-sub');
+            if (ht) ht.textContent = title || (isRTL ? 'انضم كشركة في أدورا' : 'Partner with Adora');
+            if (hs) {
+                hs.textContent = sub || (isRTL ? 'قدّم طلبك وسيتواصل فريق أدورا معك.' : 'Submit your details and our team will reach out.');
             }
         }
+
+        function syncPartnerCtaDom() {
+            const master = partnerCtaConfig && Number(partnerCtaConfig.partner_banner_enabled) === 1;
+            const titleAr = partnerCtaConfig?.partner_banner_text_ar || '';
+            const titleEn = partnerCtaConfig?.partner_banner_text_en || '';
+            const subAr = partnerCtaConfig?.partner_cta_subtitle_ar || '';
+            const subEn = partnerCtaConfig?.partner_cta_subtitle_en || '';
+            const title = isRTL ? titleAr || titleEn : titleEn || titleAr;
+            const sub = isRTL ? subAr || subEn : subEn || subAr;
+            const fallbackTitle = isRTL ? 'انضم كشركة في أدورا' : 'Join as a company on Adora';
+            const lineTitle = title || fallbackTitle;
+
+            const toggle = (id, show) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('hidden', !show);
+            };
+
+            toggle('partner-cta-home-under-search', master && partnerCtaPlacementOn('home_under_search'));
+            toggle('partner-cta-home-above-marketplace', master && partnerCtaPlacementOn('home_above_marketplace'));
+            toggle('partner-cta-marketplace-screen', master && partnerCtaPlacementOn('marketplace_screen'));
+            toggle('partner-cta-offers-screen', master && partnerCtaPlacementOn('offers_screen'));
+            toggle('partner-cta-listing-screen', master && partnerCtaPlacementOn('listing_screen'));
+
+            const uTitle = document.getElementById('partner-cta-under-search-title');
+            const uSub = document.getElementById('partner-cta-under-search-sub');
+            if (uTitle) uTitle.textContent = lineTitle;
+            if (uSub) {
+                uSub.textContent = sub || '';
+                uSub.classList.toggle('hidden', !sub);
+            }
+
+            const aTitle = document.getElementById('partner-cta-above-market-title');
+            const aSub = document.getElementById('partner-cta-above-market-sub');
+            if (aTitle) aTitle.textContent = lineTitle;
+            if (aSub) {
+                aSub.textContent = sub || '';
+                aSub.classList.toggle('hidden', !sub);
+            }
+
+            const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
+            const mEl = document.getElementById('partner-cta-marketplace-title');
+            if (mEl) mEl.textContent = compact;
+            const oEl = document.getElementById('partner-cta-offers-title');
+            if (oEl) oEl.textContent = compact;
+            const lEl = document.getElementById('partner-cta-listing-title');
+            if (lEl) lEl.textContent = compact;
+        }
+
+        async function loadPartnerCtaConfig() {
+            try {
+                partnerCtaConfig = await apiFetch('/api/public/vendor-platform/home', { requireAuth: false });
+                if (!partnerCtaConfig || typeof partnerCtaConfig !== 'object') {
+                    partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [] };
+                }
+                if (!Array.isArray(partnerCtaConfig.partner_cta_placements)) {
+                    partnerCtaConfig.partner_cta_placements = ['home_under_search'];
+                }
+            } catch (_e) {
+                partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [] };
+            }
+            syncPartnerCtaDom();
+            syncVendorJoinHeroFromConfig();
+        }
+
+        function openVendorJoinPage() {
+            syncVendorJoinHeroFromConfig();
+            navigateTo('screen-vendor-join');
+        }
+        window.openVendorJoinPage = openVendorJoinPage;
+
+        function backFromVendorJoin() {
+            if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-vendor-join') {
+                adoraNavStack.pop();
+                const prev = adoraNavStack[adoraNavStack.length - 1];
+                navigateTo(prev, { skipHistory: true });
+                try {
+                    history.replaceState(
+                        { adora: 1, screen: prev },
+                        '',
+                        window.location.pathname + window.location.search + window.location.hash
+                    );
+                } catch (_e) {}
+                persistAdoraSessionState();
+            } else {
+                navigateTo('screen-categories', { rootTab: true, skipHistory: true });
+            }
+        }
+        window.backFromVendorJoin = backFromVendorJoin;
 
         function renderMarketplaceHighlightRow(title, products, opts) {
             if (!products || !products.length) return '';
@@ -2721,24 +2813,24 @@
             });
         }
 
-        function bindVendorJoinFormOnce() {
-            const form = document.getElementById('vendor-join-form');
+        function bindVendorJoinPageFormOnce() {
+            const form = document.getElementById('vendor-join-page-form');
             if (!form || form.dataset.adoraVjBound === '1') return;
             form.dataset.adoraVjBound = '1';
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const msg = document.getElementById('vendor-join-msg');
+                const msg = document.getElementById('vendor-join-page-msg');
                 if (msg) {
                     msg.classList.add('hidden');
                     msg.textContent = '';
                 }
                 const body = {
-                    full_name: document.getElementById('vj-full-name')?.value?.trim() || '',
-                    phone: document.getElementById('vj-phone')?.value?.trim() || '',
-                    company_name: document.getElementById('vj-company')?.value?.trim() || '',
-                    email: document.getElementById('vj-email')?.value?.trim() || '',
-                    id_document: document.getElementById('vj-id-doc')?.value?.trim() || '',
-                    terms_accepted: document.getElementById('vj-terms')?.checked ? 1 : 0,
+                    full_name: document.getElementById('vj-p-full-name')?.value?.trim() || '',
+                    phone: document.getElementById('vj-p-phone')?.value?.trim() || '',
+                    company_name: document.getElementById('vj-p-company')?.value?.trim() || '',
+                    email: document.getElementById('vj-p-email')?.value?.trim() || '',
+                    id_document: document.getElementById('vj-p-id-doc')?.value?.trim() || '',
+                    terms_accepted: document.getElementById('vj-p-terms')?.checked ? 1 : 0,
                 };
                 try {
                     await apiFetch('/api/vendor-subscription-requests', { method: 'POST', body, requireAuth: false });
@@ -2746,15 +2838,17 @@
                         msg.textContent = isRTL
                             ? 'تم إرسال الطلب إلى شركة Adora'
                             : 'Your request has been sent to Adora';
-                        msg.className = 'text-xs text-center text-green-600 font-bold';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-emerald-100 text-emerald-800 border border-emerald-200/80';
                         msg.classList.remove('hidden');
                     }
                     form.reset();
-                    setTimeout(() => closeVendorJoinModal(), 2200);
+                    setTimeout(() => backFromVendorJoin(), 2400);
                 } catch (err) {
                     if (msg) {
                         msg.textContent = err.message || (isRTL ? 'تعذر الإرسال' : 'Could not submit');
-                        msg.className = 'text-xs text-center text-red-600';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-red-100 text-red-800 border border-red-200/80';
                         msg.classList.remove('hidden');
                     }
                 }
@@ -6303,9 +6397,9 @@
             loadHomeNewCollectionGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
             loadMarketplaceHomeStrip().catch(() => {});
-            loadVendorJoinBanner().catch(() => {});
+            loadPartnerCtaConfig().catch(() => {});
             loadMarketplaceHomeHighlights().catch(() => {});
-            bindVendorJoinFormOnce();
+            bindVendorJoinPageFormOnce();
             refreshAdoraHomeSubcategoryCounts().catch(() => {});
             updateProfileWishlistUi();
             initOnboardingStorageMigration();

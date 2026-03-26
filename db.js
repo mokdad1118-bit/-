@@ -335,6 +335,7 @@ async function initDb() {
   await migrateProductsNewCollectionColumn();
   await migrateListPriceSemanticsOnce();
   await migrateVendorPlatformV1();
+  await migrateVendorPlatformPartnerCtaPlacements();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -606,6 +607,15 @@ async function migrateVendorPlatformV1() {
   );
 
   await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS marketplace_commission_amount DOUBLE PRECISION`);
+}
+
+/** نصوص إضافية ومواضع ظهور دعوة «انضم كشركة» عبر التطبيق */
+async function migrateVendorPlatformPartnerCtaPlacements() {
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS partner_cta_subtitle_ar TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS partner_cta_subtitle_en TEXT NOT NULL DEFAULT ''`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS partner_cta_placements_json TEXT NOT NULL DEFAULT '["home_under_search"]'`
+  );
 }
 
 async function migrateOrderStatusesToV2() {

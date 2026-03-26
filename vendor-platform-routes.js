@@ -6,6 +6,36 @@ const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 
 const PROMOTION_SLOTS = ["search_sponsored", "home_featured", "section_featured", "listing_top"];
 
+const PARTNER_CTA_PLACEMENT_KEYS = [
+  "home_under_search",
+  "home_above_marketplace",
+  "marketplace_screen",
+  "offers_screen",
+  "listing_screen",
+];
+
+function parsePartnerCtaPlacementsJson(raw) {
+  const allowed = new Set(PARTNER_CTA_PLACEMENT_KEYS);
+  try {
+    const v = JSON.parse(raw || "[]");
+    if (!Array.isArray(v)) return ["home_under_search"];
+    const list = [...new Set(v.map((x) => String(x).trim()).filter((k) => allowed.has(k)))];
+    return list.length ? list : ["home_under_search"];
+  } catch {
+    return ["home_under_search"];
+  }
+}
+
+function normalizePartnerPlacementsFromBody(body, curJson) {
+  if (body != null && Array.isArray(body.partner_cta_placements)) {
+    return parsePartnerCtaPlacementsJson(JSON.stringify(body.partner_cta_placements));
+  }
+  if (body != null && body.partner_cta_placements_json != null) {
+    return parsePartnerCtaPlacementsJson(String(body.partner_cta_placements_json));
+  }
+  return parsePartnerCtaPlacementsJson(curJson);
+}
+
 function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
   app.get("/api/public/vendor-platform/home", async (_req, res) => {
     try {
@@ -15,12 +45,19 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
           partner_banner_enabled: 1,
           partner_banner_text_ar: "انضم كشركة في Adora - اضغط هنا",
           partner_banner_text_en: "Join Adora as a company — click here",
+          partner_cta_subtitle_ar: "",
+          partner_cta_subtitle_en: "",
+          partner_cta_placements: ["home_under_search"],
         });
       }
+      const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
       return res.json({
         partner_banner_enabled: Number(s.partner_banner_enabled) === 1 ? 1 : 0,
         partner_banner_text_ar: s.partner_banner_text_ar || "",
         partner_banner_text_en: s.partner_banner_text_en || "",
+        partner_cta_subtitle_ar: s.partner_cta_subtitle_ar || "",
+        partner_cta_subtitle_en: s.partner_cta_subtitle_en || "",
+        partner_cta_placements: placements,
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load public settings" });
@@ -62,6 +99,13 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
         b.partner_banner_text_ar != null ? String(b.partner_banner_text_ar).slice(0, 500) : cur.partner_banner_text_ar;
       const partner_banner_text_en =
         b.partner_banner_text_en != null ? String(b.partner_banner_text_en).slice(0, 500) : cur.partner_banner_text_en;
+      const partner_cta_subtitle_ar =
+        b.partner_cta_subtitle_ar != null ? String(b.partner_cta_subtitle_ar).slice(0, 500) : cur.partner_cta_subtitle_ar ?? "";
+      const partner_cta_subtitle_en =
+        b.partner_cta_subtitle_en != null ? String(b.partner_cta_subtitle_en).slice(0, 500) : cur.partner_cta_subtitle_en ?? "";
+      const partner_cta_placements_json = JSON.stringify(
+        normalizePartnerPlacementsFromBody(b, cur.partner_cta_placements_json)
+      );
       const featured_products_mode = ["manual", "auto_bestsellers", "by_vendor"].includes(String(b.featured_products_mode || "").trim())
         ? String(b.featured_products_mode).trim()
         : cur.featured_products_mode;
@@ -79,6 +123,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
         `UPDATE vendor_platform_settings SET
           product_quota_enabled=?, free_products_per_vendor=?, extra_product_price_usd=?, commission_percent=?,
           ads_module_enabled=?, partner_banner_enabled=?, partner_banner_text_ar=?, partner_banner_text_en=?,
+          partner_cta_subtitle_ar=?, partner_cta_subtitle_en=?, partner_cta_placements_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
           updated_at=CURRENT_TIMESTAMP
          WHERE id=1`,
@@ -91,6 +136,9 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
           partner_banner_enabled,
           partner_banner_text_ar,
           partner_banner_text_en,
+          partner_cta_subtitle_ar,
+          partner_cta_subtitle_en,
+          partner_cta_placements_json,
           featured_products_mode,
           featured_vendor_ids_json,
           bestsellers_boost_enabled,

@@ -684,6 +684,36 @@
             height: var(--adora-header-offset);
             flex-shrink: 0;
         }
+        /* بحث الرئيسية + دعوة الشراكة: يبقيان تحت الهيدر أثناء التمرير */
+        .partner-cta-sticky-search-wrap {
+            position: -webkit-sticky;
+            position: sticky;
+            top: var(--adora-header-offset);
+            z-index: 34;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+        }
+        .partner-cta-pill {
+            background: linear-gradient(120deg, #6d28d9 0%, #7c3aed 45%, #5b21b6 100%);
+            color: #fff;
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            text-align: start;
+            box-shadow: 0 8px 24px rgba(91, 33, 182, 0.28);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .partner-cta-pill:active {
+            transform: scale(0.99);
+        }
+        .partner-cta-pill--compact {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.875rem;
+            font-size: 0.8125rem;
+        }
+        .vendor-join-page-bg {
+            min-height: 100dvh;
+            background: linear-gradient(165deg, #4c1d95 0%, #6d28d9 38%, #7c3aed 72%, #312e81 100%);
+        }
         /* في قائمة المنتجات: شريط واحد (رجوع + بحث) بدون تكرار هيدر التطبيق */
         #app-shell:has(#screen-listing.active) .main-header,
         #app-shell:has(#screen-listing.active) .adora-header-spacer,
@@ -2681,38 +2711,6 @@
         </div>
     </div>
 
-    <div id="vendor-join-modal" class="fixed inset-0 z-[9995] hidden bg-black/50 flex items-center justify-center p-4" onclick="if(event.target===this) window.closeVendorJoinModal && window.closeVendorJoinModal()">
-        <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl p-4 space-y-3" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-900" data-en="Join as a company" data-ar="انضم كشركة">انضم كشركة</h3>
-                <button type="button" class="p-2 rounded-lg hover:bg-gray-100" aria-label="Close" onclick="window.closeVendorJoinModal && window.closeVendorJoinModal()"><i class="fas fa-times"></i></button>
-            </div>
-            <form id="vendor-join-form" class="space-y-2 text-sm">
-                <div><label class="text-xs font-bold text-gray-600" data-en="Full name" data-ar="الاسم الثلاثي">الاسم الثلاثي</label><input id="vj-full-name" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div><label class="text-xs font-bold text-gray-600" data-en="Mobile" data-ar="رقم الموبايل">رقم الموبايل</label><input id="vj-phone" required type="tel" class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div><label class="text-xs font-bold text-gray-600" data-en="Company name" data-ar="اسم الشركة">اسم الشركة</label><input id="vj-company" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div><label class="text-xs font-bold text-gray-600" data-en="Email" data-ar="البريد">البريد</label><input id="vj-email" required type="email" class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div><label class="text-xs font-bold text-gray-600" data-en="ID / commercial reg." data-ar="الهوية أو السجل التجاري">الهوية أو السجل التجاري</label><input id="vj-id-doc" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div class="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-700 space-y-1" data-ar-only>
-                    <p class="font-bold text-gray-900" data-en="Terms" data-ar="الشروط">الشروط</p>
-                    <ul class="list-disc ps-4 space-y-0.5" data-en="Terms list" data-ar="قائمة الشروط">
-                        <li>صور واضحة للمنتج</li>
-                        <li>وصف احترافي</li>
-                        <li>سعر مناسب</li>
-                        <li>الالتزام بالشحن</li>
-                        <li>رضا الزبون</li>
-                    </ul>
-                </div>
-                <div class="flex items-start gap-2">
-                    <input type="checkbox" id="vj-terms" required class="mt-1 rounded border-gray-300 text-purple-600" />
-                    <label for="vj-terms" class="text-xs leading-snug" data-en="I agree to the terms" data-ar="أوافق على الشروط">أوافق على الشروط</label>
-                </div>
-                <p id="vendor-join-msg" class="text-xs text-center hidden"></p>
-                <button type="submit" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold" data-en="Submit request" data-ar="إرسال الطلب">إرسال الطلب</button>
-            </form>
-        </div>
-    </div>
-
     <!-- ==================== AUTH MODAL — عمود موبايل + جزيئات + بطاقة زجاجية ==================== -->
     <div id="auth-modal" class="auth-modal-root auth-screen-letterbox fixed inset-0 z-[9996] hidden flex justify-center items-stretch" onclick="closeAuthModal()">
         <div class="auth-mobile-viewport" onclick="event.stopPropagation()">
@@ -2829,8 +2827,8 @@
 
     <!-- ==================== CATEGORIES PAGE ==================== -->
     <div id="screen-categories" class="screen active bg-gray-50 pb-32">
-        <!-- Search -->
-        <div class="px-4 py-4 bg-white border-b border-gray-100">
+        <!-- Search + دعوة انضمام الشركات (sticky تحت الهيدر) -->
+        <div class="partner-cta-sticky-search-wrap px-4 py-3 bg-white border-b border-gray-100">
             <div class="search-container flex gap-3 items-stretch">
                 <div class="flex-1 min-w-0 flex items-stretch rounded-2xl">
                     <div class="adora-search-field w-full">
@@ -2857,6 +2855,18 @@
                     <i class="fas fa-sliders-h"></i>
                 </button>
             </div>
+            <div id="partner-cta-home-under-search" class="hidden pt-3">
+                <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()" aria-label="">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                        <i class="fas fa-store text-lg" aria-hidden="true"></i>
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span id="partner-cta-under-search-title" class="block text-sm font-extrabold leading-tight"></span>
+                        <span id="partner-cta-under-search-sub" class="mt-0.5 block text-xs font-medium leading-snug text-white/85"></span>
+                    </span>
+                    <i class="fas fa-chevron-left shrink-0 text-sm opacity-90 rtl:rotate-180" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
 
         <div id="banner-slot-home_top" class="px-4 pt-1 space-y-1" data-adora-section="banners"></div>
@@ -2868,9 +2878,13 @@
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="Malls, companies, electrical appliances & more — Adora's comprehensive market for everything you need." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
                 <button type="button" onclick="openMarketplaceBrowse({})" class="mt-0.5 text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-6 py-2.5 rounded-full border border-purple-200/80 shadow-sm shadow-purple-900/5 active:scale-[0.98] transition-transform" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
             </div>
-            <div id="vendor-join-banner-wrap" class="hidden px-1 pt-2">
-                <button type="button" id="vendor-join-banner" class="w-full max-w-md mx-auto block rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-bold py-3 px-4 shadow-lg shadow-purple-900/20 text-center active:scale-[0.99] transition-transform" onclick="window.openVendorJoinModal && window.openVendorJoinModal()">
-                    <span id="vendor-join-banner-text">انضم كشركة في Adora</span>
+            <div id="partner-cta-home-above-marketplace" class="hidden px-1 pt-2">
+                <button type="button" class="partner-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openVendorJoinPage()">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-handshake text-base"></i></span>
+                    <span class="min-w-0 flex-1 text-center sm:text-start">
+                        <span id="partner-cta-above-market-title" class="block text-sm font-extrabold"></span>
+                        <span id="partner-cta-above-market-sub" class="mt-0.5 block text-xs text-white/85"></span>
+                    </span>
                 </button>
             </div>
             <div id="marketplace-home-strip" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1 min-h-[7.5rem] items-stretch">
@@ -3194,6 +3208,13 @@
                     data-en-placeholder="Search products or brand…" data-ar-placeholder="ابحث عن منتج أو شركة…"
                     oninput="scheduleListingSearchDebounced()" onkeydown="listingSearchOnEnter(event)" />
             </div>
+            <div id="partner-cta-listing-screen" class="hidden mb-3">
+                <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                    <i class="fas fa-store text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-listing-title"></span>
+                    <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+                </button>
+            </div>
 
             <!-- أقسام رجالي / نسائي / أطفال عند تصفح منتجات شركة -->
             <div id="listing-brand-main-cat-wrap" class="hidden mb-3" data-brand-theme="adora">
@@ -3247,6 +3268,13 @@
                 <span class="w-10" aria-hidden="true"></span>
             </div>
             <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed" data-en="Current promotions and discounted items." data-ar="عروض وتخفيضات حالية.">عروض وتخفيضات حالية.</p>
+            <div id="partner-cta-offers-screen" class="hidden mt-3">
+                <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                    <i class="fas fa-briefcase text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-offers-title"></span>
+                    <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+                </button>
+            </div>
         </div>
         <div id="offers-products-grid" class="p-2 grid grid-cols-2 gap-2 pb-24 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
@@ -3269,6 +3297,71 @@
         </div>
     </div>
 
+    <!-- ==================== انضم كشركة — صفحة كاملة ==================== -->
+    <div id="screen-vendor-join" class="screen vendor-join-page-bg text-white">
+        <div class="adora-screen-toolbar px-4 py-3 flex items-center gap-3 border-b border-white/10 bg-black/10 backdrop-blur-md z-20" style="position:sticky;top:var(--adora-header-offset)">
+            <button type="button" onclick="backFromVendorJoin()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition" aria-label="" data-en-aria="Back" data-ar-aria="رجوع">
+                <i class="fas fa-arrow-left text-lg rtl:rotate-180"></i>
+            </button>
+            <h1 class="text-base font-extrabold flex-1 truncate text-center text-white" data-en="Partner with Adora" data-ar="انضم كشركة في أدورا">انضم كشركة في أدورا</h1>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
+        </div>
+        <div class="px-4 pt-6 pb-40 max-w-lg mx-auto space-y-6">
+            <div class="text-center space-y-3 pt-2">
+                <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 shadow-lg">
+                    <i class="fas fa-store text-2xl text-white" aria-hidden="true"></i>
+                </div>
+                <h2 id="vendor-join-hero-title" class="text-2xl sm:text-[1.65rem] font-black leading-tight tracking-tight text-white drop-shadow-md px-1"></h2>
+                <p id="vendor-join-hero-sub" class="text-sm font-medium text-white/90 leading-relaxed max-w-sm mx-auto"></p>
+            </div>
+            <div class="rounded-3xl bg-white/95 text-gray-900 backdrop-blur-xl shadow-2xl border border-white/50 p-5 sm:p-6 space-y-4">
+                <p class="text-xs font-bold text-purple-700 uppercase tracking-wider" data-en="Application form" data-ar="نموذج الطلب">نموذج الطلب</p>
+                <form id="vendor-join-page-form" class="space-y-3 text-sm">
+                    <div>
+                        <label class="text-xs font-bold text-gray-600" data-en="Full name" data-ar="الاسم الثلاثي">الاسم الثلاثي</label>
+                        <input id="vj-p-full-name" required class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600" data-en="Mobile" data-ar="رقم الموبايل">رقم الموبايل</label>
+                        <input id="vj-p-phone" required type="tel" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600" data-en="Company name" data-ar="اسم الشركة">اسم الشركة</label>
+                        <input id="vj-p-company" required class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600" data-en="Email" data-ar="البريد الإلكتروني">البريد الإلكتروني</label>
+                        <input id="vj-p-email" required type="email" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-600" data-en="ID / commercial registration" data-ar="الهوية أو السجل التجاري">الهوية أو السجل التجاري</label>
+                        <input id="vj-p-id-doc" required class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
+                    </div>
+                    <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-2">
+                        <p class="font-bold text-violet-900" data-en="Partner terms" data-ar="الشروط">الشروط</p>
+                        <ul class="list-disc ps-4 space-y-1 leading-relaxed">
+                            <li data-en="Clear product photos" data-ar="صور واضحة للمنتج">صور واضحة للمنتج</li>
+                            <li data-en="Professional description" data-ar="وصف احترافي">وصف احترافي</li>
+                            <li data-en="Fair pricing" data-ar="سعر مناسب">سعر مناسب</li>
+                            <li data-en="Shipping commitment" data-ar="الالتزام بالشحن">الالتزام بالشحن</li>
+                            <li data-en="Customer satisfaction" data-ar="رضا الزبون">رضا الزبون</li>
+                        </ul>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="vj-p-terms" required class="mt-1 rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" />
+                        <label for="vj-p-terms" class="text-xs leading-relaxed text-gray-700 font-medium" data-en="I have read and agree to the terms" data-ar="قرأت الشروط وأوافق عليها">قرأت الشروط وأوافق عليها</label>
+                    </div>
+                    <p id="vendor-join-page-msg" class="text-xs text-center font-semibold hidden rounded-xl py-2 px-3"></p>
+                    <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/25 active:scale-[0.99] transition-transform" data-en="Submit request" data-ar="إرسال الطلب">إرسال الطلب</button>
+                </form>
+            </div>
+            <div class="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 text-sm text-white/95 space-y-2">
+                <p class="font-bold flex items-center gap-2"><i class="fas fa-star text-amber-200" aria-hidden="true"></i><span data-en="Why Adora?" data-ar="لماذا أدورا؟">لماذا أدورا؟</span></p>
+                <p class="text-xs text-white/85 leading-relaxed" data-en="Reach thousands of shoppers, manage your presence from one place, and grow with a trusted marketplace." data-ar="وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.">وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== COMPREHENSIVE MARKET (browse) ==================== -->
     <div id="screen-marketplace" class="screen bg-gray-50">
         <div class="adora-screen-toolbar px-4 py-3 flex items-center gap-3 border-b border-gray-200 bg-white/90 backdrop-blur-sm sticky top-0 z-20">
@@ -3276,6 +3369,13 @@
                 <i class="fas fa-arrow-left text-gray-800 rtl:rotate-180"></i>
             </button>
             <h1 class="text-lg font-extrabold text-gray-900 flex-1 min-w-0 truncate" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h1>
+        </div>
+        <div id="partner-cta-marketplace-screen" class="hidden px-3 pt-2">
+            <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                <i class="fas fa-store text-sm shrink-0"></i>
+                <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-marketplace-title"></span>
+                <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+            </button>
         </div>
         <div class="px-3 pt-3 pb-2 space-y-2 bg-white border-b border-gray-100">
             <div class="relative">

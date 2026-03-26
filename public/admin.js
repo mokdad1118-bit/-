@@ -407,6 +407,14 @@ function vpLocalDateTimeToIso(val) {
 
 let vendorPlatformListenersBound = false;
 
+const VP_PARTNER_CTA_PLACEMENT_KEYS = [
+  "home_under_search",
+  "home_above_marketplace",
+  "marketplace_screen",
+  "offers_screen",
+  "listing_screen",
+];
+
 async function loadVendorPlatformSettingsUi() {
   const token = getToken();
   if (!token) return;
@@ -419,6 +427,22 @@ async function loadVendorPlatformSettingsUi() {
   document.getElementById("vp-banner-on").checked = Number(s.partner_banner_enabled) !== 0;
   document.getElementById("vp-banner-ar").value = s.partner_banner_text_ar || "";
   document.getElementById("vp-banner-en").value = s.partner_banner_text_en || "";
+  const subAr = document.getElementById("vp-cta-sub-ar");
+  const subEn = document.getElementById("vp-cta-sub-en");
+  if (subAr) subAr.value = s.partner_cta_subtitle_ar || "";
+  if (subEn) subEn.value = s.partner_cta_subtitle_en || "";
+  let placements = [];
+  try {
+    placements = JSON.parse(s.partner_cta_placements_json || "[]");
+  } catch (_e) {
+    placements = [];
+  }
+  if (!Array.isArray(placements)) placements = [];
+  const pset = new Set(placements.map((x) => String(x).trim()));
+  for (const k of VP_PARTNER_CTA_PLACEMENT_KEYS) {
+    const el = document.getElementById(`vp-pl-${k}`);
+    if (el) el.checked = pset.has(k);
+  }
   document.getElementById("vp-featured-mode").value = s.featured_products_mode || "manual";
   let ids = [];
   try {
@@ -514,6 +538,10 @@ async function initVendorPlatformAdminTab() {
             .map((x) => Number(x.trim()))
             .filter((n) => Number.isFinite(n) && n > 0)
         : [];
+      const partner_cta_placements = VP_PARTNER_CTA_PLACEMENT_KEYS.filter((k) => {
+        const el = document.getElementById(`vp-pl-${k}`);
+        return el && el.checked;
+      });
       const body = {
         product_quota_enabled: document.getElementById("vp-quota-on").checked ? 1 : 0,
         free_products_per_vendor: Number(document.getElementById("vp-free-n").value || 0),
@@ -523,12 +551,16 @@ async function initVendorPlatformAdminTab() {
         partner_banner_enabled: document.getElementById("vp-banner-on").checked ? 1 : 0,
         partner_banner_text_ar: document.getElementById("vp-banner-ar").value.trim(),
         partner_banner_text_en: document.getElementById("vp-banner-en").value.trim(),
+        partner_cta_subtitle_ar: document.getElementById("vp-cta-sub-ar")?.value?.trim() ?? "",
+        partner_cta_subtitle_en: document.getElementById("vp-cta-sub-en")?.value?.trim() ?? "",
+        partner_cta_placements,
         featured_products_mode: document.getElementById("vp-featured-mode").value,
         featured_vendor_ids: vendorIds,
         bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost").checked ? 1 : 0,
       };
       try {
         await api("/api/admin/vendor-platform/settings", { method: "PUT", token, body });
+        await loadVendorPlatformSettingsUi();
         alert(ar ? "تم حفظ الإعدادات." : "Settings saved.");
       } catch (err) {
         alert(err.message || String(err));
