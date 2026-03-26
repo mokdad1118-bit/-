@@ -334,6 +334,7 @@ async function initDb() {
   await migrateContactHomeSectionsVisibility();
   await migrateProductsNewCollectionColumn();
   await migrateListPriceSemanticsOnce();
+  await migrateVendorPlatformV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -536,6 +537,75 @@ async function migrateAppBannersTable() {
 
 async function migrateOrdersShippingAddressColumn() {
   await run(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address TEXT`);
+}
+
+/** إعدادات بائعي السوق الشامل، طلبات الانضمام، إعلانات المنتجات، الحصص والعمولة */
+async function migrateVendorPlatformV1() {
+  await run(`CREATE TABLE IF NOT EXISTS vendor_platform_settings (
+    id INTEGER PRIMARY KEY,
+    product_quota_enabled INTEGER NOT NULL DEFAULT 1,
+    free_products_per_vendor INTEGER NOT NULL DEFAULT 20,
+    extra_product_price_usd DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+    commission_percent DOUBLE PRECISION NOT NULL DEFAULT 5,
+    ads_module_enabled INTEGER NOT NULL DEFAULT 1,
+    partner_banner_enabled INTEGER NOT NULL DEFAULT 1,
+    partner_banner_text_ar TEXT NOT NULL DEFAULT 'انضم كشركة في Adora - اضغط هنا',
+    partner_banner_text_en TEXT NOT NULL DEFAULT 'Join Adora as a company — click here',
+    featured_products_mode TEXT NOT NULL DEFAULT 'manual',
+    featured_vendor_ids_json TEXT NOT NULL DEFAULT '[]',
+    bestsellers_boost_enabled INTEGER NOT NULL DEFAULT 1,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT vendor_platform_settings_single CHECK (id = 1)
+  )`);
+  await run(
+    `INSERT INTO vendor_platform_settings (id, partner_banner_text_ar, partner_banner_text_en) VALUES (1, ?, ?) ON CONFLICT (id) DO NOTHING`,
+    ["انضم كشركة في Adora - اضغط هنا", "Join Adora as a company — click here"]
+  );
+
+  await run(`CREATE TABLE IF NOT EXISTS vendor_subscription_requests (
+    id SERIAL PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    company_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    id_document TEXT NOT NULL,
+    terms_accepted INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    admin_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_product_promotions (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES marketplace_products(id) ON DELETE CASCADE,
+    slot TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 0,
+    price_usd DOUBLE PRECISION NOT NULL DEFAULT 0,
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    max_impressions INTEGER,
+    impressions_count INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_mp_promotions_slot_active ON marketplace_product_promotions (slot, is_active)`
+  );
+  await run(`CREATE INDEX IF NOT EXISTS idx_mp_promotions_product ON marketplace_product_promotions (product_id)`);
+
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS sku TEXT`);
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS barcode TEXT`);
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS is_mp_featured INTEGER NOT NULL DEFAULT 0`);
+
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS paid_product_slots INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS is_premium INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS premium_until TIMESTAMPTZ`);
+  await run(
+    `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS premium_subscription_type TEXT NOT NULL DEFAULT 'none'`
+  );
+
+  await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS marketplace_commission_amount DOUBLE PRECISION`);
 }
 
 async function migrateOrderStatusesToV2() {

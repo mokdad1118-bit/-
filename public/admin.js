@@ -395,7 +395,237 @@ function setActiveTab(tabId) {
   if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
   if (tabId === "tab-banners") loadBanners().catch(() => {});
   if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
+  if (tabId === "tab-vendor-platform") initVendorPlatformAdminTab().catch(() => {});
+  if (tabId === "tab-vendor-subscriptions") loadVendorSubscriptionRequests().catch(() => {});
 }
+
+function vpLocalDateTimeToIso(val) {
+  if (!val || !String(val).trim()) return "";
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? String(val).trim() : d.toISOString();
+}
+
+let vendorPlatformListenersBound = false;
+
+async function loadVendorPlatformSettingsUi() {
+  const token = getToken();
+  if (!token) return;
+  const s = await api("/api/admin/vendor-platform/settings", { token });
+  document.getElementById("vp-quota-on").checked = Number(s.product_quota_enabled) !== 0;
+  document.getElementById("vp-free-n").value = String(s.free_products_per_vendor ?? 20);
+  document.getElementById("vp-extra-price").value = String(s.extra_product_price_usd ?? 0.5);
+  document.getElementById("vp-commission").value = String(s.commission_percent ?? 5);
+  document.getElementById("vp-ads-on").checked = Number(s.ads_module_enabled) !== 0;
+  document.getElementById("vp-banner-on").checked = Number(s.partner_banner_enabled) !== 0;
+  document.getElementById("vp-banner-ar").value = s.partner_banner_text_ar || "";
+  document.getElementById("vp-banner-en").value = s.partner_banner_text_en || "";
+  document.getElementById("vp-featured-mode").value = s.featured_products_mode || "manual";
+  let ids = [];
+  try {
+    ids = JSON.parse(s.featured_vendor_ids_json || "[]");
+  } catch (_e) {
+    ids = [];
+  }
+  document.getElementById("vp-featured-vendors").value = Array.isArray(ids) ? ids.join(", ") : "";
+  document.getElementById("vp-bestsellers-boost").checked = Number(s.bestsellers_boost_enabled) !== 0;
+}
+
+async function loadVendorPromotionsUi() {
+  const token = getToken();
+  if (!token) return;
+  const rows = await api("/api/admin/vendor-platform/promotions", { token });
+  const tbody = document.getElementById("vp-promo-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  if (!Array.isArray(rows) || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-gray-500">${ar ? "لا إعلانات." : "No promotions."}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((r) => {
+      const pn = ar ? r.product_name_ar || r.product_name_en : r.product_name_en || r.product_name_ar;
+      const imp = `${r.impressions_count ?? 0}${r.max_impressions != null ? ` / ${r.max_impressions}` : ""}`;
+      return `<tr class="border-t border-gray-100">
+        <td class="p-2">${r.id}</td>
+        <td class="p-2 max-w-[100px] truncate" title="${escapeHtml(pn)}">#${r.product_id} ${escapeHtml(pn || "")}</td>
+        <td class="p-2 font-mono text-[10px]">${escapeHtml(r.slot)}</td>
+        <td class="p-2">${escapeHtml(imp)}</td>
+        <td class="p-2"><button type="button" class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-700" data-vp-prom-del="${r.id}">${ar ? "حذف" : "Del"}</button></td>
+      </tr>`;
+    })
+    .join("");
+  tbody.querySelectorAll("[data-vp-prom-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-vp-prom-del");
+      if (!confirm(getAdminLang() === "ar" ? "حذف الإعلان؟" : "Delete promotion?")) return;
+      await api(`/api/admin/vendor-platform/promotions/${id}`, { method: "DELETE", token });
+      await loadVendorPromotionsUi();
+    });
+  });
+}
+
+async function loadVendorCommissionReportUi() {
+  const token = getToken();
+  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  const from = document.getElementById("vp-comm-from")?.value?.trim();
+  const to = document.getElementById("vp-comm-to")?.value?.trim();
+  const q = new URLSearchParams();
+  if (from) q.set("from", vpLocalDateTimeToIso(from));
+  if (to) q.set("to", vpLocalDateTimeToIso(to));
+  const qs = q.toString();
+  const data = await api(`/api/admin/vendor-platform/commission-report${qs ? `?${qs}` : ""}`, { token });
+  const out = document.getElementById("vp-comm-out");
+  if (out) {
+    const lines = [];
+    lines.push(`${ar ? "إجمالي عمولة أدورا" : "Adora commission total"}: ${Number(data.adora_commission_total || 0).toFixed(4)}`);
+    if (data.summary) {
+      lines.push(`${ar ? "إجمالي مبيعات السوق" : "Marketplace gross"}: ${Number(data.summary.marketplace_gross_sales || 0).toFixed(2)}`);
+      lines.push(
+        `${ar ? "صافي تقديري للشركات بعد العمولة" : "Est. vendor net"}: ${Number(data.summary.estimated_vendors_net_after_commission || 0).toFixed(2)}`
+      );
+    }
+    lines.push("");
+    const bv = Array.isArray(data.by_vendor) ? data.by_vendor : [];
+    for (const row of bv) {
+      const vn = ar ? row.vendor_name_ar || row.vendor_name_en : row.vendor_name_en || row.vendor_name_ar;
+      lines.push(
+        `#${row.vendor_id ?? "—"} ${vn || ""} — gross: ${Number(row.gross_sales || 0).toFixed(2)} — commission: ${Number(row.commission_total || 0).toFixed(4)}`
+      );
+    }
+    out.textContent = lines.join("\n");
+  }
+}
+
+async function initVendorPlatformAdminTab() {
+  await loadVendorPlatformSettingsUi();
+  await loadVendorPromotionsUi();
+  if (!vendorPlatformListenersBound) {
+    vendorPlatformListenersBound = true;
+    document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const token = getToken();
+      if (!token) return;
+      const ar = getAdminLang() === "ar";
+      const fv = document.getElementById("vp-featured-vendors").value.trim();
+      const vendorIds = fv
+        ? fv
+            .split(/[\s,]+/)
+            .map((x) => Number(x.trim()))
+            .filter((n) => Number.isFinite(n) && n > 0)
+        : [];
+      const body = {
+        product_quota_enabled: document.getElementById("vp-quota-on").checked ? 1 : 0,
+        free_products_per_vendor: Number(document.getElementById("vp-free-n").value || 0),
+        extra_product_price_usd: Number(document.getElementById("vp-extra-price").value || 0),
+        commission_percent: Number(document.getElementById("vp-commission").value || 0),
+        ads_module_enabled: document.getElementById("vp-ads-on").checked ? 1 : 0,
+        partner_banner_enabled: document.getElementById("vp-banner-on").checked ? 1 : 0,
+        partner_banner_text_ar: document.getElementById("vp-banner-ar").value.trim(),
+        partner_banner_text_en: document.getElementById("vp-banner-en").value.trim(),
+        featured_products_mode: document.getElementById("vp-featured-mode").value,
+        featured_vendor_ids: vendorIds,
+        bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost").checked ? 1 : 0,
+      };
+      try {
+        await api("/api/admin/vendor-platform/settings", { method: "PUT", token, body });
+        alert(ar ? "تم حفظ الإعدادات." : "Settings saved.");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    document.getElementById("vp-promo-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const token = getToken();
+      if (!token) return;
+      const ar = getAdminLang() === "ar";
+      const maxRaw = document.getElementById("vp-promo-max-imp").value.trim();
+      const body = {
+        product_id: Number(document.getElementById("vp-promo-pid").value),
+        slot: document.getElementById("vp-promo-slot").value,
+        priority: Number(document.getElementById("vp-promo-priority").value || 0),
+        price_usd: Number(document.getElementById("vp-promo-price").value || 0),
+        starts_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-start").value),
+        ends_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-end").value),
+        max_impressions: maxRaw === "" ? null : Number(maxRaw),
+        is_active: document.getElementById("vp-promo-active").checked ? 1 : 0,
+      };
+      if (!Number.isFinite(body.product_id) || !body.starts_at || !body.ends_at) {
+        alert(ar ? "أدخل معرّف المنتج وتواريخ البداية والنهاية." : "Enter product id and start/end dates.");
+        return;
+      }
+      try {
+        await api("/api/admin/vendor-platform/promotions", { method: "POST", token, body });
+        await loadVendorPromotionsUi();
+        alert(ar ? "تمت الإضافة." : "Added.");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
+  }
+}
+
+const VP_SUB_STATUS_LABELS_AR = {
+  pending: "قيد المراجعة",
+  approved: "تمت الموافقة",
+  rejected: "تم الرفض",
+  incomplete: "طلب ناقص",
+};
+
+async function loadVendorSubscriptionRequests() {
+  const token = getToken();
+  if (!token) return;
+  const rows = await api("/api/admin/vendor-subscription-requests", { token });
+  const tbody = document.getElementById("vp-sub-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  if (!Array.isArray(rows) || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((r) => {
+      return `<tr class="border-t border-gray-100 align-top">
+        <td class="p-2">${r.id}</td>
+        <td class="p-2 max-w-[100px]">${escapeHtml(r.full_name || "")}</td>
+        <td class="p-2 max-w-[100px]">${escapeHtml(r.company_name || "")}</td>
+        <td class="p-2 whitespace-nowrap">${escapeHtml(r.phone || "")}</td>
+        <td class="p-2 max-w-[120px] truncate" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
+        <td class="p-2">
+          <select class="w-full text-xs p-1 rounded border border-gray-200 vp-sub-status" data-vp-sub-id="${r.id}">
+            <option value="pending"${r.status === "pending" ? " selected" : ""}>${VP_SUB_STATUS_LABELS_AR.pending}</option>
+            <option value="approved"${r.status === "approved" ? " selected" : ""}>${VP_SUB_STATUS_LABELS_AR.approved}</option>
+            <option value="rejected"${r.status === "rejected" ? " selected" : ""}>${VP_SUB_STATUS_LABELS_AR.rejected}</option>
+            <option value="incomplete"${r.status === "incomplete" ? " selected" : ""}>${VP_SUB_STATUS_LABELS_AR.incomplete}</option>
+          </select>
+        </td>
+        <td class="p-2 min-w-[200px] space-y-1">
+          <textarea class="w-full text-xs p-1 rounded border border-gray-200 vp-sub-msg" data-vp-sub-id="${r.id}" rows="2" placeholder="${ar ? "ملاحظة للطلب" : "Admin note"}">${escapeHtml(r.admin_message || "")}</textarea>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-purple-600 text-white vp-sub-save" data-vp-sub-id="${r.id}">${ar ? "حفظ" : "Save"}</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  tbody.querySelectorAll(".vp-sub-save").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-vp-sub-id");
+      const st = tbody.querySelector(`.vp-sub-status[data-vp-sub-id="${id}"]`)?.value;
+      const msg = tbody.querySelector(`.vp-sub-msg[data-vp-sub-id="${id}"]`)?.value ?? "";
+      try {
+        await api(`/api/admin/vendor-subscription-requests/${id}`, {
+          method: "PATCH",
+          token,
+          body: { status: st, admin_message: msg },
+        });
+        alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+  });
+}
+
 
 let adminMpSectionsCache = [];
 let adminMpVendorsCache = [];
@@ -595,6 +825,20 @@ function mpFillVendorForm(v) {
   document.getElementById("mp-v-logo").value = v ? v.logo_url || "" : "";
   document.getElementById("mp-v-cover").value = v ? v.cover_image_url || "" : "";
   document.getElementById("mp-v-sort").value = v ? String(v.sort_order ?? 0) : "0";
+  document.getElementById("mp-v-paid-slots").value = v ? String(v.paid_product_slots ?? 0) : "0";
+  document.getElementById("mp-v-premium").checked = v && Number(v.is_premium) === 1;
+  const ptype = v && v.premium_subscription_type ? String(v.premium_subscription_type) : "none";
+  document.getElementById("mp-v-premium-type").value = ["none", "permanent", "monthly", "weekly"].includes(ptype) ? ptype : "none";
+  const pu = document.getElementById("mp-v-premium-until");
+  if (pu) {
+    if (v && v.premium_until) {
+      const d = new Date(v.premium_until);
+      if (!Number.isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, "0");
+        pu.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } else pu.value = "";
+    } else pu.value = "";
+  }
   document.getElementById("mp-v-active").checked = !v || Number(v.is_active) !== 0;
   const lf = document.getElementById("mp-v-logo-file");
   const cf = document.getElementById("mp-v-cover-file");
@@ -732,10 +976,13 @@ function mpFillProductForm(p) {
   document.getElementById("mp-p-desc-en").value = p ? p.description_en || "" : "";
   document.getElementById("mp-p-price").value = p ? String(p.price ?? "") : "";
   document.getElementById("mp-p-stock").value = p ? String(p.stock ?? 0) : "0";
+  document.getElementById("mp-p-sku").value = p ? p.sku || "" : "";
+  document.getElementById("mp-p-barcode").value = p ? p.barcode || "" : "";
   const imgs = Array.isArray(p?.images) ? p.images : [];
   document.getElementById("mp-p-images").value = imgs.join("\n");
   document.getElementById("mp-p-sort").value = p ? String(p.sort_order ?? 0) : "0";
   document.getElementById("mp-p-offer").checked = p && Number(p.is_offer) === 1;
+  document.getElementById("mp-p-featured").checked = p && Number(p.is_mp_featured) === 1;
   document.getElementById("mp-p-active").checked = !p || Number(p.is_active) !== 0;
   const f = document.getElementById("mp-p-images-file");
   if (f) f.value = "";
@@ -892,6 +1139,10 @@ function bindMarketplaceAdminListeners() {
         return;
       }
     }
+    const premiumUntilRaw = document.getElementById("mp-v-premium-until")?.value?.trim();
+    const premium_until = premiumUntilRaw
+      ? new Date(premiumUntilRaw).toISOString()
+      : null;
     const body = {
       section_id: Number(document.getElementById("mp-v-section").value),
       name_ar: document.getElementById("mp-v-name-ar").value.trim(),
@@ -901,6 +1152,10 @@ function bindMarketplaceAdminListeners() {
       cover_image_url,
       sort_order: Number(document.getElementById("mp-v-sort").value || 0),
       is_active: document.getElementById("mp-v-active").checked ? 1 : 0,
+      paid_product_slots: Number(document.getElementById("mp-v-paid-slots").value || 0),
+      is_premium: document.getElementById("mp-v-premium").checked ? 1 : 0,
+      premium_subscription_type: document.getElementById("mp-v-premium-type").value || "none",
+      premium_until,
     };
     if (!Number.isFinite(body.section_id)) {
       alert(getAdminLang() === "ar" ? "اختر القسم." : "Choose section.");
@@ -990,8 +1245,11 @@ function bindMarketplaceAdminListeners() {
       description_en: document.getElementById("mp-p-desc-en").value.trim(),
       price: Number(document.getElementById("mp-p-price").value || 0),
       stock: Number(document.getElementById("mp-p-stock").value || 0),
+      sku: document.getElementById("mp-p-sku").value.trim(),
+      barcode: document.getElementById("mp-p-barcode").value.trim(),
       images,
       is_offer: document.getElementById("mp-p-offer").checked ? 1 : 0,
+      is_mp_featured: document.getElementById("mp-p-featured").checked ? 1 : 0,
       sort_order: Number(document.getElementById("mp-p-sort").value || 0),
       is_active: document.getElementById("mp-p-active").checked ? 1 : 0,
     };
@@ -2927,6 +3185,7 @@ async function bootstrapAuthed() {
   document.getElementById("banner-form")?.addEventListener("submit", (ev) => saveBanner(ev).catch((err) => alert(err.message || String(err))));
   document.getElementById("btn-refresh-banners")?.addEventListener("click", () => loadBanners().catch(() => {}));
   document.getElementById("btn-reset-banner")?.addEventListener("click", () => resetBannerForm());
+  document.getElementById("btn-vp-sub-refresh")?.addEventListener("click", () => loadVendorSubscriptionRequests().catch(() => {}));
 
   try {
     await loadOfferProductsIntoSelect();

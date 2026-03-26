@@ -11,6 +11,8 @@ const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const { registerMarketplaceRoutes } = require("./marketplace-routes");
+const { registerVendorPlatformRoutes } = require("./vendor-platform-routes");
+const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
 
 const SIGNUP_SEND_COOLDOWN_MS = 45 * 1000;
@@ -1496,6 +1498,7 @@ app.delete("/api/categories/:id", requireAuth, requireAdmin, async (req, res) =>
 });
 
 registerMarketplaceRoutes(app, { requireAuth, requireAdmin });
+registerVendorPlatformRoutes(app, { requireAuth, requireAdmin });
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 
@@ -1521,6 +1524,11 @@ app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
 
 app.post("/api/orders", requireAuth, async (req, res) => {
   try {
+    const platformSettings = await getVendorPlatformSettings();
+    const commissionPctRaw = platformSettings != null ? Number(platformSettings.commission_percent) : 5;
+    const commissionPct = Number.isFinite(commissionPctRaw)
+      ? Math.min(100, Math.max(0, commissionPctRaw))
+      : 5;
     const {
       products = [],
       total_price = 0,
@@ -1567,8 +1575,11 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       const pidRaw = item.product_id != null ? Number(item.product_id) : null;
       const pid = mpid ? null : Number.isFinite(pidRaw) && pidRaw > 0 ? pidRaw : null;
       const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
+      const lineSubtotal = Number(item.price || 0) * qn;
+      const marketplace_commission_amount =
+        mpid && commissionPct > 0 ? Math.round(lineSubtotal * (commissionPct / 100) * 10000) / 10000 : mpid ? 0 : null;
       await run(
-        `INSERT INTO order_items (order_id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO order_items (order_id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, marketplace_commission_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           result.id,
           pid,
@@ -1580,6 +1591,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
           item.color != null ? String(item.color) : "",
           item.size != null ? String(item.size) : "",
           brandLine,
+          marketplace_commission_amount,
         ]
       );
       if (mpid && qn > 0) {

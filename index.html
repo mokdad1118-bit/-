@@ -2536,6 +2536,14 @@
         .adora-auth-primary-btn:hover {
             box-shadow: 0 6px 28px rgba(109, 40, 217, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
+        /* رسائل التحقق / الأخطاء في نافذة الحساب — وضوح على الخلفية الزجاجية */
+        #auth-message:not(.hidden) {
+            color: #fffefc;
+            background: rgba(251, 191, 36, 0.22);
+            border: 1px solid rgba(253, 224, 71, 0.45);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
         .adora-auth-primary-btn:active {
             transform: scale(0.98);
         }
@@ -2673,6 +2681,38 @@
         </div>
     </div>
 
+    <div id="vendor-join-modal" class="fixed inset-0 z-[9995] hidden bg-black/50 flex items-center justify-center p-4" onclick="if(event.target===this) window.closeVendorJoinModal && window.closeVendorJoinModal()">
+        <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl p-4 space-y-3" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900" data-en="Join as a company" data-ar="انضم كشركة">انضم كشركة</h3>
+                <button type="button" class="p-2 rounded-lg hover:bg-gray-100" aria-label="Close" onclick="window.closeVendorJoinModal && window.closeVendorJoinModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="vendor-join-form" class="space-y-2 text-sm">
+                <div><label class="text-xs font-bold text-gray-600" data-en="Full name" data-ar="الاسم الثلاثي">الاسم الثلاثي</label><input id="vj-full-name" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div><label class="text-xs font-bold text-gray-600" data-en="Mobile" data-ar="رقم الموبايل">رقم الموبايل</label><input id="vj-phone" required type="tel" class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div><label class="text-xs font-bold text-gray-600" data-en="Company name" data-ar="اسم الشركة">اسم الشركة</label><input id="vj-company" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div><label class="text-xs font-bold text-gray-600" data-en="Email" data-ar="البريد">البريد</label><input id="vj-email" required type="email" class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div><label class="text-xs font-bold text-gray-600" data-en="ID / commercial reg." data-ar="الهوية أو السجل التجاري">الهوية أو السجل التجاري</label><input id="vj-id-doc" required class="mt-0.5 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div class="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-700 space-y-1" data-ar-only>
+                    <p class="font-bold text-gray-900" data-en="Terms" data-ar="الشروط">الشروط</p>
+                    <ul class="list-disc ps-4 space-y-0.5" data-en="Terms list" data-ar="قائمة الشروط">
+                        <li>صور واضحة للمنتج</li>
+                        <li>وصف احترافي</li>
+                        <li>سعر مناسب</li>
+                        <li>الالتزام بالشحن</li>
+                        <li>رضا الزبون</li>
+                    </ul>
+                </div>
+                <div class="flex items-start gap-2">
+                    <input type="checkbox" id="vj-terms" required class="mt-1 rounded border-gray-300 text-purple-600" />
+                    <label for="vj-terms" class="text-xs leading-snug" data-en="I agree to the terms" data-ar="أوافق على الشروط">أوافق على الشروط</label>
+                </div>
+                <p id="vendor-join-msg" class="text-xs text-center hidden"></p>
+                <button type="submit" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold" data-en="Submit request" data-ar="إرسال الطلب">إرسال الطلب</button>
+            </form>
+        </div>
+    </div>
+
     <!-- ==================== AUTH MODAL — عمود موبايل + جزيئات + بطاقة زجاجية ==================== -->
     <div id="auth-modal" class="auth-modal-root auth-screen-letterbox fixed inset-0 z-[9996] hidden flex justify-center items-stretch" onclick="closeAuthModal()">
         <div class="auth-mobile-viewport" onclick="event.stopPropagation()">
@@ -2698,7 +2738,7 @@
                     </button>
                 </div>
 
-                <div id="auth-message" class="hidden text-sm"></div>
+                <div id="auth-message" class="hidden text-sm text-center font-semibold leading-snug"></div>
 
                 <form id="auth-form-signup" class="space-y-3">
                     <div class="auth-field-enter" style="animation-delay: 0.05s">
@@ -2721,8 +2761,8 @@
                 </form>
 
                 <div id="auth-signup-otp-panel" class="space-y-4 hidden">
-                    <p class="text-sm text-violet-100/90 leading-relaxed text-center" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
-                    <p class="text-center text-xs text-violet-200/80 break-all" id="auth-signup-otp-email-display"></p>
+                    <p class="text-sm text-white/95 leading-relaxed text-center drop-shadow-sm" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
+                    <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-signup-otp-email-display"></p>
                     <div>
                         <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
                         <input id="auth-signup-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
@@ -2731,10 +2771,10 @@
                         <span data-en="Verify & create account" data-ar="تأكيد وإنشاء الحساب">تأكيد وإنشاء الحساب</span>
                     </button>
                     <div class="flex flex-col items-center gap-2">
-                        <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                        <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
                             <span id="auth-signup-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
                         </button>
-                        <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-violet-300/90 hover:text-white">
+                        <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-white/80 hover:text-white">
                             <span data-en="Change email" data-ar="تغيير البريد">تغيير البريد</span>
                         </button>
                     </div>
@@ -2828,9 +2868,15 @@
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="Malls, companies, electrical appliances & more — Adora's comprehensive market for everything you need." data-ar="مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.">مولات، شركات، أدوات كهربائية وغيرها — السوق الشامل في أدورا لكل احتياجاتك.</p>
                 <button type="button" onclick="openMarketplaceBrowse({})" class="mt-0.5 text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-6 py-2.5 rounded-full border border-purple-200/80 shadow-sm shadow-purple-900/5 active:scale-[0.98] transition-transform" data-en="View all" data-ar="عرض الكل">عرض الكل</button>
             </div>
+            <div id="vendor-join-banner-wrap" class="hidden px-1 pt-2">
+                <button type="button" id="vendor-join-banner" class="w-full max-w-md mx-auto block rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-bold py-3 px-4 shadow-lg shadow-purple-900/20 text-center active:scale-[0.99] transition-transform" onclick="window.openVendorJoinModal && window.openVendorJoinModal()">
+                    <span id="vendor-join-banner-text">انضم كشركة في Adora</span>
+                </button>
+            </div>
             <div id="marketplace-home-strip" class="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1 min-h-[7.5rem] items-stretch">
                 <p class="text-xs text-gray-400 py-6 whitespace-nowrap" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
             </div>
+            <div id="marketplace-home-highlights" class="hidden space-y-4 pt-3"></div>
         </div>
 
         <div data-adora-section="main_categories">

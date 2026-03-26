@@ -1594,11 +1594,12 @@
             tick();
         }
 
-        function resetSignupEmailOtpUi() {
+        function resetSignupEmailOtpUi(opts) {
+            const forLoginTab = opts && opts.forLoginTab === true;
             const form = document.getElementById('auth-form-signup');
             const otpPanel = document.getElementById('auth-signup-otp-panel');
             const otpInput = document.getElementById('auth-signup-otp-code');
-            if (form) form.classList.remove('hidden');
+            if (!forLoginTab && form) form.classList.remove('hidden');
             if (otpPanel) otpPanel.classList.add('hidden');
             if (otpInput) otpInput.value = '';
             stopSignupResendCountdown();
@@ -1606,12 +1607,11 @@
             if (btn) btn.disabled = false;
             const label = document.getElementById('auth-signup-resend-label');
             if (label) {
-                label.textContent = isRTL ? 'إعادة إرسال الرمز' : 'Resend code';
+                const ar = label.getAttribute('data-ar');
+                const en = label.getAttribute('data-en');
+                label.textContent = isRTL ? ar || 'إعادة إرسال الرمز' : en || 'Resend code';
             }
         }
-        try {
-            window.resetSignupEmailOtpUi = resetSignupEmailOtpUi;
-        } catch (_e) {}
 
         function setAuthMode(mode) {
             const loginTab = document.getElementById('auth-tab-login');
@@ -1841,6 +1841,13 @@
                 }
             }
         }
+
+        try {
+            window.resetSignupEmailOtpUi = resetSignupEmailOtpUi;
+            window.handleSignupSendCode = handleSignupSendCode;
+            window.handleSignupVerifyCode = handleSignupVerifyCode;
+            window.handleSignupResendCode = handleSignupResendCode;
+        } catch (_e) {}
 
         function disconnectAppSocket() {
             if (appSocket) {
@@ -2293,6 +2300,9 @@
                 injectHomeBanners().catch(() => {});
                 refreshAdoraHomeSubcategoryCounts().catch(() => {});
                 loadMarketplaceHomeStrip().catch(() => {});
+                loadVendorJoinBanner().catch(() => {});
+                loadMarketplaceHomeHighlights().catch(() => {});
+                bindVendorJoinFormOnce();
             }
             if (screenId === 'screen-marketplace') {
                 initMarketplaceBrowseScreen().catch(() => {});
@@ -2349,7 +2359,7 @@
                 const lph = isRTL ? listingSearchInput.getAttribute('data-ar-placeholder') : listingSearchInput.getAttribute('data-en-placeholder');
                 if (lph) listingSearchInput.setAttribute('placeholder', lph);
             }
-            ['auth-name', 'auth-phone', 'auth-phone-login'].forEach((id) => {
+            ['auth-name', 'auth-email', 'auth-phone', 'auth-phone-login'].forEach((id) => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 const ph = isRTL ? el.getAttribute('data-ar-placeholder') : el.getAttribute('data-en-placeholder');
@@ -2576,6 +2586,89 @@
             navigateTo('screen-marketplace');
         }
 
+        function openVendorJoinModal() {
+            const m = document.getElementById('vendor-join-modal');
+            const msg = document.getElementById('vendor-join-msg');
+            if (msg) {
+                msg.classList.add('hidden');
+                msg.textContent = '';
+            }
+            if (m) m.classList.remove('hidden');
+        }
+        function closeVendorJoinModal() {
+            document.getElementById('vendor-join-modal')?.classList.add('hidden');
+        }
+        window.openVendorJoinModal = openVendorJoinModal;
+        window.closeVendorJoinModal = closeVendorJoinModal;
+
+        async function loadVendorJoinBanner() {
+            const wrap = document.getElementById('vendor-join-banner-wrap');
+            const txt = document.getElementById('vendor-join-banner-text');
+            if (!wrap || !txt) return;
+            try {
+                const h = await apiFetch('/api/public/vendor-platform/home', { requireAuth: false });
+                if (!h || Number(h.partner_banner_enabled) !== 1) {
+                    wrap.classList.add('hidden');
+                    return;
+                }
+                wrap.classList.remove('hidden');
+                const t = isRTL ? h.partner_banner_text_ar || h.partner_banner_text_en : h.partner_banner_text_en || h.partner_banner_text_ar;
+                txt.textContent = t || (isRTL ? 'انضم كشركة في Adora' : 'Join Adora as a company');
+            } catch (_e) {
+                wrap.classList.add('hidden');
+            }
+        }
+
+        function renderMarketplaceHighlightRow(title, products, opts) {
+            if (!products || !products.length) return '';
+            const loc = isRTL ? 'ar' : 'en';
+            const showHomePromo = opts && opts.showHomePromo;
+            const cards = products
+                .map((p) => {
+                    const ptitle = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+                    const imgs = Array.isArray(p.images) ? p.images : [];
+                    const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
+                    const homeAd =
+                        showHomePromo && Number(p.is_home_featured_promo) === 1
+                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm">${isRTL ? 'رئيسية' : 'Home'}</span>`
+                            : '';
+                    return `<button type="button" onclick="openMarketplaceProductDetail(${Number(p.id)})" class="flex-shrink-0 w-[38%] max-w-[9.5rem] rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm text-start active:scale-[0.98] transition-transform">
+                        <div class="aspect-square bg-gray-100 relative">${homeAd}<img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
+                        <p class="p-1.5 text-[10px] font-bold text-gray-900 line-clamp-2 leading-tight">${escapeHtml(ptitle)}</p>
+                    </button>`;
+                })
+                .join('');
+            return `<div class="space-y-1.5">
+                <p class="text-xs font-extrabold text-gray-800 px-0.5">${escapeHtml(title)}</p>
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-0.5 px-0.5">${cards}</div>
+            </div>`;
+        }
+
+        async function loadMarketplaceHomeHighlights() {
+            const host = document.getElementById('marketplace-home-highlights');
+            if (!host) return;
+            try {
+                const data = await apiFetch('/api/marketplace/home-highlights', { requireAuth: false });
+                const feat = Array.isArray(data.featured) ? data.featured : [];
+                const best = Array.isArray(data.bestsellers) ? data.bestsellers : [];
+                const off = Array.isArray(data.offers) ? data.offers : [];
+                const parts = [];
+                if (feat.length) parts.push(renderMarketplaceHighlightRow(isRTL ? 'منتجات مميزة' : 'Featured', feat, { showHomePromo: true }));
+                if (best.length) parts.push(renderMarketplaceHighlightRow(isRTL ? 'الأكثر مبيعاً' : 'Bestsellers', best));
+                if (off.length) parts.push(renderMarketplaceHighlightRow(isRTL ? 'عروض' : 'Offers', off));
+                if (!parts.length) {
+                    host.classList.add('hidden');
+                    host.innerHTML = '';
+                    return;
+                }
+                host.classList.remove('hidden');
+                host.innerHTML = parts.join('');
+            } catch (_e) {
+                host.classList.add('hidden');
+                host.innerHTML = '';
+            }
+        }
+
         function backFromMarketplaceBrowse() {
             if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-marketplace') {
                 adoraNavStack.pop();
@@ -2628,6 +2721,46 @@
             });
         }
 
+        function bindVendorJoinFormOnce() {
+            const form = document.getElementById('vendor-join-form');
+            if (!form || form.dataset.adoraVjBound === '1') return;
+            form.dataset.adoraVjBound = '1';
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const msg = document.getElementById('vendor-join-msg');
+                if (msg) {
+                    msg.classList.add('hidden');
+                    msg.textContent = '';
+                }
+                const body = {
+                    full_name: document.getElementById('vj-full-name')?.value?.trim() || '',
+                    phone: document.getElementById('vj-phone')?.value?.trim() || '',
+                    company_name: document.getElementById('vj-company')?.value?.trim() || '',
+                    email: document.getElementById('vj-email')?.value?.trim() || '',
+                    id_document: document.getElementById('vj-id-doc')?.value?.trim() || '',
+                    terms_accepted: document.getElementById('vj-terms')?.checked ? 1 : 0,
+                };
+                try {
+                    await apiFetch('/api/vendor-subscription-requests', { method: 'POST', body, requireAuth: false });
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'تم إرسال الطلب إلى شركة Adora'
+                            : 'Your request has been sent to Adora';
+                        msg.className = 'text-xs text-center text-green-600 font-bold';
+                        msg.classList.remove('hidden');
+                    }
+                    form.reset();
+                    setTimeout(() => closeVendorJoinModal(), 2200);
+                } catch (err) {
+                    if (msg) {
+                        msg.textContent = err.message || (isRTL ? 'تعذر الإرسال' : 'Could not submit');
+                        msg.className = 'text-xs text-center text-red-600';
+                        msg.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
         async function ensureMarketplaceSectionsForFilters() {
             const sel = document.getElementById('marketplace-filter-section');
             if (!sel) return;
@@ -2670,7 +2803,10 @@
                 for (const v of marketplaceBrowseVendorsCache) {
                     const o = document.createElement('option');
                     o.value = String(v.id);
-                    o.textContent = loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+                    const base = loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+                    const premium =
+                        Number(v.is_premium) === 1 && (!v.premium_until || new Date(v.premium_until).getTime() > Date.now());
+                    o.textContent = premium ? `${base} ★` : base;
                     sel.appendChild(o);
                 }
                 if (cur && [...sel.options].some((x) => x.value === cur)) sel.value = cur;
@@ -2781,9 +2917,21 @@
                         const imgs = Array.isArray(p.images) ? p.images : [];
                         const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                         const offer = Number(p.is_offer) === 1;
+                        const sponsored = Number(p.is_search_sponsored) === 1;
+                        const listingTop = Number(p.is_listing_top_promo) === 1;
+                        const sectionPromo = Number(p.is_section_featured_promo) === 1;
+                        let promoLeft = '';
+                        if (sponsored) {
+                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
+                        } else if (listingTop) {
+                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'أعلى القائمة' : 'Top'}</span>`;
+                        } else if (sectionPromo) {
+                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-teal-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'قسم' : 'Section'}</span>`;
+                        }
                         return `<div role="button" tabindex="0" onclick="openMarketplaceProductDetail(${Number(p.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${Number(p.id)});}" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer active:scale-[0.99] transition-transform">
                             <div class="aspect-square bg-gray-100 relative">
                                 <img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                ${promoLeft}
                                 ${offer ? `<span class="absolute top-2 right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
                             </div>
                             <div class="p-2.5 space-y-0.5">
@@ -6155,6 +6303,9 @@
             loadHomeNewCollectionGrid().catch(() => {});
             loadHomeBestsellers().catch(() => {});
             loadMarketplaceHomeStrip().catch(() => {});
+            loadVendorJoinBanner().catch(() => {});
+            loadMarketplaceHomeHighlights().catch(() => {});
+            bindVendorJoinFormOnce();
             refreshAdoraHomeSubcategoryCounts().catch(() => {});
             updateProfileWishlistUi();
             initOnboardingStorageMigration();
