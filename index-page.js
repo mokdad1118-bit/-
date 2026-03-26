@@ -94,6 +94,11 @@
             document.getElementById('auth-gate-screen')?.classList.add('hidden');
             document.getElementById('app-shell')?.classList.remove('hidden');
             document.body.style.overflow = 'auto';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    injectHomeBanners().catch(() => {});
+                });
+            });
         }
 
         function showAuthGateOnly() {
@@ -1622,6 +1627,11 @@
             }
             document.body.style.overflow = 'auto';
             restoreBodyScrollIfIdle();
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    injectHomeBanners().catch(() => {});
+                });
+            });
             if (typeof nextFn === 'function') await nextFn();
         }
 
@@ -5238,7 +5248,7 @@
                 return;
             }
             const slidesHtml = banners
-                .map((b) => {
+                .map((b, slideIdx) => {
                     const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
                     const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
                     const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
@@ -5255,8 +5265,9 @@
                         ? `<a href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
                         : '';
                     if (hasImg) {
+                        const imgLoading = slideIdx < 3 ? 'eager' : 'lazy';
                         return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
-  <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-adora-banner-img="1" />
+  <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="${imgLoading}" decoding="async" fetchpriority="${slideIdx === 0 ? 'high' : 'auto'}" referrerpolicy="no-referrer" data-adora-banner-img="1" />
   <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
     ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
     ${bodyTxt ? `<p class="mt-0.5 text-[11px] leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
@@ -5273,8 +5284,8 @@
 </div>`;
                 })
                 .join('');
-            host.innerHTML = `<div class="adora-banner-slider-viewport adora-banner-scroll relative w-full shadow-md snap-x snap-mandatory" style="height:200px;border-radius:16px">
-  <div dir="ltr" class="adora-banner-slider-track flex h-[200px]">
+            host.innerHTML = `<div dir="ltr" class="adora-banner-slider-viewport adora-banner-scroll relative w-full shadow-md snap-x snap-mandatory" style="height:200px;border-radius:16px">
+  <div class="adora-banner-slider-track flex flex-row flex-nowrap h-[200px]">
     ${slidesHtml}
   </div>
 </div>`;
@@ -5420,6 +5431,13 @@
                     if (!byPl[pl]) byPl[pl] = [];
                     byPl[pl].push(b);
                 }
+                Object.keys(byPl).forEach((pl) => {
+                    byPl[pl].sort((a, b) => {
+                        const so = (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+                        if (so !== 0) return so;
+                        return (Number(a.id) || 0) - (Number(b.id) || 0);
+                    });
+                });
                 const slotHosts = document.querySelectorAll('[id^="banner-slot-"]');
                 const slotIds = new Set();
                 slotHosts.forEach((el) => {
