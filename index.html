@@ -565,28 +565,75 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* عالم الأناقة: صفّان من البطاقات + تمرير أفقي */
-        .home-new-collection-scroll {
+        /* تمرير أفقي — شريط واضح وحديث (WebKit + Firefox) */
+        .adora-scroll-strip {
             overflow-x: auto;
+            overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            scroll-snap-type: x proximity;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124, 58, 237, 0.55) rgba(15, 23, 42, 0.06);
             margin-inline: -0.25rem;
             padding-inline: 0.25rem;
-            padding-bottom: 0.25rem;
+            padding-bottom: 0.35rem;
         }
-        .home-new-collection-dual-row {
-            display: grid;
-            grid-template-rows: repeat(2, auto);
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(9rem, 36vw);
-            gap: 0.45rem 0.55rem;
+        @media (prefers-reduced-motion: reduce) {
+            .adora-scroll-strip {
+                scroll-behavior: auto;
+                scroll-snap-type: none;
+            }
+        }
+        .adora-scroll-strip::-webkit-scrollbar {
+            height: 10px;
+        }
+        .adora-scroll-strip::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.06);
+            border-radius: 999px;
+            margin-inline: 6px;
+        }
+        .adora-scroll-strip::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #c4b5fd 0%, #7c3aed 50%, #6d28d9 100%);
+            border-radius: 999px;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 1px 3px rgba(124, 58, 237, 0.35);
+        }
+        .adora-scroll-strip::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(90deg, #a78bfa 0%, #6d28d9 100%);
+        }
+        /* شريط فوق التدرج البنفسجي (عالم الأناقة) */
+        .adora-scroll-strip--on-gradient {
+            scrollbar-color: rgba(255, 255, 255, 0.85) rgba(255, 255, 255, 0.18);
+        }
+        .adora-scroll-strip--on-gradient::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .adora-scroll-strip--on-gradient::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.75) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+        }
+        .adora-scroll-strip--on-gradient::-webkit-scrollbar-thumb:hover {
+            background: #fff;
+        }
+
+        /* صف واحد من بطاقات المنتج داخل الشريط */
+        .home-product-strip {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            gap: 0.5rem;
             width: max-content;
-            max-width: none;
-            min-height: 10.5rem;
-            align-content: start;
+            min-height: 1px;
+            padding-bottom: 2px;
         }
-        .home-new-collection-dual-row .product-card {
-            width: 100%;
-            max-width: 11.5rem;
+        .home-product-strip .product-card {
+            flex: 0 0 auto;
+            width: min(11rem, 40vw);
+            max-width: 11.75rem;
+            scroll-snap-align: start;
         }
         
         @keyframes slideUp { 
@@ -2974,8 +3021,10 @@
                     <i class="fas fa-arrow-right text-[10px]"></i>
                 </button>
             </div>
-            <div id="home-featured-grid" class="grid grid-cols-2 gap-1.5 sm:gap-2 min-h-[90px]">
-                <p class="col-span-2 text-center text-gray-400 text-sm py-6" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+            <div class="adora-scroll-strip home-featured-scroll -mx-1 px-1 pb-1.5 min-h-[100px]">
+                <div id="home-featured-grid">
+                    <p class="text-center text-gray-400 text-sm py-6 px-4 w-[min(100%,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                </div>
             </div>
         </div>
 
@@ -2997,7 +3046,7 @@
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Kids')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧒 <span data-en="Kids" data-ar="أطفال">أطفال</span></button>
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Games')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧸 <span data-en="Games" data-ar="ألعاب">ألعاب</span></button>
                     </div>
-                    <div id="home-new-collection-scroll" class="home-new-collection-scroll no-scrollbar">
+                    <div id="home-new-collection-scroll" class="adora-scroll-strip adora-scroll-strip--on-gradient min-h-[100px]">
                         <div id="home-new-collection-grid">
                             <p class="text-center text-white/80 text-xs py-6 px-4 w-[min(100vw-2rem,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
                         </div>

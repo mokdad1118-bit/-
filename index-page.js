@@ -4731,16 +4731,19 @@
             if (!grid) return;
             try {
                 const products = await apiFetch('/api/products?featured=1&adora_only=1', { requireAuth: false });
-                const list = Array.isArray(products) ? products.slice(0, 8) : [];
+                const list = Array.isArray(products) ? products.slice(0, 28) : [];
                 if (!list.length) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 text-sm py-8 leading-relaxed px-2">${
+                    grid.className = '';
+                    grid.innerHTML = `<p class="text-center text-gray-500 text-sm py-8 leading-relaxed px-3 w-[min(100%,22rem)]">${
                         isRTL ? 'لا توجد منتجات مميزة لعرضها حالياً.' : 'No featured picks to show yet.'
                     }</p>`;
                     return;
                 }
+                grid.className = 'home-product-strip';
                 grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (_e) {
-                grid.innerHTML = `<p class="col-span-2 text-center text-red-500 text-sm py-6">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
+                grid.className = '';
+                grid.innerHTML = `<p class="text-center text-red-500 text-sm py-6 px-3 w-[min(100%,22rem)]">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
             }
         }
 
@@ -4757,7 +4760,7 @@
                     }</p>`;
                     return;
                 }
-                grid.className = 'home-new-collection-dual-row';
+                grid.className = 'home-product-strip';
                 grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
             } catch (_e) {
                 grid.className = '';
