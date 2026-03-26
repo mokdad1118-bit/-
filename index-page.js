@@ -4030,7 +4030,9 @@
                 const list = Array.isArray(rows) ? rows : [];
                 if (!list.length) return;
                 section.classList.remove('hidden');
-                wrap.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+                wrap.innerHTML = `<div class="home-product-strip">${list
+                    .map((p) => renderProductCardHtml(p, { compact: true }))
+                    .join('')}</div>`;
             } catch (_e) {
                 section.classList.add('hidden');
             }

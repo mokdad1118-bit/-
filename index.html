@@ -635,6 +635,13 @@
             max-width: 11.75rem;
             scroll-snap-align: start;
         }
+        /* «قد يعجبك أيضاً» — نفس عرض الشريط والهوامش مع محتوى الصفحة */
+        .product-detail-related-scroll {
+            margin-inline: -1.25rem;
+            padding-inline: 1.25rem;
+            padding-bottom: 0.5rem;
+            min-height: 14rem;
+        }
         
         @keyframes slideUp { 
             from { opacity: 0; transform: translateY(30px); } 
@@ -3392,10 +3399,12 @@
                 </div>
             </div>
 
-            <div id="product-related-section" class="hidden">
-                <h3 class="font-bold text-gray-900 mb-4" data-en="You may also like" data-ar="قد يعجبك أيضاً">قد يعجبك أيضاً</h3>
-                <p class="text-xs text-gray-500 mb-3 -mt-2 leading-relaxed" data-en="From the same section in the catalog (live)." data-ar="من نفس القسم في الكتالوج (مباشر من السيرفر).">من نفس القسم في الكتالوج (مباشر من السيرفر).</p>
-                <div id="product-related-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-5 px-5 min-h-[120px]"></div>
+            <div id="product-related-section" class="hidden border-t border-gray-100 pt-5 mt-6">
+                <div class="px-1 mb-3 space-y-1">
+                    <h3 class="text-lg font-bold text-gray-900 leading-tight" data-en="You may also like" data-ar="قد يعجبك أيضاً">قد يعجبك أيضاً</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed" data-en="From the same section in the catalog (live)." data-ar="من نفس القسم في الكتالوج (مباشر من السيرفر).">من نفس القسم في الكتالوج (مباشر من السيرفر).</p>
+                </div>
+                <div id="product-related-scroll" class="adora-scroll-strip product-detail-related-scroll pt-1 snap-x snap-proximity"></div>
             </div>
         </div>
 
