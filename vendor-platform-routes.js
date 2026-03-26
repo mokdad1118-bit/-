@@ -36,7 +36,59 @@ function normalizePartnerPlacementsFromBody(body, curJson) {
   return parsePartnerCtaPlacementsJson(curJson);
 }
 
-function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
+async function resolveVendorSubscriptionNotifyUserId(row) {
+  if (row.user_id != null && Number(row.user_id) > 0) {
+    const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') <> 'admin'`, [Number(row.user_id)]);
+    if (u) return Number(u.id);
+  }
+  const em = row.email != null ? String(row.email).trim() : "";
+  if (em) {
+    const u = await get(
+      `SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email,''))) = LOWER(TRIM(?)) AND COALESCE(role,'user') <> 'admin' LIMIT 1`,
+      [em]
+    );
+    if (u) return Number(u.id);
+  }
+  const ph = row.phone != null ? String(row.phone).trim() : "";
+  if (ph) {
+    const u = await get(
+      `SELECT id FROM users WHERE TRIM(COALESCE(phone,'')) = TRIM(?) AND COALESCE(role,'user') <> 'admin' LIMIT 1`,
+      [ph]
+    );
+    if (u) return Number(u.id);
+  }
+  return null;
+}
+
+function buildVendorSubStatusNotification(status, companyName, adminMessage) {
+  const c = companyName && String(companyName).trim() ? String(companyName).trim() : "شركتك";
+  const note =
+    adminMessage != null && String(adminMessage).trim()
+      ? `\n\nملاحظة من Adora:\n${String(adminMessage).trim().slice(0, 1500)}`
+      : "";
+  const map = {
+    pending: {
+      title: "طلب الاشتراك كشركة",
+      message: `تم تسجيل طلبك للانضمام كشركة «${c}» وهو قيد المراجعة.${note}`,
+    },
+    approved: {
+      title: "تمت الموافقة على طلبك",
+      message: `تهانينا! تمت الموافقة على طلب الانضمام لشركة «${c}».${note}`,
+    },
+    rejected: {
+      title: "تحديث طلب الانضمام كشركة",
+      message: `نعتذر، لم تُقبل طلبات الانضمام الحالية لشركة «${c}».${note}`,
+    },
+    incomplete: {
+      title: "طلب اشتراك يحتاج إكمالاً",
+      message: `يحتاج طلب الانضمام لشركة «${c}» إلى معلومات أو مستندات إضافية.${note}`,
+    },
+  };
+  const key = String(status || "").trim();
+  return map[key] || map.pending;
+}
+
+function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optionalAuth, notifyUserInApp }) {
   app.get("/api/public/vendor-platform/home", async (_req, res) => {
     try {
       const s = await getVendorPlatformSettings();
@@ -150,7 +202,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
     }
   });
 
-  app.post("/api/vendor-subscription-requests", async (req, res) => {
+  app.post("/api/vendor-subscription-requests", optionalAuth, async (req, res) => {
     try {
       const b = req.body || {};
       const full_name = b.full_name != null ? String(b.full_name).trim().slice(0, 200) : "";
@@ -165,14 +217,44 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
       if (!terms_accepted) {
         return res.status(400).json({ error: "You must accept the terms" });
       }
+      let user_id = null;
+      if (req.user && String(req.user.role || "").trim().toLowerCase() !== "admin") {
+        const uid = Number(req.user.id);
+        if (Number.isFinite(uid) && uid > 0) user_id = uid;
+      }
       const ins = await run(
-        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-        [full_name, phone, company_name, email, id_document, terms_accepted]
+        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status, user_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        [full_name, phone, company_name, email, id_document, terms_accepted, user_id]
       );
       return res.status(201).json({ ok: true, id: ins.id });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to submit request" });
+    }
+  });
+
+  app.get("/api/me/vendor-subscription-requests", requireAuth, async (req, res) => {
+    try {
+      const role = String(req.user?.role ?? "").trim().toLowerCase();
+      if (role === "admin") return res.json([]);
+      const uid = Number(req.user.id);
+      const urow = await get(`SELECT id, email, phone FROM users WHERE id=?`, [uid]);
+      if (!urow) return res.status(401).json({ error: "Unauthorized" });
+      const email = urow.email != null ? String(urow.email).trim() : "";
+      const phone = urow.phone != null ? String(urow.phone).trim() : "";
+      const rows = await all(
+        `SELECT id, full_name, phone, company_name, email, status, admin_message, created_at, updated_at, user_id
+         FROM vendor_subscription_requests
+         WHERE user_id = ?
+            OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND LOWER(TRIM(email)) = LOWER(TRIM(?)))
+            OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND TRIM(phone) = TRIM(?))
+         ORDER BY created_at DESC, id DESC
+         LIMIT 50`,
+        [uid, email, email, phone, phone]
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load requests" });
     }
   });
 
@@ -194,6 +276,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
       const cur = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
       if (!cur) return res.status(404).json({ error: "Not found" });
       const b = req.body || {};
+      const prevStatus = String(cur.status || "").trim();
       let status = cur.status;
       if (b.status != null) {
         const s = String(b.status).trim();
@@ -205,7 +288,24 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin }) {
         `UPDATE vendor_subscription_requests SET status=?, admin_message=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
         [status, admin_message, id]
       );
-      return res.json(await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]));
+      const updated = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
+      const newStatus = String(updated.status || "").trim();
+      if (typeof notifyUserInApp === "function" && prevStatus !== newStatus) {
+        try {
+          const notifyUid = await resolveVendorSubscriptionNotifyUserId(updated);
+          if (notifyUid) {
+            const { title, message } = buildVendorSubStatusNotification(
+              newStatus,
+              updated.company_name,
+              updated.admin_message
+            );
+            await notifyUserInApp(notifyUid, title, message, null);
+          }
+        } catch (_n) {
+          /* لا نفشل حفظ الحالة إذا تعذر الإشعار */
+        }
+      }
+      return res.json(updated);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to update request" });
     }

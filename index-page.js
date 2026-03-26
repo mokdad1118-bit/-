@@ -1364,10 +1364,11 @@
             localStorage.removeItem('adora_token');
         }
 
-        async function apiFetch(pathname, { method = 'GET', body = null, requireAuth = true, isFormData = false, cache } = {}) {
-            const token = requireAuth ? getStoredJwtToken() : null;
+        async function apiFetch(pathname, { method = 'GET', body = null, requireAuth = true, attachAuthIfAvailable = false, isFormData = false, cache } = {}) {
+            const token = getStoredJwtToken();
             const headers = {};
             if (requireAuth && token) headers['Authorization'] = `Bearer ${token}`;
+            else if (!requireAuth && attachAuthIfAvailable && token) headers['Authorization'] = `Bearer ${token}`;
 
             let fetchBody = undefined;
             if (body !== null && body !== undefined) {
@@ -2833,7 +2834,13 @@
                     terms_accepted: document.getElementById('vj-p-terms')?.checked ? 1 : 0,
                 };
                 try {
-                    await apiFetch('/api/vendor-subscription-requests', { method: 'POST', body, requireAuth: false });
+                    await apiFetch('/api/vendor-subscription-requests', {
+                        method: 'POST',
+                        body,
+                        requireAuth: false,
+                        attachAuthIfAvailable: true,
+                    });
+                    refreshVendorSubscriptionSideMenu().catch(() => {});
                     if (msg) {
                         msg.textContent = isRTL
                             ? 'تم إرسال الطلب إلى شركة Adora'
@@ -5924,6 +5931,7 @@
                 logoutBtn?.classList.add('hidden');
                 document.getElementById('side-menu-notif-row')?.classList.add('hidden');
                 document.getElementById('side-menu-notifications-btn')?.classList.add('hidden');
+                document.getElementById('side-menu-vendor-sub-btn')?.classList.add('hidden');
                 return;
             }
             guestActions?.classList.add('hidden');
@@ -5941,6 +5949,123 @@
                 el.classList.remove('fa-chevron-left', 'fa-chevron-right');
                 el.classList.add(isRTL ? 'fa-chevron-left' : 'fa-chevron-right');
             });
+            await refreshVendorSubscriptionSideMenu();
+        }
+
+        function vendorSubStatusLabel(status) {
+            const ar = isRTL;
+            const m = {
+                pending: ar ? 'قيد المراجعة' : 'Under review',
+                approved: ar ? 'تمت الموافقة' : 'Approved',
+                rejected: ar ? 'مرفوض' : 'Rejected',
+                incomplete: ar ? 'ناقص' : 'Incomplete',
+            };
+            return m[String(status || '').trim()] || String(status || '—');
+        }
+
+        function applyVendorSubStatusBadge(el, status) {
+            if (!el) return;
+            el.textContent = vendorSubStatusLabel(status);
+            const base = 'shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full max-w-[100px] truncate ';
+            const s = String(status || '').trim();
+            if (s === 'approved') el.className = base + 'bg-emerald-100 text-emerald-800';
+            else if (s === 'rejected') el.className = base + 'bg-red-100 text-red-800';
+            else if (s === 'incomplete') el.className = base + 'bg-amber-100 text-amber-800';
+            else el.className = base + 'bg-slate-100 text-slate-700';
+        }
+
+        async function refreshVendorSubscriptionSideMenu() {
+            const btn = document.getElementById('side-menu-vendor-sub-btn');
+            if (!btn) return;
+            if (!getStoredJwtToken()) {
+                btn.classList.add('hidden');
+                return;
+            }
+            btn.classList.remove('hidden');
+            const detail = document.getElementById('side-menu-vendor-sub-detail');
+            const badge = document.getElementById('side-menu-vendor-sub-badge');
+            try {
+                const rows = await apiFetch('/api/me/vendor-subscription-requests', { requireAuth: true });
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) {
+                    if (detail) detail.textContent = isRTL ? 'لا يوجد طلب حتى الآن' : 'No request yet';
+                    if (badge) {
+                        badge.textContent = '—';
+                        badge.className =
+                            'shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 max-w-[100px] truncate';
+                    }
+                    return;
+                }
+                const latest = list[0];
+                if (detail) detail.textContent = latest.company_name || '—';
+                applyVendorSubStatusBadge(badge, latest.status);
+            } catch (_e) {
+                if (detail) detail.textContent = isRTL ? 'تعذر التحميل' : 'Could not load';
+                if (badge) {
+                    badge.textContent = '—';
+                    badge.className =
+                        'shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 max-w-[100px] truncate';
+                }
+            }
+        }
+
+        function renderVendorSubscriptionModalBody(container, rows) {
+            if (!container) return;
+            const list = Array.isArray(rows) ? rows : [];
+            const ar = isRTL;
+            if (!list.length) {
+                container.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${ar ? 'لا توجد طلبات مرتبطة بحسابك.' : 'No subscription requests linked to your account.'}</p>`;
+                return;
+            }
+            container.innerHTML = list
+                .map((r) => {
+                    const st = vendorSubStatusLabel(r.status);
+                    const msg =
+                        r.admin_message && String(r.admin_message).trim()
+                            ? `<p class="text-xs text-gray-600 mt-2 whitespace-pre-wrap">${String(r.admin_message)
+                                  .replace(/</g, '&lt;')
+                                  .replace(/>/g, '&gt;')}</p>`
+                            : '';
+                    const dt = r.updated_at || r.created_at || '';
+                    const dstr = dt ? new Date(dt).toLocaleString(ar ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+                    return `<div class="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-bold text-gray-900 truncate">${String(r.company_name || '—').replace(/</g, '&lt;')}</p>
+                <p class="text-xs text-gray-500 mt-0.5">#${r.id}${dstr ? ` · ${dstr}` : ''}</p>
+              </div>
+              <span class="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-800">${st}</span>
+            </div>
+            ${msg}
+          </div>`;
+                })
+                .join('');
+        }
+
+        async function sideMenuOpenVendorSubscriptionModal() {
+            if (!getStoredJwtToken()) {
+                closeSideDrawer(true);
+                openAuthModal('login', isRTL ? 'سجّل الدخول لعرض طلب اشتراكك كشركة' : 'Log in to view your company subscription request');
+                return;
+            }
+            closeSideDrawer(true);
+            const modal = document.getElementById('vendor-subscription-modal');
+            const body = document.getElementById('vendor-subscription-modal-body');
+            if (!modal || !body) return;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            body.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            try {
+                const rows = await apiFetch('/api/me/vendor-subscription-requests', { requireAuth: true });
+                renderVendorSubscriptionModalBody(body, rows);
+            } catch (_e) {
+                body.innerHTML = `<p class="text-sm text-red-600 text-center py-6">${isRTL ? 'تعذر التحميل.' : 'Could not load.'}</p>`;
+            }
+        }
+
+        function closeVendorSubscriptionModal() {
+            document.getElementById('vendor-subscription-modal')?.classList.add('hidden');
+            restoreBodyScrollIfIdle();
         }
 
         function openSideDrawer() {
@@ -5966,6 +6091,7 @@
                 'session-resume-overlay',
                 'app-broadcasts-modal',
                 'product-share-modal',
+                'vendor-subscription-modal',
             ];
             const anyOpen = overlayIds.some((id) => {
                 const el = document.getElementById(id);

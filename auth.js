@@ -23,6 +23,16 @@ function requireAuth(req, res, next) {
   }
 }
 
+/** يضبط req.user عند وجود Bearer صالح؛ وإلا يتابع بدون مصادقة (لطلبات عامة اختياريًا مرتبطة بحساب) */
+function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return next();
+  const payload = verifyToken(token);
+  if (payload) req.user = payload;
+  return next();
+}
+
 function requireAdmin(req, res, next) {
   const role = String(req.user?.role ?? "").trim().toLowerCase();
   if (!req.user || role !== "admin") {
@@ -40,4 +50,4 @@ function verifyToken(token) {
   }
 }
 
-module.exports = { signToken, requireAuth, requireAdmin, verifyToken };
+module.exports = { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth };

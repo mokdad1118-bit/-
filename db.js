@@ -336,6 +336,7 @@ async function initDb() {
   await migrateListPriceSemanticsOnce();
   await migrateVendorPlatformV1();
   await migrateVendorPlatformPartnerCtaPlacements();
+  await migrateVendorSubscriptionUserLink();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -616,6 +617,25 @@ async function migrateVendorPlatformPartnerCtaPlacements() {
   await run(
     `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS partner_cta_placements_json TEXT NOT NULL DEFAULT '["home_under_search"]'`
   );
+}
+
+/** ربط طلب الانضمام كشركة بحساب المستخدم + مزامنة خلفية بالبريد */
+async function migrateVendorSubscriptionUserLink() {
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_vendor_sub_req_user ON vendor_subscription_requests (user_id)`);
+  try {
+    await run(`
+      UPDATE vendor_subscription_requests vsr
+      SET user_id = u.id
+      FROM users u
+      WHERE vsr.user_id IS NULL
+        AND LOWER(TRIM(vsr.email)) = LOWER(TRIM(COALESCE(u.email, '')))
+        AND TRIM(COALESCE(u.email, '')) <> ''
+        AND COALESCE(u.role, 'user') <> 'admin'
+    `);
+  } catch (_e) {
+    /* ignore */
+  }
 }
 
 async function migrateOrderStatusesToV2() {

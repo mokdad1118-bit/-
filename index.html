@@ -4164,6 +4164,15 @@
                 <span class="flex-1 text-start" data-en="Contact us" data-ar="تواصل معنا">تواصل معنا</span>
                 <i class="side-menu-chevron fas fa-chevron-left text-gray-300 text-sm"></i>
             </button>
+            <button type="button" id="side-menu-vendor-sub-btn" class="side-menu-item hidden" onclick="sideMenuOpenVendorSubscriptionModal()">
+                <span class="side-menu-icon bg-indigo-100 text-indigo-700"><i class="fas fa-building"></i></span>
+                <div class="flex-1 text-start min-w-0">
+                    <span class="block font-semibold text-gray-900 text-sm leading-tight" data-en="Company subscription" data-ar="طلب اشتراك كشركة">طلب اشتراك كشركة</span>
+                    <span id="side-menu-vendor-sub-detail" class="block text-xs text-gray-500 truncate mt-0.5">—</span>
+                </div>
+                <span id="side-menu-vendor-sub-badge" class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 max-w-[100px] truncate">—</span>
+                <i class="side-menu-chevron fas fa-chevron-left text-gray-300 text-sm"></i>
+            </button>
             <button type="button" id="side-menu-notifications-btn" class="side-menu-item hidden" onclick="sideMenuOpenNotifications()">
                 <span class="side-menu-icon bg-violet-100 text-violet-700"><i class="fas fa-bell"></i></span>
                 <span class="flex-1 text-start" data-en="Notifications" data-ar="الإشعارات">الإشعارات</span>
@@ -4196,6 +4205,18 @@
                 </button>
             </div>
             <div id="orders-list-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="vendor-subscription-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeVendorSubscriptionModal()">
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-900" data-en="Company subscription requests" data-ar="طلبات اشتراك كشركة">طلبات اشتراك كشركة</h2>
+                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeVendorSubscriptionModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="vendor-subscription-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
         </div>
     </div>
 

@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs");
 const { all, get, run, initDb, getDatabaseOverview } = require("./db");
 const http = require("http");
 const { Server } = require("socket.io");
-const { signToken, requireAuth, requireAdmin, verifyToken } = require("./auth");
+const { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const { registerMarketplaceRoutes } = require("./marketplace-routes");
 const { registerVendorPlatformRoutes } = require("./vendor-platform-routes");
@@ -1497,8 +1497,33 @@ app.delete("/api/categories/:id", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
+async function notifyUserInApp(app, userId, title, message, link_url) {
+  const uid = Number(userId);
+  if (!Number.isFinite(uid) || uid < 1) return;
+  const text = String(message || "").trim();
+  if (!text) return;
+  let titleVal = title != null ? String(title).trim().slice(0, 200) : "";
+  if (!titleVal) titleVal = null;
+  const link = normalizeNotificationLink(link_url);
+  const result = await run(
+    `INSERT INTO in_app_notifications (message, title, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?, ?)`,
+    [text, titleVal, uid, null, link]
+  );
+  const row = await get(
+    `SELECT id, message, title, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
+    [result.id]
+  );
+  const io = app.get("io");
+  emitInAppNotification(io, row, uid);
+}
+
 registerMarketplaceRoutes(app, { requireAuth, requireAdmin });
-registerVendorPlatformRoutes(app, { requireAuth, requireAdmin });
+registerVendorPlatformRoutes(app, {
+  requireAuth,
+  requireAdmin,
+  optionalAuth,
+  notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
+});
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 
