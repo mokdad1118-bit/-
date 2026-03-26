@@ -643,12 +643,59 @@
           <!-- Orders -->
           <div id="tab-orders" class="tab-panel hidden">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h2 class="text-lg font-bold" data-en="Manage Orders" data-ar="إدارة الطلبات">إدارة الطلبات</h2>
-                <button id="btn-refresh-orders" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                <button id="btn-refresh-orders" type="button" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
                   <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
                 </button>
               </div>
+              <p class="text-xs text-gray-500 mb-3 leading-relaxed" data-en="Orders are grouped by status. Changing status moves the order to the matching section. New orders start in «Receiving your order»." data-ar="الطلبات مرتبة حسب الحالة؛ عند تغيير الحالة ينتقل الطلب تلقائياً للقسم المناسب. الطلبات الجديدة تبدأ في «جاري استلام طلبك».">الطلبات مرتبة حسب الحالة؛ عند تغيير الحالة ينتقل الطلب تلقائياً للقسم المناسب. الطلبات الجديدة تبدأ في «جاري استلام طلبك».</p>
+
+              <div id="orders-status-tabs" class="flex flex-wrap gap-1.5 mb-3">
+                <button type="button" data-orders-status="all" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-purple-50 text-purple-700 border-purple-200" data-en="All orders" data-ar="جميع الطلبات">جميع الطلبات</button>
+                <button type="button" data-orders-status="pending_receipt" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-white text-gray-700 border-gray-200 hover:bg-gray-50" data-en="Receiving your order" data-ar="جاري استلام طلبك">جاري استلام طلبك</button>
+                <button type="button" data-orders-status="in_progress" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-white text-gray-700 border-gray-200 hover:bg-gray-50" data-en="Picking your order" data-ar="جاري تجميع طلبك">جاري تجميع طلبك</button>
+                <button type="button" data-orders-status="fulfilled" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-white text-gray-700 border-gray-200 hover:bg-gray-50" data-en="Order assembled" data-ar="تم تجميع طلبك">تم تجميع طلبك</button>
+                <button type="button" data-orders-status="shipping" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-white text-gray-700 border-gray-200 hover:bg-gray-50" data-en="Shipping" data-ar="جاري الشحن">جاري الشحن</button>
+                <button type="button" data-orders-status="delivered" class="orders-status-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition bg-white text-gray-700 border-gray-200 hover:bg-gray-50" data-en="Delivered to customer" data-ar="تم تسليم الطلب للعميل">تم تسليم الطلب للعميل</button>
+              </div>
+
+              <div class="rounded-xl border border-gray-100 bg-gray-50 p-3 mb-3 space-y-2">
+                <div class="text-xs font-bold text-gray-700" data-en="Date &amp; time filter" data-ar="فلترة التاريخ والوقت">فلترة التاريخ والوقت</div>
+                <div class="flex flex-wrap gap-2 items-end">
+                  <div class="min-w-[10rem]">
+                    <label for="orders-date-preset" class="text-[11px] font-semibold text-gray-600 block" data-en="Period" data-ar="الفترة">الفترة</label>
+                    <select id="orders-date-preset" class="mt-0.5 w-full p-2 rounded-xl border border-gray-200 bg-white text-sm">
+                      <option value="all" data-en="No date filter" data-ar="بدون فلتر تاريخ">بدون فلتر تاريخ</option>
+                      <option value="today" data-en="Today" data-ar="اليوم">اليوم</option>
+                      <option value="week" data-en="This week (Mon–today)" data-ar="الأسبوع (من الاثنين)">الأسبوع (من الاثنين)</option>
+                      <option value="month" data-en="This month" data-ar="الشهر الحالي">الشهر الحالي</option>
+                      <option value="year" data-en="This year" data-ar="السنة الحالية">السنة الحالية</option>
+                      <option value="custom" data-en="Custom range" data-ar="تاريخ مخصص">تاريخ مخصص</option>
+                    </select>
+                  </div>
+                  <div id="orders-custom-dates" class="hidden flex flex-wrap gap-2 items-end flex-1 min-w-[200px]">
+                    <div>
+                      <label for="orders-date-from" class="text-[11px] font-semibold text-gray-600 block" data-en="From date" data-ar="من تاريخ">من تاريخ</label>
+                      <input type="date" id="orders-date-from" class="mt-0.5 p-2 rounded-xl border border-gray-200 bg-white text-sm" />
+                    </div>
+                    <div>
+                      <label for="orders-time-from" class="text-[11px] font-semibold text-gray-600 block" data-en="From time (opt.)" data-ar="من ساعة (اختياري)">من ساعة (اختياري)</label>
+                      <input type="time" id="orders-time-from" class="mt-0.5 p-2 rounded-xl border border-gray-200 bg-white text-sm" />
+                    </div>
+                    <div>
+                      <label for="orders-date-to" class="text-[11px] font-semibold text-gray-600 block" data-en="To date" data-ar="إلى تاريخ">إلى تاريخ</label>
+                      <input type="date" id="orders-date-to" class="mt-0.5 p-2 rounded-xl border border-gray-200 bg-white text-sm" />
+                    </div>
+                    <div>
+                      <label for="orders-time-to" class="text-[11px] font-semibold text-gray-600 block" data-en="To time (opt.)" data-ar="إلى ساعة (اختياري)">إلى ساعة (اختياري)</label>
+                      <input type="time" id="orders-time-to" class="mt-0.5 p-2 rounded-xl border border-gray-200 bg-white text-sm" />
+                    </div>
+                  </div>
+                  <button type="button" id="orders-apply-filters" class="px-3 py-2 rounded-xl bg-gray-900 text-white text-sm font-bold shrink-0" data-en="Apply" data-ar="تطبيق">تطبيق</button>
+                </div>
+              </div>
+
               <div class="overflow-auto">
                 <table class="w-full text-sm">
                   <thead class="text-left text-gray-500">
@@ -660,7 +707,7 @@
                       <th class="py-2" data-en="Status" data-ar="الحالة">الحالة</th>
                       <th class="py-2" data-en="Source" data-ar="المصدر">المصدر</th>
                       <th class="py-2" data-en="Details" data-ar="تفاصيل">تفاصيل</th>
-                      <th class="py-2" data-en="Update" data-ar="تحديث">تحديث</th>
+                      <th class="py-2" data-en="Change status" data-ar="تغيير الحالة">تغيير الحالة</th>
                     </tr>
                   </thead>
                   <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>

@@ -111,6 +111,11 @@ function applyAdminLang() {
   if (titleEl && titleEl.hasAttribute("data-en")) {
     document.title = ar ? titleEl.getAttribute("data-ar") : titleEl.getAttribute("data-en");
   }
+  syncOrdersAdminI18n();
+  const ordPanel = document.getElementById("tab-orders");
+  if (ordPanel && !ordPanel.classList.contains("hidden")) {
+    renderOrdersTable();
+  }
 }
 
 function getToken() {
@@ -195,6 +200,9 @@ let adminBrandsCache = [];
 let adminCategoriesListCache = [];
 let adminOffersCache = [];
 let adminOrdersCache = [];
+/** تبويب حالة الطلبات في لوحة الطلبات: all | pending_receipt | … */
+let adminOrdersStatusTab = "all";
+let ordersAdminUiBound = false;
 let adminUsersCache = [];
 let adminSiteRatingsCache = [];
 let adminProductReviewsCache = [];
@@ -207,11 +215,11 @@ let brandProductsSelection = { mainCat: "Men" };
 /** مفاتيح الحالة بالتسلسل (نفس السيرفر) — التعديل للمشرف فقط */
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 const ORDER_STATUS_LABELS = {
-  pending_receipt: { en: "Pending receipt", ar: "قيد الاستلام" },
-  in_progress: { en: "In progress", ar: "قيد التنفيذ" },
-  fulfilled: { en: "Fulfilled", ar: "تم التنفيذ" },
-  shipping: { en: "Out for delivery", ar: "جاري الشحن" },
-  delivered: { en: "Received", ar: "تم استلام طلبك" },
+  pending_receipt: { en: "Receiving your order", ar: "جاري استلام طلبك" },
+  in_progress: { en: "Picking your order", ar: "جاري تجميع طلبك" },
+  fulfilled: { en: "Order assembled", ar: "تم تجميع طلبك" },
+  shipping: { en: "Shipping", ar: "جاري الشحن" },
+  delivered: { en: "Delivered to customer", ar: "تم تسليم الطلب للعميل" },
 };
 
 function formatOrderStatusLabel(status) {
@@ -219,6 +227,129 @@ function formatOrderStatusLabel(status) {
   const o = ORDER_STATUS_LABELS[s];
   if (o) return getAdminLang() === "ar" ? o.ar : o.en;
   return s;
+}
+
+function startOfAdminDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfAdminDay(d) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+/** بداية الأسبوع الحالي: الاثنين (وفقاً للتقويم المحلي للمشرف) */
+function startOfWeekMondayAdmin(d) {
+  const x = startOfAdminDay(d);
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  x.setDate(x.getDate() + diff);
+  return x;
+}
+
+function getAdminOrdersDateRange() {
+  const preset = document.getElementById("orders-date-preset")?.value || "all";
+  const now = new Date();
+  if (preset === "all") return { start: null, end: null };
+  if (preset === "today") return { start: startOfAdminDay(now), end: endOfAdminDay(now) };
+  if (preset === "week") return { start: startOfWeekMondayAdmin(now), end: endOfAdminDay(now) };
+  if (preset === "month") {
+    const start = startOfAdminDay(new Date(now.getFullYear(), now.getMonth(), 1));
+    return { start, end: endOfAdminDay(now) };
+  }
+  if (preset === "year") {
+    const start = startOfAdminDay(new Date(now.getFullYear(), 0, 1));
+    return { start, end: endOfAdminDay(now) };
+  }
+  if (preset === "custom") {
+    const df = document.getElementById("orders-date-from")?.value;
+    const dt = document.getElementById("orders-date-to")?.value;
+    if (!df || !dt) return { start: null, end: null };
+    const hf = document.getElementById("orders-time-from")?.value;
+    const ht = document.getElementById("orders-time-to")?.value;
+    let start = startOfAdminDay(new Date(df));
+    let end = endOfAdminDay(new Date(dt));
+    if (hf && String(hf).trim()) {
+      const p = hf.split(":");
+      start = new Date(df);
+      start.setHours(Number(p[0]) || 0, Number(p[1]) || 0, 0, 0);
+    }
+    if (ht && String(ht).trim()) {
+      const p = ht.split(":");
+      end = new Date(dt);
+      end.setHours(Number(p[0]) || 23, Number(p[1]) || 59, 59, 999);
+    }
+    if (start.getTime() > end.getTime()) {
+      const t = start;
+      start = end;
+      end = t;
+    }
+    return { start, end };
+  }
+  return { start: null, end: null };
+}
+
+function orderMatchesAdminDateFilter(o, range) {
+  if (range.start == null && range.end == null) return true;
+  const t = o.created_at ? new Date(o.created_at).getTime() : NaN;
+  if (Number.isNaN(t)) return false;
+  if (range.start != null && t < range.start.getTime()) return false;
+  if (range.end != null && t > range.end.getTime()) return false;
+  return true;
+}
+
+function syncOrdersAdminI18n() {
+  const ar = getAdminLang() === "ar";
+  document.querySelectorAll("#orders-date-preset option").forEach((opt) => {
+    const t = ar ? opt.getAttribute("data-ar") : opt.getAttribute("data-en");
+    if (t) opt.textContent = t;
+  });
+  document.querySelectorAll(".orders-status-tab").forEach((btn) => {
+    const t = ar ? btn.getAttribute("data-ar") : btn.getAttribute("data-en");
+    if (t) btn.textContent = t;
+  });
+  const applyBtn = document.getElementById("orders-apply-filters");
+  if (applyBtn) {
+    const t = ar ? applyBtn.getAttribute("data-ar") : applyBtn.getAttribute("data-en");
+    if (t) applyBtn.textContent = t;
+  }
+}
+
+function highlightOrdersStatusTabs() {
+  document.querySelectorAll(".orders-status-tab").forEach((btn) => {
+    const st = btn.getAttribute("data-orders-status");
+    const on = st === adminOrdersStatusTab;
+    btn.classList.toggle("bg-purple-50", on);
+    btn.classList.toggle("text-purple-700", on);
+    btn.classList.toggle("border-purple-200", on);
+    btn.classList.toggle("bg-white", !on);
+    btn.classList.toggle("text-gray-700", !on);
+    btn.classList.toggle("border-gray-200", !on);
+  });
+}
+
+function bindOrdersAdminUi() {
+  if (ordersAdminUiBound) return;
+  ordersAdminUiBound = true;
+  const tabs = document.getElementById("orders-status-tabs");
+  tabs?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-orders-status]");
+    if (!btn || !tabs.contains(btn)) return;
+    adminOrdersStatusTab = btn.getAttribute("data-orders-status") || "all";
+    highlightOrdersStatusTabs();
+    renderOrdersTable();
+  });
+  const preset = document.getElementById("orders-date-preset");
+  preset?.addEventListener("change", () => {
+    const custom = document.getElementById("orders-custom-dates");
+    const v = preset.value;
+    if (custom) custom.classList.toggle("hidden", v !== "custom");
+    renderOrdersTable();
+  });
+  document.getElementById("orders-apply-filters")?.addEventListener("click", () => renderOrdersTable());
 }
 
 function setActiveTab(tabId) {
@@ -237,7 +368,11 @@ function setActiveTab(tabId) {
     loadUsers().catch(() => {});
     loadBroadcasts().catch(() => {});
   }
-  if (tabId === "tab-orders") loadOrders().catch(() => {});
+  if (tabId === "tab-orders") {
+    bindOrdersAdminUi();
+    syncOrdersAdminI18n();
+    loadOrders().catch(() => {});
+  }
   if (tabId === "tab-flash") loadFlashSales().catch(() => {});
   if (tabId === "tab-categories") loadCategories().catch(() => {});
   if (tabId === "tab-offers") {
@@ -2070,13 +2205,26 @@ function renderOrdersTable() {
   const token = getToken();
   const tbody = document.getElementById("orders-tbody");
   if (!tbody) return;
+  highlightOrdersStatusTabs();
+
+  const range = getAdminOrdersDateRange();
+  let list = adminOrdersCache.filter((o) => orderMatchesAdminDateFilter(o, range));
+  if (adminOrdersStatusTab !== "all") {
+    list = list.filter((o) => o.status === adminOrdersStatusTab);
+  }
   const f = getAdminFilter();
-  const list = f
-    ? adminOrdersCache.filter((o) => {
-        const hay = `${o.order_no} ${o.customer_name || ""} ${o.customer_phone || ""} ${o.user_id} ${o.status}`.toLowerCase();
-        return hay.includes(f);
-      })
-    : adminOrdersCache;
+  if (f) {
+    list = list.filter((o) => {
+      const hay = `${o.order_no} ${o.customer_name || ""} ${o.customer_phone || ""} ${o.user_id} ${o.status}`.toLowerCase();
+      return hay.includes(f);
+    });
+  }
+  list.sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
+
   const ar = getAdminLang() === "ar";
   if (!adminOrdersCache.length) {
     tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${
@@ -2085,7 +2233,14 @@ function renderOrdersTable() {
     return;
   }
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${ar ? "لا نتائج للبحث." : "No search matches."}</td></tr>`;
+    const msg = f
+      ? ar
+        ? "لا نتائج للبحث أو الفلاتر الحالية."
+        : "No matches for search or current filters."
+      : ar
+        ? "لا طلبات في هذا القسم ضمن الفترة المحددة."
+        : "No orders in this section for the selected period.";
+    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${msg}</td></tr>`;
     return;
   }
   tbody.innerHTML = list
@@ -2308,12 +2463,26 @@ async function openOrderDetailModal(orderId) {
           `<div class="text-xs text-gray-600 py-0.5">${escapeHtml(formatOrderStatusLabel(h.status))} — ${escapeHtml(h.created_at || "")}</div>`
       )
       .join("");
+    const statusOpts = ORDER_STATUS_KEYS.map(
+      (k) =>
+        `<option value="${k}" ${o.status === k ? "selected" : ""}>${escapeHtml(
+          ar ? ORDER_STATUS_LABELS[k].ar : ORDER_STATUS_LABELS[k].en
+        )}</option>`
+    ).join("");
     body.innerHTML = `
+      <div class="mb-4 p-3 rounded-xl bg-purple-50 border border-purple-100 space-y-2">
+        <div class="text-sm font-bold text-purple-900">${ar ? "تغيير حالة الطلب" : "Change order status"}</div>
+        <p class="text-xs text-purple-800/90 leading-relaxed">${ar ? "عند الحفظ ينتقل الطلب تلقائياً للقسم المناسب في القائمة." : "Saving moves the order to the matching section in the list."}</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <select id="order-detail-status-sel" class="flex-1 min-w-[10rem] p-2 rounded-lg border border-gray-200 bg-white text-sm">${statusOpts}</select>
+          <button type="button" id="order-detail-status-save" class="px-4 py-2 rounded-lg bg-purple-600 text-white font-bold text-sm shrink-0">${escapeHtml(adminT("save"))}</button>
+        </div>
+      </div>
       <div class="space-y-2 mb-4">
         <div><strong>${ar ? "رقم الطلب" : "Order"}:</strong> ${escapeHtml(o.order_no)}</div>
         <div><strong>${ar ? "المستخدم" : "User"}:</strong> ${escapeHtml(o.customer_name || "—")} <span class="font-mono text-xs">${escapeHtml(o.customer_phone || "")}</span></div>
         <div><strong>${ar ? "الإجمالي" : "Total"}:</strong> ${Number(o.total_price).toLocaleString()} ل.س</div>
-        <div><strong>${ar ? "الحالة" : "Status"}:</strong> ${escapeHtml(formatOrderStatusLabel(o.status))}</div>
+        <div><strong>${ar ? "الحالة الحالية" : "Current status"}:</strong> ${escapeHtml(formatOrderStatusLabel(o.status))}</div>
         <div><strong>${ar ? "الدفع" : "Payment"}:</strong> ${escapeHtml(o.payment_method)}</div>
       </div>
       <div class="font-bold mb-1">${ar ? "المنتجات" : "Items"}</div>
@@ -2321,6 +2490,20 @@ async function openOrderDetailModal(orderId) {
       <div class="font-bold mb-1">${ar ? "سجل الحالة" : "Status history"}</div>
       <div>${hist || "—"}</div>
     `;
+    document.getElementById("order-detail-status-save")?.addEventListener("click", async () => {
+      const sel = document.getElementById("order-detail-status-sel");
+      const status = sel?.value;
+      if (!status) return;
+      try {
+        await api(`/api/orders/${orderId}/status`, { method: "PUT", token, body: { status } });
+        await loadOrders();
+        renderOrdersTable();
+        closeOrderDetailModal();
+        alert(ar ? "تم تحديث حالة الطلب." : "Order status updated.");
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
   } catch (err) {
     body.innerHTML = `<p class="text-red-600">${escapeHtml(err.message || String(err))}</p>`;
   }

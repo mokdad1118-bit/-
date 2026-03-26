@@ -1294,11 +1294,11 @@ const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipp
 
 function orderStatusNotifyMessageAr(status) {
   const m = {
-    pending_receipt: "تم تحديث حالة طلبك إلى: قيد الاستلام",
-    in_progress: "تم تحديث حالة طلبك إلى: قيد التنفيذ",
-    fulfilled: "تم تحديث حالة طلبك إلى: تم التنفيذ",
+    pending_receipt: "تم تحديث حالة طلبك إلى: جاري استلام طلبك",
+    in_progress: "تم تحديث حالة طلبك إلى: جاري تجميع طلبك",
+    fulfilled: "تم تحديث حالة طلبك إلى: تم تجميع طلبك",
     shipping: "تم تحديث حالة طلبك إلى: جاري الشحن",
-    delivered: "تم تحديث حالة طلبك إلى: تم استلام طلبك",
+    delivered: "تم تحديث حالة طلبك إلى: تم تسليم الطلب للعميل",
   };
   return m[status] || `تم تحديث حالة طلبك (${status})`;
 }

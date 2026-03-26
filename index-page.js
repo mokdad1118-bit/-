@@ -960,11 +960,11 @@
         }
         /** تسلسل حالات الطلب من المتجر */
         const orderStatusFlow = [
-            { key: 'pending_receipt', en: 'Pending receipt', ar: 'قيد الاستلام' },
-            { key: 'in_progress', en: 'In progress', ar: 'قيد التنفيذ' },
-            { key: 'fulfilled', en: 'Fulfilled', ar: 'تم التنفيذ' },
+            { key: 'pending_receipt', en: 'Receiving your order', ar: 'جاري استلام طلبك' },
+            { key: 'in_progress', en: 'Picking your order', ar: 'جاري تجميع طلبك' },
+            { key: 'fulfilled', en: 'Order assembled', ar: 'تم تجميع طلبك' },
             { key: 'shipping', en: 'Shipping', ar: 'جاري الشحن' },
-            { key: 'delivered', en: 'Delivered', ar: 'تم استلام طلبك' }
+            { key: 'delivered', en: 'Delivered to you', ar: 'تم تسليم الطلب للعميل' }
         ];
         const LEGACY_ORDER_STATUS = { pending: 'pending_receipt', processing: 'in_progress', shipped: 'shipping' };
         function normalizeOrderStatus(s) {
