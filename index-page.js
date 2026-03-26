@@ -2677,17 +2677,22 @@
             try {
                 partnerCtaConfig = await apiFetch('/api/public/vendor-platform/home', { requireAuth: false });
                 if (!partnerCtaConfig || typeof partnerCtaConfig !== 'object') {
-                    partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [] };
+                    partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [], bestsellers_boost_enabled: 1 };
                 }
                 if (!Array.isArray(partnerCtaConfig.partner_cta_placements)) {
                     partnerCtaConfig.partner_cta_placements = ['home_under_search'];
                 }
+                if (partnerCtaConfig.bestsellers_boost_enabled == null) {
+                    partnerCtaConfig.bestsellers_boost_enabled = 1;
+                }
             } catch (_e) {
-                partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [] };
+                partnerCtaConfig = { partner_banner_enabled: 0, partner_cta_placements: [], bestsellers_boost_enabled: 1 };
             }
             syncPartnerCtaDom();
             syncVendorJoinHeroFromConfig();
             syncVendorJoinTermsFromConfig();
+            refreshBestsellersSectionCombinedVisibility();
+            loadHomeBestsellers().catch(() => {});
         }
 
         function syncVendorJoinTermsFromConfig() {
@@ -3803,6 +3808,8 @@
             return out;
         }
 
+        let cachedHomeSectionsVisibility = null;
+
         function applyHomeSectionsVisibility(raw) {
             const v = mergeHomeSectionsVisibility(raw);
             Object.keys(DEFAULT_HOME_SECTIONS_VISIBILITY).forEach((key) => {
@@ -3810,6 +3817,16 @@
                 document.querySelectorAll(`[data-adora-section="${key}"]`).forEach((el) => {
                     el.classList.toggle('hidden', !on);
                 });
+            });
+        }
+
+        /** قسم «الأكثر مبيعاً» بالرئيسية: يحترم إظهار الصفحة الرئيسية + خيار منصة البائعين */
+        function refreshBestsellersSectionCombinedVisibility() {
+            const v = mergeHomeSectionsVisibility(cachedHomeSectionsVisibility);
+            const boostOff = partnerCtaConfig && Number(partnerCtaConfig.bestsellers_boost_enabled) === 0;
+            const show = v.bestsellers !== false && !boostOff;
+            document.querySelectorAll('[data-adora-section="bestsellers"]').forEach((el) => {
+                el.classList.toggle('hidden', !show);
             });
         }
 
@@ -4035,9 +4052,13 @@
                 }
                 homeSubcatSlidesMerged = mergeHomeSubcategorySlides(data.home_subcategory_slides);
                 initHomeSubcategorySliderHosts();
+                cachedHomeSectionsVisibility = data.home_sections_visibility;
                 applyHomeSectionsVisibility(data.home_sections_visibility);
+                refreshBestsellersSectionCombinedVisibility();
             } catch (_e) {
+                cachedHomeSectionsVisibility = null;
                 applyHomeSectionsVisibility(null);
+                refreshBestsellersSectionCombinedVisibility();
             }
         }
 
@@ -5653,6 +5674,10 @@
         async function loadHomeBestsellers() {
             const el = document.getElementById('home-bestsellers-scroll');
             if (!el) return;
+            if (partnerCtaConfig && Number(partnerCtaConfig.bestsellers_boost_enabled) === 0) {
+                el.innerHTML = '';
+                return;
+            }
             try {
                 const rows = await apiFetch('/api/bestsellers?limit=14', { requireAuth: false });
                 const list = Array.isArray(rows) ? rows : [];
@@ -6622,7 +6647,6 @@
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeNewCollectionGrid().catch(() => {});
-            loadHomeBestsellers().catch(() => {});
             loadMarketplaceHomeStrip().catch(() => {});
             loadPartnerCtaConfig().catch(() => {});
             loadMarketplaceHomeHighlights().catch(() => {});

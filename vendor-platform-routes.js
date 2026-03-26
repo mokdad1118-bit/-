@@ -125,6 +125,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_placements: ["home_under_search"],
           vendor_join_terms_ar: "",
           vendor_join_terms_en: "",
+          bestsellers_boost_enabled: 1,
         });
       }
       const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
@@ -137,6 +138,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         partner_cta_placements: placements,
         vendor_join_terms_ar: s.vendor_join_terms_ar || "",
         vendor_join_terms_en: s.vendor_join_terms_en || "",
+        bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load public settings" });
