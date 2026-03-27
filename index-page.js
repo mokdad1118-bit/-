@@ -6054,37 +6054,182 @@
         }
 
         let adoraSearchSuggestTimer = null;
-        function hideAdoraSearchSuggestions() {
-            document.querySelectorAll('.adora-search-suggestions').forEach((n) => n.remove());
+        let adoraSearchSuggestOutsideBound = false;
+
+        function bindAdoraSearchSuggestOutsideClose() {
+            if (adoraSearchSuggestOutsideBound) return;
+            adoraSearchSuggestOutsideBound = true;
+            document.addEventListener(
+                'pointerdown',
+                (ev) => {
+                    const t = ev.target;
+                    if (t && t.closest && t.closest('.adora-search-suggest-anchor')) return;
+                    hideAdoraSearchSuggestions();
+                },
+                true
+            );
         }
+
+        function getAdoraSearchSuggestScope(inputId) {
+            if (inputId === 'marketplace-search-input') return 'marketplace';
+            if (inputId === 'listing-search-input') return 'products';
+            return 'all';
+        }
+
+        function normalizeAdoraSearchSuggestionRows(rows) {
+            if (!Array.isArray(rows)) return [];
+            const out = [];
+            for (const row of rows) {
+                if (typeof row === 'string') {
+                    const q = row.trim();
+                    if (q) out.push({ kind: 'query', q });
+                    continue;
+                }
+                if (!row || typeof row !== 'object') continue;
+                if (row.kind === 'query' && row.q) {
+                    out.push({ kind: 'query', q: String(row.q).trim() });
+                    continue;
+                }
+                if (row.kind === 'adora' && row.id != null && Number.isFinite(Number(row.id))) {
+                    out.push({
+                        kind: 'adora',
+                        id: Number(row.id),
+                        title_ar: row.title_ar,
+                        title_en: row.title_en,
+                        subtitle_ar: row.subtitle_ar,
+                        subtitle_en: row.subtitle_en,
+                        image_url: row.image_url,
+                    });
+                    continue;
+                }
+                if (row.kind === 'marketplace' && row.id != null && Number.isFinite(Number(row.id))) {
+                    out.push({
+                        kind: 'marketplace',
+                        id: Number(row.id),
+                        title_ar: row.title_ar,
+                        title_en: row.title_en,
+                        subtitle_ar: row.subtitle_ar,
+                        subtitle_en: row.subtitle_en,
+                        image_url: row.image_url,
+                    });
+                }
+            }
+            return out;
+        }
+
+        function hideAdoraSearchSuggestions() {
+            document.querySelectorAll('.adora-search-suggest-panel, .adora-search-suggestions').forEach((n) => n.remove());
+        }
+
+        function handleAdoraSearchSuggestPick(input, item) {
+            if (!input || !item) return;
+            hideAdoraSearchSuggestions();
+            if (item.kind === 'adora' && item.id != null) {
+                openProductDetail(Number(item.id)).catch(() => {});
+                try {
+                    input.blur();
+                } catch (_e) {}
+                return;
+            }
+            if (item.kind === 'marketplace' && item.id != null) {
+                openMarketplaceProductDetail(Number(item.id)).catch(() => {});
+                try {
+                    input.blur();
+                } catch (_e2) {}
+                return;
+            }
+            if (item.kind === 'query' && item.q) {
+                const q = String(item.q).trim();
+                if (!q) return;
+                if (input.id === 'search-input') {
+                    listingSearchQuery = q;
+                    input.value = '';
+                    resetAdoraSearchTypingForInput(input);
+                    syncAdoraAnimatedSearchVisibility();
+                    navigateTo('screen-listing');
+                    loadListingPageProducts().catch(() => {});
+                } else if (input.id === 'listing-search-input') {
+                    listingSearchQuery = q;
+                    input.value = q;
+                    loadListingPageProducts().catch(() => {});
+                } else if (input.id === 'marketplace-search-input') {
+                    input.value = q;
+                    refreshMarketplaceProductList().catch(() => {});
+                }
+                try {
+                    input.blur();
+                } catch (_e3) {}
+            }
+        }
+
         function showAdoraSearchSuggestionsUnder(input, items) {
             hideAdoraSearchSuggestions();
             if (!input || !Array.isArray(items) || !items.length) return;
-            const wrap = input.closest('.adora-search-typography') || input.parentElement;
-            if (!wrap) return;
-            if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+            const anchor = input.closest('.adora-search-suggest-anchor');
+            const host = anchor || input.closest('.adora-search-typography') || input.parentElement;
+            if (!host) return;
+            if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+
+            const loc = isRTL ? 'ar' : 'en';
+            const rowHtml = (it, i) => {
+                let title = '';
+                let sub = '';
+                if (it.kind === 'query') {
+                    title = String(it.q || '').trim();
+                } else {
+                    title =
+                        loc === 'ar'
+                            ? String(it.title_ar || it.title_en || '').trim()
+                            : String(it.title_en || it.title_ar || '').trim();
+                    const subRaw =
+                        loc === 'ar'
+                            ? it.subtitle_ar != null
+                                ? String(it.subtitle_ar)
+                                : it.subtitle_en != null
+                                  ? String(it.subtitle_en)
+                                  : ''
+                            : it.subtitle_en != null
+                              ? String(it.subtitle_en)
+                              : it.subtitle_ar != null
+                                ? String(it.subtitle_ar)
+                                : '';
+                    sub = subRaw.trim();
+                }
+                if (!title) title = isRTL ? 'اقتراح' : 'Suggestion';
+                const imgRaw = it.image_url ? String(it.image_url).trim() : '';
+                const imgAbs = imgRaw ? absoluteMediaUrl(imgRaw) : '';
+                const thumb = imgAbs
+                    ? `<span class="adora-search-suggest-thumb"><img src="${escapeHtml(imgAbs)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="adora-search-suggest-thumb" aria-hidden="true"><i class="fas fa-search"></i></span>`;
+                const subBlock = sub ? `<div class="adora-search-suggest-sub">${escapeHtml(sub)}</div>` : '';
+                const chev = isRTL ? 'left' : 'right';
+                return `<button type="button" class="adora-search-suggest-row" data-suggest-i="${i}" role="option">
+                    ${thumb}
+                    <span class="adora-search-suggest-text">
+                        <span class="adora-search-suggest-title">${escapeHtml(title)}</span>
+                        ${subBlock}
+                    </span>
+                    <span class="adora-search-suggest-chevron" aria-hidden="true"><i class="fas fa-chevron-${chev}"></i></span>
+                </button>`;
+            };
+
             const el = document.createElement('div');
-            el.className =
-                'adora-search-suggestions absolute left-0 right-0 top-full mt-1 z-[80] bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto text-start';
-            el.innerHTML = items
-                .map(
-                    (t) =>
-                        `<button type="button" class="adora-suggest-item w-full text-start px-3 py-2.5 text-sm font-medium text-gray-800 hover:bg-violet-50 border-b border-gray-100 last:border-0">${escapeHtml(t)}</button>`
-                )
-                .join('');
-            el.querySelectorAll('.adora-suggest-item').forEach((btn, i) => {
+            el.className = 'adora-search-suggest-panel';
+            el.setAttribute('role', 'listbox');
+            el.innerHTML = items.map((it, i) => rowHtml(it, i)).join('');
+
+            el.querySelectorAll('.adora-search-suggest-row').forEach((btn, i) => {
+                btn.addEventListener('mousedown', (ev) => {
+                    ev.preventDefault();
+                });
                 btn.addEventListener('click', (ev) => {
                     ev.preventDefault();
-                    input.value = items[i];
-                    hideAdoraSearchSuggestions();
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    try {
-                        input.focus();
-                    } catch (_e) {}
+                    handleAdoraSearchSuggestPick(input, items[i]);
                 });
             });
-            wrap.appendChild(el);
+            host.appendChild(el);
         }
+
         function scheduleAdoraSearchSuggestions(input, scope) {
             clearTimeout(adoraSearchSuggestTimer);
             adoraSearchSuggestTimer = setTimeout(async () => {
@@ -6098,7 +6243,7 @@
                         `/api/search/suggestions?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope || 'all')}`,
                         { requireAuth: false }
                     );
-                    const list = Array.isArray(rows) ? rows : [];
+                    const list = normalizeAdoraSearchSuggestionRows(rows);
                     showAdoraSearchSuggestionsUnder(input, list);
                 } catch (_e) {
                     hideAdoraSearchSuggestions();
@@ -6186,10 +6331,17 @@
             });
             if (!adoraAnimatedSearchListenersBound) {
                 adoraAnimatedSearchListenersBound = true;
+                bindAdoraSearchSuggestOutsideClose();
                 const bind = (id) => {
                     const el = document.getElementById(id);
                     if (!el) return;
-                    el.addEventListener('focus', () => syncAdoraAnimatedSearchVisibility());
+                    el.addEventListener('focus', () => {
+                        syncAdoraAnimatedSearchVisibility();
+                        const q = String(el.value || '').trim();
+                        if (q.length >= 1) {
+                            scheduleAdoraSearchSuggestions(el, getAdoraSearchSuggestScope(el.id));
+                        }
+                    });
                     el.addEventListener('blur', () => {
                         setTimeout(() => hideAdoraSearchSuggestions(), 220);
                         clearAdoraSearchTypingIdleTimer(el);
@@ -6206,8 +6358,7 @@
                             return;
                         }
                         syncAdoraAnimatedSearchVisibility();
-                        const scope = el.id === 'marketplace-search-input' ? 'marketplace' : 'all';
-                        scheduleAdoraSearchSuggestions(el, scope);
+                        scheduleAdoraSearchSuggestions(el, getAdoraSearchSuggestScope(el.id));
                     });
                 };
                 bind('search-input');

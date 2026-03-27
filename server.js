@@ -279,6 +279,14 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
+function firstMarketplaceImageFromImagesJson(raw) {
+  const arr = safeJsonParse(raw, []);
+  if (!Array.isArray(arr) || !arr.length) return null;
+  const u = arr[0];
+  const s = u != null ? String(u).trim() : "";
+  return s || null;
+}
+
 /** يطابق placement مع عناصر banner-slot-* في الواجهة */
 function normalizeBannerPlacementValue(pl) {
   let s = String(pl ?? "")
@@ -1303,7 +1311,7 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-/** اقتراحات بحث بالبادئة (منتجات كتالوج أدورا + سوق شامل) */
+/** اقتراحات بحث بالبادئة — صفوف غنية (منتج + شركة + صورة) لقائمة تحت مربع البحث */
 app.get("/api/search/suggestions", async (req, res) => {
   try {
     const qtrim = String(req.query.q || "").trim();
@@ -1311,37 +1319,20 @@ app.get("/api/search/suggestions", async (req, res) => {
     if (qtrim.length < 1) return res.json([]);
     const variants = arabicSearchQueryVariants(qtrim);
     if (!variants.length) return res.json([]);
-    const out = [];
-    const seen = new Set();
-    const pushLabel = (s) => {
-      const t = String(s || "").trim();
-      if (!t || t.length > 120) return;
-      const k = t.toLowerCase();
-      if (seen.has(k)) return;
-      seen.add(k);
-      out.push(t);
-    };
-    const maxTotal = Math.min(20, Math.max(4, Number(req.query.limit) || 12));
+    const maxTotal = Math.min(20, Math.max(4, Number(req.query.limit) || 10));
 
-    if (scope === "products" || scope === "all") {
+    const buildProductClauses = () => {
       const clauses = [];
       const params = [];
       for (const v of variants) {
         const pfx = sqlLikePrefixParam(v);
-        clauses.push("(name_ar LIKE ? OR name_en LIKE ? OR COALESCE(brand,'') LIKE ?)");
+        clauses.push("(p.name_ar LIKE ? OR p.name_en LIKE ? OR COALESCE(p.brand,'') LIKE ?)");
         params.push(pfx, pfx, pfx);
       }
-      const sql = `SELECT name_ar, name_en, brand FROM products WHERE ${clauses.join(" OR ")} ORDER BY id DESC LIMIT 40`;
-      const rows = await all(sql, params);
-      for (const r of rows) {
-        pushLabel(r.name_ar);
-        pushLabel(r.name_en);
-        if (r.brand) pushLabel(r.brand);
-        if (out.length >= maxTotal) break;
-      }
-    }
+      return { where: clauses.join(" OR "), params };
+    };
 
-    if ((scope === "marketplace" || scope === "all") && out.length < maxTotal) {
+    const buildMpClauses = () => {
       const clauses = [];
       const params = [];
       for (const v of variants) {
@@ -1349,23 +1340,87 @@ app.get("/api/search/suggestions", async (req, res) => {
         clauses.push("(mp.name_ar LIKE ? OR mp.name_en LIKE ? OR mv.name_ar LIKE ? OR mv.name_en LIKE ?)");
         params.push(pfx, pfx, pfx, pfx);
       }
-      const sql = `SELECT mp.name_ar, mp.name_en, mv.name_ar AS vn_ar, mv.name_en AS vn_en
-        FROM marketplace_products mp
-        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
-        INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
-        WHERE mp.is_active = 1 AND (${clauses.join(" OR ")})
-        ORDER BY mp.id DESC LIMIT 40`;
-      const rows = await all(sql, params);
+      return { where: clauses.join(" OR "), params };
+    };
+
+    const mapAdoraRow = (r) => {
+      const id = Number(r.id);
+      if (!Number.isFinite(id)) return null;
+      const titleAr = String(r.name_ar || "").trim();
+      const titleEn = String(r.name_en || "").trim();
+      const brand = r.brand != null ? String(r.brand).trim() : "";
+      if (!titleAr && !titleEn) return null;
+      const thumb = r.thumb != null ? String(r.thumb).trim() : "";
+      return {
+        kind: "adora",
+        id,
+        title_ar: titleAr || null,
+        title_en: titleEn || null,
+        subtitle_ar: brand || null,
+        subtitle_en: brand || null,
+        image_url: thumb || null,
+      };
+    };
+
+    const mapMpRow = (r) => {
+      const id = Number(r.id);
+      if (!Number.isFinite(id)) return null;
+      const titleAr = String(r.name_ar || "").trim();
+      const titleEn = String(r.name_en || "").trim();
+      if (!titleAr && !titleEn) return null;
+      const img = firstMarketplaceImageFromImagesJson(r.images_json);
+      const vnAr = r.vn_ar != null ? String(r.vn_ar).trim() : "";
+      const vnEn = r.vn_en != null ? String(r.vn_en).trim() : "";
+      return {
+        kind: "marketplace",
+        id,
+        title_ar: titleAr || null,
+        title_en: titleEn || null,
+        subtitle_ar: vnAr || null,
+        subtitle_en: vnEn || null,
+        image_url: img || null,
+      };
+    };
+
+    const items = [];
+
+    if (scope === "products" || scope === "all") {
+      const { where, params } = buildProductClauses();
+      const lim = scope === "all" ? Math.min(maxTotal, Math.max(4, Math.ceil(maxTotal * 0.55))) : maxTotal;
+      const sql = `SELECT p.id, p.name_ar, p.name_en, p.brand,
+        (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.id ASC LIMIT 1) AS thumb
+        FROM products p
+        WHERE ${where}
+        ORDER BY p.id DESC
+        LIMIT ?`;
+      const rows = await all(sql, [...params, lim]);
       for (const r of rows) {
-        pushLabel(r.name_ar);
-        pushLabel(r.name_en);
-        pushLabel(r.vn_ar);
-        pushLabel(r.vn_en);
-        if (out.length >= maxTotal) break;
+        const o = mapAdoraRow(r);
+        if (o) items.push(o);
       }
     }
 
-    return res.json(out.slice(0, maxTotal));
+    if (scope === "marketplace" || scope === "all") {
+      const { where, params } = buildMpClauses();
+      let lim = maxTotal;
+      if (scope === "all") {
+        lim = Math.max(1, maxTotal - items.length);
+      }
+      const sql = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
+        FROM marketplace_products mp
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+        WHERE mp.is_active = 1 AND (${where})
+        ORDER BY mp.id DESC
+        LIMIT ?`;
+      const rows = await all(sql, [...params, lim]);
+      for (const r of rows) {
+        const o = mapMpRow(r);
+        if (o) items.push(o);
+      }
+    }
+
+    return res.json(items.slice(0, maxTotal));
   } catch (_e) {
     return res.json([]);
   }

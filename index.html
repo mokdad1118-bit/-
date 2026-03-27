@@ -2390,6 +2390,97 @@
             box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06), 0 0 0 2px rgba(168, 85, 247, 0.2);
         }
 
+        /* اقتراحات البحث — صندوق تحت الشريط (مثل تطبيقات التسوق) */
+        .adora-search-suggest-anchor {
+            position: relative;
+        }
+        .adora-search-suggest-panel {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            margin-top: 0.35rem;
+            z-index: 90;
+            background: #fff;
+            border: 1px solid rgba(124, 58, 237, 0.12);
+            border-radius: 1rem;
+            box-shadow:
+                0 12px 40px rgba(15, 23, 42, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+            max-height: min(52vh, 20rem);
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            text-align: start;
+        }
+        .adora-search-suggest-row {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            border: 0;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+            background: transparent;
+            cursor: pointer;
+            text-align: start;
+            transition: background 0.15s ease;
+        }
+        .adora-search-suggest-row:last-child {
+            border-bottom: 0;
+        }
+        .adora-search-suggest-row:hover,
+        .adora-search-suggest-row:focus-visible {
+            background: linear-gradient(90deg, rgba(245, 243, 255, 0.95), rgba(250, 245, 255, 0.6));
+            outline: none;
+        }
+        .adora-search-suggest-thumb {
+            flex-shrink: 0;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.65rem;
+            overflow: hidden;
+            background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7c3aed;
+            font-size: 0.95rem;
+        }
+        .adora-search-suggest-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .adora-search-suggest-text {
+            flex: 1;
+            min-width: 0;
+        }
+        .adora-search-suggest-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: rgb(15 23 42);
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .adora-search-suggest-sub {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: rgb(100 116 139);
+            margin-top: 0.1rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .adora-search-suggest-chevron {
+            flex-shrink: 0;
+            color: rgb(167 139 250);
+            font-size: 0.75rem;
+            opacity: 0.85;
+        }
+
         .order-options-content {
             background: white;
             border-radius: 32px;
@@ -3422,6 +3513,7 @@
         <div class="partner-cta-sticky-search-wrap px-4 py-3 bg-white border-b border-gray-100">
             <div class="search-container flex gap-3 items-stretch">
                 <div class="flex-1 min-w-0 flex items-stretch rounded-2xl">
+                    <div class="adora-search-suggest-anchor w-full min-w-0 relative z-[35] adora-search-typography">
                     <div class="adora-search-field adora-search-typography w-full">
                         <button type="button" class="adora-search-field__icon" onclick="runProductSearch()" aria-label="Search">
                             <i class="fas fa-search text-lg"></i>
@@ -3443,6 +3535,7 @@
                         <button type="button" id="search-voice-btn" class="voice-btn flex-shrink-0 w-10 h-10 my-auto rounded-full flex items-center justify-center text-gray-500 transition-colors z-20" onclick="toggleVoiceSearch()" aria-label="Voice search" aria-pressed="false">
                             <i class="fas fa-microphone" aria-hidden="true"></i>
                         </button>
+                    </div>
                     </div>
                 </div>
                 <button onclick="toggleFilterModal()" class="w-11 h-11 bg-gray-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-gray-900/20 active:scale-95 transition-transform">
@@ -3871,7 +3964,7 @@
                 <h1 id="listing-screen-title" class="text-lg font-bold text-gray-900 text-center flex-1 px-1 min-w-0 truncate" data-en="Products" data-ar="المنتجات">Products</h1>
                 <span class="w-8 sm:w-10 shrink-0" aria-hidden="true"></span>
             </div>
-            <div class="relative mb-3 adora-search-typography">
+            <div class="adora-search-suggest-anchor relative mb-3 z-[35] adora-search-typography">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:left-auto rtl:right-3 z-[3]"></i>
                 <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--listing" data-adora-animated-ph aria-hidden="true">
                     <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
@@ -4178,7 +4271,7 @@
             </button>
         </div>
         <div class="px-3 pt-3 pb-2 space-y-2 bg-white border-b border-gray-100">
-            <div class="relative adora-search-typography">
+            <div class="adora-search-suggest-anchor relative z-[35] adora-search-typography">
                 <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3 z-[3]"></i>
                 <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--marketplace" data-adora-animated-ph aria-hidden="true">
                     <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
