@@ -2126,6 +2126,278 @@ async function uploadImageFile(file, token) {
   return data.url;
 }
 
+/** بنّاء مواصفات ديناميكية + صفوف مخزون (خيارات / سعر / مخزون / صورة) */
+function pvGenId(prefix) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function pvLegacyToBuilderState(product) {
+  const inv = Array.isArray(product.inventory) ? product.inventory : [];
+  const sizeSet = new Set();
+  const colorSet = new Set();
+  for (const row of inv) {
+    if (row.size != null && String(row.size).trim()) sizeSet.add(String(row.size).trim());
+    if (row.color != null && String(row.color).trim()) colorSet.add(String(row.color).trim());
+  }
+  const sizes = (Array.isArray(product.sizes) && product.sizes.length ? product.sizes : [...sizeSet])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+  const colors = (Array.isArray(product.colors) && product.colors.length ? product.colors : [...colorSet])
+    .map((c) => String(c).trim())
+    .filter(Boolean);
+  const groups = [];
+  if (sizes.length) {
+    groups.push({
+      id: "size",
+      name_ar: "المقاس",
+      name_en: "Size",
+      values: sizes.map((s, i) => ({ id: `size_v_${i}`, label_ar: s, label_en: s })),
+    });
+  }
+  if (colors.length) {
+    groups.push({
+      id: "color",
+      name_ar: "اللون",
+      name_en: "Color",
+      values: colors.map((c, i) => ({ id: `color_v_${i}`, label_ar: c, label_en: c })),
+    });
+  }
+  const sizeVals = groups.find((g) => g.id === "size")?.values || [];
+  const colorVals = groups.find((g) => g.id === "color")?.values || [];
+  const findV = (vals, label) => {
+    const t = String(label || "").trim();
+    const hit = vals.find((v) => String(v.label_en).trim() === t || String(v.label_ar).trim() === t);
+    return hit ? hit.id : "";
+  };
+  const variants = inv.map((row) => ({
+    options: {
+      ...(sizeVals.length ? { size: findV(sizeVals, row.size) } : {}),
+      ...(colorVals.length ? { color: findV(colorVals, row.color) } : {}),
+    },
+    price: row.price != null && row.price !== "" ? row.price : "",
+    stock: row.stock != null ? row.stock : 0,
+    image: row.image || "",
+  }));
+  return { groups, variants };
+}
+
+function pvDeriveFilterArrays(groups) {
+  const sizes = [];
+  const colors = [];
+  for (const g of groups || []) {
+    const id = String(g.id || "").toLowerCase();
+    const ne = String(g.name_en || "").toLowerCase();
+    const nar = String(g.name_ar || "");
+    const labels = (g.values || []).map((v) => String(v.label_en || v.label_ar || "").trim()).filter(Boolean);
+    if (id === "size" || ne.includes("size") || nar.includes("مقاس")) sizes.push(...labels);
+    else if (id === "color" || ne.includes("color") || nar.includes("لون")) colors.push(...labels);
+  }
+  return { sizes: [...new Set(sizes)], colors: [...new Set(colors)] };
+}
+
+function pvReadBuilderFromDom() {
+  const root = document.getElementById("pv-builder-root");
+  if (!root) return { groups: [], variants: [] };
+  const groups = [];
+  root.querySelectorAll(".pv-group-card").forEach((card) => {
+    const id = card.querySelector(".pv-g-id")?.value?.trim() || pvGenId("opt");
+    const name_en = card.querySelector(".pv-g-ne")?.value?.trim() || "Option";
+    const name_ar = card.querySelector(".pv-g-na")?.value?.trim() || "خيار";
+    const values = [];
+    card.querySelectorAll(".pv-val-row").forEach((vr) => {
+      const vid = vr.getAttribute("data-vid") || pvGenId("v");
+      const label_en = vr.querySelector(".pv-v-en")?.value?.trim() || "";
+      const label_ar = vr.querySelector(".pv-v-ar")?.value?.trim() || "";
+      if (label_en || label_ar) values.push({ id: vid, label_en: label_en || label_ar, label_ar: label_ar || label_en });
+    });
+    groups.push({ id, name_en, name_ar, values });
+  });
+  const variants = [];
+  root.querySelectorAll(".pv-variant-tr").forEach((tr) => {
+    const options = {};
+    tr.querySelectorAll(".pv-var-opt").forEach((sel) => {
+      const gid = sel.getAttribute("data-pv-gid");
+      if (gid && sel.value) options[gid] = sel.value;
+    });
+    const pr = tr.querySelector(".pv-var-price")?.value?.trim();
+    const st = tr.querySelector(".pv-var-stock")?.value ?? "0";
+    const im = tr.querySelector(".pv-var-img")?.value?.trim() || "";
+    const row = { options, stock: Math.max(0, Math.floor(Number(st) || 0)) };
+    if (pr !== undefined && pr !== "") {
+      const pn = Number(pr);
+      if (!Number.isNaN(pn)) row.price = pn;
+    }
+    if (im) row.image = im;
+    variants.push(row);
+  });
+  return { groups, variants };
+}
+
+function pvSerializeForPayload() {
+  const { groups, variants } = pvReadBuilderFromDom();
+  if (!groups.length) {
+    return { product_options: [], inventoryFromBuilder: null, sizes: [], colors: [] };
+  }
+  const inventory = variants.map((v) => {
+    const out = { options: { ...v.options }, stock: v.stock };
+    if (v.price != null && !Number.isNaN(Number(v.price))) out.price = Number(v.price);
+    if (v.image) out.image = v.image;
+    return out;
+  });
+  const { sizes, colors } = pvDeriveFilterArrays(groups);
+  return { product_options: groups, inventoryFromBuilder: inventory, sizes, colors };
+}
+
+function pvRenderBuilder(groups, variants) {
+  const root = document.getElementById("pv-builder-root");
+  if (!root) return;
+  const ar = getAdminLang() === "ar";
+  const L = (e, a) => (ar ? a : e);
+  let html = "";
+  (groups || []).forEach((g, gi) => {
+    html += `<div class="pv-group-card rounded-xl border border-violet-100 bg-white p-3 mb-3 space-y-2">`;
+    html += `<div class="flex flex-wrap gap-2 items-end">`;
+    html += `<div><span class="text-[10px] font-semibold text-gray-500">${L("Id", "المعرّف")}</span><input class="pv-g-id w-full p-2 rounded-lg border border-gray-200 text-xs font-mono" value="${escapeHtml(g.id)}" /></div>`;
+    html += `<div class="flex-1 min-w-[100px]"><span class="text-[10px] font-semibold text-gray-500">EN</span><input class="pv-g-ne w-full p-2 rounded-lg border border-gray-200 text-xs" value="${escapeHtml(g.name_en)}" /></div>`;
+    html += `<div class="flex-1 min-w-[100px]"><span class="text-[10px] font-semibold text-gray-500">AR</span><input class="pv-g-na w-full p-2 rounded-lg border border-gray-200 text-xs" value="${escapeHtml(g.name_ar)}" /></div>`;
+    html += `<button type="button" class="pv-rm-group px-2 py-2 text-red-600 text-xs font-bold border border-red-100 rounded-lg" data-pv-rm-group="${gi}">${L("Remove", "حذف")}</button>`;
+    html += `</div><div class="flex flex-wrap gap-2 items-center">`;
+    (g.values || []).forEach((v, vi) => {
+      html += `<div class="pv-val-row flex gap-1 items-center bg-gray-50 rounded-lg px-2 py-1 border border-gray-100" data-vid="${escapeHtml(v.id)}">`;
+      html += `<input class="pv-v-en w-20 p-1 text-xs border border-gray-200 rounded" value="${escapeHtml(v.label_en)}" placeholder="EN"/>`;
+      html += `<input class="pv-v-ar w-20 p-1 text-xs border border-gray-200 rounded" value="${escapeHtml(v.label_ar)}" placeholder="AR"/>`;
+      html += `<button type="button" class="text-red-500 text-sm px-1" data-pv-rm-val="${gi}-${vi}">×</button>`;
+      html += `</div>`;
+    });
+    html += `<button type="button" class="text-xs font-bold text-violet-700" data-pv-add-val="${gi}">+ ${L("value", "قيمة")}</button>`;
+    html += `</div></div>`;
+  });
+
+  if (groups.length) {
+    html += `<div class="overflow-x-auto border border-gray-200 rounded-xl"><table class="min-w-full text-xs"><thead class="bg-gray-50"><tr>`;
+    groups.forEach((g) => {
+      html += `<th class="p-2 text-left border-b">${escapeHtml(g.name_en || g.id)}</th>`;
+    });
+    html += `<th class="p-2 border-b">${L("Price (opt.)", "سعر (اختياري)")}</th><th class="p-2 border-b">${L("Stock", "مخزون")}</th><th class="p-2 border-b">${L("Image URL", "صورة")}</th><th class="p-2 border-b"></th></tr></thead><tbody>`;
+    (variants || []).forEach((row, ri) => {
+      html += `<tr class="pv-variant-tr border-b border-gray-50">`;
+      groups.forEach((g) => {
+        const cur = row.options && row.options[g.id] ? row.options[g.id] : "";
+        html += `<td class="p-2"><select class="pv-var-opt w-full p-1 border rounded" data-pv-gid="${escapeHtml(g.id)}">`;
+        html += `<option value="">—</option>`;
+        (g.values || []).forEach((v) => {
+          const sel = String(v.id) === String(cur) ? " selected" : "";
+          html += `<option value="${escapeHtml(v.id)}"${sel}>${escapeHtml(v.label_en || v.label_ar)}</option>`;
+        });
+        html += `</select></td>`;
+      });
+      const pv = row.price === "" || row.price == null ? "" : String(row.price);
+      html += `<td class="p-2"><input type="number" step="0.01" class="pv-var-price w-full p-1 border rounded" value="${escapeHtml(pv)}" placeholder="base"/></td>`;
+      html += `<td class="p-2"><input type="number" class="pv-var-stock w-full p-1 border rounded" value="${escapeHtml(String(row.stock ?? 0))}"/></td>`;
+      html += `<td class="p-2"><input type="text" class="pv-var-img w-40 max-w-[50vw] p-1 border rounded font-mono text-[10px]" value="${escapeHtml(row.image || "")}" placeholder="https://"/></td>`;
+      html += `<td class="p-2"><button type="button" class="text-red-600 font-bold" data-pv-rm-var="${ri}">×</button></td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+  } else {
+    html += `<p class="text-xs text-gray-500">${L('Add "Option group" first.', "ابدأ بإضافة «مجموعة مواصفات».")}</p>`;
+  }
+  root.innerHTML = html;
+
+  root.querySelectorAll("[data-pv-rm-group]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.getAttribute("data-pv-rm-group"));
+      const { groups: gg, variants: vv } = pvReadBuilderFromDom();
+      gg.splice(i, 1);
+      pvRenderBuilder(gg, vv);
+    });
+  });
+  root.querySelectorAll("[data-pv-rm-val]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const parts = btn.getAttribute("data-pv-rm-val").split("-");
+      const gi = Number(parts[0]);
+      const vi = Number(parts[1]);
+      const { groups: gg, variants: vv } = pvReadBuilderFromDom();
+      if (gg[gi] && gg[gi].values) gg[gi].values.splice(vi, 1);
+      pvRenderBuilder(gg, vv);
+    });
+  });
+  root.querySelectorAll("[data-pv-add-val]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const gi = Number(btn.getAttribute("data-pv-add-val"));
+      const { groups: gg, variants: vv } = pvReadBuilderFromDom();
+      if (!gg[gi]) return;
+      gg[gi].values.push({ id: pvGenId("v"), label_en: "", label_ar: "" });
+      pvRenderBuilder(gg, vv);
+    });
+  });
+  root.querySelectorAll("[data-pv-rm-var]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const ri = Number(btn.getAttribute("data-pv-rm-var"));
+      const { groups: gg, variants: vv } = pvReadBuilderFromDom();
+      vv.splice(ri, 1);
+      pvRenderBuilder(gg, vv);
+    });
+  });
+}
+
+function pvHydrateFromProduct(product) {
+  const root = document.getElementById("pv-builder-root");
+  if (!root) return;
+  if (!product) {
+    root.innerHTML = `<p class="text-xs text-gray-500">${getAdminLang() === "ar" ? "لا مجموعات بعد — اضغط «مجموعة مواصفات»." : 'No option groups yet — use “+ Option group”.'}</p>`;
+    return;
+  }
+  let groups;
+  let variants;
+  const po = product.product_options;
+  if (Array.isArray(po) && po.length) {
+    groups = JSON.parse(JSON.stringify(po));
+    variants = (Array.isArray(product.inventory) ? product.inventory : []).map((row) => ({
+      options: row.options && typeof row.options === "object" ? { ...row.options } : {},
+      price: row.price != null && row.price !== "" ? row.price : "",
+      stock: row.stock != null ? row.stock : 0,
+      image: row.image || "",
+    }));
+  } else {
+    const st = pvLegacyToBuilderState(product);
+    groups = st.groups;
+    variants = st.variants;
+  }
+  pvRenderBuilder(groups, variants);
+}
+
+function initProductVariantBuilderUi() {
+  const gbtn = document.getElementById("pv-add-group");
+  if (gbtn && !gbtn.dataset.pvBound) {
+    gbtn.dataset.pvBound = "1";
+    gbtn.addEventListener("click", () => {
+      const { groups, variants } = pvReadBuilderFromDom();
+      groups.push({
+        id: pvGenId("opt"),
+        name_en: "Option",
+        name_ar: "خيار",
+        values: [{ id: pvGenId("v"), label_en: "A", label_ar: "أ" }],
+      });
+      pvRenderBuilder(groups, variants);
+    });
+  }
+  const vbtn = document.getElementById("pv-add-variant-row");
+  if (vbtn && !vbtn.dataset.pvBound) {
+    vbtn.dataset.pvBound = "1";
+    vbtn.addEventListener("click", () => {
+      const { groups, variants } = pvReadBuilderFromDom();
+      if (!groups.length) {
+        alert(getAdminLang() === "ar" ? "أضف مجموعة مواصفات أولاً." : "Add an option group first.");
+        return;
+      }
+      variants.push({ options: {}, price: "", stock: 0, image: "" });
+      pvRenderBuilder(groups, variants);
+    });
+  }
+  pvHydrateFromProduct(null);
+}
+
 function readProductForm() {
   const productId = document.getElementById("product-id").value ? Number(document.getElementById("product-id").value) : null;
 
@@ -2147,24 +2419,32 @@ function readProductForm() {
 
   const imageFiles = Array.from(document.getElementById("product-images-files")?.files || []);
 
-  const sizes = document.getElementById("product-sizes").value
+  let sizes = document.getElementById("product-sizes").value
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
 
-  const colors = document.getElementById("product-colors").value
+  let colors = document.getElementById("product-colors").value
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
 
+  const pvPack = pvSerializeForPayload();
+  let product_options = pvPack.product_options || [];
   let inventory = [];
-  const invEl = document.getElementById("product-inventory-json");
-  if (invEl && invEl.value.trim()) {
-    try {
-      const parsed = JSON.parse(invEl.value.trim());
-      inventory = Array.isArray(parsed) ? parsed : [];
-    } catch {
-      inventory = [];
+  if (product_options.length) {
+    inventory = Array.isArray(pvPack.inventoryFromBuilder) ? pvPack.inventoryFromBuilder : [];
+    sizes = pvPack.sizes || [];
+    colors = pvPack.colors || [];
+  } else {
+    const invEl = document.getElementById("product-inventory-json");
+    if (invEl && invEl.value.trim()) {
+      try {
+        const parsed = JSON.parse(invEl.value.trim());
+        inventory = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        inventory = [];
+      }
     }
   }
 
@@ -2195,6 +2475,7 @@ function readProductForm() {
       sizes,
       colors,
       inventory,
+      product_options,
     },
   };
 }
@@ -2229,6 +2510,7 @@ function resetProductForm() {
   document.getElementById("product-colors").value = "";
   const invTa = document.getElementById("product-inventory-json");
   if (invTa) invTa.value = "[]";
+  pvHydrateFromProduct(null);
   document.getElementById("product-is-featured").checked = false;
   document.getElementById("product-is-flash-sale").checked = false;
   const nc = document.getElementById("product-is-new-collection");
@@ -2272,6 +2554,7 @@ function fillProductFormFromProduct(product) {
     const inv = Array.isArray(product.inventory) ? product.inventory : [];
     invTa.value = JSON.stringify(inv.length ? inv : [], null, 2);
   }
+  pvHydrateFromProduct(product);
   document.getElementById("product-is-featured").checked = !!product.is_featured;
   document.getElementById("product-is-flash-sale").checked = !!product.is_flash_sale;
   const ncEl = document.getElementById("product-is-new-collection");
@@ -3252,6 +3535,7 @@ function renderFlashSalesTable() {
           colors: full.colors || [],
           stock: full.stock,
           inventory: Array.isArray(full.inventory) ? full.inventory : [],
+          product_options: full.product_options || [],
           badge: full.badge || "",
           images: full.images || [],
           is_featured: full.is_featured ? 1 : 0,
@@ -3523,6 +3807,10 @@ async function openOrderDetailModal(orderId) {
           it.size && String(it.size).trim()
             ? `<div class="text-xs text-gray-600">${ar ? "المقاس" : "Size"}: <span class="font-semibold">${escapeHtml(it.size)}</span></div>`
             : "";
+        const variantLine =
+          it.variant_label && String(it.variant_label).trim()
+            ? `<div class="text-xs text-gray-700 mt-0.5 leading-snug">${escapeHtml(it.variant_label)}</div>`
+            : "";
         const brandLine =
           it.brand && String(it.brand).trim()
             ? `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة" : "Brand"}: ${escapeHtml(it.brand)}</div>`
@@ -3531,7 +3819,7 @@ async function openOrderDetailModal(orderId) {
           ${img}
           <div class="flex-1 min-w-0">
             <div class="font-semibold text-gray-900">${escapeHtml(it.product_name)} <span class="text-gray-500 font-normal">× ${it.qty}</span></div>
-            ${brandLine}${colorLine}${sizeLine}
+            ${brandLine}${variantLine}${colorLine}${sizeLine}
             <div class="text-sm font-mono mt-1">${Number(it.price).toLocaleString()} ل.س</div>
           </div>
         </div>`;
@@ -3994,6 +4282,7 @@ async function bootstrapAuthed() {
 
   document.getElementById("btn-refresh-products").addEventListener("click", loadProducts);
   document.getElementById("product-form").addEventListener("submit", saveProduct);
+  initProductVariantBuilderUi();
   document.getElementById("product-category")?.addEventListener("change", () => {
     syncPlacementRadiosFromCategory();
     fillSubcategoryOptionsForCategory(document.getElementById("product-category").value, "");

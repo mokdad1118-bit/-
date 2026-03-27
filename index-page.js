@@ -730,7 +730,7 @@
             cod: { en: 'Cash on Delivery', ar: 'الدفع عند الاستلام' },
             card: { en: 'Card', ar: 'بطاقة' }
         };
-        const ADORA_CART_KEY = 'adora_cart_v3';
+        const ADORA_CART_KEY = 'adora_cart_v4';
         let cartItems = [];
         const cartTotals = { subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
@@ -791,6 +791,13 @@
                 return `mp_${Number(item.marketplaceProductId)}`;
             }
             const id = item.productId ?? item.id;
+            const vo = item.variantOptions;
+            if (vo && typeof vo === 'object' && !Array.isArray(vo)) {
+                const keys = Object.keys(vo).sort();
+                if (keys.length) {
+                    return `${id}__vo:${keys.map((k) => `${k}=${vo[k]}`).join('|')}`;
+                }
+            }
             const sz = String(item.size || '').trim();
             const cl = String(item.color || '').trim();
             return `${id}__${sz}__${cl}`;
@@ -871,7 +878,9 @@
                         const listUnit = Number(it.unitPrice != null ? it.unitPrice : it.price || 0);
                         const discPct = Number(it.discountPct || 0);
                         const saleU = saleUnitFromListAndDiscount(listUnit, discPct);
-                        const meta = [it.size, it.color].filter(Boolean).join(' · ');
+                        const meta =
+                            (it.variantLabel && String(it.variantLabel).trim()) ||
+                            [it.size, it.color].filter(Boolean).join(' · ');
                         const brandLine = resolveDisplayBrand(it.brand);
                         return `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden" data-cart-idx="${idx}">
                             <div class="flex gap-3 items-start">
@@ -1068,6 +1077,8 @@
         let listingNewCollectionOnly = false;
         let currentProductDetail = null;
         let productDetailSelectedColorIndex = 0;
+        /** خريطة optionId → valueId للمنتجات ذات المواصفات الديناميكية */
+        let productDetailVariantPick = {};
         let listingSearchDebounceTimer = null;
         let productDetailBackScreen = 'screen-categories';
         let siteRatingSelected = 0;
@@ -3852,18 +3863,35 @@
                 return false;
             }
             const p = currentProductDetail;
-            const size = getSelectedDetailSize();
-            const color = getSelectedDetailColor();
             const qty = forceQtyOne
                 ? 1
                 : Math.max(1, Math.min(99, Number(currentQty || 1)));
-            if (!variantHasStock(p, size === '—' ? '' : size, color)) {
-                showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
-                return false;
+            let size = getSelectedDetailSize();
+            let color = getSelectedDetailColor();
+            let listUnit = Number(p.price || 0);
+            let img0 = p.images && p.images.length ? p.images[0] : '';
+            let variantOptions = null;
+            let variantLabel = '';
+            if (productUsesDynamicOptions(p)) {
+                const row = findInventoryRowDynamic(p, productDetailVariantPick);
+                if (!row || Number(row.stock || 0) < 1) {
+                    showToast(isRTL ? 'غير متوفر بهذه المواصفات' : 'Not available for this combination');
+                    return false;
+                }
+                listUnit = variantListUnitForRow(p, row);
+                const ri = row.image && String(row.image).trim();
+                if (ri) img0 = ri;
+                variantOptions = { ...productDetailVariantPick };
+                variantLabel = formatVariantLabelFromPick(p, productDetailVariantPick);
+                size = '';
+                color = '';
+            } else {
+                if (!variantHasStock(p, size === '—' ? '' : size, color)) {
+                    showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
+                    return false;
+                }
             }
-            const listUnit = Number(p.price || 0);
             const discPct = Number(p.discount || 0);
-            const img0 = p.images && p.images.length ? p.images[0] : '';
             const brandVal = String(p.brand || '').trim();
             const line = {
                 productId: p.id,
@@ -3877,6 +3905,8 @@
                 brand: brandVal,
                 size: size === '—' ? '' : size,
                 color,
+                variantOptions: variantOptions || undefined,
+                variantLabel: variantLabel || undefined,
                 selected: true,
             };
             const key = getCartLineKey(line);
@@ -3894,6 +3924,10 @@
                 if (img0) existing.image = img0;
                 existing.name = { ar: p.name_ar, en: p.name_en };
                 existing.brand = brandVal;
+                existing.size = line.size;
+                existing.color = line.color;
+                existing.variantOptions = line.variantOptions;
+                existing.variantLabel = line.variantLabel;
             } else {
                 cartItems.push(line);
             }
@@ -3916,11 +3950,60 @@
             try {
                 const p = await apiFetch(`/api/products/${Number(productId)}`, { requireAuth: false });
                 if (!p || !p.id) throw new Error('x');
+                if (productUsesDynamicOptions(p)) {
+                    const pick = defaultVariantPickDynamic(p);
+                    const row = findInventoryRowDynamic(p, pick);
+                    if (!row || Number(row.stock || 0) < 1) {
+                        showToast(isRTL ? 'غير متوفر' : 'Out of stock');
+                        return;
+                    }
+                    const listUnit = variantListUnitForRow(p, row);
+                    const discPct = Number(p.discount || 0);
+                    const ri = row.image && String(row.image).trim();
+                    const img0 = ri ? ri : p.images && p.images.length ? p.images[0] : '';
+                    const brandVal = String(p.brand || '').trim();
+                    const line = {
+                        productId: p.id,
+                        id: p.id,
+                        name: { ar: p.name_ar, en: p.name_en },
+                        qty: 1,
+                        unitPrice: listUnit,
+                        price: listUnit,
+                        discountPct: discPct,
+                        image: img0,
+                        brand: brandVal,
+                        size: '',
+                        color: '',
+                        variantOptions: { ...pick },
+                        variantLabel: formatVariantLabelFromPick(p, pick),
+                        selected: true,
+                    };
+                    const key = getCartLineKey(line);
+                    const existing = cartItems.find((x) => getCartLineKey(x) === key);
+                    if (existing) {
+                        existing.qty = Math.min(99, Number(existing.qty || 1) + 1);
+                        existing.selected = true;
+                        existing.unitPrice = listUnit;
+                        existing.price = listUnit;
+                        existing.discountPct = discPct;
+                        if (img0) existing.image = img0;
+                        existing.variantOptions = line.variantOptions;
+                        existing.variantLabel = line.variantLabel;
+                    } else {
+                        cartItems.push(line);
+                    }
+                    persistCart();
+                    showToast(isRTL ? 'أُضيف إلى السلة' : 'Added to cart');
+                    return;
+                }
                 const inv = Array.isArray(p.inventory) ? p.inventory : [];
                 let size = '—';
                 let color = '';
                 if (inv.length) {
-                    const row = inv.find((r) => Number(r.stock || 0) > 0);
+                    const row = inv.find((r) => {
+                        if (r.options && typeof r.options === 'object' && Object.keys(r.options).length) return false;
+                        return Number(r.stock || 0) > 0;
+                    });
                     if (!row) {
                         showToast(isRTL ? 'غير متوفر' : 'Out of stock');
                         return;
@@ -4243,7 +4326,9 @@
                         const qty = Number(item.qty || 1);
                         const line = saleUnit * qty;
                         const br = resolveDisplayBrand(item.brand);
-                        const meta = [item.size, item.color].filter(Boolean).join(' · ');
+                        const meta =
+                            (item.variantLabel && String(item.variantLabel).trim()) ||
+                            [item.size, item.color].filter(Boolean).join(' · ');
                         const oldLine =
                             discPct > 0 ? `<span class="text-[10px] text-gray-400 line-through ms-1">${formatSyp(listUnit * qty)}</span>` : '';
                         return `<div class="checkout-item">
@@ -4352,6 +4437,9 @@
                     const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
                     const pidRaw = item.productId ?? item.id ?? null;
                     const pid = mpid ? null : pidRaw != null && Number.isFinite(Number(pidRaw)) ? Number(pidRaw) : null;
+                    const vo = item.variantOptions;
+                    const variant_options =
+                        vo && typeof vo === 'object' && !Array.isArray(vo) && Object.keys(vo).length ? vo : undefined;
                     return {
                         product_id: pid,
                         marketplace_product_id: mpid,
@@ -4362,6 +4450,8 @@
                         color: item.color || item.selectedColor || '',
                         size: item.size || item.selectedSize || '',
                         brand: String(item.brand || '').trim(),
+                        variant_options,
+                        variant_label: item.variantLabel != null ? String(item.variantLabel) : '',
                     };
                 });
 
@@ -4844,8 +4934,11 @@
                 ar.push('    ─────────────────');
                 ar.push(`    📦  ${na}`);
                 ar.push(`    🏷  ${br}`);
-                if (item.size) ar.push(`    📏  المقاس: ${item.size}`);
-                if (item.color) ar.push(`    🎨  اللون: ${item.color}`);
+                if (item.variantLabel) ar.push(`    📎  المواصفات: ${item.variantLabel}`);
+                else {
+                    if (item.size) ar.push(`    📏  المقاس: ${item.size}`);
+                    if (item.color) ar.push(`    🎨  اللون: ${item.color}`);
+                }
                 ar.push(`    🔢  الكمية: ${item.qty}`);
                 ar.push(`    💵  السعر: ${formatSyp(saleUnit)} × ${item.qty} = ${formatSyp(line)}`);
                 if (discPct > 0) ar.push(`    📎  السعر قبل الخصم: ${formatSyp(listUnit)}`);
@@ -4855,8 +4948,11 @@
                 en.push('    ─────────────────');
                 en.push(`    📦  ${ne}`);
                 en.push(`    🏷  ${br}`);
-                if (item.size) en.push(`    📏  Size: ${item.size}`);
-                if (item.color) en.push(`    🎨  Color: ${item.color}`);
+                if (item.variantLabel) en.push(`    📎  Options: ${item.variantLabel}`);
+                else {
+                    if (item.size) en.push(`    📏  Size: ${item.size}`);
+                    if (item.color) en.push(`    🎨  Color: ${item.color}`);
+                }
                 en.push(`    🔢  Qty: ${item.qty}`);
                 en.push(`    💵  ${formatSyp(saleUnit)} × ${item.qty} = ${formatSyp(line)}`);
                 if (discPct > 0) en.push(`    📎  List price: ${formatSyp(listUnit)}`);
@@ -4956,7 +5052,10 @@
                             const img = it.image_url
                                 ? `<img src="${escapeHtml(it.image_url)}" alt="" class="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" loading="lazy">`
                                 : `<div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>`;
-                            const meta = [it.color, it.size].filter(Boolean).map(escapeHtml).join(' · ');
+                            const meta = [it.variant_label, it.color, it.size]
+                                .filter(Boolean)
+                                .map((x) => escapeHtml(String(x)))
+                                .join(' · ');
                             return `<div class="flex gap-3 items-start">
                                 ${img}
                                 <div class="flex-1 min-w-0">
@@ -6074,9 +6173,21 @@
 
         function fillProductDetailScreen(p) {
             productDetailSelectedColorIndex = 0;
+            productDetailVariantPick = {};
             currentQty = 1;
             const qd0 = document.getElementById('qty-display');
             if (qd0) qd0.textContent = '1';
+            const leg = document.getElementById('product-legacy-variant-sections');
+            const dynRoot = document.getElementById('product-dynamic-variant-root');
+            const isDyn = productUsesDynamicOptions(p);
+            if (isDyn) {
+                leg?.classList.add('hidden');
+                dynRoot?.classList.remove('hidden');
+                productDetailVariantPick = defaultVariantPickDynamic(p);
+            } else {
+                leg?.classList.remove('hidden');
+                dynRoot?.classList.add('hidden');
+            }
             const title = isRTL ? p.name_ar : p.name_en;
             const listP = productListPrice(p);
             const disc = productDiscountPct(p);
@@ -6145,38 +6256,234 @@
             const addP = document.getElementById('product-detail-add-price');
             if (addP) addP.textContent = ` — ${formatSyp(saleP)}`;
 
-            const colWrap = document.getElementById('product-color-options');
-            const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
-            if (colWrap) {
-                if (!colors.length) {
-                    colWrap.innerHTML = `<span class="text-sm text-gray-500">${isRTL ? 'لون واحد' : 'Standard'}</span>`;
-                    const sc = document.getElementById('selected-color');
-                    if (sc) sc.textContent = '—';
-                } else {
-                    colWrap.innerHTML = colors
-                        .map((c, i) => {
-                            const lab = escapeHtml(String(c).slice(0, 6));
-                            return `<button type="button" class="color-btn ${i === 0 ? 'selected' : ''} w-10 h-10 min-w-[2.5rem] rounded-full border-2 border-gray-200 shadow-sm text-[9px] font-bold text-gray-700 flex items-center justify-center px-1" data-color-idx="${i}" onclick="selectProductDetailColorIdx(${i})">${lab}</button>`;
-                        })
-                        .join('');
-                    const sc = document.getElementById('selected-color');
-                    if (sc) sc.textContent = colors[0];
+            if (isDyn) {
+                applyProductDetailVariantToUi(p);
+            } else {
+                const colWrap = document.getElementById('product-color-options');
+                const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
+                if (colWrap) {
+                    if (!colors.length) {
+                        colWrap.innerHTML = `<span class="text-sm text-gray-500">${isRTL ? 'لون واحد' : 'Standard'}</span>`;
+                        const sc = document.getElementById('selected-color');
+                        if (sc) sc.textContent = '—';
+                    } else {
+                        colWrap.innerHTML = colors
+                            .map((c, i) => {
+                                const lab = escapeHtml(String(c).slice(0, 6));
+                                return `<button type="button" class="color-btn ${i === 0 ? 'selected' : ''} w-10 h-10 min-w-[2.5rem] rounded-full border-2 border-gray-200 shadow-sm text-[9px] font-bold text-gray-700 flex items-center justify-center px-1" data-color-idx="${i}" onclick="selectProductDetailColorIdx(${i})">${lab}</button>`;
+                            })
+                            .join('');
+                        const sc = document.getElementById('selected-color');
+                        if (sc) sc.textContent = colors[0];
+                    }
                 }
+                rebuildProductDetailSizes(p);
             }
-            rebuildProductDetailSizes(p);
 
             loadProductReviewsForDetail(p.id).catch(() => {});
             updateWishlistButtonForProduct(p.id);
             loadProductRelatedForDetail(p.id).catch(() => {});
         }
 
+        function productOptionDefinitions(p) {
+            const o = p && p.product_options;
+            return Array.isArray(o) && o.length ? o : [];
+        }
+
+        function productUsesDynamicOptions(p) {
+            return productOptionDefinitions(p).length > 0;
+        }
+
+        function findInventoryRowDynamic(p, pick) {
+            const defs = productOptionDefinitions(p);
+            if (!defs.length || !pick) return null;
+            for (const d of defs) {
+                if (!pick[d.id]) return null;
+            }
+            const inv = Array.isArray(p.inventory) ? p.inventory : [];
+            for (const row of inv) {
+                if (!row.options || typeof row.options !== 'object') continue;
+                let ok = true;
+                for (const d of defs) {
+                    if (String(row.options[d.id] || '') !== String(pick[d.id] || '')) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) return row;
+            }
+            return null;
+        }
+
+        function valuesAvailableForOptionDynamic(p, optionId, partialPick) {
+            const defs = productOptionDefinitions(p);
+            const inv = Array.isArray(p.inventory) ? p.inventory : [];
+            const allowed = new Set();
+            for (const row of inv) {
+                if (!row.options || typeof row.options !== 'object') continue;
+                if (Number(row.stock || 0) <= 0) continue;
+                let ok = true;
+                for (const d of defs) {
+                    if (d.id === optionId) continue;
+                    const need = partialPick[d.id];
+                    if (need && String(row.options[d.id] || '') !== String(need)) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) allowed.add(String(row.options[optionId] || ''));
+            }
+            return allowed;
+        }
+
+        function defaultVariantPickDynamic(p) {
+            const defs = productOptionDefinitions(p);
+            const pick = {};
+            for (const d of defs) {
+                const avail = valuesAvailableForOptionDynamic(p, d.id, pick);
+                const firstVal = (d.values || []).find((v) => avail.has(String(v.id)));
+                if (!firstVal) return pick;
+                pick[d.id] = firstVal.id;
+            }
+            return pick;
+        }
+
+        function variantListUnitForRow(p, row) {
+            const base = productListPrice(p);
+            if (row && row.price != null && !Number.isNaN(Number(row.price))) return Number(row.price);
+            return base;
+        }
+
+        function formatVariantLabelFromPick(p, pick) {
+            const defs = productOptionDefinitions(p);
+            const parts = [];
+            for (const d of defs) {
+                const vid = pick[d.id];
+                const vobj = (d.values || []).find((v) => String(v.id) === String(vid));
+                const lab = vobj ? (isRTL ? vobj.label_ar || vobj.label_en : vobj.label_en || vobj.label_ar) : '';
+                if (lab) parts.push(`${isRTL ? d.name_ar || d.name_en : d.name_en || d.name_ar}: ${lab}`);
+            }
+            return parts.join(' · ');
+        }
+
+        function renderProductDynamicOptions(p) {
+            const root = document.getElementById('product-dynamic-variant-root');
+            if (!root) return;
+            const defs = productOptionDefinitions(p);
+            if (!defs.length) {
+                root.innerHTML = '';
+                return;
+            }
+            root.innerHTML = defs
+                .map((d) => {
+                    const partial = { ...productDetailVariantPick };
+                    delete partial[d.id];
+                    const avail = valuesAvailableForOptionDynamic(p, d.id, partial);
+                    const title = isRTL ? d.name_ar || d.name_en : d.name_en || d.name_ar;
+                    const chips = (d.values || [])
+                        .map((v) => {
+                            const on = String(productDetailVariantPick[d.id] || '') === String(v.id);
+                            const dis = !avail.has(String(v.id));
+                            const lab = isRTL ? v.label_ar || v.label_en : v.label_en || v.label_ar;
+                            return `<button type="button" role="radio" aria-checked="${on}" class="px-3 py-2 rounded-xl border-2 text-sm font-semibold transition ${
+                                on
+                                    ? 'border-purple-600 bg-purple-50 text-purple-800'
+                                    : dis
+                                      ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                                      : 'border-gray-200 text-gray-800 hover:border-purple-300'
+                            }" data-pv-opt="${escapeHtml(d.id)}" data-pv-val="${escapeHtml(v.id)}" ${dis ? 'disabled' : ''}>${escapeHtml(lab)}</button>`;
+                        })
+                        .join('');
+                    return `<div class="space-y-2">
+                        <h3 class="font-semibold text-gray-900">${escapeHtml(title)}</h3>
+                        <div class="flex flex-wrap gap-2">${chips}</div>
+                    </div>`;
+                })
+                .join('');
+            root.querySelectorAll('[data-pv-opt]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (btn.disabled) return;
+                    const oid = btn.getAttribute('data-pv-opt');
+                    const vid = btn.getAttribute('data-pv-val');
+                    productDetailVariantPick[oid] = vid;
+                    const defs2 = productOptionDefinitions(p);
+                    let idx = defs2.findIndex((x) => x.id === oid);
+                    for (let j = idx + 1; j < defs2.length; j++) {
+                        const nx = defs2[j];
+                        const partial = {};
+                        for (let k = 0; k < j; k++) partial[defs2[k].id] = productDetailVariantPick[defs2[k].id];
+                        const av = valuesAvailableForOptionDynamic(p, nx.id, partial);
+                        const cur = productDetailVariantPick[nx.id];
+                        if (!av.has(String(cur))) {
+                            const pickFirst = (nx.values || []).find((v) => av.has(String(v.id)));
+                            productDetailVariantPick[nx.id] = pickFirst ? pickFirst.id : '';
+                        }
+                    }
+                    applyProductDetailVariantToUi(p);
+                });
+            });
+        }
+
+        function applyProductDetailVariantToUi(p) {
+            if (!p || !productUsesDynamicOptions(p)) return;
+            const row = findInventoryRowDynamic(p, productDetailVariantPick);
+            const listU = variantListUnitForRow(p, row);
+            const disc = productDiscountPct(p);
+            const saleU = saleUnitFromListAndDiscount(listU, disc);
+            const pEl = document.getElementById('product-detail-price');
+            if (pEl) pEl.textContent = formatSyp(saleU);
+            const oEl = document.getElementById('product-detail-old-price');
+            if (oEl) {
+                if (disc > 0) {
+                    oEl.classList.remove('hidden');
+                    oEl.textContent = formatSyp(listU);
+                } else oEl.classList.add('hidden');
+            }
+            const sEl = document.getElementById('product-detail-save');
+            if (sEl) {
+                if (disc > 0) {
+                    sEl.classList.remove('hidden');
+                    sEl.textContent = isRTL ? `وفّر ${formatSyp(listU - saleU)}` : `Save ${formatSyp(listU - saleU)}`;
+                } else sEl.classList.add('hidden');
+            }
+            const db = document.getElementById('product-detail-discount-badge');
+            if (db) {
+                if (disc > 0) {
+                    db.classList.remove('hidden');
+                    db.textContent = `-${Math.round(disc)}%`;
+                } else db.classList.add('hidden');
+            }
+            const addP = document.getElementById('product-detail-add-price');
+            if (addP) addP.textContent = ` — ${formatSyp(saleU)}`;
+            const gal = document.getElementById('product-gallery');
+            const baseImgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
+            const extra = row && row.image ? String(row.image).trim() : '';
+            const merged = extra && !baseImgs.includes(extra) ? [extra, ...baseImgs] : baseImgs;
+            if (gal) {
+                stopGalleryAutoScroll('product-gallery');
+                gal.innerHTML = merged
+                    .map(
+                        (url) =>
+                            `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt=""></div>`
+                    )
+                    .join('');
+                startGalleryAutoScroll('product-gallery', 4200);
+            }
+            renderProductDynamicOptions(p);
+        }
+
         function variantHasStock(p, size, color) {
             if (!p) return false;
+            if (productUsesDynamicOptions(p)) {
+                const row = findInventoryRowDynamic(p, productDetailVariantPick);
+                return !!(row && Number(row.stock || 0) > 0);
+            }
             const inv = Array.isArray(p.inventory) ? p.inventory : [];
             const sz = String(size || '').trim().toLowerCase();
             const cl = String(color || '').trim().toLowerCase();
             if (!inv.length) return Number(p.stock || 0) > 0;
             const row = inv.find((r) => {
+                if (r.options && typeof r.options === 'object' && Object.keys(r.options).length) return false;
                 const rs = String(r.size || '').trim().toLowerCase();
                 const rc = String(r.color || '').trim().toLowerCase();
                 const szMatch = !sz || rs === sz;

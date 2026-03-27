@@ -213,19 +213,37 @@
                   <input id="product-images-files" type="file" multiple accept="image/*" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
                 </div>
 
-                <div>
-                  <label class="text-sm font-semibold"><span data-en="Sizes (comma separated)" data-ar="المقاسات (مفصولة بفاصلة)">المقاسات (مفصولة بفاصلة)</span></label>
-                  <input id="product-sizes" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="S,M,L" data-ar-ph="S,M,L" placeholder="S,M,L" />
-                </div>
-                <div>
-                  <label class="text-sm font-semibold"><span data-en="Colors (comma separated)" data-ar="الألوان (مفصولة بفاصلة)">الألوان (مفصولة بفاصلة)</span></label>
-                  <input id="product-colors" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="Black, Camel" data-ar-ph="أسود، جملي" placeholder="أسود، جملي" />
-                </div>
-
-                <div class="md:col-span-2">
-                  <label class="text-sm font-semibold"><span data-en="Variant stock (JSON)" data-ar="مخزون حسب المقاس/اللون (JSON)">مخزون حسب المقاس/اللون (JSON)</span></label>
-                  <p class="text-xs text-gray-500 mt-0.5 mb-1" data-en='Example: [{"size":"M","color":"Black","stock":5}] — empty [] uses total stock only.' data-ar='مثال: [{"size":"M","color":"Black","stock":5}] — [] يعتمد على المخزون الإجمالي فقط.'>مثال: [{"size":"M","color":"Black","stock":5}] — [] يعتمد على المخزون الإجمالي فقط.</p>
-                  <textarea id="product-inventory-json" rows="4" class="mt-1 w-full p-3 rounded-xl border border-gray-200 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-purple-600" placeholder="[]"></textarea>
+                <div class="md:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50/90 to-white p-4 space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-sm font-bold text-gray-900">
+                      <span data-en="Dynamic options & variants (SKU rows)" data-ar="مواصفات ديناميكية ومتغيرات (سعر/مخزون/صورة لكل تركيبة)">مواصفات ديناميكية ومتغيرات</span>
+                    </h3>
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" id="pv-add-group" class="px-3 py-2 rounded-xl bg-white border border-violet-300 text-violet-800 text-xs font-bold hover:bg-violet-50">
+                        <span data-en="+ Option group" data-ar="+ مجموعة مواصفات">+ مجموعة مواصفات</span>
+                      </button>
+                      <button type="button" id="pv-add-variant-row" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700">
+                        <span data-en="+ Variant row" data-ar="+ صف متغير">+ صف متغير</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-600 leading-relaxed" data-en="Define groups (e.g. RAM, Color). Add values per group. Then add variant rows: pick one value per group, optional list price override, stock, optional image URL. Leave price empty to use the product base list price; discount % still applies." data-ar="عرّف مجموعات (مثل الرام، اللون) وأضف قيماً لكل مجموعة. ثم أضف صفوف متغيرات: اختر قيمة من كل مجموعة، وسعر قائمة اختياري لكل تركيبة، ومخزون، ورابط صورة اختياري. اترك السعر فارغاً لاستخدام سعر المنتج الأساسي؛ نسبة الخصم تُطبَّق كالعادة.">عرّف مجموعات ثم صفوف تركيبات بسعر ومخزون لكل صف.</p>
+                  <div id="pv-builder-root" class="space-y-3 min-h-[2rem]"></div>
+                  <details class="text-xs text-gray-500">
+                    <summary class="cursor-pointer font-semibold text-gray-700" data-en="Classic size/color (no dynamic groups)" data-ar="وضع قديم: مقاس/لون فقط">وضع قديم: مقاس/لون فقط</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                      <div>
+                        <label class="text-sm font-semibold"><span data-en="Sizes (comma)" data-ar="مقاسات (فاصلة)">مقاسات (فاصلة)</span></label>
+                        <input id="product-sizes" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200" placeholder="S,M,L" />
+                      </div>
+                      <div>
+                        <label class="text-sm font-semibold"><span data-en="Colors (comma)" data-ar="ألوان (فاصلة)">ألوان (فاصلة)</span></label>
+                        <input id="product-colors" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200" placeholder="Black, White" />
+                      </div>
+                    </div>
+                    <label class="text-sm font-semibold block mt-2"><span data-en="Inventory JSON (legacy)" data-ar="مخزون JSON (قديم)">مخزون JSON (قديم)</span></label>
+                    <textarea id="product-inventory-json" rows="3" class="mt-1 w-full p-3 rounded-xl border border-gray-200 font-mono text-[11px]" placeholder="[]"></textarea>
+                  </details>
                 </div>
 
                 <div class="md:col-span-2 rounded-2xl border border-amber-100 bg-amber-50/40 p-4 space-y-2">

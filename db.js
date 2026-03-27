@@ -324,6 +324,7 @@ async function initDb() {
   await migrateOrderItemsColumns();
   await migrateOrderItemsBrandColumn();
   await migrateProductsInventoryJson();
+  await migrateProductsDynamicOptionsV1();
   await migrateBrandsShowcaseJson();
   await migrateAppBannersTable();
   await migrateOrderStatusesToV2();
@@ -521,6 +522,15 @@ async function migrateProductsInventoryJson() {
   await run(
     `ALTER TABLE products ADD COLUMN IF NOT EXISTS inventory_json TEXT NOT NULL DEFAULT '[]'`
   );
+}
+
+/** تعريفات مواصفات ديناميكية (RAM، اللون، …) + صفوف مخزون بخريطة options */
+async function migrateProductsDynamicOptionsV1() {
+  await run(
+    `ALTER TABLE products ADD COLUMN IF NOT EXISTS product_options_json TEXT NOT NULL DEFAULT '[]'`
+  );
+  await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_options_json TEXT`);
+  await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_label TEXT`);
 }
 
 async function migrateBrandsShowcaseJson() {

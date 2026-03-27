@@ -347,24 +347,41 @@ async function decrementMarketplaceStock(marketplaceProductId, qty) {
   );
 }
 
-async function decrementProductStock(productId, qty, size, color) {
+async function decrementProductStock(productId, qty, meta = {}) {
   const pid = Number(productId);
   if (!Number.isFinite(pid) || qty <= 0) return;
   const p = await get(`SELECT stock, inventory_json FROM products WHERE id=?`, [pid]);
   if (!p) return;
   let inv = safeJsonParse(p.inventory_json, []);
   if (!Array.isArray(inv)) inv = [];
-  const sz = size != null ? String(size).trim().toLowerCase() : "";
-  const cl = color != null ? String(color).trim().toLowerCase() : "";
+  const sz = meta.size != null ? String(meta.size).trim().toLowerCase() : "";
+  const cl = meta.color != null ? String(meta.color).trim().toLowerCase() : "";
+  const vOpts = meta.variant_options;
+  const hasDyn = vOpts && typeof vOpts === "object" && !Array.isArray(vOpts) && Object.keys(vOpts).length > 0;
   let idx = -1;
-  if (inv.length > 0 && (sz || cl)) {
-    idx = inv.findIndex((row) => {
-      const rs = String(row.size || "").trim().toLowerCase();
-      const rc = String(row.color || "").trim().toLowerCase();
-      const szMatch = !sz || rs === sz;
-      const clMatch = !cl || rc === cl;
-      return szMatch && clMatch;
-    });
+  if (inv.length > 0) {
+    if (hasDyn) {
+      idx = inv.findIndex((row) => {
+        if (!row.options || typeof row.options !== "object") return false;
+        const keys = Object.keys(vOpts);
+        for (const k of keys) {
+          if (String(row.options[k] || "") !== String(vOpts[k] || "")) return false;
+        }
+        for (const k of Object.keys(row.options)) {
+          if (!(k in vOpts)) return false;
+        }
+        return Object.keys(row.options).length === keys.length;
+      });
+    } else if (sz || cl) {
+      idx = inv.findIndex((row) => {
+        if (row.options && typeof row.options === "object" && Object.keys(row.options).length) return false;
+        const rs = String(row.size || "").trim().toLowerCase();
+        const rc = String(row.color || "").trim().toLowerCase();
+        const szMatch = !sz || rs === sz;
+        const clMatch = !cl || rc === cl;
+        return szMatch && clMatch;
+      });
+    }
   }
   if (idx >= 0) {
     const row = inv[idx];
@@ -379,10 +396,13 @@ async function decrementProductStock(productId, qty, size, color) {
 
 function mapProductRow(p) {
   if (!p) return p;
-  const { inventory_json, ...rest } = p;
+  const invRaw = p.inventory_json;
+  const optRaw = p.product_options_json;
+  const { inventory_json, product_options_json, ...rest } = p;
   return {
     ...rest,
-    inventory: safeJsonParse(inventory_json, []),
+    inventory: safeJsonParse(invRaw, []),
+    product_options: optRaw != null ? safeJsonParse(optRaw, []) : [],
   };
 }
 
@@ -1362,6 +1382,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       colors = [],
       stock = 0,
       inventory = [],
+      product_options = [],
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
@@ -1372,11 +1393,12 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const invArr = Array.isArray(inventory) ? inventory : [];
+    const optArr = Array.isArray(product_options) ? product_options : [];
     const result = await run(
       `INSERT INTO products (
         name_ar, name_en, description, price, discount, category, subcategory, brand,
-        sizes_json, colors_json, stock, inventory_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sizes_json, colors_json, stock, inventory_json, product_options_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_ar,
         name_en,
@@ -1390,6 +1412,7 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
         JSON.stringify(colors),
         Number(stock || 0),
         JSON.stringify(invArr),
+        JSON.stringify(optArr),
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
@@ -1423,6 +1446,7 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       colors = [],
       stock = 0,
       inventory = [],
+      product_options = [],
       badge = "",
       is_featured = 0,
       is_flash_sale = 0,
@@ -1430,10 +1454,11 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       flash_sale_end_time = null,
     } = req.body;
     const invArr = Array.isArray(inventory) ? inventory : [];
+    const optArr = Array.isArray(product_options) ? product_options : [];
     await run(
       `UPDATE products SET
         name_ar=?, name_en=?, description=?, price=?, discount=?, category=?, subcategory=?, brand=?,
-        sizes_json=?, colors_json=?, stock=?, inventory_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?
+        sizes_json=?, colors_json=?, stock=?, inventory_json=?, product_options_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?
        WHERE id=?`,
       [
         name_ar,
@@ -1448,6 +1473,7 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
         JSON.stringify(colors),
         Number(stock || 0),
         JSON.stringify(invArr),
+        JSON.stringify(optArr),
         badge,
         is_featured ? 1 : 0,
         is_flash_sale ? 1 : 0,
@@ -1690,8 +1716,12 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       const lineSubtotal = Number(item.price || 0) * qn;
       const marketplace_commission_amount =
         mpid && commissionPct > 0 ? Math.round(lineSubtotal * (commissionPct / 100) * 10000) / 10000 : mpid ? 0 : null;
+      const vOptRaw = item.variant_options;
+      const variant_options =
+        vOptRaw && typeof vOptRaw === "object" && !Array.isArray(vOptRaw) ? vOptRaw : null;
+      const variant_label = item.variant_label != null ? String(item.variant_label).slice(0, 2000) : "";
       await run(
-        `INSERT INTO order_items (order_id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, marketplace_commission_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO order_items (order_id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, marketplace_commission_amount, variant_options_json, variant_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           result.id,
           pid,
@@ -1704,18 +1734,26 @@ app.post("/api/orders", requireAuth, async (req, res) => {
           item.size != null ? String(item.size) : "",
           brandLine,
           marketplace_commission_amount,
+          variant_options && Object.keys(variant_options).length
+            ? JSON.stringify(variant_options)
+            : null,
+          variant_label || null,
         ]
       );
       if (mpid && qn > 0) {
         await decrementMarketplaceStock(mpid, qn);
       } else if (pid && qn > 0) {
-        await decrementProductStock(pid, qn, item.size, item.color);
+        await decrementProductStock(pid, qn, {
+          size: item.size,
+          color: item.color,
+          variant_options,
+        });
       }
     }
     await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), req.user.id]);
     const saved = await get(`SELECT * FROM orders WHERE id=?`, [result.id]);
     const items = await all(
-      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand
+      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, variant_options_json, variant_label
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [result.id]
     );
@@ -1737,7 +1775,7 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
       [orderId]
     );
     const items = await all(
-      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand
+      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, variant_options_json, variant_label
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [orderId]
     );
