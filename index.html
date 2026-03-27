@@ -23,7 +23,7 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;700&display=swap');
         
         * {
             -webkit-tap-highlight-color: transparent;
@@ -2217,6 +2217,21 @@
             transform: scale(0.98);
         }
 
+        /* خط البحث — أسلوب حديث قريب من تجارب مثل نون (Inter + Almarai) */
+        .adora-search-typography,
+        .adora-search-typography .adora-search-faux-ph,
+        .adora-search-typography input {
+            font-family: 'Inter', 'Almarai', ui-sans-serif, system-ui, sans-serif;
+            font-feature-settings: 'kern' 1;
+            letter-spacing: -0.012em;
+        }
+        body[dir='rtl'] .adora-search-typography,
+        body[dir='rtl'] .adora-search-typography .adora-search-faux-ph,
+        body[dir='rtl'] .adora-search-typography input {
+            font-family: 'Almarai', 'Inter', sans-serif;
+            letter-spacing: 0;
+        }
+
         /* شريط البحث — تلميح دوار داخل الحقل */
         .adora-search-field {
             display: flex;
@@ -2273,11 +2288,11 @@
         }
         .adora-search-faux-ph--home {
             padding-inline: 0.25rem;
-            font-size: clamp(0.9rem, 3.2vw, 1rem);
+            font-size: clamp(0.92rem, 3.3vw, 1.02rem);
             font-weight: 500;
         }
         .adora-search-faux-ph--toolbar {
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
             font-weight: 500;
         }
         .adora-search-faux-ph--listing {
@@ -2297,9 +2312,9 @@
             padding-inline-end: 0.75rem;
         }
         .adora-search-faux-prefix {
-            color: rgb(107 114 128);
+            color: rgb(100 116 139);
             font-weight: 600;
-            letter-spacing: 0.01em;
+            letter-spacing: inherit;
         }
         .adora-search-faux-rot {
             min-width: 0;
@@ -2309,7 +2324,7 @@
         .adora-search-faux-rot-text {
             display: inline-block;
             font-weight: 700;
-            letter-spacing: 0.02em;
+            letter-spacing: inherit;
             background: linear-gradient(120deg, #6d28d9 0%, #7c3aed 45%, #5b21b6 100%);
             -webkit-background-clip: text;
             background-clip: text;
@@ -2317,7 +2332,7 @@
             color: transparent;
         }
         .adora-search-faux-rot-text.adora-search-rot-tick {
-            animation: adoraSearchRotWord 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+            animation: adoraSearchRotWord 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
         @keyframes adoraSearchRotWord {
             from {
@@ -2336,9 +2351,9 @@
             min-height: 3rem;
             border: none;
             background: transparent;
-            font-size: clamp(0.9rem, 3.2vw, 1rem);
-            font-weight: 500;
-            color: rgb(31 41 55);
+            font-size: clamp(0.92rem, 3.3vw, 1.02rem);
+            font-weight: 600;
+            color: rgb(15 23 42);
             padding-inline: 0.25rem;
         }
         #search-input:focus {
@@ -3375,7 +3390,7 @@
         <div class="partner-cta-sticky-search-wrap px-4 py-3 bg-white border-b border-gray-100">
             <div class="search-container flex gap-3 items-stretch">
                 <div class="flex-1 min-w-0 flex items-stretch rounded-2xl">
-                    <div class="adora-search-field w-full">
+                    <div class="adora-search-field adora-search-typography w-full">
                         <button type="button" class="adora-search-field__icon" onclick="runProductSearch()" aria-label="Search">
                             <i class="fas fa-search text-lg"></i>
                         </button>
@@ -3816,14 +3831,14 @@
                 <h1 id="listing-screen-title" class="text-lg font-bold text-gray-900 text-center flex-1 px-1 min-w-0 truncate" data-en="Products" data-ar="المنتجات">Products</h1>
                 <span class="w-8 sm:w-10 shrink-0" aria-hidden="true"></span>
             </div>
-            <div class="relative mb-3">
+            <div class="relative mb-3 adora-search-typography">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:left-auto rtl:right-3 z-[3]"></i>
                 <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--listing" data-adora-animated-ph aria-hidden="true">
                     <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
                     <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
                 </div>
                 <input type="search" id="listing-search-input" enterkeyhint="search" autocomplete="off"
-                    class="relative z-[1] w-full bg-gray-100 text-gray-800 rounded-2xl py-2.5 pl-10 pr-3 rtl:pl-3 rtl:pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    class="relative z-[1] w-full bg-gray-100 text-gray-900 rounded-2xl py-2.5 pl-10 pr-3 rtl:pl-3 rtl:pr-10 text-[0.9375rem] font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     placeholder=""
                     data-en-placeholder="" data-ar-placeholder=""
                     oninput="scheduleListingSearchDebounced()" onkeydown="listingSearchOnEnter(event)" />
@@ -4118,14 +4133,14 @@
             </button>
         </div>
         <div class="px-3 pt-3 pb-2 space-y-2 bg-white border-b border-gray-100">
-            <div class="relative">
+            <div class="relative adora-search-typography">
                 <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3 z-[3]"></i>
                 <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--marketplace" data-adora-animated-ph aria-hidden="true">
                     <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
                     <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
                 </div>
                 <input type="search" id="marketplace-search-input" enterkeyhint="search" autocomplete="off"
-                    class="relative z-[1] w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
+                    class="relative z-[1] w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-[0.9375rem] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
                     placeholder=""
                     data-en-ph="" data-ar-ph="" />
             </div>

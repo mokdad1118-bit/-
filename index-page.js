@@ -3308,7 +3308,10 @@
                     marketplaceBrowseVendorId = vid;
                     marketplaceBrowseSectionId = null;
                     const si = document.getElementById('marketplace-search-input');
-                    if (si) si.value = '';
+                    if (si) {
+                        si.value = '';
+                        resetAdoraSearchTypingForInput(si);
+                    }
                     syncAdoraAnimatedSearchVisibility();
                 }
                 renderMarketplaceVendorsStrip();
@@ -5394,8 +5397,14 @@
                     listingSearchQuery = '';
                     const homeInp = document.getElementById('search-input');
                     const listInp = document.getElementById('listing-search-input');
-                    if (homeInp && document.activeElement !== homeInp) homeInp.value = '';
-                    if (listInp && document.activeElement !== listInp) listInp.value = '';
+                    if (homeInp && document.activeElement !== homeInp) {
+                        homeInp.value = '';
+                        resetAdoraSearchTypingForInput(homeInp);
+                    }
+                    if (listInp && document.activeElement !== listInp) {
+                        listInp.value = '';
+                        resetAdoraSearchTypingForInput(listInp);
+                    }
                     const te = document.getElementById('listing-screen-title');
                     if (te) {
                         te.setAttribute('data-en', 'Search results');
@@ -5558,15 +5567,26 @@
             try {
                 if (home) {
                     if (currentScreen === 'screen-categories') {
-                        if (document.activeElement !== home) home.value = q;
-                        else if (!String(home.value || '').trim() && q) home.value = q;
+                        if (document.activeElement !== home) {
+                            home.value = q;
+                            resetAdoraSearchTypingForInput(home);
+                        } else if (!String(home.value || '').trim() && q) {
+                            home.value = q;
+                            resetAdoraSearchTypingForInput(home);
+                        }
                     } else if (document.activeElement !== home) {
                         home.value = '';
+                        resetAdoraSearchTypingForInput(home);
                     }
                 }
                 if (list) {
-                    if (document.activeElement !== list) list.value = q;
-                    else if (!String(list.value || '').trim() && q) list.value = q;
+                    if (document.activeElement !== list) {
+                        list.value = q;
+                        resetAdoraSearchTypingForInput(list);
+                    } else if (!String(list.value || '').trim() && q) {
+                        list.value = q;
+                        resetAdoraSearchTypingForInput(list);
+                    }
                 }
                 syncAdoraAnimatedSearchVisibility();
             } catch (_e) {}
@@ -5611,6 +5631,10 @@
             'Kids',
             'Deals',
         ];
+        const ADORA_SEARCH_ROTATE_INTERVAL_MS = 1500;
+        const ADORA_SEARCH_TYPING_IDLE_MS = 420;
+        const adoraSearchTypingIdleTimers = new WeakMap();
+
         let adoraSearchRotateIndex = 0;
         let adoraSearchRotateTimer = null;
         let adoraAnimatedSearchListenersBound = false;
@@ -5635,12 +5659,47 @@
             );
         }
 
+        function clearAdoraSearchTypingIdleTimer(input) {
+            const t = adoraSearchTypingIdleTimers.get(input);
+            if (t) {
+                clearTimeout(t);
+                adoraSearchTypingIdleTimers.delete(input);
+            }
+        }
+
+        function resetAdoraSearchTypingForInput(input) {
+            if (!input) return;
+            clearAdoraSearchTypingIdleTimer(input);
+            delete input.dataset.adoraPhTyping;
+        }
+
+        function scheduleAdoraSearchTypingIdle(input) {
+            clearAdoraSearchTypingIdleTimer(input);
+            input.dataset.adoraPhTyping = '1';
+            syncAdoraAnimatedSearchVisibility();
+            const t = setTimeout(() => {
+                adoraSearchTypingIdleTimers.delete(input);
+                delete input.dataset.adoraPhTyping;
+                syncAdoraAnimatedSearchVisibility();
+            }, ADORA_SEARCH_TYPING_IDLE_MS);
+            adoraSearchTypingIdleTimers.set(input, t);
+        }
+
         function syncAdoraAnimatedSearchVisibility() {
             document.querySelectorAll('[data-adora-animated-ph]').forEach((faux) => {
                 const input = getInputForAnimatedPh(faux);
-                const show = input && !String(input.value || '').trim() && document.activeElement !== input;
+                const typingHold = input && input.dataset.adoraPhTyping === '1';
+                const show = input && !String(input.value || '').trim() && !typingHold;
                 faux.classList.toggle('adora-search-faux-ph--hidden', !show);
             });
+        }
+
+        function anyAdoraAnimatedSearchPhVisible() {
+            let any = false;
+            document.querySelectorAll('[data-adora-animated-ph]').forEach((faux) => {
+                if (!faux.classList.contains('adora-search-faux-ph--hidden')) any = true;
+            });
+            return any;
         }
 
         function onAdoraSearchRotAnimationEnd(ev) {
@@ -5667,6 +5726,7 @@
         }
 
         function tickAdoraAnimatedSearch() {
+            if (!anyAdoraAnimatedSearchPhVisible()) return;
             const words = getAdoraSearchRotateWords();
             if (!words.length) return;
             adoraSearchRotateIndex = (adoraSearchRotateIndex + 1) % words.length;
@@ -5683,7 +5743,7 @@
             syncAdoraSearchFauxPrefixes();
             updateAdoraAnimatedSearchWords({ animate: false });
             syncAdoraAnimatedSearchVisibility();
-            adoraSearchRotateTimer = setInterval(tickAdoraAnimatedSearch, 2800);
+            adoraSearchRotateTimer = setInterval(tickAdoraAnimatedSearch, ADORA_SEARCH_ROTATE_INTERVAL_MS);
         }
 
         function initAdoraAnimatedSearch() {
@@ -5696,10 +5756,22 @@
                 const bind = (id) => {
                     const el = document.getElementById(id);
                     if (!el) return;
-                    const onChange = () => syncAdoraAnimatedSearchVisibility();
-                    el.addEventListener('focus', onChange);
-                    el.addEventListener('blur', onChange);
-                    el.addEventListener('input', onChange);
+                    el.addEventListener('focus', () => syncAdoraAnimatedSearchVisibility());
+                    el.addEventListener('blur', () => {
+                        clearAdoraSearchTypingIdleTimer(el);
+                        delete el.dataset.adoraPhTyping;
+                        syncAdoraAnimatedSearchVisibility();
+                    });
+                    el.addEventListener('input', () => {
+                        if (String(el.value || '').trim()) {
+                            clearAdoraSearchTypingIdleTimer(el);
+                            delete el.dataset.adoraPhTyping;
+                        } else {
+                            scheduleAdoraSearchTypingIdle(el);
+                            return;
+                        }
+                        syncAdoraAnimatedSearchVisibility();
+                    });
                 };
                 bind('search-input');
                 bind('listing-search-input');
@@ -5713,7 +5785,10 @@
             listingSearchQuery = input ? input.value.trim() : '';
             listingAdoraOnly = false;
             listingNewCollectionOnly = false;
-            if (input) input.value = '';
+            if (input) {
+                input.value = '';
+                resetAdoraSearchTypingForInput(input);
+            }
             syncAdoraAnimatedSearchVisibility();
             navigateTo('screen-listing');
         }
