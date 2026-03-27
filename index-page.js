@@ -1617,21 +1617,27 @@
         }
 
         function setAuthMode(mode) {
-            const loginTab = document.getElementById('auth-tab-login');
-            const signupTab = document.getElementById('auth-tab-signup');
+            const hLogin = document.getElementById('auth-modal-heading-login');
+            const hSignup = document.getElementById('auth-modal-heading-signup');
+            const loginScreen = document.getElementById('auth-login-screen');
+            const signupScreen = document.getElementById('auth-signup-screen');
             const formSignup = document.getElementById('auth-form-signup');
-            const formLogin = document.getElementById('auth-form-login');
 
-            if (!loginTab || !signupTab || !formSignup || !formLogin) return;
+            if (!loginScreen || !signupScreen || !formSignup) return;
 
             const isLogin = mode === 'login';
-            loginTab.classList.toggle('auth-tab--active', isLogin);
-            signupTab.classList.toggle('auth-tab--active', !isLogin);
+            if (hLogin) hLogin.classList.toggle('hidden', !isLogin);
+            if (hSignup) hSignup.classList.toggle('hidden', isLogin);
 
-            formSignup.classList.toggle('hidden', isLogin);
-            formLogin.classList.toggle('hidden', !isLogin);
+            loginScreen.classList.toggle('hidden', !isLogin);
+            signupScreen.classList.toggle('hidden', isLogin);
+
             if (isLogin) resetSignupEmailOtpUi();
         }
+
+        try {
+            window.setAuthMode = setAuthMode;
+        } catch (_e) {}
 
         function openAuthModal(mode = 'signup', message = '') {
             const modal = document.getElementById('auth-modal');
@@ -6341,10 +6347,20 @@
             else openSideDrawer();
         }
 
-        function sideMenuOpenAuth() {
+        function sideMenuOpenAuthLogin() {
+            closeSideDrawer(true);
+            openAuthModal('login');
+        }
+
+        function sideMenuOpenAuthSignup() {
             closeSideDrawer(true);
             openAuthModal('signup');
         }
+
+        try {
+            window.sideMenuOpenAuthLogin = sideMenuOpenAuthLogin;
+            window.sideMenuOpenAuthSignup = sideMenuOpenAuthSignup;
+        } catch (_e) {}
 
         async function sideMenuTrackOrders() {
             if (!getStoredJwtToken()) {

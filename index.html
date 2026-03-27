@@ -2533,26 +2533,6 @@
                 filter: blur(8px);
             }
         }
-        .auth-tab {
-            flex: 1;
-            padding: 0.65rem 0.5rem;
-            border-radius: 1rem;
-            font-weight: 700;
-            font-size: 0.875rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.55);
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-        }
-        .auth-tab--active {
-            background: rgba(139, 92, 246, 0.38);
-            border-color: rgba(196, 181, 253, 0.45);
-            color: #fff;
-            box-shadow: 0 0 20px rgba(124, 58, 237, 0.35);
-        }
-        .auth-tab:active {
-            transform: scale(0.98);
-        }
         .adora-auth-primary-btn {
             position: relative;
             overflow: hidden;
@@ -2696,7 +2676,7 @@
                 <div class="auth-gate-hero auth-card-enter w-full flex flex-col items-center px-2">
                     <div class="auth-gate-hero-logo mb-1">Adora</div>
                     <p class="text-violet-200/85 text-xs tracking-[0.25em] uppercase font-semibold mb-4" data-en="Premium fashion" data-ar="أزياء فاخرة">أزياء فاخرة</p>
-                    <p class="text-violet-100/80 text-sm px-2 text-center leading-relaxed max-w-xs" data-en="Sign in or create an account to continue" data-ar="سجّل الدخول أو أنشئ حساباً للمتابعة">سجّل الدخول أو أنشئ حساباً للمتابعة</p>
+                    <p class="text-violet-100/80 text-sm px-2 text-center leading-relaxed max-w-xs" data-en="Choose below: sign in or create a new account." data-ar="اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.">اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.</p>
                 </div>
             </div>
             <div class="w-full max-w-sm space-y-3 pb-4">
@@ -2719,7 +2699,8 @@
             <div class="flex-shrink-0 flex justify-between items-start px-4 pt-4 pb-3 border-b border-gray-100">
                 <div>
                     <p class="text-[10px] tracking-[0.4em] uppercase adora-auth-muted" data-en="Account" data-ar="الحساب">Account</p>
-                    <h3 class="text-lg font-bold text-white" id="auth-modal-title" data-en="Sign in / Sign up" data-ar="تسجيل دخول / إنشاء حساب">Sign in / Sign up</h3>
+                    <h3 class="text-lg font-bold text-white hidden" id="auth-modal-heading-login" data-en="Sign in" data-ar="تسجيل الدخول">تسجيل الدخول</h3>
+                    <h3 class="text-lg font-bold text-white" id="auth-modal-heading-signup" data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</h3>
                 </div>
                 <button type="button" class="adora-auth-close p-1 -m-1 rounded-lg hover:bg-white/10" aria-label="Close" onclick="closeAuthModal()">
                     <i class="fas fa-times text-lg"></i>
@@ -2727,71 +2708,73 @@
             </div>
 
             <div class="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4">
-                <div class="flex gap-2">
-                    <button type="button" class="auth-tab" id="auth-tab-login" onclick="setAuthMode('login')">
-                        <span data-en="Login" data-ar="تسجيل دخول">Login</span>
-                    </button>
-                    <button type="button" class="auth-tab auth-tab--active" id="auth-tab-signup" onclick="setAuthMode('signup')">
-                        <span data-en="Sign Up" data-ar="إنشاء حساب">Sign Up</span>
-                    </button>
-                </div>
-
                 <div id="auth-message" class="hidden text-sm text-center font-semibold leading-snug"></div>
 
-                <form id="auth-form-signup" class="space-y-3">
-                    <div class="auth-field-enter" style="animation-delay: 0.05s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Name" data-ar="الاسم">Name</label>
-                        <input id="auth-name" type="text" class="adora-auth-input" data-en-placeholder="Your name" data-ar-placeholder="اسمك" placeholder="" />
-                    </div>
-                    <div class="auth-field-enter" style="animation-delay: 0.1s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Email" data-ar="البريد الإلكتروني">Email</label>
-                        <input id="auth-email" type="email" class="adora-auth-input" inputmode="email" autocomplete="email" data-en-placeholder="you@example.com" data-ar-placeholder="you@example.com" placeholder="" />
-                    </div>
-                    <div class="auth-field-enter" style="animation-delay: 0.15s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
-                        <input id="auth-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
-                    </div>
-                    <p class="text-[11px] text-violet-200/90 leading-relaxed" data-en="We will email you a 6-digit code (valid 5 minutes). Not required again after you sign up." data-ar="سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.">سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.</p>
-                    <button type="button" onclick="handleSignupSendCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.2s">
-                        <i class="fas fa-envelope"></i>
-                        <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
-                    </button>
-                </form>
-
-                <div id="auth-signup-otp-panel" class="space-y-4 hidden">
-                    <p class="text-sm text-white/95 leading-relaxed text-center drop-shadow-sm" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
-                    <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-signup-otp-email-display"></p>
-                    <div>
-                        <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
-                        <input id="auth-signup-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
-                    </div>
-                    <button type="button" onclick="handleSignupVerifyCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
-                        <span data-en="Verify & create account" data-ar="تأكيد وإنشاء الحساب">تأكيد وإنشاء الحساب</span>
-                    </button>
-                    <div class="flex flex-col items-center gap-2">
-                        <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
-                            <span id="auth-signup-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
+                <div id="auth-login-screen" class="space-y-4 hidden">
+                    <form id="auth-form-login" class="space-y-3">
+                        <div class="auth-field-enter" style="animation-delay: 0.05s">
+                            <label class="text-sm font-semibold adora-auth-label" data-en="Phone or email" data-ar="الهاتف أو البريد">Phone or email</label>
+                            <input id="auth-phone-login" type="text" class="adora-auth-input" inputmode="text" autocomplete="username" data-en-placeholder="Phone or email" data-ar-placeholder="الهاتف أو البريد" placeholder="" />
+                        </div>
+                        <div class="auth-field-enter" style="animation-delay: 0.1s">
+                            <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
+                            <input id="auth-password-login" type="password" class="adora-auth-input" autocomplete="current-password" placeholder="••••••••" />
+                        </div>
+                        <button type="button" onclick="handleLogin()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.15s">
+                            <i class="fas fa-right-to-bracket"></i>
+                            <span data-en="Sign in" data-ar="تسجيل الدخول">تسجيل الدخول</span>
                         </button>
-                        <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-white/80 hover:text-white">
-                            <span data-en="Change email" data-ar="تغيير البريد">تغيير البريد</span>
-                        </button>
-                    </div>
+                    </form>
+                    <p class="text-center pt-1">
+                        <button type="button" onclick="setAuthMode('signup')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="No account? Create one" data-ar="ليس لديك حساب؟ أنشئ حساباً">ليس لديك حساب؟ أنشئ حساباً</button>
+                    </p>
                 </div>
 
-                <form id="auth-form-login" class="space-y-3 hidden">
-                    <div class="auth-field-enter" style="animation-delay: 0.05s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Phone or email" data-ar="الهاتف أو البريد">Phone or email</label>
-                        <input id="auth-phone-login" type="text" class="adora-auth-input" inputmode="text" autocomplete="username" data-en-placeholder="Phone or email" data-ar-placeholder="الهاتف أو البريد" placeholder="" />
+                <div id="auth-signup-screen" class="space-y-4">
+                    <form id="auth-form-signup" class="space-y-3">
+                        <div class="auth-field-enter" style="animation-delay: 0.05s">
+                            <label class="text-sm font-semibold adora-auth-label" data-en="Name" data-ar="الاسم">Name</label>
+                            <input id="auth-name" type="text" class="adora-auth-input" data-en-placeholder="Your name" data-ar-placeholder="اسمك" placeholder="" />
+                        </div>
+                        <div class="auth-field-enter" style="animation-delay: 0.1s">
+                            <label class="text-sm font-semibold adora-auth-label" data-en="Email" data-ar="البريد الإلكتروني">Email</label>
+                            <input id="auth-email" type="email" class="adora-auth-input" inputmode="email" autocomplete="email" data-en-placeholder="you@example.com" data-ar-placeholder="you@example.com" placeholder="" />
+                        </div>
+                        <div class="auth-field-enter" style="animation-delay: 0.15s">
+                            <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
+                            <input id="auth-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
+                        </div>
+                        <p class="text-[11px] text-violet-200/90 leading-relaxed" data-en="We will email you a 6-digit code (valid 5 minutes). Not required again after you sign up." data-ar="سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.">سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.</p>
+                        <button type="button" onclick="handleSignupSendCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.2s">
+                            <i class="fas fa-envelope"></i>
+                            <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
+                        </button>
+                        <p class="text-center pt-1">
+                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="Already have an account? Sign in" data-ar="لديك حساب؟ سجّل الدخول">لديك حساب؟ سجّل الدخول</button>
+                        </p>
+                    </form>
+
+                    <div id="auth-signup-otp-panel" class="space-y-4 hidden">
+                        <p class="text-sm text-white/95 leading-relaxed text-center drop-shadow-sm" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
+                        <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-signup-otp-email-display"></p>
+                        <div>
+                            <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
+                            <input id="auth-signup-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
+                        </div>
+                        <button type="button" onclick="handleSignupVerifyCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
+                            <span data-en="Verify & create account" data-ar="تأكيد وإنشاء الحساب">تأكيد وإنشاء الحساب</span>
+                        </button>
+                        <div class="flex flex-col items-center gap-2">
+                            <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                                <span id="auth-signup-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
+                            </button>
+                            <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-white/80 hover:text-white">
+                                <span data-en="Change email" data-ar="تغيير البريد">تغيير البريد</span>
+                            </button>
+                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2 mt-1" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
+                        </div>
                     </div>
-                    <div class="auth-field-enter" style="animation-delay: 0.1s">
-                        <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
-                        <input id="auth-password-login" type="password" class="adora-auth-input" autocomplete="current-password" placeholder="••••••••" />
-                    </div>
-                    <button type="button" onclick="handleLogin()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.15s">
-                        <i class="fas fa-right-to-bracket"></i>
-                        <span data-en="Login" data-ar="تسجيل دخول">Login</span>
-                    </button>
-                </form>
+                </div>
             </div>
 
             <div class="flex-shrink-0 px-4 pb-4 pt-2 border-t border-gray-100 bg-transparent">
@@ -4187,9 +4170,12 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div id="side-menu-guest-actions" class="mt-4">
-                <button type="button" onclick="sideMenuOpenAuth()" class="w-full py-3 rounded-2xl bg-white text-purple-700 font-bold text-sm shadow-lg shadow-black/10 active:scale-[0.98] transition-transform">
-                    <span data-en="Sign in / Create account" data-ar="تسجيل الدخول / إنشاء حساب">تسجيل الدخول / إنشاء حساب</span>
+            <div id="side-menu-guest-actions" class="mt-4 space-y-2">
+                <button type="button" onclick="sideMenuOpenAuthLogin()" class="w-full py-3 rounded-2xl bg-white text-purple-700 font-bold text-sm shadow-lg shadow-black/10 active:scale-[0.98] transition-transform">
+                    <span data-en="Sign in" data-ar="تسجيل الدخول">تسجيل الدخول</span>
+                </button>
+                <button type="button" onclick="sideMenuOpenAuthSignup()" class="w-full py-3 rounded-2xl bg-white/15 text-white font-bold text-sm border border-white/25 active:scale-[0.98] transition-transform">
+                    <span data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</span>
                 </button>
             </div>
             <div id="side-menu-user-badge" class="hidden mt-3 flex items-center gap-2 text-xs text-white/90">
