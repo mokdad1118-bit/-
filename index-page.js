@@ -2855,30 +2855,42 @@
 
         function renderMarketplaceVendorsStrip() {
             const wrap = document.getElementById('marketplace-vendors-strip-wrap');
-            const sc = document.getElementById('marketplace-vendors-scroll');
-            if (!wrap || !sc) return;
+            const row1 = document.getElementById('marketplace-vendors-row-1');
+            const row2 = document.getElementById('marketplace-vendors-row-2');
+            if (!wrap || !row1 || !row2) return;
             const list = Array.isArray(marketplaceBrowseVendorsCache) ? marketplaceBrowseVendorsCache : [];
             if (!list.length) {
                 wrap.classList.add('hidden');
-                sc.innerHTML = '';
+                row1.innerHTML = '';
+                row2.innerHTML = '';
+                row2.classList.add('hidden');
                 return;
             }
             wrap.classList.remove('hidden');
             const loc = isRTL ? 'ar' : 'en';
-            let html = '';
-            for (const v of list) {
+            const buildChip = (v) => {
                 const name = String(loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar || '').trim();
                 const vid = Number(v.id);
-                if (!Number.isFinite(vid)) continue;
+                if (!Number.isFinite(vid)) return '';
                 const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
                 const cls = `mp-vendor-chip${sel ? ' mp-vendor-chip--selected' : ''}`;
                 const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
                 const logo = logoRaw
                     ? `<span class="mp-vendor-logo-box"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
                     : `<span class="mp-vendor-logo-box mp-vendor-logo-box--placeholder">${escapeHtml((name || '?').charAt(0))}</span>`;
-                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name" dir="auto">${escapeHtml(name || '—')}</span></button>`;
+                return `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name" dir="auto">${escapeHtml(name || '—')}</span></button>`;
+            };
+            const parts = list.map(buildChip).filter(Boolean);
+            const mid = Math.ceil(parts.length / 2);
+            row1.innerHTML = parts.slice(0, mid).join('');
+            const row2html = parts.slice(mid).join('');
+            if (row2html) {
+                row2.innerHTML = row2html;
+                row2.classList.remove('hidden');
+            } else {
+                row2.innerHTML = '';
+                row2.classList.add('hidden');
             }
-            sc.innerHTML = html;
         }
 
         async function loadMarketplaceVendorsStrip() {
@@ -3101,13 +3113,11 @@
                     if (q) {
                         emptyMsg = isRTL ? 'لا نتائج.' : 'No results.';
                     } else if (narrow) {
-                        emptyMsg = isRTL
-                            ? 'لا توجد منتجات نشطة لهذا العرض. أضف منتجات من لوحة التحكم أو اضغط «الكل».'
-                            : 'No active products for this filter. Add products in admin or tap «All».';
+                        emptyMsg = isRTL ? 'لا توجد منتجات لهذه الشركة حالياً.' : 'No products for this company right now.';
                     } else {
                         emptyMsg = isRTL
-                            ? 'لا توجد منتجات مميزة بعد. اختر شركة من الشريط أو ابحث، أو فعّل «مميز في السوق» على منتجات من لوحة التحكم.'
-                            : 'No featured picks yet. Choose a company from the strip or search, or mark products as featured in admin.';
+                            ? 'لا توجد منتجات للعرض حالياً. جرّب البحث أو اختر شركة.'
+                            : 'Nothing to show yet. Try search or pick a company.';
                     }
                     grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${emptyMsg}</p>`;
                     return;
