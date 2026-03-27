@@ -2865,25 +2865,20 @@
             }
             wrap.classList.remove('hidden');
             const loc = isRTL ? 'ar' : 'en';
-            const allLabel = isRTL ? 'الكل' : 'All';
-            const selAll = marketplaceBrowseVendorId == null;
-            const allCls = `flex-shrink-0 self-center rounded-full px-3.5 py-2 text-sm font-bold border transition active:scale-[0.98] ${
-                selAll ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-50'
-            }`;
-            let html = `<button type="button" data-mp-browse-vendor-clear="1" class="${allCls}">${escapeHtml(allLabel)}</button>`;
+            let html = '';
             for (const v of list) {
                 const name = String(loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar || '').trim();
                 const vid = Number(v.id);
                 if (!Number.isFinite(vid)) continue;
                 const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
-                const cls = `mp-vendor-chip flex-shrink-0 flex flex-col items-center gap-2 rounded-2xl px-2 pt-2.5 pb-2 border transition w-[5.75rem] active:scale-[0.98] ${
-                    sel ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-200 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'
+                const cls = `mp-vendor-chip flex-shrink-0 flex flex-col items-center gap-2.5 rounded-[1.35rem] px-2.5 pt-3 pb-3 border transition w-[8.5rem] snap-start active:scale-[0.98] ${
+                    sel ? 'bg-gradient-to-b from-purple-50/95 to-white border-purple-400 ring-2 ring-purple-200/90 shadow-md' : 'bg-white border-gray-200/90 shadow-sm hover:border-gray-300 hover:shadow'
                 }`;
                 const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
                 const logo = logoRaw
-                    ? `<span class="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shrink-0 ring-2 ring-black/[0.06] shadow-sm"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                    : `<span class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-xl font-extrabold ring-2 ring-emerald-200/60 shadow-sm">${escapeHtml((name || '?').charAt(0))}</span>`;
-                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="text-center text-[12px] font-extrabold text-gray-900 leading-snug line-clamp-2 w-full px-0.5">${escapeHtml(name || '—')}</span></button>`;
+                    ? `<span class="w-28 h-28 rounded-2xl overflow-hidden bg-gray-50 shrink-0 ring-1 ring-gray-200/70 shadow-inner flex items-center justify-center p-2"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="max-w-full max-h-full w-auto h-auto object-contain" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-3xl font-bold tracking-tight ring-1 ring-emerald-200/80 shadow-sm">${escapeHtml((name || '?').charAt(0))}</span>`;
+                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name text-center text-[13px] font-semibold text-gray-800 tracking-tight leading-snug line-clamp-2 w-full px-1" dir="auto">${escapeHtml(name || '—')}</span></button>`;
             }
             sc.innerHTML = html;
         }
@@ -2905,24 +2900,20 @@
             if (!screen || screen.dataset.adoraMpVStripBound === '1') return;
             screen.dataset.adoraMpVStripBound = '1';
             screen.addEventListener('click', (e) => {
-                const clearBtn = e.target.closest('[data-mp-browse-vendor-clear]');
-                if (clearBtn && screen.contains(clearBtn)) {
-                    e.preventDefault();
-                    marketplaceBrowseVendorId = null;
-                    marketplaceBrowseSectionId = null;
-                    renderMarketplaceVendorsStrip();
-                    refreshMarketplaceProductList().catch(() => {});
-                    return;
-                }
                 const vbtn = e.target.closest('[data-mp-browse-vendor-id]');
                 if (!vbtn || !screen.contains(vbtn)) return;
                 e.preventDefault();
                 const vid = Number(vbtn.getAttribute('data-mp-browse-vendor-id'));
                 if (!Number.isFinite(vid)) return;
-                marketplaceBrowseVendorId = vid;
-                marketplaceBrowseSectionId = null;
-                const si = document.getElementById('marketplace-search-input');
-                if (si) si.value = '';
+                if (marketplaceBrowseVendorId === vid) {
+                    marketplaceBrowseVendorId = null;
+                    marketplaceBrowseSectionId = null;
+                } else {
+                    marketplaceBrowseVendorId = vid;
+                    marketplaceBrowseSectionId = null;
+                    const si = document.getElementById('marketplace-search-input');
+                    if (si) si.value = '';
+                }
                 renderMarketplaceVendorsStrip();
                 refreshMarketplaceProductList().catch(() => {});
             });
