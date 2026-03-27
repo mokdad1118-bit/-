@@ -237,6 +237,8 @@ let adminProductReviewsCache = [];
 let adminProductReviewsLoadError = null;
 let adminMpProductReviewsCache = [];
 let adminMpProductReviewsLoadError = null;
+let adminCustomerFeedbackCache = [];
+let adminCustomerFeedbackLoadError = null;
 let adminFlashCache = [];
 let adminBannersCache = [];
 /** منتجات العلامة المختارة حسب القسم الرئيسي (Men/Women/Kids) */
@@ -416,6 +418,7 @@ function setActiveTab(tabId) {
     loadSiteRatings().catch(() => {});
     loadAdminProductReviews().catch(() => {});
     loadAdminMarketplaceProductReviews().catch(() => {});
+    loadAdminCustomerFeedbackNotes().catch(() => {});
   }
   if (tabId === "tab-notifications") {
     loadNotificationTargetOptions().catch(() => {});
@@ -534,6 +537,10 @@ async function loadVendorPlatformSettingsUi() {
   const ate = document.getElementById("vp-app-ad-terms-en");
   if (ata) ata.value = s.app_ad_terms_ar || "";
   if (ate) ate.value = s.app_ad_terms_en || "";
+  const psj = document.getElementById("vp-partner-slides-json");
+  if (psj) psj.value = s.partner_cta_slides_json && String(s.partner_cta_slides_json).trim() !== "[]" ? s.partner_cta_slides_json : "";
+  const asj = document.getElementById("vp-app-ad-slides-json");
+  if (asj) asj.value = s.app_ad_cta_slides_json && String(s.app_ad_cta_slides_json).trim() !== "[]" ? s.app_ad_cta_slides_json : "";
 }
 
 async function loadAppAdInquiriesUi() {
@@ -718,6 +725,8 @@ function collectVendorPlatformSettingsBody() {
     app_ad_banner_placements,
     app_ad_terms_ar: document.getElementById("vp-app-ad-terms-ar")?.value ?? "",
     app_ad_terms_en: document.getElementById("vp-app-ad-terms-en")?.value ?? "",
+    partner_cta_slides_json: document.getElementById("vp-partner-slides-json")?.value ?? "",
+    app_ad_cta_slides_json: document.getElementById("vp-app-ad-slides-json")?.value ?? "",
     featured_products_mode: document.getElementById("vp-featured-mode")?.value ?? "manual",
     featured_vendor_ids: vendorIds,
     bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost")?.checked ? 1 : 0,
@@ -1976,6 +1985,8 @@ async function loadBanners() {
 
 /** تمييز صف بانر الشريط: إعلان ممول vs رابط ينتهي بانضمام شركة أو طلب إعلان (استدلال من الرابط والنص) */
 function classifyAppBannerKind(b) {
+  const bk = String(b.banner_kind || "").toLowerCase().replace(/-/g, "_");
+  if (bk === "customer_note") return "customer_note";
   const link = String(b.link_url || "").toLowerCase();
   const blob = `${link} ${String(b.title_ar || "").toLowerCase()} ${String(b.title_en || "").toLowerCase()} ${String(b.body_ar || "").toLowerCase()} ${String(b.body_en || "").toLowerCase()}`;
   if (/screen-vendor-join|vendor-join|vendor_join|openvendorjoin|partner_with|انضم\s*كشركة|انضمام|join\s*adora|join-company/.test(blob)) return "vendor_join";
@@ -1984,6 +1995,11 @@ function classifyAppBannerKind(b) {
 }
 
 function bannerKindLabelHtml(kind, ar) {
+  if (kind === "customer_note") {
+    return ar
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap" title="ملاحظات زبائن — يفتح نموذج إرسال"><i class="fas fa-message text-[9px] opacity-80"></i>ملاحظات الزبائن</span>`
+      : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap" title="Customer notes — opens submit form"><i class="fas fa-message text-[9px] opacity-80"></i>Customer notes</span>`;
+  }
   if (kind === "vendor_join") {
     return ar
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap" title="رابط أو نص يشير لصفحة انضمام شركة"><i class="fas fa-handshake text-[9px] opacity-80"></i>انضم لشركة أدورا</span>`
@@ -2044,6 +2060,8 @@ function renderBannersTable() {
       document.getElementById("banner-image-url").value = b.image_url || "";
       document.getElementById("banner-link-url").value = b.link_url || "";
       document.getElementById("banner-placement").value = b.placement || "home_top";
+      const bkEl = document.getElementById("banner-kind");
+      if (bkEl) bkEl.value = String(b.banner_kind || "standard").toLowerCase() === "customer_note" ? "customer_note" : "standard";
       document.getElementById("banner-sort").value = String(b.sort_order ?? 0);
       document.getElementById("banner-active").checked = Number(b.active) !== 0;
       document.getElementById("banner-image-file").value = "";
@@ -2071,6 +2089,7 @@ async function saveBanner(e) {
     const up = await uploadImageFile(file, token);
     if (up) image_url = up;
   }
+  const banner_kind = document.getElementById("banner-kind")?.value || "standard";
   const body = {
     title_ar: document.getElementById("banner-title-ar").value.trim(),
     title_en: document.getElementById("banner-title-en").value.trim(),
@@ -2081,18 +2100,28 @@ async function saveBanner(e) {
     placement: document.getElementById("banner-placement").value.trim(),
     sort_order: Number(document.getElementById("banner-sort").value || 0),
     active: document.getElementById("banner-active").checked ? 1 : 0,
+    banner_kind,
   };
   if (!body.placement) {
     alert(ar ? "اختر موضع العرض." : "Choose placement.");
     return;
   }
-  if (!body.title_ar && !body.title_en) {
-    alert(ar ? "أدخل عنواناً عربياً أو إنجليزياً." : "Enter a title in Arabic or English.");
-    return;
-  }
-  if (!body.body_ar && !body.body_en) {
-    alert(ar ? "أدخل نصاً عربياً أو إنجليزياً." : "Enter body text in Arabic or English.");
-    return;
+  if (banner_kind !== "customer_note") {
+    if (!body.title_ar && !body.title_en) {
+      alert(ar ? "أدخل عنواناً عربياً أو إنجليزياً." : "Enter a title in Arabic or English.");
+      return;
+    }
+    if (!body.body_ar && !body.body_en) {
+      alert(ar ? "أدخل نصاً عربياً أو إنجليزياً." : "Enter body text in Arabic or English.");
+      return;
+    }
+  } else {
+    const hasImg = !!body.image_url;
+    const hasCta = (body.title_ar || body.title_en) && (body.body_ar || body.body_en);
+    if (!hasImg && !hasCta) {
+      alert(ar ? "لملاحظات الزبائن: أضف صورة أو عنواناً ونصاً (مثل بنر انضم كشركة)." : "For customer notes: add an image or title+body (like join CTA).");
+      return;
+    }
   }
   if (id) {
     await api(`/api/admin/banners/${id}`, { method: "PUT", token, body });
@@ -2114,6 +2143,8 @@ function resetBannerForm() {
   document.getElementById("banner-image-url").value = "";
   document.getElementById("banner-link-url").value = "";
   document.getElementById("banner-placement").value = "home_top";
+  const bkEl = document.getElementById("banner-kind");
+  if (bkEl) bkEl.value = "standard";
   document.getElementById("banner-sort").value = "0";
   document.getElementById("banner-active").checked = true;
   document.getElementById("banner-image-file").value = "";
@@ -3412,6 +3443,55 @@ async function loadAdminMarketplaceProductReviews() {
   renderAdminMpProductReviewsTable();
 }
 
+async function loadAdminCustomerFeedbackNotes() {
+  const token = getToken();
+  adminCustomerFeedbackLoadError = null;
+  let rows = [];
+  try {
+    rows = await api("/api/admin/customer-feedback-notes", { token });
+  } catch (e) {
+    console.error(e);
+    adminCustomerFeedbackLoadError = e.message || String(e);
+    rows = [];
+  }
+  adminCustomerFeedbackCache = Array.isArray(rows) ? rows : [];
+  renderAdminCustomerFeedbackNotesTable();
+}
+
+function renderAdminCustomerFeedbackNotesTable() {
+  const tbody = document.getElementById("customer-feedback-notes-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  if (adminCustomerFeedbackLoadError) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-600 text-sm break-words">${escapeHtml(
+      adminCustomerFeedbackLoadError
+    )}</td></tr>`;
+    return;
+  }
+  const list = adminCustomerFeedbackCache;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">${
+      ar ? "لا ملاحظات زبائن بعد." : "No customer notes yet."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list
+    .map((r) => {
+      const contact = [r.phone, r.email].filter(Boolean).join(" · ");
+      return `
+        <tr>
+          <td class="py-2 pr-2 text-xs">${r.id ?? "—"}</td>
+          <td class="py-2 pr-2 text-xs max-w-md break-words text-gray-800">${escapeHtml(r.note || "—")}</td>
+          <td class="py-2 pr-2 text-xs font-semibold">${escapeHtml(r.user_name || "—")}</td>
+          <td class="py-2 pr-2 text-xs font-mono text-gray-600">${escapeHtml(contact || "—")}</td>
+          <td class="py-2 pr-2 text-xs">${r.banner_id != null ? escapeHtml(String(r.banner_id)) : "—"}</td>
+          <td class="py-2 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(String(r.created_at || "—"))}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 function renderAdminProductReviewsTable() {
   const tbody = document.getElementById("product-reviews-tbody");
   if (!tbody) return;
@@ -3977,6 +4057,7 @@ function refilterAdminActiveTab() {
     renderSiteRatingsTable();
     renderAdminProductReviewsTable();
     renderAdminMpProductReviewsTable();
+    renderAdminCustomerFeedbackNotesTable();
   }
   else if (vis === "tab-flash") renderFlashSalesTable();
   else if (vis === "tab-banners") renderBannersTable();
@@ -3990,6 +4071,7 @@ const HOME_SECTION_VIS_KEYS_FALLBACK = [
   "top_brands",
   "flash_sale",
   "curated",
+  "home_featured",
   "promo_collection",
   "bestsellers",
 ];
@@ -4411,6 +4493,7 @@ async function bootstrapAuthed() {
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));
   document.getElementById("btn-refresh-product-reviews")?.addEventListener("click", () => loadAdminProductReviews().catch(() => {}));
   document.getElementById("btn-refresh-mp-product-reviews")?.addEventListener("click", () => loadAdminMarketplaceProductReviews().catch(() => {}));
+  document.getElementById("btn-refresh-customer-feedback-notes")?.addEventListener("click", () => loadAdminCustomerFeedbackNotes().catch(() => {}));
   document.getElementById("btn-refresh-database-overview")?.addEventListener("click", () => loadDatabaseOverview().catch(() => {}));
   document.getElementById("banner-form")?.addEventListener("submit", (ev) => saveBanner(ev).catch((err) => alert(err.message || String(err))));
   document.getElementById("btn-refresh-banners")?.addEventListener("click", () => loadBanners().catch(() => {}));

@@ -344,6 +344,7 @@ async function initDb() {
   await migrateMarketplaceComprehensiveV2();
   await migrateMarketplaceHomePlacementsV1();
   await migrateAppAdBannerV1();
+  await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -805,6 +806,28 @@ async function migrateMarketplaceHomePlacementsV1() {
   )`);
   await run(
     `CREATE INDEX IF NOT EXISTS idx_mp_home_placements_slot_order ON marketplace_home_placements (slot, sort_order, id)`
+  );
+}
+
+/** بانر ملاحظات الزبائن + هاتف التسجيل + شرائح متعددة لبنري الانضمام/الإعلان */
+async function migrateAdoraFeedbackBannersSignupPhoneSlidesV1() {
+  await run(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS banner_kind TEXT NOT NULL DEFAULT 'standard'`);
+  await run(`
+    CREATE TABLE IF NOT EXISTS customer_feedback_notes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      banner_id INTEGER REFERENCES app_banners(id) ON DELETE SET NULL,
+      note TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await run(`CREATE INDEX IF NOT EXISTS idx_customer_feedback_created ON customer_feedback_notes (created_at DESC)`);
+  await run(`ALTER TABLE pending_email_signups ADD COLUMN IF NOT EXISTS signup_phone TEXT NOT NULL DEFAULT ''`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS partner_cta_slides_json TEXT NOT NULL DEFAULT '[]'`
+  );
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_cta_slides_json TEXT NOT NULL DEFAULT '[]'`
   );
 }
 

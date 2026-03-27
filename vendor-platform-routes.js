@@ -32,6 +32,56 @@ const PROMOTION_SLOTS = ["search_sponsored", "home_featured", "section_featured"
 const DEFAULT_APP_AD_BANNER_TEXT_AR = "أعلن عن منتجك داخل تطبيق أدورا";
 const DEFAULT_APP_AD_BANNER_TEXT_EN = "Advertise your product on Adora";
 
+function safeJsonParse(raw, fallback) {
+  try {
+    return JSON.parse(raw || "");
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeCtaSlideEntry(x) {
+  if (!x || typeof x !== "object") return null;
+  const title_ar = String(x.title_ar || "").trim().slice(0, 500);
+  const title_en = String(x.title_en || "").trim().slice(0, 500);
+  const subtitle_ar = String(x.subtitle_ar || "").trim().slice(0, 500);
+  const subtitle_en = String(x.subtitle_en || "").trim().slice(0, 500);
+  if (!title_ar && !title_en) return null;
+  return { title_ar, title_en, subtitle_ar, subtitle_en };
+}
+
+function partnerCtaSlidesForPublic(s) {
+  const arr = safeJsonParse(s.partner_cta_slides_json, []);
+  if (Array.isArray(arr) && arr.length) {
+    const out = arr.map(normalizeCtaSlideEntry).filter(Boolean);
+    if (out.length) return out;
+  }
+  return [
+    {
+      title_ar: String(s.partner_banner_text_ar || "").trim(),
+      title_en: String(s.partner_banner_text_en || "").trim(),
+      subtitle_ar: String(s.partner_cta_subtitle_ar || "").trim(),
+      subtitle_en: String(s.partner_cta_subtitle_en || "").trim(),
+    },
+  ];
+}
+
+function appAdCtaSlidesForPublic(s) {
+  const arr = safeJsonParse(s.app_ad_cta_slides_json, []);
+  if (Array.isArray(arr) && arr.length) {
+    const out = arr.map(normalizeCtaSlideEntry).filter(Boolean);
+    if (out.length) return out;
+  }
+  return [
+    {
+      title_ar: String(s.app_ad_banner_text_ar || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_AR,
+      title_en: String(s.app_ad_banner_text_en || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_EN,
+      subtitle_ar: String(s.app_ad_banner_subtitle_ar || "").trim(),
+      subtitle_en: String(s.app_ad_banner_subtitle_en || "").trim(),
+    },
+  ];
+}
+
 const PARTNER_CTA_PLACEMENT_KEYS = [
   "home_under_search",
   "home_above_marketplace",
@@ -248,6 +298,22 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           app_ad_banner_placements: parseAppAdPlacementsJson(DEFAULT_APP_AD_PLACEMENTS_JSON),
           app_ad_terms_ar: "",
           app_ad_terms_en: "",
+          partner_cta_slides: [
+            {
+              title_ar: "انضم كشركة في Adora - اضغط هنا",
+              title_en: "Join Adora as a company — click here",
+              subtitle_ar: "",
+              subtitle_en: "",
+            },
+          ],
+          app_ad_cta_slides: [
+            {
+              title_ar: "أعلن عن منتجك داخل تطبيق أدورا",
+              title_en: "Advertise your product on Adora",
+              subtitle_ar: "",
+              subtitle_en: "",
+            },
+          ],
         });
       }
       const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
@@ -259,6 +325,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         partner_cta_subtitle_ar: s.partner_cta_subtitle_ar || "",
         partner_cta_subtitle_en: s.partner_cta_subtitle_en || "",
         partner_cta_placements: placements,
+        partner_cta_slides: partnerCtaSlidesForPublic(s),
         vendor_join_terms_ar: s.vendor_join_terms_ar || "",
         vendor_join_terms_en: s.vendor_join_terms_en || "",
         bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
@@ -268,6 +335,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         app_ad_banner_subtitle_ar: s.app_ad_banner_subtitle_ar || "",
         app_ad_banner_subtitle_en: s.app_ad_banner_subtitle_en || "",
         app_ad_banner_placements: appAdEff.list,
+        app_ad_cta_slides: appAdCtaSlidesForPublic(s),
         app_ad_terms_ar: s.app_ad_terms_ar || "",
         app_ad_terms_en: s.app_ad_terms_en || "",
       });
@@ -353,15 +421,34 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const app_ad_terms_en =
         b.app_ad_terms_en != null ? String(b.app_ad_terms_en).slice(0, 8000) : cur.app_ad_terms_en ?? "";
 
+      let partner_cta_slides_json = cur.partner_cta_slides_json != null ? String(cur.partner_cta_slides_json) : "[]";
+      if (Array.isArray(b.partner_cta_slides)) {
+        const slides = b.partner_cta_slides.map(normalizeCtaSlideEntry).filter(Boolean);
+        partner_cta_slides_json = JSON.stringify(slides.slice(0, 20));
+      } else if (b.partner_cta_slides_json !== undefined && b.partner_cta_slides_json !== null) {
+        const t = String(b.partner_cta_slides_json).trim();
+        partner_cta_slides_json = t ? t.slice(0, 32000) : "[]";
+      }
+      let app_ad_cta_slides_json = cur.app_ad_cta_slides_json != null ? String(cur.app_ad_cta_slides_json) : "[]";
+      if (Array.isArray(b.app_ad_cta_slides)) {
+        const slides = b.app_ad_cta_slides.map(normalizeCtaSlideEntry).filter(Boolean);
+        app_ad_cta_slides_json = JSON.stringify(slides.slice(0, 20));
+      } else if (b.app_ad_cta_slides_json !== undefined && b.app_ad_cta_slides_json !== null) {
+        const t = String(b.app_ad_cta_slides_json).trim();
+        app_ad_cta_slides_json = t ? t.slice(0, 32000) : "[]";
+      }
+
       await run(
         `UPDATE vendor_platform_settings SET
           product_quota_enabled=?, free_products_per_vendor=?, extra_product_price_usd=?, commission_percent=?,
           ads_module_enabled=?, partner_banner_enabled=?, partner_banner_text_ar=?, partner_banner_text_en=?,
           partner_cta_subtitle_ar=?, partner_cta_subtitle_en=?, partner_cta_placements_json=?,
+          partner_cta_slides_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
           vendor_join_terms_ar=?, vendor_join_terms_en=?,
           app_ad_banner_enabled=?, app_ad_banner_text_ar=?, app_ad_banner_text_en=?,
           app_ad_banner_subtitle_ar=?, app_ad_banner_subtitle_en=?, app_ad_banner_placements_json=?,
+          app_ad_cta_slides_json=?,
           app_ad_terms_ar=?, app_ad_terms_en=?,
           updated_at=CURRENT_TIMESTAMP
          WHERE id=1`,
@@ -377,6 +464,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_subtitle_ar,
           partner_cta_subtitle_en,
           partner_cta_placements_json,
+          partner_cta_slides_json,
           featured_products_mode,
           featured_vendor_ids_json,
           bestsellers_boost_enabled,
@@ -388,6 +476,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           app_ad_banner_subtitle_ar,
           app_ad_banner_subtitle_en,
           app_ad_banner_placements_json,
+          app_ad_cta_slides_json,
           app_ad_terms_ar,
           app_ad_terms_en,
         ]

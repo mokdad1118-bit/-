@@ -6,6 +6,7 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const { all, get, run, initDb, getDatabaseOverview } = require("./db");
+const { arabicSearchQueryVariants, sqlLikePrefixParam } = require("./search-utils");
 const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth } = require("./auth");
@@ -188,6 +189,7 @@ const DEFAULT_HOME_SECTIONS_VISIBILITY = {
   top_brands: true,
   flash_sale: true,
   curated: true,
+  home_featured: true,
   promo_collection: true,
   bestsellers: true,
 };
@@ -200,7 +202,8 @@ const HOME_SECTION_LABELS = {
   brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies available in the app" },
   top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
   flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
-  curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
+  curated: { ar: "اختيارات أنيقة (العنوان والوصف)", en: "Curated picks (header & intro)" },
+  home_featured: { ar: "منتجات مميزة (الشريط الأفقي)", en: "Featured products (horizontal strip)" },
   promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection / promo strip" },
   bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
@@ -293,6 +296,19 @@ function normalizeBannerPlacementValue(pl) {
     belowflash: "below_flash",
     belowcurated: "below_curated",
     belowtrending: "below_trending",
+    listingtop: "listing_top",
+    offerstop: "offers_top",
+    wishlisttop: "wishlist_top",
+    marketplacetop: "marketplace_top",
+    producttop: "product_top",
+    mpproducttop: "mp_product_top",
+    carttop: "cart_top",
+    checkouttop: "checkout_top",
+    profiletop: "profile_top",
+    ordertrackingtop: "order_tracking_top",
+    vendorjointop: "vendor_join_top",
+    appadinquirytop: "app_ad_inquiry_top",
+    categoriestop: "categories_top",
   };
   return aliases[s] || s;
 }
@@ -311,31 +327,6 @@ async function allocateNextOrderNo() {
 /** منتجات أدورا: بدون علامة أو علامة أدورا (للأقسام الرئيسية على الرئيسية) */
 function sqlAdoraBrandPredicate() {
   return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'أدورا')`;
-}
-
-/** توحيد نص البحث العربي (تشكيل، همزات) — للمطابقة مع أسماء المخزن */
-function normalizeArabicSearchQuery(q) {
-  let t = String(q || "").trim();
-  if (!t) return t;
-  t = t.replace(/\u0640/g, "");
-  t = t.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
-  t = t.replace(/[\u0622\u0623\u0625]/g, "\u0627");
-  return t.replace(/\s+/g, " ").trim();
-}
-
-/** ه/ة ونص منطقي: يطابق «كنزه» من الصوت مع «كنزة» في قاعدة البيانات */
-function arabicSearchQueryVariants(q) {
-  const raw = String(q || "").trim();
-  if (!raw) return [];
-  const set = new Set();
-  set.add(raw);
-  const norm = normalizeArabicSearchQuery(raw);
-  if (norm) set.add(norm);
-  if (/ه$/.test(raw)) set.add(raw.slice(0, -1) + "\u0629");
-  if (/ة$/.test(raw)) set.add(raw.slice(0, -1) + "\u0647");
-  if (norm && /ه$/.test(norm)) set.add(norm.slice(0, -1) + "\u0629");
-  if (norm && /ة$/.test(norm)) set.add(norm.slice(0, -1) + "\u0647");
-  return [...set].filter(Boolean);
 }
 
 /** مطابقة صف مخزون ديناميكي بخريطة options (نفس منطق decrementProductStock) */
@@ -438,6 +429,11 @@ function mapProductRow(p) {
   };
 }
 
+function normalizeSignupPhoneDigits(raw) {
+  const d = String(raw || "").replace(/\D/g, "");
+  return d.length >= 8 ? d : null;
+}
+
 /** إرسال رمز التحقق للبريد — إنشاء حساب فقط بعد /api/auth/signup/verify */
 app.post("/api/auth/signup/send-code", async (req, res) => {
   try {
@@ -449,8 +445,12 @@ app.post("/api/auth/signup/send-code", async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const email = String(req.body?.email || "").trim();
     const password = String(req.body?.password || "");
+    const phoneDigits = normalizeSignupPhoneDigits(req.body?.phone ?? req.body?.whatsapp_phone ?? "");
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!phoneDigits) {
+      return res.status(400).json({ error: "Valid WhatsApp phone number is required (at least 8 digits)" });
     }
     if (password.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
@@ -461,6 +461,8 @@ app.post("/api/auth/signup/send-code", async (req, res) => {
     const norm = email.toLowerCase();
     const existing = await get(`SELECT id FROM users WHERE LOWER(TRIM(email)) = ?`, [norm]);
     if (existing) return res.status(409).json({ error: "Email already registered" });
+    const phoneTaken = await get(`SELECT id FROM users WHERE phone = ?`, [phoneDigits]);
+    if (phoneTaken) return res.status(409).json({ error: "Phone number already registered" });
 
     const row = await get(`SELECT last_sent_at FROM pending_email_signups WHERE email_normalized=?`, [norm]);
     const nowMs = Date.now();
@@ -482,16 +484,17 @@ app.post("/api/auth/signup/send-code", async (req, res) => {
     const lastSent = new Date(nowMs).toISOString();
 
     await run(
-      `INSERT INTO pending_email_signups (email_normalized, name, password_hash, otp_hash, expires_at, last_sent_at, resend_count)
-       VALUES (?, ?, ?, ?, ?, ?, 1)
+      `INSERT INTO pending_email_signups (email_normalized, name, password_hash, otp_hash, expires_at, last_sent_at, resend_count, signup_phone)
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?)
        ON CONFLICT (email_normalized) DO UPDATE SET
          name = EXCLUDED.name,
          password_hash = EXCLUDED.password_hash,
          otp_hash = EXCLUDED.otp_hash,
          expires_at = EXCLUDED.expires_at,
          last_sent_at = EXCLUDED.last_sent_at,
-         resend_count = pending_email_signups.resend_count + 1`,
-      [norm, name, passwordHash, otpHash, expiresAt, lastSent]
+         resend_count = pending_email_signups.resend_count + 1,
+         signup_phone = EXCLUDED.signup_phone`,
+      [norm, name, passwordHash, otpHash, expiresAt, lastSent, phoneDigits]
     );
 
     try {
@@ -571,9 +574,22 @@ app.post("/api/auth/signup/verify", async (req, res) => {
       return res.status(409).json({ error: "Email already registered" });
     }
 
+    const phoneDigits = String(row.signup_phone || "")
+      .replace(/\D/g, "")
+      .trim();
+    const finalPhone = phoneDigits.length >= 8 ? phoneDigits : null;
+    if (!finalPhone) {
+      await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+      return res.status(400).json({ error: "Signup is missing a valid phone. Please start again." });
+    }
+    const phoneDup = await get(`SELECT id FROM users WHERE phone = ?`, [finalPhone]);
+    if (phoneDup) {
+      await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
+      return res.status(409).json({ error: "Phone number already registered" });
+    }
     const result = await run(
-      `INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, NULL, ?, 'user')`,
-      [row.name, norm, row.password_hash]
+      `INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, 'user')`,
+      [row.name, norm, finalPhone, row.password_hash]
     );
     await run(`DELETE FROM pending_email_signups WHERE email_normalized=?`, [norm]);
     const now = new Date().toISOString();
@@ -609,9 +625,10 @@ app.post("/api/auth/login", async (req, res) => {
     const raw = String(req.body?.phone ?? req.body?.email ?? req.body?.identifier ?? "").trim();
     const password = String(req.body?.password || "");
     if (!raw || !password) return res.status(400).json({ error: "Missing credentials" });
+    const rawDigits = raw.replace(/\D/g, "");
     const user = await get(
-      `SELECT * FROM users WHERE phone = ? OR LOWER(TRIM(email)) = LOWER(TRIM(?))`,
-      [raw, raw]
+      `SELECT * FROM users WHERE phone = ? OR phone = ? OR LOWER(TRIM(email)) = LOWER(TRIM(?))`,
+      [raw, rawDigits || raw, raw]
     );
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
     const ok = await bcrypt.compare(password, user.password_hash);
@@ -1230,7 +1247,7 @@ app.get("/api/products", async (req, res) => {
       const parts = variants.map(() => clause);
       where.push(`(${parts.join(" OR ")})`);
       for (const v of variants) {
-        const term = `%${v}%`;
+        const term = sqlLikePrefixParam(v);
         params.push(term, term, term, term, term, term, term, term);
       }
     }
@@ -1283,6 +1300,110 @@ app.get("/api/products", async (req, res) => {
     return res.json(rows);
   } catch (err) {
     return res.status(500).json({ error: "Failed to load products" });
+  }
+});
+
+/** اقتراحات بحث بالبادئة (منتجات كتالوج أدورا + سوق شامل) */
+app.get("/api/search/suggestions", async (req, res) => {
+  try {
+    const qtrim = String(req.query.q || "").trim();
+    const scope = String(req.query.scope || "all").toLowerCase();
+    if (qtrim.length < 1) return res.json([]);
+    const variants = arabicSearchQueryVariants(qtrim);
+    if (!variants.length) return res.json([]);
+    const out = [];
+    const seen = new Set();
+    const pushLabel = (s) => {
+      const t = String(s || "").trim();
+      if (!t || t.length > 120) return;
+      const k = t.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(t);
+    };
+    const maxTotal = Math.min(20, Math.max(4, Number(req.query.limit) || 12));
+
+    if (scope === "products" || scope === "all") {
+      const clauses = [];
+      const params = [];
+      for (const v of variants) {
+        const pfx = sqlLikePrefixParam(v);
+        clauses.push("(name_ar LIKE ? OR name_en LIKE ? OR COALESCE(brand,'') LIKE ?)");
+        params.push(pfx, pfx, pfx);
+      }
+      const sql = `SELECT name_ar, name_en, brand FROM products WHERE ${clauses.join(" OR ")} ORDER BY id DESC LIMIT 40`;
+      const rows = await all(sql, params);
+      for (const r of rows) {
+        pushLabel(r.name_ar);
+        pushLabel(r.name_en);
+        if (r.brand) pushLabel(r.brand);
+        if (out.length >= maxTotal) break;
+      }
+    }
+
+    if ((scope === "marketplace" || scope === "all") && out.length < maxTotal) {
+      const clauses = [];
+      const params = [];
+      for (const v of variants) {
+        const pfx = sqlLikePrefixParam(v);
+        clauses.push("(mp.name_ar LIKE ? OR mp.name_en LIKE ? OR mv.name_ar LIKE ? OR mv.name_en LIKE ?)");
+        params.push(pfx, pfx, pfx, pfx);
+      }
+      const sql = `SELECT mp.name_ar, mp.name_en, mv.name_ar AS vn_ar, mv.name_en AS vn_en
+        FROM marketplace_products mp
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+        WHERE mp.is_active = 1 AND (${clauses.join(" OR ")})
+        ORDER BY mp.id DESC LIMIT 40`;
+      const rows = await all(sql, params);
+      for (const r of rows) {
+        pushLabel(r.name_ar);
+        pushLabel(r.name_en);
+        pushLabel(r.vn_ar);
+        pushLabel(r.vn_en);
+        if (out.length >= maxTotal) break;
+      }
+    }
+
+    return res.json(out.slice(0, maxTotal));
+  } catch (_e) {
+    return res.json([]);
+  }
+});
+
+app.post("/api/customer-feedback-notes", requireAuth, async (req, res) => {
+  try {
+    const note = String(req.body?.note || "").trim();
+    const bannerIdRaw = req.body?.banner_id;
+    const bannerId = bannerIdRaw != null && bannerIdRaw !== "" ? Number(bannerIdRaw) : null;
+    if (!note || note.length < 2) return res.status(400).json({ error: "Note too short" });
+    if (note.length > 4000) return res.status(400).json({ error: "Note too long" });
+    let bid = null;
+    if (bannerId != null) {
+      if (!Number.isFinite(bannerId)) return res.status(400).json({ error: "Invalid banner" });
+      const b = await get(`SELECT id FROM app_banners WHERE id=? AND active=1 AND banner_kind='customer_note'`, [bannerId]);
+      if (!b) return res.status(400).json({ error: "Invalid feedback banner" });
+      bid = bannerId;
+    }
+    await run(`INSERT INTO customer_feedback_notes (user_id, banner_id, note) VALUES (?, ?, ?)`, [req.user.id, bid, note]);
+    return res.json({ ok: true });
+  } catch (_e) {
+    return res.status(500).json({ error: "Failed to save note" });
+  }
+});
+
+app.get("/api/admin/customer-feedback-notes", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await all(
+      `SELECT n.id, n.note, n.created_at, n.banner_id, u.name AS user_name, u.email, u.phone
+       FROM customer_feedback_notes n
+       JOIN users u ON u.id = n.user_id
+       ORDER BY n.id DESC
+       LIMIT 500`
+    );
+    return res.json(rows);
+  } catch (_e) {
+    return res.status(500).json({ error: "Failed to load notes" });
   }
 });
 
@@ -2140,16 +2261,26 @@ app.get("/api/bestsellers", async (req, res) => {
   }
 });
 
-/** بانرات قابلة للوضع في الرئيسية — placement: home_top | below_categories | below_brands | below_top_brands | below_flash | below_curated | below_trending */
+function normalizeAppBannerKind(k) {
+  const s = String(k || "")
+    .trim()
+    .toLowerCase()
+    .replace(/-/g, "_");
+  return s === "customer_note" ? "customer_note" : "standard";
+}
+
+/** بانرات التطبيق — مواضع متعددة (رئيسية، قوائم، تفاصيل…) */
 app.get("/api/banners", async (_req, res) => {
   try {
     const rows = await all(
-      `SELECT id, title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order
+      `SELECT id, title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order,
+              COALESCE(banner_kind, 'standard') AS banner_kind
        FROM app_banners WHERE active=1 ORDER BY placement ASC, sort_order ASC, id ASC`
     );
     const mapped = rows.map((r) => ({
       ...r,
       placement: normalizeBannerPlacementValue(r.placement),
+      banner_kind: normalizeAppBannerKind(r.banner_kind),
     }));
     res.set("Cache-Control", "no-store, max-age=0");
     return res.json(mapped);
@@ -2179,6 +2310,7 @@ app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
       placement,
       sort_order = 0,
       active = 1,
+      banner_kind,
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
     const plRaw = placement != null ? String(placement).trim() : "";
@@ -2188,11 +2320,20 @@ app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
     const te = String(title_en).trim();
     const ba = String(body_ar).trim();
     const be = String(body_en).trim();
-    if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
-    if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
+    const bk = normalizeAppBannerKind(banner_kind);
+    if (bk === "customer_note") {
+      const hasVisual = !!img;
+      const hasCtaText = (ta || te) && (ba || be);
+      if (!hasVisual && !hasCtaText) {
+        return res.status(400).json({ error: "Customer note banner: add an image or title+body (like join CTA)" });
+      }
+    } else {
+      if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
+      if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
+    }
     const r = await run(
-      `INSERT INTO app_banners (title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order, active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO app_banners (title_ar, title_en, body_ar, body_en, image_url, link_url, placement, sort_order, active, banner_kind)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         String(title_ar).trim(),
         String(title_en).trim(),
@@ -2203,6 +2344,7 @@ app.post("/api/admin/banners", requireAuth, requireAdmin, async (req, res) => {
         pl,
         Number(sort_order) || 0,
         Number(active) === 0 ? 0 : 1,
+        bk,
       ]
     );
     return res.status(201).json({ id: r.id });
@@ -2224,6 +2366,7 @@ app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) =>
       placement,
       sort_order = 0,
       active = 1,
+      banner_kind,
     } = req.body || {};
     const img = image_url != null ? String(image_url).trim() : "";
     const plRaw = placement != null ? String(placement).trim() : "";
@@ -2233,10 +2376,19 @@ app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) =>
     const te = String(title_en).trim();
     const ba = String(body_ar).trim();
     const be = String(body_en).trim();
-    if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
-    if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
+    const bk = normalizeAppBannerKind(banner_kind);
+    if (bk === "customer_note") {
+      const hasVisual = !!img;
+      const hasCtaText = (ta || te) && (ba || be);
+      if (!hasVisual && !hasCtaText) {
+        return res.status(400).json({ error: "Customer note banner: add an image or title+body (like join CTA)" });
+      }
+    } else {
+      if (!ta && !te) return res.status(400).json({ error: "title_ar or title_en required" });
+      if (!ba && !be) return res.status(400).json({ error: "body_ar or body_en required" });
+    }
     await run(
-      `UPDATE app_banners SET title_ar=?, title_en=?, body_ar=?, body_en=?, image_url=?, link_url=?, placement=?, sort_order=?, active=? WHERE id=?`,
+      `UPDATE app_banners SET title_ar=?, title_en=?, body_ar=?, body_en=?, image_url=?, link_url=?, placement=?, sort_order=?, active=?, banner_kind=? WHERE id=?`,
       [
         String(title_ar).trim(),
         String(title_en).trim(),
@@ -2247,6 +2399,7 @@ app.put("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res) =>
         pl,
         Number(sort_order) || 0,
         Number(active) === 0 ? 0 : 1,
+        bk,
         id,
       ]
     );

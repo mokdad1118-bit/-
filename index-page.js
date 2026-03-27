@@ -1386,6 +1386,7 @@
                 onScreenEnter(screenId);
             }
             persistAdoraSessionState();
+            injectHomeBanners().catch(() => {});
         }
 
         function switchTab(screenId, btn) {
@@ -1801,6 +1802,7 @@
         async function handleSignupSendCode() {
             const name = document.getElementById('auth-name')?.value.trim() || '';
             const email = document.getElementById('auth-email')?.value.trim() || '';
+            const phone = document.getElementById('auth-signup-phone')?.value.trim() || '';
             const password = document.getElementById('auth-password')?.value || '';
             const msgEl = document.getElementById('auth-message');
             const showMsg = (t) => {
@@ -1810,8 +1812,13 @@
                 }
             };
             if (msgEl) msgEl.classList.add('hidden');
-            if (!name || !email || !password) {
-                showMsg(isRTL ? 'أدخل الاسم والبريد وكلمة المرور' : 'Enter name, email, and password');
+            const phoneDigits = phone.replace(/\D/g, '');
+            if (!name || !email || !password || phoneDigits.length < 8) {
+                showMsg(
+                    isRTL
+                        ? 'أدخل الاسم والبريد ورقم واتساب صالح (8 أرقام على الأقل) وكلمة المرور'
+                        : 'Enter name, email, a valid WhatsApp number (8+ digits), and password'
+                );
                 return;
             }
             if (password.length < 6) {
@@ -1819,7 +1826,7 @@
                 return;
             }
             try {
-                await apiFetchAuthSignup('/api/auth/signup/send-code', { name, email, password });
+                await apiFetchAuthSignup('/api/auth/signup/send-code', { name, email, password, phone });
                 const form = document.getElementById('auth-form-signup');
                 const otpPanel = document.getElementById('auth-signup-otp-panel');
                 const disp = document.getElementById('auth-signup-otp-email-display');
@@ -2785,15 +2792,24 @@
         }
 
         function syncPartnerCtaDom() {
+            if (window.__adoraPartnerCtaRotateTimer) {
+                clearInterval(window.__adoraPartnerCtaRotateTimer);
+                window.__adoraPartnerCtaRotateTimer = null;
+            }
             const master = partnerCtaConfig && Number(partnerCtaConfig.partner_banner_enabled) === 1;
-            const titleAr = partnerCtaConfig?.partner_banner_text_ar || '';
-            const titleEn = partnerCtaConfig?.partner_banner_text_en || '';
-            const subAr = partnerCtaConfig?.partner_cta_subtitle_ar || '';
-            const subEn = partnerCtaConfig?.partner_cta_subtitle_en || '';
-            const title = isRTL ? titleAr || titleEn : titleEn || titleAr;
-            const sub = isRTL ? subAr || subEn : subEn || subAr;
             const fallbackTitle = isRTL ? 'انضم كشركة في أدورا' : 'Join as a company on Adora';
-            const lineTitle = title || fallbackTitle;
+            const slidesRaw = partnerCtaConfig?.partner_cta_slides;
+            const slides =
+                Array.isArray(slidesRaw) && slidesRaw.length
+                    ? slidesRaw
+                    : [
+                          {
+                              title_ar: partnerCtaConfig?.partner_banner_text_ar || '',
+                              title_en: partnerCtaConfig?.partner_banner_text_en || '',
+                              subtitle_ar: partnerCtaConfig?.partner_cta_subtitle_ar || '',
+                              subtitle_en: partnerCtaConfig?.partner_cta_subtitle_en || '',
+                          },
+                      ];
 
             const toggle = (id, show) => {
                 const el = document.getElementById(id);
@@ -2807,29 +2823,47 @@
             toggle('partner-cta-offers-screen', master && partnerCtaPlacementOn('offers_screen'));
             toggle('partner-cta-listing-screen', master && partnerCtaPlacementOn('listing_screen'));
 
-            const uTitle = document.getElementById('partner-cta-under-search-title');
-            const uSub = document.getElementById('partner-cta-under-search-sub');
-            if (uTitle) uTitle.textContent = lineTitle;
-            if (uSub) {
-                uSub.textContent = sub || '';
-                uSub.classList.toggle('hidden', !sub);
-            }
+            let slideIdx = 0;
+            const applyPartnerSlide = () => {
+                const sl = slides[slideIdx % slides.length];
+                const lineTitle = isRTL
+                    ? String(sl.title_ar || sl.title_en || '').trim() || fallbackTitle
+                    : String(sl.title_en || sl.title_ar || '').trim() || fallbackTitle;
+                const sub = isRTL
+                    ? String(sl.subtitle_ar || sl.subtitle_en || '').trim()
+                    : String(sl.subtitle_en || sl.subtitle_ar || '').trim();
 
-            const aTitle = document.getElementById('partner-cta-above-market-title');
-            const aSub = document.getElementById('partner-cta-above-market-sub');
-            if (aTitle) aTitle.textContent = lineTitle;
-            if (aSub) {
-                aSub.textContent = sub || '';
-                aSub.classList.toggle('hidden', !sub);
-            }
+                const uTitle = document.getElementById('partner-cta-under-search-title');
+                const uSub = document.getElementById('partner-cta-under-search-sub');
+                if (uTitle) uTitle.textContent = lineTitle;
+                if (uSub) {
+                    uSub.textContent = sub || '';
+                    uSub.classList.toggle('hidden', !sub);
+                }
 
-            const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
-            const mEl = document.getElementById('partner-cta-marketplace-title');
-            if (mEl) mEl.textContent = compact;
-            const oEl = document.getElementById('partner-cta-offers-title');
-            if (oEl) oEl.textContent = compact;
-            const lEl = document.getElementById('partner-cta-listing-title');
-            if (lEl) lEl.textContent = compact;
+                const aTitle = document.getElementById('partner-cta-above-market-title');
+                const aSub = document.getElementById('partner-cta-above-market-sub');
+                if (aTitle) aTitle.textContent = lineTitle;
+                if (aSub) {
+                    aSub.textContent = sub || '';
+                    aSub.classList.toggle('hidden', !sub);
+                }
+
+                const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
+                const mEl = document.getElementById('partner-cta-marketplace-title');
+                if (mEl) mEl.textContent = compact;
+                const oEl = document.getElementById('partner-cta-offers-title');
+                if (oEl) oEl.textContent = compact;
+                const lEl = document.getElementById('partner-cta-listing-title');
+                if (lEl) lEl.textContent = compact;
+            };
+            applyPartnerSlide();
+            if (master && slides.length > 1) {
+                window.__adoraPartnerCtaRotateTimer = setInterval(() => {
+                    slideIdx = (slideIdx + 1) % slides.length;
+                    applyPartnerSlide();
+                }, 4500);
+            }
         }
 
         function appAdCtaPlacementOn(key) {
@@ -2839,15 +2873,24 @@
         }
 
         function syncAppAdCtaDom() {
+            if (window.__adoraAppAdCtaRotateTimer) {
+                clearInterval(window.__adoraAppAdCtaRotateTimer);
+                window.__adoraAppAdCtaRotateTimer = null;
+            }
             const master = partnerCtaConfig && Number(partnerCtaConfig.app_ad_banner_enabled) === 1;
-            const titleAr = partnerCtaConfig?.app_ad_banner_text_ar || '';
-            const titleEn = partnerCtaConfig?.app_ad_banner_text_en || '';
-            const subAr = partnerCtaConfig?.app_ad_banner_subtitle_ar || '';
-            const subEn = partnerCtaConfig?.app_ad_banner_subtitle_en || '';
-            const title = isRTL ? titleAr || titleEn : titleEn || titleAr;
-            const sub = isRTL ? subAr || subEn : subEn || subAr;
             const fallbackTitle = isRTL ? 'إعلاناتكم على التطبيق' : 'Advertise on the app';
-            const lineTitle = title || fallbackTitle;
+            const slidesRaw = partnerCtaConfig?.app_ad_cta_slides;
+            const slides =
+                Array.isArray(slidesRaw) && slidesRaw.length
+                    ? slidesRaw
+                    : [
+                          {
+                              title_ar: partnerCtaConfig?.app_ad_banner_text_ar || '',
+                              title_en: partnerCtaConfig?.app_ad_banner_text_en || '',
+                              subtitle_ar: partnerCtaConfig?.app_ad_banner_subtitle_ar || '',
+                              subtitle_en: partnerCtaConfig?.app_ad_banner_subtitle_en || '',
+                          },
+                      ];
 
             const toggle = (id, show) => {
                 const el = document.getElementById(id);
@@ -2865,42 +2908,59 @@
             toggle('app-ad-side-menu', master && appAdCtaPlacementOn('side_menu_account'));
             toggle('app-ad-cta-profile-screen', master && appAdCtaPlacementOn('profile_screen'));
 
-            const setSubVis = (subEl, show) => {
+            const setSubVis = (subEl, sub) => {
                 if (!subEl) return;
                 subEl.textContent = sub || '';
-                subEl.classList.toggle('hidden', !show);
+                subEl.classList.toggle('hidden', !sub);
             };
 
-            const t1 = document.getElementById('app-ad-cta-above-partner-title');
-            const s1 = document.getElementById('app-ad-cta-above-partner-sub');
-            if (t1) t1.textContent = lineTitle;
-            setSubVis(s1, !!sub);
+            let adSlideIdx = 0;
+            const applyAppAdSlide = () => {
+                const sl = slides[adSlideIdx % slides.length];
+                const lineTitle = isRTL
+                    ? String(sl.title_ar || sl.title_en || '').trim() || fallbackTitle
+                    : String(sl.title_en || sl.title_ar || '').trim() || fallbackTitle;
+                const sub = isRTL
+                    ? String(sl.subtitle_ar || sl.subtitle_en || '').trim()
+                    : String(sl.subtitle_en || sl.subtitle_ar || '').trim();
 
-            const t2 = document.getElementById('app-ad-cta-below-partner-title');
-            const s2 = document.getElementById('app-ad-cta-below-partner-sub');
-            if (t2) t2.textContent = lineTitle;
-            setSubVis(s2, !!sub);
+                const t1 = document.getElementById('app-ad-cta-above-partner-title');
+                const s1 = document.getElementById('app-ad-cta-above-partner-sub');
+                if (t1) t1.textContent = lineTitle;
+                setSubVis(s1, sub);
 
-            const t3 = document.getElementById('app-ad-cta-above-market-title');
-            const s3 = document.getElementById('app-ad-cta-above-market-sub');
-            if (t3) t3.textContent = lineTitle;
-            setSubVis(s3, !!sub);
+                const t2 = document.getElementById('app-ad-cta-below-partner-title');
+                const s2 = document.getElementById('app-ad-cta-below-partner-sub');
+                if (t2) t2.textContent = lineTitle;
+                setSubVis(s2, sub);
 
-            const t4 = document.getElementById('app-ad-cta-between-brands-title');
-            const s4 = document.getElementById('app-ad-cta-between-brands-sub');
-            if (t4) t4.textContent = lineTitle;
-            setSubVis(s4, !!sub);
+                const t3 = document.getElementById('app-ad-cta-above-market-title');
+                const s3 = document.getElementById('app-ad-cta-above-market-sub');
+                if (t3) t3.textContent = lineTitle;
+                setSubVis(s3, sub);
 
-            const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
-            [['app-ad-cta-listing-title'], ['app-ad-cta-offers-title'], ['app-ad-cta-marketplace-title'], ['app-ad-side-menu-title'], ['app-ad-cta-profile-title']].forEach(([id]) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = compact;
-            });
+                const t4 = document.getElementById('app-ad-cta-between-brands-title');
+                const s4 = document.getElementById('app-ad-cta-between-brands-sub');
+                if (t4) t4.textContent = lineTitle;
+                setSubVis(s4, sub);
 
-            const aria = lineTitle;
-            document.querySelectorAll('#app-ad-cta-home-above-partner button, #app-ad-cta-home-below-partner button, #app-ad-cta-home-above-marketplace button, #app-ad-cta-home-between-brands button').forEach((btn) => {
-                if (btn) btn.setAttribute('aria-label', aria);
-            });
+                const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
+                [['app-ad-cta-listing-title'], ['app-ad-cta-offers-title'], ['app-ad-cta-marketplace-title'], ['app-ad-side-menu-title'], ['app-ad-cta-profile-title']].forEach(([id]) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = compact;
+                });
+
+                document.querySelectorAll('#app-ad-cta-home-above-partner button, #app-ad-cta-home-below-partner button, #app-ad-cta-home-above-marketplace button, #app-ad-cta-home-between-brands button').forEach((btn) => {
+                    if (btn) btn.setAttribute('aria-label', lineTitle);
+                });
+            };
+            applyAppAdSlide();
+            if (master && slides.length > 1) {
+                window.__adoraAppAdCtaRotateTimer = setInterval(() => {
+                    adSlideIdx = (adSlideIdx + 1) % slides.length;
+                    applyAppAdSlide();
+                }, 4500);
+            }
         }
 
         async function loadPartnerCtaConfig() {
@@ -2924,6 +2984,8 @@
                 if (partnerCtaConfig.bestsellers_boost_enabled == null) {
                     partnerCtaConfig.bestsellers_boost_enabled = 1;
                 }
+                if (!Array.isArray(partnerCtaConfig.partner_cta_slides)) partnerCtaConfig.partner_cta_slides = [];
+                if (!Array.isArray(partnerCtaConfig.app_ad_cta_slides)) partnerCtaConfig.app_ad_cta_slides = [];
             } catch (_e) {
                 partnerCtaConfig = {
                     partner_banner_enabled: 0,
@@ -2931,6 +2993,8 @@
                     bestsellers_boost_enabled: 1,
                     app_ad_banner_enabled: 0,
                     app_ad_banner_placements: [],
+                    partner_cta_slides: [],
+                    app_ad_cta_slides: [],
                 };
             }
             syncPartnerCtaDom();
@@ -3102,6 +3166,51 @@
                 }
             });
         }
+
+        function openCustomerFeedbackBannerModal(bannerId) {
+            const idEl = document.getElementById('customer-feedback-banner-id');
+            const ta = document.getElementById('customer-feedback-banner-text');
+            const modal = document.getElementById('customer-feedback-banner-modal');
+            if (!idEl || !ta || !modal) return;
+            if (!getStoredJwtToken()) {
+                alert(isRTL ? 'سجّل الدخول لإرسال ملاحظة.' : 'Sign in to send a note.');
+                return;
+            }
+            idEl.value = String(bannerId || '');
+            ta.value = '';
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            ta.focus();
+        }
+        function closeCustomerFeedbackBannerModal() {
+            const modal = document.getElementById('customer-feedback-banner-modal');
+            if (modal) modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        async function submitCustomerFeedbackBannerNote() {
+            const idEl = document.getElementById('customer-feedback-banner-id');
+            const ta = document.getElementById('customer-feedback-banner-text');
+            const bid = idEl && idEl.value ? Number(idEl.value) : NaN;
+            const note = ta ? String(ta.value || '').trim() : '';
+            if (!note || note.length < 2) {
+                alert(isRTL ? 'اكتب ملاحظة.' : 'Write a note.');
+                return;
+            }
+            try {
+                await apiFetch('/api/customer-feedback-notes', {
+                    requireAuth: true,
+                    method: 'POST',
+                    body: { note, banner_id: Number.isFinite(bid) ? bid : null },
+                });
+                closeCustomerFeedbackBannerModal();
+                alert(isRTL ? 'شكراً، تم إرسال ملاحظتك.' : 'Thanks, your note was sent.');
+            } catch (e) {
+                alert(e.message || String(e));
+            }
+        }
+        window.openCustomerFeedbackBannerModal = openCustomerFeedbackBannerModal;
+        window.closeCustomerFeedbackBannerModal = closeCustomerFeedbackBannerModal;
+        window.submitCustomerFeedbackBannerNote = submitCustomerFeedbackBannerNote;
 
         function openVendorJoinPage() {
             syncVendorJoinHeroFromConfig();
@@ -4737,6 +4846,7 @@
             top_brands: true,
             flash_sale: true,
             curated: true,
+            home_featured: true,
             promo_collection: true,
             bestsellers: true,
         };
@@ -5943,6 +6053,59 @@
             delete input.dataset.adoraPhTyping;
         }
 
+        let adoraSearchSuggestTimer = null;
+        function hideAdoraSearchSuggestions() {
+            document.querySelectorAll('.adora-search-suggestions').forEach((n) => n.remove());
+        }
+        function showAdoraSearchSuggestionsUnder(input, items) {
+            hideAdoraSearchSuggestions();
+            if (!input || !Array.isArray(items) || !items.length) return;
+            const wrap = input.closest('.adora-search-typography') || input.parentElement;
+            if (!wrap) return;
+            if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+            const el = document.createElement('div');
+            el.className =
+                'adora-search-suggestions absolute left-0 right-0 top-full mt-1 z-[80] bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto text-start';
+            el.innerHTML = items
+                .map(
+                    (t) =>
+                        `<button type="button" class="adora-suggest-item w-full text-start px-3 py-2.5 text-sm font-medium text-gray-800 hover:bg-violet-50 border-b border-gray-100 last:border-0">${escapeHtml(t)}</button>`
+                )
+                .join('');
+            el.querySelectorAll('.adora-suggest-item').forEach((btn, i) => {
+                btn.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    input.value = items[i];
+                    hideAdoraSearchSuggestions();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    try {
+                        input.focus();
+                    } catch (_e) {}
+                });
+            });
+            wrap.appendChild(el);
+        }
+        function scheduleAdoraSearchSuggestions(input, scope) {
+            clearTimeout(adoraSearchSuggestTimer);
+            adoraSearchSuggestTimer = setTimeout(async () => {
+                const q = String(input?.value || '').trim();
+                if (q.length < 1) {
+                    hideAdoraSearchSuggestions();
+                    return;
+                }
+                try {
+                    const rows = await apiFetch(
+                        `/api/search/suggestions?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope || 'all')}`,
+                        { requireAuth: false }
+                    );
+                    const list = Array.isArray(rows) ? rows : [];
+                    showAdoraSearchSuggestionsUnder(input, list);
+                } catch (_e) {
+                    hideAdoraSearchSuggestions();
+                }
+            }, 260);
+        }
+
         function scheduleAdoraSearchTypingIdle(input) {
             clearAdoraSearchTypingIdleTimer(input);
             input.dataset.adoraPhTyping = '1';
@@ -6028,6 +6191,7 @@
                     if (!el) return;
                     el.addEventListener('focus', () => syncAdoraAnimatedSearchVisibility());
                     el.addEventListener('blur', () => {
+                        setTimeout(() => hideAdoraSearchSuggestions(), 220);
                         clearAdoraSearchTypingIdleTimer(el);
                         delete el.dataset.adoraPhTyping;
                         syncAdoraAnimatedSearchVisibility();
@@ -6037,10 +6201,13 @@
                             clearAdoraSearchTypingIdleTimer(el);
                             delete el.dataset.adoraPhTyping;
                         } else {
+                            hideAdoraSearchSuggestions();
                             scheduleAdoraSearchTypingIdle(el);
                             return;
                         }
                         syncAdoraAnimatedSearchVisibility();
+                        const scope = el.id === 'marketplace-search-input' ? 'marketplace' : 'all';
+                        scheduleAdoraSearchSuggestions(el, scope);
                     });
                 };
                 bind('search-input');
@@ -7324,8 +7491,13 @@
                     const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
                     const bodyTxt = isRTL ? b.body_ar || b.body_en : b.body_en || b.body_ar;
                     const rawUrl = b.image_url != null ? String(b.image_url).trim() : '';
-                    const imgAbs = absoluteMediaUrl(rawUrl);
-                    const hasImg = !!imgAbs;
+                    const imgAbs = rawUrl ? absoluteMediaUrl(rawUrl) : '';
+                    const hasImg = !!rawUrl;
+                    const bid = Number(b.id);
+                    const isFeedback =
+                        String(b.banner_kind || 'standard')
+                            .toLowerCase()
+                            .replace(/-/g, '_') === 'customer_note' && Number.isFinite(bid);
                     const linkRaw = b.link_url != null ? String(b.link_url).trim() : '';
                     const linkHref =
                         linkRaw && (linkRaw.startsWith('http://') || linkRaw.startsWith('https://') || linkRaw.startsWith('mailto:') || linkRaw.startsWith('tel:'))
@@ -7333,9 +7505,35 @@
                             : linkRaw
                               ? absoluteMediaUrl(linkRaw)
                               : '';
-                    const linkLine = linkHref
-                        ? `<a href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
-                        : '';
+                    const linkLine =
+                        !isFeedback && linkHref
+                            ? `<a href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 text-[11px] font-semibold text-white underline underline-offset-2">${isRTL ? 'افتح الرابط' : 'Open link'}</a>`
+                            : '';
+                    if (hasImg && isFeedback) {
+                        const imgLoading = slideIdx < 3 ? 'eager' : 'lazy';
+                        const ariaN = isRTL ? 'أرسل ملاحظة للفريق' : 'Send a note to the team';
+                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
+  <button type="button" class="absolute inset-0 z-[2] cursor-pointer bg-transparent border-0 p-0" style="-webkit-tap-highlight-color:transparent" onclick="openCustomerFeedbackBannerModal(${bid})" aria-label="${escapeHtml(ariaN)}"></button>
+  <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover pointer-events-none" style="object-position:center center" width="1200" height="400" loading="${imgLoading}" decoding="async" fetchpriority="${slideIdx === 0 ? 'high' : 'auto'}" referrerpolicy="no-referrer" data-adora-banner-img="1" />
+  <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none">
+    ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
+    ${bodyTxt ? `<p class="mt-0.5 text-[11px] leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
+  </div>
+</div>`;
+                    }
+                    if (!hasImg && isFeedback) {
+                        return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden snap-start snap-always px-2">
+<button type="button" class="partner-cta-pill flex w-full max-w-lg items-center gap-3 min-h-[168px]" onclick="openCustomerFeedbackBannerModal(${bid})">
+  <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
+  <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm"><i class="fas fa-message text-lg" aria-hidden="true"></i></span>
+  <span class="min-w-0 flex-1 text-start">
+    ${title ? `<span class="block text-sm font-extrabold leading-tight">${escapeHtml(title)}</span>` : ''}
+    ${bodyTxt ? `<span class="mt-0.5 block text-xs font-medium leading-snug text-white/85">${escapeHtml(bodyTxt)}</span>` : ''}
+  </span>
+  <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180"></i></span>
+</button>
+</div>`;
+                    }
                     if (hasImg) {
                         const imgLoading = slideIdx < 3 ? 'eager' : 'lazy';
                         return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
@@ -7470,6 +7668,19 @@
                 belowflash: 'below_flash',
                 belowcurated: 'below_curated',
                 belowtrending: 'below_trending',
+                listingtop: 'listing_top',
+                offerstop: 'offers_top',
+                wishlisttop: 'wishlist_top',
+                marketplacetop: 'marketplace_top',
+                producttop: 'product_top',
+                mpproducttop: 'mp_product_top',
+                carttop: 'cart_top',
+                checkouttop: 'checkout_top',
+                profiletop: 'profile_top',
+                ordertrackingtop: 'order_tracking_top',
+                vendorjointop: 'vendor_join_top',
+                appadinquirytop: 'app_ad_inquiry_top',
+                categoriestop: 'categories_top',
             };
             return aliases[s] || s;
         }

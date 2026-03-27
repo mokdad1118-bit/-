@@ -1237,6 +1237,33 @@
                 </table>
               </div>
             </div>
+
+            <div class="bg-white rounded-2xl border border-amber-200 p-4 mt-4 bg-amber-50/20">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h2 class="text-lg font-bold" data-en="Customer notes (from app banners)" data-ar="ملاحظات الزبائن (من بانرات التطبيق)">ملاحظات الزبائن (من بانرات التطبيق)</h2>
+                  <p class="text-sm text-gray-600 mt-1" data-en="Messages sent when users tap a «customer notes» banner." data-ar="رسائل أرسلها المستخدمون عند الضغط على بانر نوعه «ملاحظات الزبائن».">رسائل أرسلها المستخدمون عند الضغط على بانر نوعه «ملاحظات الزبائن».</p>
+                </div>
+                <button type="button" id="btn-refresh-customer-feedback-notes" class="px-3 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+                  <i class="fas fa-rotate"></i><span data-en="Refresh" data-ar="تحديث">تحديث</span>
+                </button>
+              </div>
+              <div class="overflow-auto">
+                <table class="w-full text-sm">
+                  <thead class="text-left text-gray-500 border-b border-gray-100">
+                    <tr>
+                      <th class="py-2 pr-2">ID</th>
+                      <th class="py-2 pr-2 min-w-[200px]" data-en="Note" data-ar="الملاحظة">الملاحظة</th>
+                      <th class="py-2 pr-2" data-en="User" data-ar="المستخدم">المستخدم</th>
+                      <th class="py-2 pr-2" data-en="Contact" data-ar="تواصل">تواصل</th>
+                      <th class="py-2 pr-2" data-en="Banner ID" data-ar="رقم البانر">رقم البانر</th>
+                      <th class="py-2" data-en="Date" data-ar="التاريخ">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="customer-feedback-notes-tbody" class="divide-y divide-gray-100"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div id="tab-banners" class="tab-panel hidden space-y-4">
@@ -1249,6 +1276,11 @@
                 <div class="md:col-span-2"><label class="text-xs font-bold">Main CTA text (EN)</label><input id="vp-banner-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي تحت العنوان (عربي)</label><input id="vp-cta-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle under title (EN)</label><input id="vp-cta-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-bold text-gray-700">شرائح متعددة (JSON اختياري)</label>
+                  <textarea id="vp-partner-slides-json" rows="3" class="mt-1 w-full p-2 rounded-xl border border-gray-200 font-mono text-[11px]" placeholder='[{"title_ar":"…","title_en":"…","subtitle_ar":"","subtitle_en":""}]'></textarea>
+                  <p class="text-[10px] text-gray-500 mt-1">إن وُجدت أكثر من شريحة تُعرض بالتناوب مع الحقول أعلاه كاحتياطي.</p>
+                </div>
                 <div class="md:col-span-2 border border-gray-100 rounded-xl p-3 space-y-2">
                   <p class="text-xs font-bold text-gray-700">أين تظهر الدعوة داخل التطبيق</p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -1275,6 +1307,10 @@
                 <div class="md:col-span-2"><label class="text-xs font-bold">Banner title (EN)</label><input id="vp-app-ad-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="Advertise your product on Adora" /></div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي (عربي)</label><input id="vp-app-ad-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle (EN)</label><input id="vp-app-ad-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-bold text-violet-900">شرائح إعلان متعددة (JSON اختياري)</label>
+                  <textarea id="vp-app-ad-slides-json" rows="3" class="mt-1 w-full p-2 rounded-xl border border-violet-200 font-mono text-[11px] bg-white" placeholder='[{"title_ar":"…","title_en":"…","subtitle_ar":"","subtitle_en":""}]'></textarea>
+                </div>
                 <div class="md:col-span-2 border border-violet-100/80 rounded-xl p-3 space-y-2">
                   <p class="text-xs font-bold text-gray-700">أين يظهر بنر الإعلانات</p>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -1301,9 +1337,16 @@
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-2" data-en="App banners" data-ar="بانرات التطبيق">بانرات التطبيق</h2>
-              <p class="text-sm text-gray-600 mb-4" data-en="Title and body are required; image is optional (text-only banners supported). Choose placement on the home screen." data-ar="العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.">العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.</p>
+              <p class="text-sm text-gray-600 mb-4" data-en="Standard banners need title+body (image optional). «Customer notes» needs image or title+body (join-style). Placements cover home and other screens." data-ar="الشريط العادي يحتاج عنواناً ونصاً (الصورة اختيارية). «ملاحظات الزبائن» تحتاج صورة أو عنواناً ونصاً مثل بنر الانضمام. المواضع تشمل الرئيسية وباقي الشاشات.">الشريط العادي يحتاج عنواناً ونصاً (الصورة اختيارية). «ملاحظات الزبائن» تحتاج صورة أو عنواناً ونصاً مثل بنر الانضمام. المواضع تشمل الرئيسية وباقي الشاشات.</p>
               <form id="banner-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <input type="hidden" id="banner-id" />
+                <div class="md:col-span-2">
+                  <label class="text-sm font-semibold"><span data-en="Banner type" data-ar="نوع البانر">نوع البانر</span></label>
+                  <select id="banner-kind" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white">
+                    <option value="standard" data-en="Promotional strip" data-ar="شريط ترويجي عادي">شريط ترويجي عادي</option>
+                    <option value="customer_note" data-en="Customer notes (tap → send message)" data-ar="ملاحظات الزبائن (ضغطة → إرسال)">ملاحظات الزبائن (ضغطة → إرسال)</option>
+                  </select>
+                </div>
                 <div>
                   <label class="text-sm font-semibold"><span data-en="Title (AR)" data-ar="عنوان عربي">عنوان عربي</span></label>
                   <input id="banner-title-ar" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200" />
@@ -1334,14 +1377,31 @@
                 </div>
                 <div>
                   <label class="text-sm font-semibold"><span data-en="Placement" data-ar="الموضع">الموضع</span></label>
-                  <select id="banner-placement" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white">
-                    <option value="home_top">home_top — أعلى الرئيسية</option>
-                    <option value="below_categories">below_categories — تحت أقسام رجالي/نسائي</option>
-                    <option value="below_brands">below_brands — تحت شريط الشركات</option>
-                    <option value="below_top_brands">below_top_brands — تحت أفضل الشركات</option>
-                    <option value="below_flash">below_flash — تحت عروض سريعة</option>
-                    <option value="below_curated">below_curated — تحت اختيارات أنيقة</option>
-                    <option value="below_trending">below_trending — تحت الأكثر مبيعاً</option>
+                  <select id="banner-placement" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white text-sm">
+                    <optgroup label="الرئيسية / التصنيفات">
+                      <option value="categories_top">categories_top — أعلى صفحة التصنيفات</option>
+                      <option value="home_top">home_top — أعلى الرئيسية (تحت البحث)</option>
+                      <option value="below_categories">below_categories — تحت أقسام رجالي/نسائي</option>
+                      <option value="below_brands">below_brands — تحت شريط الشركات</option>
+                      <option value="below_top_brands">below_top_brands — تحت العلامات المميزة</option>
+                      <option value="below_flash">below_flash — تحت عروض محدودة</option>
+                      <option value="below_curated">below_curated — تحت اختيارات أنيقة</option>
+                      <option value="below_trending">below_trending — قبل/حول الأكثر مبيعاً</option>
+                    </optgroup>
+                    <optgroup label="قوائم وتفاصيل">
+                      <option value="listing_top">listing_top — قائمة المنتجات</option>
+                      <option value="offers_top">offers_top — شاشة العروض</option>
+                      <option value="wishlist_top">wishlist_top — المفضلة</option>
+                      <option value="marketplace_top">marketplace_top — السوق الشامل</option>
+                      <option value="mp_product_top">mp_product_top — منتج السوق</option>
+                      <option value="product_top">product_top — تفاصيل منتج أدورا</option>
+                      <option value="cart_top">cart_top — السلة</option>
+                      <option value="checkout_top">checkout_top — إتمام الطلب</option>
+                      <option value="profile_top">profile_top — الملف الشخصي</option>
+                      <option value="order_tracking_top">order_tracking_top — تتبع الطلب</option>
+                      <option value="vendor_join_top">vendor_join_top — صفحة انضم كشركة</option>
+                      <option value="app_ad_inquiry_top">app_ad_inquiry_top — طلب إعلان</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>

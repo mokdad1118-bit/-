@@ -2,6 +2,7 @@
  * السوق الشامل — أقسام، مولات/شركات، منتجات (عامة + لوحة تحكم)
  */
 const { get, all, run } = require("./db");
+const { arabicSearchQueryVariants, sqlLikePrefixParam } = require("./search-utils");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 
 function safeJsonParse(raw, fallback) {
@@ -525,14 +526,21 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         sql += ` AND mp.is_offer = 1`;
       }
       if (q) {
-        const like = `%${q.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
-        sql += ` AND (
+        const variants = arabicSearchQueryVariants(String(q).trim());
+        if (variants.length) {
+          const parts = [];
+          for (const v of variants) {
+            const like = sqlLikePrefixParam(v);
+            parts.push(`(
           mp.name_ar ILIKE ? OR mp.name_en ILIKE ?
           OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?
           OR ms.name_ar ILIKE ? OR ms.name_en ILIKE ?
           OR mvd.name_ar ILIKE ? OR mvd.name_en ILIKE ?
-        )`;
-        params.push(like, like, like, like, like, like, like, like);
+        )`);
+            params.push(like, like, like, like, like, like, like, like);
+          }
+          sql += ` AND (${parts.join(" OR ")})`;
+        }
       }
 
       let orderBody = "mp.created_at DESC, mp.id DESC";
