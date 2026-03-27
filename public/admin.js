@@ -749,6 +749,14 @@ function bindVendorPlatformAdminListenersOnce() {
       alert(err.message || String(err));
     }
   });
+  document.getElementById("btn-save-partner-cta-banner")?.addEventListener("click", async () => {
+    if (!getToken()) return;
+    try {
+      await saveVendorPlatformSettingsFromForm();
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
   document.getElementById("vp-promo-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const token = getToken();
