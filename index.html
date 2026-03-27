@@ -739,20 +739,6 @@
         .adora-cta-pill-chevron--sm i {
             font-size: 0.75rem;
         }
-        @keyframes adora-mp-strip-title-pulse {
-            0%, 100% { opacity: 1; transform: scale(1); filter: brightness(1); }
-            50% { opacity: 0.92; transform: scale(1.035); filter: brightness(1.06); }
-        }
-        .adora-mp-strip-title {
-            display: block;
-            width: 100%;
-            text-align: center;
-            font-size: 0.875rem;
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            color: #6d28d9;
-            animation: adora-mp-strip-title-pulse 2.2s ease-in-out infinite;
-        }
         /* بنر الإعلان: نفس عائلة اللون البنفسجي لكن أفتح من بنر الشراكة */
         .app-ad-cta-pill {
             background: linear-gradient(120deg, #c4b5fd 0%, #ddd6fe 38%, #a78bfa 100%);
@@ -1619,28 +1605,58 @@
             word-break: break-word;
         }
 
-        @keyframes adoraGlowTitlePulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.035); }
+        @keyframes adoraSectionHeadingPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.94; transform: scale(1.03); }
         }
 
+        /* عناوين أقسام الرئيسية: حجم موحّد + مربع شفاف + ظل خفيف — نفس اللون البنفسجي */
+        .adora-section-heading,
         .adora-glow-title {
             display: block;
-            width: 100%;
-            text-align: center;
+            width: fit-content;
+            max-width: min(100%, 22rem);
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0.42rem 0.95rem;
+            border-radius: 0.8rem;
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 18px rgba(124, 58, 237, 0.15);
+            border: 1px solid rgba(124, 58, 237, 0.14);
             font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans Arabic", sans-serif;
+            font-size: 1rem;
             font-weight: 800;
-            font-size: 1.2rem;
-            line-height: 1.4;
-            letter-spacing: 0.04em;
+            line-height: 1.35;
+            letter-spacing: 0.03em;
             color: #7c3aed;
-            animation: adoraGlowTitlePulse 2.4s ease-in-out infinite;
-            text-shadow: none;
-            filter: none;
+            text-align: center;
+        }
+
+        .adora-section-heading--pulse {
+            animation: adoraSectionHeadingPulse 2.2s ease-in-out infinite;
+        }
+
+        .adora-section-heading--toolbar {
+            max-width: none;
+            width: auto;
+            flex: 1 1 0%;
+            min-width: 0;
+            margin-left: 0.35rem;
+            margin-right: 0.35rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #product-gallery img,
+        #marketplace-product-gallery img {
+            cursor: zoom-in;
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .adora-glow-title {
+            .adora-section-heading--pulse {
                 animation: none;
             }
         }
@@ -3108,7 +3124,7 @@
         <!-- السوق الشامل: منفصل عن أقسام الألبسة — عنوان متمركز بنبض، ثم الوصف، ثم عرض الكل، ثم الشريط -->
         <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market" data-home-order-key="comprehensive_market">
             <div class="flex flex-col items-center text-center gap-2.5">
-                <h2 class="adora-glow-title text-lg sm:text-xl max-w-[min(100%,20rem)] mx-auto leading-snug" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
+                <h2 class="adora-glow-title" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="A curated group of companies under Adora — open the market to search all products." data-ar="مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.">مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.</p>
             </div>
             <div id="partner-cta-home-above-marketplace" class="hidden px-1 pt-2">
@@ -3152,7 +3168,7 @@
 
         <div data-adora-section="main_categories" data-home-order-key="main_categories">
         <div class="px-4 pt-2 pb-3 flex justify-center">
-            <h2 class="adora-glow-title px-2" data-en="Adora | أدورا" data-ar="أدورا | Adora">أدورا | Adora</h2>
+            <h2 class="adora-glow-title" data-en="Adora | أدورا" data-ar="أدورا | Adora">أدورا | Adora</h2>
         </div>
 
         <!-- أقسام رئيسية: الضغط يفتح الفئات الفرعية في لوحة منبثقة -->
@@ -3358,7 +3374,7 @@
         <!-- Brands Section -->
         <div class="px-4 mt-6 space-y-4" data-adora-section="brands" data-home-order-key="brands">
             <div class="flex flex-col items-center text-center gap-2">
-                <h2 class="adora-glow-title text-base sm:text-lg px-2 max-w-[22rem]" data-en="Companies available in the app" data-ar="الشركات المتاحة داخل التطبيق">الشركات المتاحة داخل التطبيق</h2>
+                <h2 class="adora-glow-title" data-en="Companies available in the app" data-ar="الشركات المتاحة داخل التطبيق">الشركات المتاحة داخل التطبيق</h2>
                 <p class="text-xs text-gray-500 font-normal leading-relaxed" data-en="Tap to view products" data-ar="اضغط لعرض المنتجات">اضغط لعرض المنتجات</p>
                 <div class="brand-section-sort-row w-full max-w-md pt-1">
                     <button type="button" onclick="sortBrands('selling')" class="brand-sort-btn font-semibold" data-sort-key="selling" data-en="Best Sellers" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</button>
@@ -3373,7 +3389,7 @@
 
         <div class="px-4 py-4 mt-3 bg-white rounded-3xl shadow-sm border border-gray-100 space-y-4 mx-4" data-adora-section="top_brands" data-home-order-key="top_brands">
             <div class="flex justify-center px-1">
-                <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Featured names" data-ar="العلامات المميزة">العلامات المميزة</h3>
+                <h3 class="adora-glow-title" data-en="Featured names" data-ar="العلامات المميزة">العلامات المميزة</h3>
             </div>
             <div id="top-brands" class="flex gap-4 overflow-x-auto no-scrollbar"></div>
         </div>
@@ -3384,7 +3400,7 @@
             <div class="flash-sale-section bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-3 space-y-3">
                 <div class="flash-sale-header">
                     <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
-                        <h3 class="adora-glow-title text-base sm:text-lg mb-0" data-en="Limited time drops" data-ar="عروض لفترة محدودة">عروض لفترة محدودة</h3>
+                        <h3 class="adora-glow-title" data-en="Limited time drops" data-ar="عروض لفترة محدودة">عروض لفترة محدودة</h3>
                         <p class="text-[11px] text-purple-700 font-semibold" data-en="Limited quantities — check back often" data-ar="كميات محدودة — تابعوا العروض">كميات محدودة — تابعوا العروض</p>
                     </div>
                     <div class="flash-countdown text-sm shrink-0" id="flash-countdown">01:45:20</div>
@@ -3397,7 +3413,7 @@
 
         <div class="px-4 py-4 space-y-3 mt-3 home-compact-curated" data-adora-section="curated" data-home-order-key="curated">
             <div class="flex flex-col items-center text-center gap-1 px-1">
-                <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</h3>
+                <h3 class="adora-glow-title" data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</h3>
                 <p class="text-xs text-purple-700 font-semibold" data-en="Hand-picked styles from Adora" data-ar="تشكيلة مختارة من أدورا">تشكيلة مختارة من أدورا</p>
                 <p id="store-catalog-stats" class="text-xs text-gray-500 mt-0.5 hidden w-full max-w-md" aria-live="polite"></p>
                 <button type="button" onclick="navigateToListingAll()" class="mt-2 text-purple-600 text-xs font-semibold inline-flex items-center gap-1" data-en="View all" data-ar="عرض الكل">
@@ -3447,7 +3463,7 @@
         <div class="px-4 pb-5 pt-2" data-adora-section="bestsellers" data-home-order-key="bestsellers">
             <div class="home-compact-bestsellers bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-4 space-y-3">
                 <div class="flex flex-col items-center text-center gap-1 mb-1 px-1">
-                    <h3 class="adora-glow-title text-base sm:text-lg max-w-[20rem]" data-en="Trending Now" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</h3>
+                    <h3 class="adora-glow-title" data-en="Trending Now" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</h3>
                     <p class="text-[11px] text-gray-500 w-full max-w-md" data-en="Based on real order volume" data-ar="حسب المبيعات الفعلية">حسب المبيعات الفعلية</p>
                     <button type="button" onclick="navigateToListingAll()" class="mt-2 text-purple-600 text-xs font-semibold inline-flex items-center gap-1" data-en="View All" data-ar="عرض الكل">
                         <span>View All</span>
@@ -3751,7 +3767,7 @@
             <button type="button" onclick="backFromMarketplaceBrowse()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
                 <i class="fas fa-arrow-left text-gray-800 rtl:rotate-180"></i>
             </button>
-            <h1 class="text-lg font-extrabold text-gray-900 flex-1 min-w-0 truncate" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h1>
+            <h1 class="adora-glow-title adora-section-heading--toolbar" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h1>
         </div>
         <div id="partner-cta-marketplace-screen" class="hidden px-3 pt-2">
             <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
@@ -4857,6 +4873,14 @@
                 <button type="button" onclick="dismissDownloadPrompt(false)" class="w-full py-3 rounded-2xl bg-gray-100 text-gray-800 font-semibold" data-en="Later" data-ar="لاحقاً">لاحقاً</button>
             </div>
         </div>
+    </div>
+
+    <!-- معاينة صورة المنتج بملء الشاشة عند الضغط -->
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[120] hidden flex items-center justify-center bg-black/92 p-3" role="dialog" aria-modal="true" aria-label="">
+        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-white/25 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+            <i class="fas fa-times text-lg" aria-hidden="true"></i>
+        </button>
+        <img id="adora-image-lightbox-img" src="" alt="" class="max-w-full max-h-[90dvh] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
     </div>
 
     <script src="/index-page.js"></script>

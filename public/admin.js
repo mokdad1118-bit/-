@@ -1951,21 +1951,48 @@ async function loadBanners() {
   renderBannersTable();
 }
 
+/** تمييز صف بانر الشريط: إعلان ممول vs رابط ينتهي بانضمام شركة أو طلب إعلان (استدلال من الرابط والنص) */
+function classifyAppBannerKind(b) {
+  const link = String(b.link_url || "").toLowerCase();
+  const blob = `${link} ${String(b.title_ar || "").toLowerCase()} ${String(b.title_en || "").toLowerCase()} ${String(b.body_ar || "").toLowerCase()} ${String(b.body_en || "").toLowerCase()}`;
+  if (/screen-vendor-join|vendor-join|vendor_join|openvendorjoin|partner_with|انضم\s*كشركة|انضمام|join\s*adora|join-company/.test(blob)) return "vendor_join";
+  if (/screen-app-ad|app-ad-inquir|app_ad_inquir|openappad|طلب\s*إعلان|إعلان\s*منتج|advertise|bullhorn/.test(blob)) return "ad_inquiry";
+  return "sponsored";
+}
+
+function bannerKindLabelHtml(kind, ar) {
+  if (kind === "vendor_join") {
+    return ar
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap" title="رابط أو نص يشير لصفحة انضمام شركة"><i class="fas fa-handshake text-[9px] opacity-80"></i>انضم لشركة أدورا</span>`
+      : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap" title="Link/text points to vendor join"><i class="fas fa-handshake text-[9px] opacity-80"></i>Join Adora company</span>`;
+  }
+  if (kind === "ad_inquiry") {
+    return ar
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-fuchsia-50 text-fuchsia-900 border border-fuchsia-200 whitespace-nowrap" title="رابط أو نص يشير لطلب إعلان"><i class="fas fa-bullhorn text-[9px] opacity-80"></i>إعلان / طلب إعلان</span>`
+      : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-fuchsia-50 text-fuchsia-900 border border-fuchsia-200 whitespace-nowrap" title="Link/text points to ad inquiry"><i class="fas fa-bullhorn text-[9px] opacity-80"></i>Ad / inquiry</span>`;
+  }
+  return ar
+    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-violet-50 text-violet-800 border border-violet-200 whitespace-nowrap" title="بانر شريط ترويجي في الموضع المختار"><i class="fas fa-rectangle-ad text-[9px] opacity-80"></i>إعلان ممول (شريط)</span>`
+    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-violet-50 text-violet-800 border border-violet-200 whitespace-nowrap" title="Promotional strip banner"><i class="fas fa-rectangle-ad text-[9px] opacity-80"></i>Sponsored (strip)</span>`;
+}
+
 function renderBannersTable() {
   const tbody = document.getElementById("banners-tbody");
   if (!tbody) return;
   const ar = getAdminLang() === "ar";
   const list = Array.isArray(adminBannersCache) ? adminBannersCache : [];
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">${
       ar ? "لا بانرات بعد." : "No banners yet."
     }</td></tr>`;
     return;
   }
   tbody.innerHTML = list
     .map((b) => {
+      const kind = classifyAppBannerKind(b);
       return `<tr>
         <td class="py-2">${b.id}</td>
+        <td class="py-2 align-top">${bannerKindLabelHtml(kind, ar)}</td>
         <td class="py-2 font-mono text-xs">${escapeHtml(b.placement)}</td>
         <td class="py-2 max-w-[140px] truncate">${
           b.image_url && String(b.image_url).trim()

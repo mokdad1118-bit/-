@@ -3144,7 +3144,7 @@
                 })
                 .join('');
             return `<div class="space-y-1.5">
-                <p class="adora-mp-strip-title px-0.5">${escapeHtml(title)}</p>
+                <p class="adora-section-heading adora-section-heading--pulse px-0.5">${escapeHtml(title)}</p>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-0.5 px-0.5">${cards}</div>
             </div>`;
         }
@@ -7737,6 +7737,44 @@
             });
         }
 
+        function initAdoraProductImageLightbox() {
+            const overlay = document.getElementById('adora-image-lightbox');
+            const imgEl = document.getElementById('adora-image-lightbox-img');
+            const closeBtn = document.getElementById('adora-image-lightbox-close');
+            if (!overlay || !imgEl) return;
+            function closeAdoraImageLightbox() {
+                overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+                imgEl.removeAttribute('src');
+            }
+            function openAdoraImageLightbox(src) {
+                const s = src && String(src).trim();
+                if (!s) return;
+                imgEl.src = s;
+                overlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            window.closeAdoraImageLightbox = closeAdoraImageLightbox;
+            window.openAdoraImageLightbox = openAdoraImageLightbox;
+            closeBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAdoraImageLightbox();
+            });
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closeAdoraImageLightbox();
+            });
+            ['product-gallery', 'marketplace-product-gallery'].forEach((id) => {
+                const host = document.getElementById(id);
+                if (!host) return;
+                host.addEventListener('click', (e) => {
+                    const im = e.target && e.target.closest && e.target.closest('img');
+                    if (!im || !host.contains(im)) return;
+                    const s = im.getAttribute('src');
+                    if (s) openAdoraImageLightbox(s);
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const fromConfig = typeof window.ADORA_API_BASE === 'string' ? window.ADORA_API_BASE.trim() : '';
@@ -7771,12 +7809,18 @@
             initSiteRatingStars();
             initProductReviewStars();
             initMarketplaceProductReviewStars();
+            initAdoraProductImageLightbox();
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
             updateMarketplaceReviewLoginHint();
             applyAppLanguage();
             document.addEventListener('keydown', (e) => {
                 if (e.key !== 'Escape') return;
+                const lb = document.getElementById('adora-image-lightbox');
+                if (lb && !lb.classList.contains('hidden')) {
+                    window.closeAdoraImageLightbox?.();
+                    return;
+                }
                 const ov = document.getElementById('home-subcat-overlay');
                 if (ov && !ov.classList.contains('hidden')) closeHomeCategoryPanel();
             });
