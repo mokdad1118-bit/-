@@ -1308,6 +1308,12 @@
         }
 
         function onAdoraPopState() {
+            try {
+                if (typeof window.closeAdoraImageLightbox === 'function') window.closeAdoraImageLightbox();
+                else closeAdoraImageLightboxIfOpen();
+            } catch (_e) {
+                closeAdoraImageLightboxIfOpen();
+            }
             if (adoraNavStack.length <= 1) {
                 try {
                     history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
@@ -1325,6 +1331,12 @@
 
         // Navigation
         function navigateTo(screenId, opts = {}) {
+            try {
+                if (typeof window.closeAdoraImageLightbox === 'function') window.closeAdoraImageLightbox();
+                else closeAdoraImageLightboxIfOpen();
+            } catch (_e) {
+                closeAdoraImageLightboxIfOpen();
+            }
             const rootTab = opts.rootTab === true;
             const skipHistory = opts.skipHistory === true;
 
@@ -8293,12 +8305,31 @@
                 'product-share-modal',
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
+                'adora-image-lightbox',
             ];
             const anyOpen = overlayIds.some((id) => {
                 const el = document.getElementById(id);
                 return el && !el.classList.contains('hidden');
             });
             if (!anyOpen) document.body.style.overflow = '';
+        }
+
+        /** إغلاق معاينة الصورة المكبّرة (DOM فقط) — يُستدعى من navigateTo وغيره قبل اكتمال init الـ lightbox */
+        function closeAdoraImageLightboxIfOpen() {
+            try {
+                const overlay = document.getElementById('adora-image-lightbox');
+                if (!overlay || overlay.classList.contains('hidden')) return;
+                overlay.classList.add('hidden');
+                overlay.setAttribute('aria-hidden', 'true');
+                const imgEl = document.getElementById('adora-image-lightbox-img');
+                if (imgEl) {
+                    imgEl.removeAttribute('src');
+                    imgEl.removeAttribute('srcset');
+                }
+                const panzoom = document.getElementById('adora-lightbox-panzoom');
+                if (panzoom) panzoom.style.transform = 'translate(0px, 0px) scale(1)';
+                restoreBodyScrollIfIdle();
+            } catch (_e) {}
         }
 
         function closeSideDrawer(skipRestore) {
@@ -8765,14 +8796,14 @@
             }
 
             function closeAdoraImageLightbox() {
-                overlay.classList.add('hidden');
-                document.body.style.overflow = '';
-                imgEl.removeAttribute('src');
-                resetPanzoom();
+                scale = 1;
+                tx = 0;
+                ty = 0;
                 touchMode = null;
                 panStart = null;
                 drag = false;
                 dragStart = null;
+                closeAdoraImageLightboxIfOpen();
             }
 
             function openAdoraImageLightbox(src) {
@@ -8781,6 +8812,7 @@
                 resetPanzoom();
                 imgEl.src = s;
                 overlay.classList.remove('hidden');
+                overlay.removeAttribute('aria-hidden');
                 document.body.style.overflow = 'hidden';
             }
 
@@ -8809,7 +8841,12 @@
             });
 
             overlay.addEventListener('click', (e) => {
-                if (e.target === overlay || e.target === viewport) closeAdoraImageLightbox();
+                if (overlay.classList.contains('hidden')) return;
+                const t = e.target;
+                if (t.closest('#adora-image-lightbox-close')) return;
+                if (t.closest('#adora-lightbox-toolbar')) return;
+                if (t.closest('#adora-lightbox-panzoom')) return;
+                closeAdoraImageLightbox();
             });
 
             viewport.addEventListener(

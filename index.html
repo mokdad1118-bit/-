@@ -5388,9 +5388,9 @@
         </div>
     </div>
 
-    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black/92" role="dialog" aria-modal="true" aria-label="">
-        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-white/25 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-            <i class="fas fa-times text-lg" aria-hidden="true"></i>
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black/92" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة">
+        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-[30] w-12 h-12 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur-md border border-white/35 shadow-lg shadow-black/40 hover:bg-black/70 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+            <i class="fas fa-times text-xl" aria-hidden="true"></i>
         </button>
         <p id="adora-lightbox-hint" class="absolute top-14 left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none" data-en="Pinch or scroll to zoom · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · اسحب عند التكبير</p>
         <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-16 pb-24 px-2">
@@ -5398,7 +5398,7 @@
                 <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(78dvh,100%)] max-w-[min(96vw,100%)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
             </div>
         </div>
-        <div class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">
+        <div id="adora-lightbox-toolbar" class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">
             <button type="button" id="adora-lightbox-zoom-out" class="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold border border-white/25 hover:bg-white/25 transition" aria-label="Zoom out">−</button>
             <button type="button" id="adora-lightbox-zoom-reset" class="min-w-[3.25rem] h-11 px-2 rounded-full bg-white/15 text-white text-xs font-extrabold border border-white/25 hover:bg-white/25 transition" aria-label="Reset zoom">1×</button>
             <button type="button" id="adora-lightbox-zoom-in" class="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold border border-white/25 hover:bg-white/25 transition" aria-label="Zoom in">+</button>
