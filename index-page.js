@@ -3820,7 +3820,7 @@
             }
         }
 
-        /** روابط الصور من Cloudinary (https فقط). مسارات /uploads/ أو اسم ملف قديم بدون رابط كامل → صورة احتياطية */
+        /** روابط https أو Cloudinary؛ المسارات النسبية والـ /uploads/ من خادم الـ API */
         function absoluteMediaUrl(u) {
             const s = String(u || '').trim();
             if (!s) return '';
@@ -3830,10 +3830,10 @@
                 return `${proto}${s}`;
             }
             const tail = s.replace(/^\/+/, '');
-            if (tail.toLowerCase().startsWith('uploads/')) {
-                return adoraPlaceholderImageUrl();
-            }
             const origin = getApiOrigin();
+            if (tail.toLowerCase().startsWith('uploads/')) {
+                return `${origin}/${tail}`;
+            }
             if (s.startsWith('/')) return origin + s;
             if (s.includes('/')) return `${origin}/${tail}`;
             return adoraPlaceholderImageUrl();

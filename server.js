@@ -130,13 +130,40 @@ function initCloudinary() {
   }
 }
 initCloudinary();
+
+const ADORA_LOCAL_UPLOADS_DIR = path.join(__dirname, "public", "uploads");
+
+function ensureLocalUploadsDir() {
+  try {
+    fs.mkdirSync(ADORA_LOCAL_UPLOADS_DIR, { recursive: true });
+  } catch (_e) {
+    /* ignore */
+  }
+}
+
+function localUploadImageExtension(originalname) {
+  const ext = path.extname(String(originalname || "")).toLowerCase();
+  if (/^\.(jpe?g|png|gif|webp|svg)$/.test(ext)) return ext;
+  return ".jpg";
+}
+
+async function saveLocalUploadFromBuffer(buffer, originalname) {
+  ensureLocalUploadsDir();
+  const ext = localUploadImageExtension(originalname);
+  const name = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`;
+  const fp = path.join(ADORA_LOCAL_UPLOADS_DIR, name);
+  await fs.promises.writeFile(fp, buffer);
+  return `/uploads/${name}`;
+}
+
 if (isCloudinaryConfigured()) {
   // eslint-disable-next-line no-console
-  console.log("[Adora] Image uploads: Cloudinary only (no /uploads on server)");
+  console.log("[Adora] Image uploads: Cloudinary (HTTPS URLs). Local /uploads/ still served if present.");
 } else {
+  ensureLocalUploadsDir();
   // eslint-disable-next-line no-console
   console.warn(
-    "[Adora] Cloudinary is not configured — POST /api/upload/image will fail until CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME+API_KEY+API_SECRET is set."
+    "[Adora] Cloudinary is not configured — uploads save to public/uploads (served at /uploads/). Use CLOUDINARY_* in production for persistent CDN URLs."
   );
 }
 
@@ -2172,13 +2199,12 @@ app.post(
   async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "file is required" });
-      if (!isCloudinaryConfigured()) {
-        return res.status(503).json({
-          error:
-            "Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.",
-        });
+      let url;
+      if (isCloudinaryConfigured()) {
+        url = await uploadBufferToCloudinary(req.file.buffer);
+      } else {
+        url = await saveLocalUploadFromBuffer(req.file.buffer, req.file.originalname);
       }
-      const url = await uploadBufferToCloudinary(req.file.buffer);
       return res.json({ url });
     } catch (err) {
       const msg = err && err.message ? String(err.message) : "Upload failed";
@@ -2213,6 +2239,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+ensureLocalUploadsDir();
+app.use("/uploads", express.static(ADORA_LOCAL_UPLOADS_DIR));
 
 /** عند فتح التطبيق من رابط Render مباشرة: لا تخزّن sw.js بقوة حتى يتحدّث الـ worker */
 app.get("/sw.js", (req, res) => {

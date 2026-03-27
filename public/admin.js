@@ -130,6 +130,33 @@ function clearToken() {
   localStorage.removeItem(ADMIN_TOKEN_KEY);
 }
 
+let mpEntrancePreviewObjectUrl = null;
+
+function revokeMpEntrancePreviewObjectUrl() {
+  if (mpEntrancePreviewObjectUrl) {
+    URL.revokeObjectURL(mpEntrancePreviewObjectUrl);
+    mpEntrancePreviewObjectUrl = null;
+  }
+}
+
+function syncMpEntrancePreview() {
+  const prev = document.getElementById("mp-entrance-preview");
+  const inp = document.getElementById("mp-entrance-image");
+  if (!prev || !inp) return;
+  const v = inp.value.trim();
+  if (v) {
+    let src = v;
+    if (v.startsWith("//")) {
+      src = `${typeof window !== "undefined" ? window.location.protocol : "https:"}${v}`;
+    }
+    prev.src = src;
+    prev.classList.remove("hidden");
+  } else {
+    prev.removeAttribute("src");
+    prev.classList.add("hidden");
+  }
+}
+
 /** يجب أن يكون role في قاعدة البيانات = admin (حسابات تطبيق الزبائن = user ولن تعمل عمليات الحفظ). */
 function isAdminRole(role) {
   return String(role ?? "").trim().toLowerCase() === "admin";
@@ -974,6 +1001,7 @@ async function loadMpEntranceForm() {
   if (!token) return;
   try {
     const d = await api("/api/marketplace/entrance", { token });
+    revokeMpEntrancePreviewObjectUrl();
     document.getElementById("mp-entrance-image").value = d.image_url || "";
     const mpEntFile = document.getElementById("mp-entrance-image-file");
     if (mpEntFile) mpEntFile.value = "";
@@ -981,6 +1009,7 @@ async function loadMpEntranceForm() {
     document.getElementById("mp-entrance-title-en").value = d.title_en || "";
     document.getElementById("mp-entrance-sub-ar").value = d.subtitle_ar || "";
     document.getElementById("mp-entrance-sub-en").value = d.subtitle_en || "";
+    syncMpEntrancePreview();
   } catch (_e) {}
 }
 
@@ -1405,7 +1434,11 @@ function bindMarketplaceAdminListeners() {
     if (entranceImgFile) {
       try {
         const up = await uploadImageFile(entranceImgFile, token);
-        if (up) image_url = up;
+        if (!up) {
+          alert(getAdminLang() === "ar" ? "الرفع لم يُرجع رابطاً للصورة." : "Upload did not return an image URL.");
+          return;
+        }
+        image_url = up;
       } catch (err) {
         alert(err.message || String(err));
         return;
@@ -1419,13 +1452,38 @@ function bindMarketplaceAdminListeners() {
       subtitle_en: document.getElementById("mp-entrance-sub-en").value.trim(),
     };
     try {
-      await api("/api/admin/marketplace/entrance", { method: "PUT", token, body });
+      const saved = await api("/api/admin/marketplace/entrance", { method: "PUT", token, body });
+      revokeMpEntrancePreviewObjectUrl();
       const fin = document.getElementById("mp-entrance-image-file");
       if (fin) fin.value = "";
-      if (image_url) document.getElementById("mp-entrance-image").value = image_url;
+      const persisted = saved && saved.image_url != null ? String(saved.image_url).trim() : "";
+      if (persisted) document.getElementById("mp-entrance-image").value = persisted;
+      else if (image_url) document.getElementById("mp-entrance-image").value = image_url;
+      syncMpEntrancePreview();
       alert(getAdminLang() === "ar" ? "تم حفظ واجهة الدخول." : "Entrance saved.");
     } catch (err) {
       alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-entrance-image")?.addEventListener("input", () => {
+    revokeMpEntrancePreviewObjectUrl();
+    const fileInp = document.getElementById("mp-entrance-image-file");
+    if (fileInp) fileInp.value = "";
+    syncMpEntrancePreview();
+  });
+
+  document.getElementById("mp-entrance-image-file")?.addEventListener("change", (e) => {
+    revokeMpEntrancePreviewObjectUrl();
+    const prev = document.getElementById("mp-entrance-preview");
+    const f = e.target && e.target.files && e.target.files[0];
+    if (!prev) return;
+    if (f) {
+      mpEntrancePreviewObjectUrl = URL.createObjectURL(f);
+      prev.src = mpEntrancePreviewObjectUrl;
+      prev.classList.remove("hidden");
+    } else {
+      syncMpEntrancePreview();
     }
   });
 

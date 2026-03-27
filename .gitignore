@@ -7,3 +7,4 @@ adora.sqlite
 *.sqlite-journal
 # ملفات مرفوعة من المستخدمين (لا تُرفع إلى Git)
 uploads/
+public/uploads/
