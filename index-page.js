@@ -2853,6 +2853,81 @@
             });
         }
 
+        function renderMarketplaceVendorsStrip() {
+            const wrap = document.getElementById('marketplace-vendors-strip-wrap');
+            const sc = document.getElementById('marketplace-vendors-scroll');
+            if (!wrap || !sc) return;
+            const list = Array.isArray(marketplaceBrowseVendorsCache) ? marketplaceBrowseVendorsCache : [];
+            if (!list.length) {
+                wrap.classList.add('hidden');
+                sc.innerHTML = '';
+                return;
+            }
+            wrap.classList.remove('hidden');
+            const loc = isRTL ? 'ar' : 'en';
+            const allLabel = isRTL ? 'الكل' : 'All';
+            const selAll = marketplaceBrowseVendorId == null;
+            const allCls = `flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition active:scale-[0.98] ${
+                selAll ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`;
+            let html = `<button type="button" data-mp-browse-vendor-clear="1" class="${allCls}">${escapeHtml(allLabel)}</button>`;
+            for (const v of list) {
+                const name = String(loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar || '').trim();
+                const vid = Number(v.id);
+                if (!Number.isFinite(vid)) continue;
+                const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
+                const cls = `flex-shrink-0 flex items-center gap-1.5 rounded-xl pl-1.5 pr-2 py-1 text-xs font-bold border transition max-w-[min(72vw,14rem)] active:scale-[0.98] ${
+                    sel ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-200' : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`;
+                const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
+                const logo = logoRaw
+                    ? `<span class="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0 ring-1 ring-black/5"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-[11px] font-extrabold">${escapeHtml((name || '?').charAt(0))}</span>`;
+                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="truncate min-w-0">${escapeHtml(name || '—')}</span></button>`;
+            }
+            sc.innerHTML = html;
+        }
+
+        async function loadMarketplaceVendorsStrip() {
+            const wrap = document.getElementById('marketplace-vendors-strip-wrap');
+            if (!wrap) return;
+            try {
+                const rows = await apiFetch('/api/marketplace/vendors', { requireAuth: false });
+                marketplaceBrowseVendorsCache = Array.isArray(rows) ? rows : [];
+            } catch (_e) {
+                marketplaceBrowseVendorsCache = [];
+            }
+            renderMarketplaceVendorsStrip();
+        }
+
+        function initMarketplaceVendorStripDelegation() {
+            const screen = document.getElementById('screen-marketplace');
+            if (!screen || screen.dataset.adoraMpVStripBound === '1') return;
+            screen.dataset.adoraMpVStripBound = '1';
+            screen.addEventListener('click', (e) => {
+                const clearBtn = e.target.closest('[data-mp-browse-vendor-clear]');
+                if (clearBtn && screen.contains(clearBtn)) {
+                    e.preventDefault();
+                    marketplaceBrowseVendorId = null;
+                    marketplaceBrowseSectionId = null;
+                    renderMarketplaceVendorsStrip();
+                    refreshMarketplaceProductList().catch(() => {});
+                    return;
+                }
+                const vbtn = e.target.closest('[data-mp-browse-vendor-id]');
+                if (!vbtn || !screen.contains(vbtn)) return;
+                e.preventDefault();
+                const vid = Number(vbtn.getAttribute('data-mp-browse-vendor-id'));
+                if (!Number.isFinite(vid)) return;
+                marketplaceBrowseVendorId = vid;
+                marketplaceBrowseSectionId = null;
+                const si = document.getElementById('marketplace-search-input');
+                if (si) si.value = '';
+                renderMarketplaceVendorsStrip();
+                refreshMarketplaceProductList().catch(() => {});
+            });
+        }
+
         function syncVendorJoinDocTypePanels() {
             const commercial = document.querySelector('input[name="vj-doc-type"][value="commercial"]')?.checked;
             document.getElementById('vj-national-uploads')?.classList.toggle('hidden', !!commercial);
@@ -2968,6 +3043,7 @@
                     if (si) si.value = String(preset.q);
                 }
             }
+            await loadMarketplaceVendorsStrip();
             await refreshMarketplaceProductList();
         }
 
@@ -3029,15 +3105,22 @@
                 const products = await apiFetch(`/api/marketplace/products?${params.toString()}`, { requireAuth: false });
                 const arr = Array.isArray(products) ? products : [];
                 if (!arr.length) {
-                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${
-                        q
-                            ? isRTL
-                                ? 'لا نتائج.'
-                                : 'No results.'
-                            : isRTL
-                              ? 'لا توجد منتجات مميزة بعد. اكتب في البحث أو أضف منتجات مميزة من لوحة التحكم.'
-                              : 'No featured products yet. Search or add featured items in admin.'
-                    }</p>`;
+                    const narrow =
+                        (marketplaceBrowseVendorId != null && Number.isFinite(marketplaceBrowseVendorId)) ||
+                        (marketplaceBrowseSectionId != null && Number.isFinite(marketplaceBrowseSectionId));
+                    let emptyMsg;
+                    if (q) {
+                        emptyMsg = isRTL ? 'لا نتائج.' : 'No results.';
+                    } else if (narrow) {
+                        emptyMsg = isRTL
+                            ? 'لا توجد منتجات نشطة لهذا العرض. أضف منتجات من لوحة التحكم أو اضغط «الكل».'
+                            : 'No active products for this filter. Add products in admin or tap «All».';
+                    } else {
+                        emptyMsg = isRTL
+                            ? 'لا توجد منتجات مميزة بعد. اختر شركة من الشريط أو ابحث، أو فعّل «مميز في السوق» على منتجات من لوحة التحكم.'
+                            : 'No featured picks yet. Choose a company from the strip or search, or mark products as featured in admin.';
+                    }
+                    grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${emptyMsg}</p>`;
                     return;
                 }
                 const loc = isRTL ? 'ar' : 'en';
@@ -7001,6 +7084,7 @@
             updateProfileWishlistUi();
             initOnboardingStorageMigration();
             initBrandClickDelegation();
+            initMarketplaceVendorStripDelegation();
             initAdoraAuthParticles();
             initSiteRatingStars();
             initProductReviewStars();
