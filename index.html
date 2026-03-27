@@ -4534,6 +4534,11 @@
                 <span class="flex-1 text-start" data-en="Track my orders" data-ar="تتبع طلبي">تتبع طلبي</span>
                 <i class="side-menu-chevron fas fa-chevron-left text-gray-300 text-sm"></i>
             </button>
+            <button type="button" class="side-menu-item" onclick="sideMenuOpenAppAdInquiriesModal()">
+                <span class="side-menu-icon bg-fuchsia-100 text-fuchsia-700"><i class="fas fa-bullhorn"></i></span>
+                <span class="flex-1 text-start" data-en="Ad requests" data-ar="طلبات الإعلان">طلبات الإعلان</span>
+                <i class="side-menu-chevron fas fa-chevron-left text-gray-300 text-sm"></i>
+            </button>
             <button type="button" class="side-menu-item" onclick="sideMenuDownloadApp()">
                 <span class="side-menu-icon bg-sky-100 text-sky-700"><i class="fas fa-mobile-screen"></i></span>
                 <span class="flex-1 text-start" data-en="Download the app" data-ar="تنزيل التطبيق">تنزيل التطبيق</span>
@@ -4602,6 +4607,18 @@
                 </button>
             </div>
             <div id="vendor-subscription-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="app-ad-inquiries-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeAppAdInquiriesModal()">
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-900" data-en="App ad requests" data-ar="طلبات الإعلان">طلبات الإعلان</h2>
+                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeAppAdInquiriesModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="app-ad-inquiries-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
         </div>
     </div>
 

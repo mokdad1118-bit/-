@@ -6719,6 +6719,29 @@
             return m[String(status || '').trim()] || String(status || '—');
         }
 
+        function appAdInquiryStatusLabel(status) {
+            const ar = isRTL;
+            const k = String(status || '').trim().toLowerCase();
+            const m = {
+                pending: ar ? 'قيد الانتظار' : 'Pending',
+                reviewed: ar ? 'تمت المراجعة' : 'Reviewed',
+                approved: ar ? 'تمت الموافقة على إعلانك' : 'Your ad was approved',
+                archived: ar ? 'مؤرشف' : 'Archived',
+            };
+            return m[k] || String(status || '—');
+        }
+
+        function applyAppAdInquiryStatusBadge(el, status) {
+            if (!el) return;
+            el.textContent = appAdInquiryStatusLabel(status);
+            const base = 'shrink-0 text-[10px] font-bold px-2 py-1 rounded-full max-w-[140px] truncate ';
+            const s = String(status || '').trim().toLowerCase();
+            if (s === 'approved') el.className = base + 'bg-emerald-100 text-emerald-800';
+            else if (s === 'archived') el.className = base + 'bg-slate-100 text-slate-700';
+            else if (s === 'reviewed') el.className = base + 'bg-sky-100 text-sky-800';
+            else el.className = base + 'bg-amber-50 text-amber-900';
+        }
+
         function applyVendorSubStatusBadge(el, status) {
             if (!el) return;
             el.textContent = vendorSubStatusLabel(status);
@@ -6848,6 +6871,81 @@
             restoreBodyScrollIfIdle();
         }
 
+        function renderAppAdInquiriesModalBody(container, rows) {
+            if (!container) return;
+            const list = Array.isArray(rows) ? rows : [];
+            const ar = isRTL;
+            if (!list.length) {
+                container.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${ar ? 'لا توجد طلبات إعلان مرتبطة بحسابك.' : 'No ad requests linked to your account.'}</p>`;
+                return;
+            }
+            const escAttr = (u) =>
+                String(u || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/</g, '&lt;');
+            container.innerHTML = list
+                .map((r) => {
+                    const st = appAdInquiryStatusLabel(r.status);
+                    const msg =
+                        r.admin_note && String(r.admin_note).trim()
+                            ? `<p class="text-xs text-gray-600 mt-2 whitespace-pre-wrap">${String(r.admin_note)
+                                  .replace(/</g, '&lt;')
+                                  .replace(/>/g, '&gt;')}</p>`
+                            : '';
+                    const dt = r.updated_at || r.created_at || '';
+                    const dstr = dt ? new Date(dt).toLocaleString(ar ? 'ar' : 'en', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+                    const imgUrl = r.product_image_url ? String(r.product_image_url).trim() : '';
+                    const imgLink = imgUrl
+                        ? `<a href="${escAttr(imgUrl)}" target="_blank" rel="noopener noreferrer" class="text-fuchsia-600 underline text-xs font-semibold">${ar ? 'صورة المنتج' : 'Product image'}</a>`
+                        : '';
+                    const price = r.product_price ? String(r.product_price).replace(/</g, '&lt;') : '—';
+                    return `<div class="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-bold text-gray-900 truncate">${String(r.company_name || '—').replace(/</g, '&lt;')}</p>
+                <p class="text-xs text-gray-500 mt-0.5">#${r.id}${dstr ? ` · ${dstr}` : ''}</p>
+                <p class="text-xs text-gray-600 mt-1">${ar ? 'السعر:' : 'Price:'} ${price}</p>
+                ${imgLink ? `<div class="mt-1">${imgLink}</div>` : ''}
+              </div>
+              <span class="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-800 app-ad-inq-badge" data-app-ad-st="${String(r.status || '').replace(/"/g, '')}">${st}</span>
+            </div>
+            ${msg}
+          </div>`;
+                })
+                .join('');
+            container.querySelectorAll('.app-ad-inq-badge').forEach((el) => {
+                const st = el.getAttribute('data-app-ad-st') || '';
+                applyAppAdInquiryStatusBadge(el, st);
+            });
+        }
+
+        async function sideMenuOpenAppAdInquiriesModal() {
+            if (!getStoredJwtToken()) {
+                closeSideDrawer(true);
+                openAuthModal('login', isRTL ? 'سجّل الدخول لعرض طلبات الإعلان' : 'Log in to view your ad requests');
+                return;
+            }
+            closeSideDrawer(true);
+            const modal = document.getElementById('app-ad-inquiries-modal');
+            const body = document.getElementById('app-ad-inquiries-modal-body');
+            if (!modal || !body) return;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            body.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            try {
+                const rows = await apiFetch('/api/me/app-ad-inquiries', { requireAuth: true });
+                renderAppAdInquiriesModalBody(body, rows);
+            } catch (_e) {
+                body.innerHTML = `<p class="text-sm text-red-600 text-center py-6">${isRTL ? 'تعذر التحميل.' : 'Could not load.'}</p>`;
+            }
+        }
+
+        function closeAppAdInquiriesModal() {
+            document.getElementById('app-ad-inquiries-modal')?.classList.add('hidden');
+            restoreBodyScrollIfIdle();
+        }
+
         function openSideDrawer() {
             document.getElementById('side-drawer-backdrop')?.classList.add('open');
             document.getElementById('side-drawer-panel')?.classList.add('open');
@@ -6872,6 +6970,7 @@
                 'app-broadcasts-modal',
                 'product-share-modal',
                 'vendor-subscription-modal',
+                'app-ad-inquiries-modal',
             ];
             const anyOpen = overlayIds.some((id) => {
                 const el = document.getElementById(id);
@@ -6905,6 +7004,8 @@
         try {
             window.sideMenuOpenAuthLogin = sideMenuOpenAuthLogin;
             window.sideMenuOpenAuthSignup = sideMenuOpenAuthSignup;
+            window.sideMenuOpenAppAdInquiriesModal = sideMenuOpenAppAdInquiriesModal;
+            window.closeAppAdInquiriesModal = closeAppAdInquiriesModal;
         } catch (_e) {}
 
         async function sideMenuTrackOrders() {

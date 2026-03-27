@@ -120,6 +120,58 @@ const appAdProductUpload = multer({
   },
 });
 
+async function resolveAppAdInquiryNotifyUserId(row) {
+  if (row.user_id != null && Number(row.user_id) > 0) {
+    const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') <> 'admin'`, [Number(row.user_id)]);
+    if (u) return Number(u.id);
+  }
+  const em = row.email != null ? String(row.email).trim() : "";
+  if (em) {
+    const u = await get(
+      `SELECT id FROM users WHERE LOWER(TRIM(COALESCE(email,''))) = LOWER(TRIM(?)) AND COALESCE(role,'user') <> 'admin' LIMIT 1`,
+      [em]
+    );
+    if (u) return Number(u.id);
+  }
+  const ph = row.phone != null ? String(row.phone).trim() : "";
+  if (ph) {
+    const u = await get(
+      `SELECT id FROM users WHERE TRIM(COALESCE(phone,'')) = TRIM(?) AND COALESCE(role,'user') <> 'admin' LIMIT 1`,
+      [ph]
+    );
+    if (u) return Number(u.id);
+  }
+  return null;
+}
+
+function buildAppAdInquiryStatusNotification(status, companyName, adminNote) {
+  const c = companyName && String(companyName).trim() ? String(companyName).trim() : "شركتك";
+  const note =
+    adminNote != null && String(adminNote).trim()
+      ? `\n\nملاحظة من Adora:\n${String(adminNote).trim().slice(0, 1500)}`
+      : "";
+  const map = {
+    pending: {
+      title: "طلب إعلان في التطبيق",
+      message: `تم تحديث حالة طلب إعلانك لشركة «${c}» إلى: قيد الانتظار.${note}`,
+    },
+    reviewed: {
+      title: "تحديث طلب الإعلان",
+      message: `تمت مراجعة طلب إعلان المنتج لشركة «${c}».${note}`,
+    },
+    approved: {
+      title: "تمت الموافقة على إعلانك",
+      message: `تهانينا! تمت الموافقة على طلب إعلانك لشركة «${c}». سيظهر إعلانك في البنر حسب إعدادات المنصة.${note}`,
+    },
+    archived: {
+      title: "طلب إعلان في التطبيق",
+      message: `تم أرشفة طلب إعلانك لشركة «${c}».${note}`,
+    },
+  };
+  const key = String(status || "").trim().toLowerCase();
+  return map[key] || map.pending;
+}
+
 async function resolveVendorSubscriptionNotifyUserId(row) {
   if (row.user_id != null && Number(row.user_id) > 0) {
     const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') <> 'admin'`, [Number(row.user_id)]);
@@ -459,6 +511,31 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
     }
   });
 
+  app.get("/api/me/app-ad-inquiries", requireAuth, async (req, res) => {
+    try {
+      const role = String(req.user?.role ?? "").trim().toLowerCase();
+      if (role === "admin") return res.json([]);
+      const uid = Number(req.user.id);
+      const urow = await get(`SELECT id, email, phone FROM users WHERE id=?`, [uid]);
+      if (!urow) return res.status(401).json({ error: "Unauthorized" });
+      const email = urow.email != null ? String(urow.email).trim() : "";
+      const phone = urow.phone != null ? String(urow.phone).trim() : "";
+      const rows = await all(
+        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, status, admin_note, created_at, updated_at, user_id
+         FROM app_ad_inquiries
+         WHERE user_id = ?
+            OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND LOWER(TRIM(email)) = LOWER(TRIM(?)))
+            OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND TRIM(phone) = TRIM(?))
+         ORDER BY created_at DESC, id DESC
+         LIMIT 50`,
+        [uid, email, email, phone, phone]
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load ad inquiries" });
+    }
+  });
+
   app.get("/api/admin/vendor-subscription-requests", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const rows = await all(
@@ -728,10 +805,11 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
       const row = await get(`SELECT * FROM app_ad_inquiries WHERE id=?`, [id]);
       if (!row) return res.status(404).json({ error: "Not found" });
+      const prevStatus = String(row.status || "").trim().toLowerCase();
       const b = req.body || {};
       const statusIn = b.status != null ? String(b.status).trim().toLowerCase() : null;
-      let newStatus = row.status;
-      if (statusIn === "pending" || statusIn === "reviewed" || statusIn === "archived") {
+      let newStatus = String(row.status || "").trim().toLowerCase();
+      if (statusIn === "pending" || statusIn === "reviewed" || statusIn === "approved" || statusIn === "archived") {
         newStatus = statusIn;
       }
       let newNote = row.admin_note;
@@ -743,7 +821,24 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         newNote,
         id,
       ]);
-      return res.json(await get(`SELECT * FROM app_ad_inquiries WHERE id=?`, [id]));
+      const updated = await get(`SELECT * FROM app_ad_inquiries WHERE id=?`, [id]);
+      const nextStatus = String(updated.status || "").trim().toLowerCase();
+      if (typeof notifyUserInApp === "function" && prevStatus !== nextStatus) {
+        try {
+          const notifyUid = await resolveAppAdInquiryNotifyUserId(updated);
+          if (notifyUid) {
+            const { title, message } = buildAppAdInquiryStatusNotification(
+              nextStatus,
+              updated.company_name,
+              updated.admin_note
+            );
+            await notifyUserInApp(notifyUid, title, message, null);
+          }
+        } catch (_n) {
+          /* لا نفشل حفظ الحالة إذا تعذر الإشعار */
+        }
+      }
+      return res.json(updated);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to update inquiry" });
     }

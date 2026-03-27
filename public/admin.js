@@ -545,6 +545,7 @@ async function loadAppAdInquiriesUi() {
   const stLabel = (st) => {
     const x = String(st || "").toLowerCase();
     if (x === "reviewed") return ar ? "تمت المراجعة" : "Reviewed";
+    if (x === "approved") return ar ? "تمت الموافقة على الإعلان" : "Ad approved";
     if (x === "archived") return ar ? "مؤرشف" : "Archived";
     return ar ? "قيد الانتظار" : "Pending";
   };
@@ -564,6 +565,7 @@ async function loadAppAdInquiriesUi() {
           <select class="app-ad-inq-status w-full p-1.5 rounded-lg border border-gray-200 text-[11px]" data-app-ad-inq-status="${r.id}">
             <option value="pending"${String(r.status).toLowerCase() === "pending" ? " selected" : ""}>${stLabel("pending")}</option>
             <option value="reviewed"${String(r.status).toLowerCase() === "reviewed" ? " selected" : ""}>${stLabel("reviewed")}</option>
+            <option value="approved"${String(r.status).toLowerCase() === "approved" ? " selected" : ""}>${stLabel("approved")}</option>
             <option value="archived"${String(r.status).toLowerCase() === "archived" ? " selected" : ""}>${stLabel("archived")}</option>
           </select>
         </td>
