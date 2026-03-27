@@ -2871,14 +2871,14 @@
                 const vid = Number(v.id);
                 if (!Number.isFinite(vid)) continue;
                 const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
-                const cls = `mp-vendor-chip flex-shrink-0 flex flex-col items-center gap-2.5 rounded-[1.35rem] px-2.5 pt-3 pb-3 border transition w-[8.5rem] snap-start active:scale-[0.98] ${
-                    sel ? 'bg-gradient-to-b from-purple-50/95 to-white border-purple-400 ring-2 ring-purple-200/90 shadow-md' : 'bg-white border-gray-200/90 shadow-sm hover:border-gray-300 hover:shadow'
+                const cls = `mp-vendor-chip flex-shrink-0 flex flex-col items-stretch min-w-0 gap-1.5 rounded-xl px-1.5 pt-1.5 pb-2 border transition w-[calc((100%-1.25rem)/3)] snap-start snap-always active:scale-[0.98] ${
+                    sel ? 'bg-gradient-to-b from-purple-50/95 to-white border-purple-400 ring-2 ring-purple-200/80 shadow-sm' : 'bg-white border-gray-200/90 shadow-sm hover:border-gray-300'
                 }`;
                 const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
                 const logo = logoRaw
-                    ? `<span class="w-28 h-28 rounded-2xl overflow-hidden bg-gray-50 shrink-0 ring-1 ring-gray-200/70 shadow-inner flex items-center justify-center p-2"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="max-w-full max-h-full w-auto h-auto object-contain" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                    : `<span class="w-28 h-28 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-3xl font-bold tracking-tight ring-1 ring-emerald-200/80 shadow-sm">${escapeHtml((name || '?').charAt(0))}</span>`;
-                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name text-center text-[13px] font-semibold text-gray-800 tracking-tight leading-snug line-clamp-2 w-full px-1" dir="auto">${escapeHtml(name || '—')}</span></button>`;
+                    ? `<span class="w-full aspect-square rounded-xl overflow-hidden bg-gray-50 shrink-0 ring-1 ring-gray-200/60 flex items-center justify-center p-1"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="max-w-full max-h-full w-auto h-auto object-contain" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="w-full aspect-square rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-xl font-bold tracking-tight ring-1 ring-emerald-200/70">${escapeHtml((name || '?').charAt(0))}</span>`;
+                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name text-center text-[11px] font-semibold text-gray-800 tracking-tight leading-tight line-clamp-2 w-full px-0.5" dir="auto">${escapeHtml(name || '—')}</span></button>`;
             }
             sc.innerHTML = html;
         }
