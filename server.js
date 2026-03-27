@@ -2000,7 +2000,31 @@ app.get("/api/bestsellers", async (req, res) => {
         sizes: safeJsonParse(p.sizes_json, []),
         colors: safeJsonParse(p.colors_json, []),
         images: images.map((i) => i.image_url),
+        review_avg: null,
+        review_count: 0,
       });
+    }
+    const ids = rows.map((r) => r.id).filter((id) => Number.isFinite(Number(id)));
+    if (ids.length) {
+      const ph = ids.map(() => "?").join(",");
+      const revRows = await all(
+        `SELECT product_id, AVG(stars) AS review_avg, COUNT(*) AS review_count FROM product_reviews WHERE product_id IN (${ph}) GROUP BY product_id`,
+        ids
+      );
+      const revMap = {};
+      for (const r of revRows) {
+        revMap[r.product_id] = {
+          review_avg: r.review_avg != null ? Math.round(Number(r.review_avg) * 10) / 10 : null,
+          review_count: Number(r.review_count || 0),
+        };
+      }
+      for (const row of rows) {
+        const rv = revMap[row.id];
+        if (rv) {
+          row.review_avg = rv.review_avg;
+          row.review_count = rv.review_count;
+        }
+      }
     }
     return res.json(rows);
   } catch (err) {

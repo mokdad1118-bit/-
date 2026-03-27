@@ -3121,25 +3121,41 @@
                 .map((p) => {
                     const pid = Number(p.id);
                     const ptitle = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+                    const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
+                    const vendorHtml = vendor ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(String(vendor).trim())}</p>` : '';
                     const imgs = Array.isArray(p.images) ? p.images : [];
                     const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                     const homeAd =
                         showHomePromo && Number(p.is_home_featured_promo) === 1
-                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm z-[1]">${isRTL ? 'رئيسية' : 'Home'}</span>`
+                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'رئيسية' : 'Home'}</span>`
                             : '';
+                    const listP = Number(p.price ?? 0);
+                    const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
+                    const saleP = p.final_price != null ? Number(p.final_price) : disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
                     const inWish = isWishlistEntry('mp', pid);
                     const canCart = Number(p.stock || 0) > 0;
-                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-white/90 shadow text-[11px] ${inWish ? 'active' : ''}`;
-                    const cCls = canCart
-                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-violet-600 text-white shadow text-[10px]'
-                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[10px]';
-                    return `<div class="flex-shrink-0 w-[38%] max-w-[9.5rem] rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm text-start relative">
-                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${pid},this)"><i class="fas fa-heart"></i></button>
-                        <button type="button" class="${cCls}" aria-label="Cart" onclick="quickAddMarketplaceProductToCart(${pid},event)"><i class="fas fa-cart-plus"></i></button>
-                        <button type="button" onclick="openMarketplaceProductDetail(${pid})" class="w-full text-start active:scale-[0.98] transition-transform">
-                        <div class="aspect-square bg-gray-100 relative">${homeAd}<img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
-                        <p class="p-1.5 text-[10px] font-bold text-gray-900 line-clamp-2 leading-tight">${escapeHtml(ptitle)}</p>
-                        </button>
+                    const wishActive = inWish ? ' active' : '';
+                    const addDis = canCart ? '' : ' disabled';
+                    const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+                    const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                    return `<div class="flex-shrink-0 w-[38%] max-w-[9.5rem] text-start">
+                        <div class="adora-pcard adora-pcard--highlight">
+                        <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start active:scale-[0.98] transition-transform" onclick="openMarketplaceProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${pid});}">
+                        <div class="adora-pcard__top">
+                        <div class="adora-pcard__media">
+                            <div class="adora-pcard__media-inner">${homeAd}<img src="${escapeHtml(img0)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
+                            <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${pid},this)">${adoraPcardWishIconsHtml()}</button>
+                            <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${pid},event)">+</button>
+                        </div>
+                        </div>
+                        <div class="adora-pcard__body">
+                            <h3 class="adora-pcard__title">${escapeHtml(ptitle)}</h3>
+                            ${vendorHtml}
+                            ${ratingHtml}
+                            ${priceHtml}
+                        </div>
+                        </div>
+                        </div>
                     </div>`;
                 })
                 .join('');
@@ -3502,46 +3518,48 @@
                         const mid = Number(p.id);
                         const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
                         const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
-                        const vendorPill = vendor ? `<div class="mt-0.5">${formatVendorBrandPill(vendor)}</div>` : '';
+                        const vendorHtml = vendor ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(String(vendor).trim())}</p>` : '';
                         const imgs = Array.isArray(p.images) ? p.images : [];
                         const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                         const offer = Number(p.is_offer) === 1;
                         const sponsored = Number(p.is_search_sponsored) === 1;
                         let promoLeft = '';
                         if (sponsored) {
-                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full z-[1]">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
+                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full z-[2]">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
                         }
                         const disc = Number(p.discount_percent || 0);
                         const finalP = p.final_price != null ? Number(p.final_price) : Number(p.price || 0);
                         const listP = Number(p.price || 0);
-                        const priceHtml =
-                            disc > 0 && disc < 100
-                                ? `<p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(finalP))} <span class="text-[10px] font-semibold text-gray-400 line-through">${escapeHtml(formatSyp(listP))}</span></p>`
-                                : `<p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(listP))}</p>`;
+                        const saleP = disc > 0 && disc < 100 ? finalP : listP;
                         const featBadge =
                             Number(p.is_mp_featured) === 1
-                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[1]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
                                 : '';
                         const inWish = isWishlistEntry('mp', mid);
                         const canCart = Number(p.stock || 0) > 0;
-                        const heartCls = `wishlist-btn absolute top-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
-                        const cartCls = canCart
-                            ? 'absolute bottom-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-violet-600 text-white hover:bg-violet-700'
-                            : 'absolute bottom-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
+                        const wishActive = inWish ? ' active' : '';
+                        const addDis = canCart ? '' : ' disabled';
                         const offerTop = sponsored ? 'top-10' : 'top-2';
-                        return `<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative active:scale-[0.99] transition-transform">
-                            <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)"><i class="fas fa-heart text-sm"></i></button>
-                            <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
-                            <div role="button" tabindex="0" class="cursor-pointer" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
-                            <div class="aspect-square bg-gray-100 relative">
-                                <img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                        const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+                        const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                        return `<div class="adora-pcard active:scale-[0.99] transition-transform">
+                            <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
+                            <div class="adora-pcard__top">
+                            <div class="adora-pcard__media">
+                            <div class="adora-pcard__media-inner">
+                                <img src="${escapeHtml(img0)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                                 ${promoLeft}
-                                ${offer ? `<span class="absolute ${offerTop} right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full z-[1]">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
+                                ${offer ? `<span class="absolute ${offerTop} right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full z-[2]">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
                                 ${featBadge}
                             </div>
-                            <div class="p-2.5 space-y-0.5">
-                                <p class="text-xs font-bold text-gray-900 line-clamp-2 leading-snug">${escapeHtml(title)}</p>
-                                ${vendorPill}
+                            <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)">${adoraPcardWishIconsHtml()}</button>
+                            <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)">+</button>
+                            </div>
+                            </div>
+                            <div class="adora-pcard__body">
+                                <h3 class="adora-pcard__title">${escapeHtml(title)}</h3>
+                                ${vendorHtml}
+                                ${ratingHtml}
                                 ${priceHtml}
                             </div>
                             </div>
@@ -5712,50 +5730,65 @@
             return Number(p.stock || 0) > 0;
         }
 
+        function adoraPcardWishIconsHtml() {
+            return '<i class="far fa-heart wl-i-outline text-[11px] opacity-90" aria-hidden="true"></i><i class="fas fa-heart wl-i-fill text-[11px]" aria-hidden="true"></i>';
+        }
+
+        function adoraPcardRatingHtml(p) {
+            const rc = Math.max(0, Math.round(Number(p.review_count || 0)));
+            const avgRaw = p.review_avg != null ? Number(p.review_avg) : null;
+            const hasReviews = rc > 0 && avgRaw != null && !Number.isNaN(avgRaw);
+            const avgStr = hasReviews ? (avgRaw % 1 === 0 ? String(Math.round(avgRaw)) : avgRaw.toFixed(1)) : '';
+            if (!hasReviews) {
+                return `<span class="adora-pcard-rating text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold border border-gray-200/80">${isRTL ? 'لا تقييمات بعد' : 'No reviews yet'}</span>`;
+            }
+            return `<span class="adora-pcard-rating inline-flex items-center gap-1 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 font-bold border border-gray-200/80" dir="ltr"><span class="text-gray-500 font-semibold">(${rc})</span><span>${escapeHtml(avgStr)}</span><i class="fas fa-star text-emerald-600 text-[8px]" aria-hidden="true"></i></span>`;
+        }
+
+        function adoraPcardPriceRowHtml({ disc, listP, saleP }) {
+            const d = Math.round(Number(disc || 0));
+            const showDisc = d > 0 && d < 100;
+            const parts = [];
+            if (showDisc) parts.push(`<span class="adora-pcard__disc">${d}%</span>`);
+            if (showDisc) parts.push(`<span class="adora-pcard__price-old">${escapeHtml(formatSyp(listP))}</span>`);
+            parts.push(`<span class="adora-pcard__price-now">${escapeHtml(formatSyp(saleP))}</span>`);
+            return `<div class="adora-pcard__prices" dir="auto">${parts.join('')}</div>`;
+        }
+
         function renderProductCardHtml(p, opts = {}) {
             const compact = opts.compact === true;
+            const stripMod = compact ? ' adora-pcard--strip' : '';
             const br = resolveDisplayBrand(p.brand);
-            const brandHtml = br ? `<div class="mb-1">${formatVendorBrandPill(br)}</div>` : '';
+            const vendorHtml = br ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(br)}</p>` : '';
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
             const listP = productListPrice(p);
             const disc = productDiscountPct(p);
             const saleP = productSaleUnitPrice(p);
             const pid = Number(p.id);
-            const badge =
-                disc > 0
-                    ? `<span class="absolute ${compact ? 'top-0.5 left-0.5 rtl:left-auto rtl:right-0.5 text-[8px] px-1 py-0.5' : 'top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md z-[1]">-${Math.round(disc)}%</span>`
-                    : '';
-            const mediaCls = compact
-                ? 'relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100'
-                : 'relative aspect-[3/4] max-h-[168px] overflow-hidden bg-gray-100';
-            const padCls = compact ? 'p-1.5' : 'p-2';
-            const titleCls = compact
-                ? 'font-semibold text-gray-900 text-[11px] line-clamp-2 mb-0.5'
-                : 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5';
-            const priceMain = compact ? 'font-bold text-gray-900 text-[11px]' : 'font-bold text-gray-900 text-xs';
             const cardExtra = compact ? ' home-compact-product-card' : '';
             const inWish = isWishlistEntry('p', pid);
             const canCart = productHasAnyStockQuick(p);
-            const heartCls = `wishlist-btn absolute top-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
-            const cartCls = canCart
-                ? 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-900 text-white hover:bg-gray-800 transition-colors'
-                : 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
-            return `<div class="product-card${cardExtra} bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group transition-shadow hover:shadow-lg hover:ring-black/[0.06] relative">
-                <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'p',${pid},this)"><i class="fas fa-heart text-sm"></i></button>
-                <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddCatalogProductToCart(${pid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
-                <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
-                <div class="${mediaCls}">
-                    <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
-                    ${badge}
-                </div>
-                <div class="${padCls}">
-                    ${brandHtml}
-                    <h3 class="${titleCls}">${escapeHtml(name)}</h3>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="${priceMain}">${formatSyp(saleP)}</span>
-                        ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+            const wishActive = inWish ? ' active' : '';
+            const addDis = canCart ? '' : ' disabled';
+            const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+            const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+            return `<div class="adora-pcard product-card${stripMod}${cardExtra}">
+                <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
+                <div class="adora-pcard__top">
+                <div class="adora-pcard__media">
+                    <div class="adora-pcard__media-inner">
+                        <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                     </div>
+                    <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'p',${pid},this)">${adoraPcardWishIconsHtml()}</button>
+                    <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" onclick="quickAddCatalogProductToCart(${pid},event)">+</button>
+                </div>
+                </div>
+                <div class="adora-pcard__body">
+                    <h3 class="adora-pcard__title">${escapeHtml(name)}</h3>
+                    ${vendorHtml}
+                    ${ratingHtml}
+                    ${priceHtml}
                 </div>
                 </div>
             </div>`;
@@ -5787,7 +5820,7 @@
         /** بطاقة منتج سوق للرئيسية: يفتح تفاصيل السوق ويعرض اسم الشركة */
         function renderMpProductCardHomeCompact(p) {
             const vendorName = mpHomeVendorLabel(p);
-            const brandHtml = vendorName ? `<div class="mb-1">${formatVendorBrandPill(vendorName)}</div>` : '';
+            const vendorHtml = vendorName ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(vendorName)}</p>` : '';
             const rawImg = p.images && p.images.length ? p.images[0] : '';
             const img = rawImg ? absoluteMediaUrl(String(rawImg)) : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
@@ -5795,31 +5828,28 @@
             const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
             const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
             const mid = Number(p.id);
-            const badge =
-                disc > 0
-                    ? `<span class="absolute top-0.5 left-0.5 rtl:left-auto rtl:right-0.5 text-[8px] px-1 py-0.5 badge-sale text-white font-bold rounded-full shadow-md z-[1]">-${Math.round(disc)}%</span>`
-                    : '';
             const inWish = isWishlistEntry('mp', mid);
             const canCart = Number(p.stock || 0) > 0;
-            const heartCls = `wishlist-btn absolute top-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
-            const cartCls = canCart
-                ? 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-violet-600 text-white hover:bg-violet-700 transition-colors'
-                : 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
-            return `<div class="product-card home-compact-product-card bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group transition-shadow hover:shadow-lg hover:ring-black/[0.06] relative">
-                <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)"><i class="fas fa-heart text-sm"></i></button>
-                <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
-                <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
-                <div class="relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100">
-                    <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
-                    ${badge}
-                </div>
-                <div class="p-1.5">
-                    ${brandHtml}
-                    <h3 class="font-semibold text-gray-900 text-[11px] line-clamp-2 mb-0.5">${escapeHtml(name)}</h3>
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="font-bold text-gray-900 text-[11px]">${formatSyp(saleP)}</span>
-                        ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+            const wishActive = inWish ? ' active' : '';
+            const addDis = canCart ? '' : ' disabled';
+            const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+            const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+            return `<div class="adora-pcard adora-pcard--strip product-card home-compact-product-card">
+                <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
+                <div class="adora-pcard__top">
+                <div class="adora-pcard__media">
+                    <div class="adora-pcard__media-inner">
+                        <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                     </div>
+                    <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)">${adoraPcardWishIconsHtml()}</button>
+                    <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)">+</button>
+                </div>
+                </div>
+                <div class="adora-pcard__body">
+                    <h3 class="adora-pcard__title">${escapeHtml(name)}</h3>
+                    ${vendorHtml}
+                    ${ratingHtml}
+                    ${priceHtml}
                 </div>
                 </div>
             </div>`;
@@ -6456,40 +6486,49 @@
                 const title = isRTL ? item.name.ar : item.name.en;
                 const imgSrc = item.image ? escapeHtml(item.image) : escapeHtml(adoraPlaceholderImageUrl());
                 const safeTitle = escapeHtml(String(title || ''));
-                const br = item.brand ? escapeHtml(String(item.brand)) : '';
-                const brandLine = br
-                    ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${br}</p>`
-                    : '';
+                const br = item.brand ? String(item.brand).trim() : '';
+                const vendorHtml = br ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(br)}</p>` : '';
                 const isMp = item.isMp === true && item.mpId != null && Number.isFinite(Number(item.mpId));
                 const pid = isMp ? Number(item.mpId) : Number(item.id);
                 const wlNs = isMp ? 'mp' : 'p';
                 const openFn = isMp ? `openMarketplaceProductDetail(${pid})` : `openProductDetail(${pid})`;
                 const inWish = isWishlistEntry(wlNs, pid);
                 const canCart = isMp ? Number(item.stock || 0) > 0 : !!item.canCart;
-                const hCls = `wishlist-btn absolute top-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-white/92 shadow-md text-[11px] ${inWish ? 'active' : ''}`;
-                const cCls = canCart
-                    ? 'flash-card-cart-btn absolute bottom-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-violet-600 text-white shadow-md text-[10px]'
-                    : 'flash-card-cart-btn absolute bottom-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow-md text-[10px] cursor-not-allowed opacity-80';
-                const cartOn = canCart
+                const listP = Number(item.old || 0);
+                const saleP = Number(item.now || 0);
+                const disc =
+                    listP > 0 && saleP < listP ? Math.min(99, Math.max(1, Math.round((1 - saleP / listP) * 100))) : 0;
+                const wishActive = inWish ? ' active' : '';
+                const addDis = canCart ? '' : ' disabled';
+                const addOn = canCart
                     ? isMp
-                        ? `event.stopPropagation(); quickAddMarketplaceProductToCart(${pid},event)`
-                        : `event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)`
-                    : 'event.stopPropagation()';
-                const cartDisabled = canCart ? '' : ' disabled';
-                return `<div class="flash-card text-start" role="button" tabindex="0" onclick="${openFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${openFn};}">
-                            <div class="flash-card-thumb">
-                                <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'${wlNs}',${pid},this)"><i class="fas fa-heart"></i></button>
-                                <button type="button"${cartDisabled} class="${cCls}" aria-label="Cart" onclick="${cartOn}"><i class="fas fa-cart-plus"></i></button>
-                                <img src="${imgSrc}" alt="">
+                        ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${pid},event)"`
+                        : `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"`
+                    : `onclick="event.stopPropagation()"`;
+                const revStub = { review_avg: item.review_avg, review_count: item.review_count };
+                const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(revStub)}</div>`;
+                const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                const endsSoon = isRTL ? 'ينتهي قريباً' : 'Ends soon';
+                return `<div class="adora-pcard adora-pcard--strip adora-pcard--flash product-card text-start">
+                            <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer" onclick="${openFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${openFn};}">
+                            <div class="adora-pcard__top">
+                            <div class="adora-pcard__media">
+                            <div class="adora-pcard__media-inner">
+                                <img src="${imgSrc}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                             </div>
-                            <p class="text-xs text-gray-500" data-en="Ends soon" data-ar="ينتهي قريباً">Ends soon</p>
-                            ${brandLine}
-                            <h4>${safeTitle}</h4>
-                            <div class="flash-price">
-                                <span class="old">${formatSyp(item.old)}</span>
-                                <span class="current">${formatSyp(item.now)}</span>
+                            <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'${wlNs}',${pid},this)">${adoraPcardWishIconsHtml()}</button>
+                            <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" ${addOn}>+</button>
                             </div>
-                            <span class="flash-badge">${escapeHtml(String(item.discount || ''))}</span>
+                            </div>
+                            <div class="adora-pcard__body">
+                                <p class="text-[10px] font-semibold text-violet-600/90 mb-0.5" data-en="Ends soon" data-ar="ينتهي قريباً">${endsSoon}</p>
+                                <span class="inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 mb-1">${escapeHtml(String(item.discount || ''))}</span>
+                                <h3 class="adora-pcard__title">${safeTitle}</h3>
+                                ${vendorHtml}
+                                ${ratingHtml}
+                                ${priceHtml}
+                            </div>
+                            </div>
                         </div>`;
             }).join('');
         }
@@ -6583,39 +6622,35 @@
                     const img = imgRaw ? absoluteMediaUrl(String(imgRaw)) : adoraPlaceholderImageUrl();
                     const name = isRTL ? p.name_ar : p.name_en;
                     const vn = mpHomeVendorLabel(p);
-                    const brandLine = vn
-                        ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(vn)}</p>`
-                        : '';
+                    const vendorHtml = vn ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(vn)}</p>` : '';
                     const listP = Number(p.price ?? 0);
                     const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
                     const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
-                    const badge =
-                        disc > 0
-                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 z-[1] badge-sale text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">-${Math.round(disc)}%</span>`
-                            : '';
                     const inWish = isWishlistEntry('mp', id);
                     const canCart = Number(p.stock || 0) > 0;
-                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-white/92 shadow text-[10px] ${inWish ? 'active' : ''}`;
-                    const cCls = canCart
-                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-violet-600 text-white shadow text-[9px]'
-                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[9px] cursor-not-allowed opacity-80';
-                    const cartDis = canCart ? '' : ' disabled';
-                    const cartClk = canCart ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${id},event)"` : 'onclick="event.stopPropagation()"';
-                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative">
-                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'mp',${id},this)"><i class="fas fa-heart"></i></button>
-                        <button type="button"${cartDis} class="${cCls}" aria-label="Cart" ${cartClk}><i class="fas fa-cart-plus"></i></button>
-                        <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openMarketplaceProductDetail(${id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${id});}">
-                        <div class="aspect-[3/4] max-h-[102px] relative">
-                            <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
-                            ${badge}
+                    const wishActive = inWish ? ' active' : '';
+                    const addDis = canCart ? '' : ' disabled';
+                    const addClk = canCart ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${id},event)"` : `onclick="event.stopPropagation()"`;
+                    const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+                    const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem]">
+                        <div class="adora-pcard adora-pcard--mini product-card">
+                        <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${id});}">
+                        <div class="adora-pcard__top">
+                        <div class="adora-pcard__media">
+                        <div class="adora-pcard__media-inner">
+                            <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                         </div>
-                        <div class="p-1.5">
-                            ${brandLine}
-                            <h4 class="font-semibold text-[10px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
-                            <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                                <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
-                                ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
-                            </div>
+                        <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'mp',${id},this)">${adoraPcardWishIconsHtml()}</button>
+                        <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" ${addClk}>+</button>
+                        </div>
+                        </div>
+                        <div class="adora-pcard__body">
+                            <h3 class="adora-pcard__title">${escapeHtml(name)}</h3>
+                            ${vendorHtml}
+                            ${ratingHtml}
+                            ${priceHtml}
+                        </div>
                         </div>
                         </div>
                     </div>`);
@@ -6625,40 +6660,36 @@
                     const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
                     const name = isRTL ? p.name_ar : p.name_en;
                     const br = resolveDisplayBrand(p.brand);
-                    const brandLine = br
-                        ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
-                        : '';
+                    const vendorHtml = br ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(br)}</p>` : '';
                     const listP = productListPrice(p);
                     const disc = productDiscountPct(p);
                     const saleP = productSaleUnitPrice(p);
-                    const badge =
-                        disc > 0
-                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 z-[1] badge-sale text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">-${Math.round(disc)}%</span>`
-                            : '';
                     const pid = Number(p.id);
                     const inWish = isWishlistEntry('p', pid);
                     const canCart = productHasAnyStockQuick(p);
-                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-white/92 shadow text-[10px] ${inWish ? 'active' : ''}`;
-                    const cCls = canCart
-                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-900 text-white shadow text-[9px]'
-                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[9px] cursor-not-allowed opacity-80';
-                    const cartDis = canCart ? '' : ' disabled';
-                    const cartClk = canCart ? `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"` : 'onclick="event.stopPropagation()"';
-                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative">
-                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'p',${pid},this)"><i class="fas fa-heart"></i></button>
-                        <button type="button"${cartDis} class="${cCls}" aria-label="Cart" ${cartClk}><i class="fas fa-cart-plus"></i></button>
-                        <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
-                        <div class="aspect-[3/4] max-h-[102px] relative">
-                            <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
-                            ${badge}
+                    const wishActive = inWish ? ' active' : '';
+                    const addDis = canCart ? '' : ' disabled';
+                    const addClk = canCart ? `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"` : `onclick="event.stopPropagation()"`;
+                    const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+                    const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem]">
+                        <div class="adora-pcard adora-pcard--mini product-card">
+                        <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
+                        <div class="adora-pcard__top">
+                        <div class="adora-pcard__media">
+                        <div class="adora-pcard__media-inner">
+                            <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                         </div>
-                        <div class="p-1.5">
-                            ${brandLine}
-                            <h4 class="font-semibold text-[10px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
-                            <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                                <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
-                                ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
-                            </div>
+                        <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'p',${pid},this)">${adoraPcardWishIconsHtml()}</button>
+                        <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" ${addClk}>+</button>
+                        </div>
+                        </div>
+                        <div class="adora-pcard__body">
+                            <h3 class="adora-pcard__title">${escapeHtml(name)}</h3>
+                            ${vendorHtml}
+                            ${ratingHtml}
+                            ${priceHtml}
+                        </div>
                         </div>
                         </div>
                     </div>`);
@@ -6945,6 +6976,8 @@
                         now: nowPrice,
                         discount: `${discountPercent}% OFF`,
                         stock: Number(p.stock ?? 0),
+                        review_avg: p.review_avg != null ? p.review_avg : null,
+                        review_count: p.review_count != null ? Number(p.review_count) : 0,
                     });
                 }
 
@@ -6983,6 +7016,8 @@
                         now: nowPrice,
                         discount: `${discountPercent}% OFF`,
                         canCart: productHasAnyStockQuick(p),
+                        review_avg: p.review_avg != null ? p.review_avg : null,
+                        review_count: p.review_count != null ? Number(p.review_count) : 0,
                     };
                 });
 

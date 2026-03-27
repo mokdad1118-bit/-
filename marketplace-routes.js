@@ -24,6 +24,11 @@ function mapProductRow(row) {
   const listPrice = Number(row.price ?? 0);
   const finalPrice =
     disc > 0 && disc < 100 ? Math.round(listPrice * (100 - disc) * 100) / 10000 : listPrice;
+  const review_avg =
+    row.review_avg != null && String(row.review_avg).trim() !== ""
+      ? Math.round(Number(row.review_avg) * 10) / 10
+      : null;
+  const review_count = Number(row.review_count || 0);
   return {
     ...rest,
     images: safeJsonParse(row.images_json, []),
@@ -35,8 +40,19 @@ function mapProductRow(row) {
     is_listing_top_promo,
     is_home_featured_promo,
     marketplace_promo_slot: slot && row.promo_id != null ? slot : null,
+    review_avg,
+    review_count,
   };
 }
+
+/** تجميع تقييمات منتجات السوق — يُضاف كـ LEFT JOIN في استعلامات القوائم */
+const MP_REVIEW_JOIN_SQL = `LEFT JOIN (
+  SELECT marketplace_product_id,
+         ROUND(AVG(stars)::numeric, 1) AS review_avg,
+         COUNT(*)::int AS review_count
+  FROM marketplace_product_reviews
+  GROUP BY marketplace_product_id
+) mprev ON mprev.marketplace_product_id = mp.id`;
 
 function normLower(s) {
   return String(s ?? "").trim().toLowerCase();
@@ -196,12 +212,14 @@ async function fetchMarketplaceProductsByPromotionSlot(slot, limit) {
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
+      mprev.review_avg, mprev.review_count,
       pr.id AS promo_id, pr.priority AS promo_priority, pr.slot AS promo_slot
      FROM marketplace_product_promotions pr
      INNER JOIN marketplace_products mp ON mp.id = pr.product_id AND mp.is_active = 1
      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
      INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
      LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
+     ${MP_REVIEW_JOIN_SQL}
      WHERE pr.slot = ? AND pr.is_active = 1
        AND pr.starts_at <= CURRENT_TIMESTAMP AND pr.ends_at >= CURRENT_TIMESTAMP
        AND (pr.max_impressions IS NULL OR pr.impressions_count < pr.max_impressions)
@@ -439,12 +457,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                         mp.department_id,
                         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
                         mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
-                        ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
+                        ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
+                        mprev.review_avg, mprev.review_count
                         ${promoSelect}
                  FROM marketplace_products mp
                  INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
                  INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
                  LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
+                 ${MP_REVIEW_JOIN_SQL}
                  ${promoJoin}
                  WHERE mp.is_active = 1`;
       const params = [];
@@ -601,12 +621,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const adsOn = settings && Number(settings.ads_module_enabled) === 1;
 
       const baseSelect = `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-        mp.price, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+        mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
-        ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
+        ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
+        mprev.review_avg, mprev.review_count
         FROM marketplace_products mp
         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+        ${MP_REVIEW_JOIN_SQL}
         WHERE mp.is_active = 1`;
 
       let promotedHome = [];
