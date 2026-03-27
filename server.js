@@ -338,9 +338,51 @@ function arabicSearchQueryVariants(q) {
   return [...set].filter(Boolean);
 }
 
-async function decrementMarketplaceStock(marketplaceProductId, qty) {
+/** مطابقة صف مخزون ديناميكي بخريطة options (نفس منطق decrementProductStock) */
+function findDynamicInventoryRowIndex(inv, vOpts) {
+  if (!Array.isArray(inv)) return -1;
+  if (!vOpts || typeof vOpts !== "object" || Array.isArray(vOpts) || !Object.keys(vOpts).length) return -1;
+  return inv.findIndex((row) => {
+    if (!row.options || typeof row.options !== "object") return false;
+    const keys = Object.keys(vOpts);
+    for (const k of keys) {
+      if (String(row.options[k] || "") !== String(vOpts[k] || "")) return false;
+    }
+    for (const k of Object.keys(row.options)) {
+      if (!(k in vOpts)) return false;
+    }
+    return Object.keys(row.options).length === keys.length;
+  });
+}
+
+async function decrementMarketplaceStock(marketplaceProductId, qty, meta = {}) {
   const id = Number(marketplaceProductId);
   if (!Number.isFinite(id) || qty <= 0) return;
+  const p = await get(
+    `SELECT stock, inventory_json, product_options_json FROM marketplace_products WHERE id=?`,
+    [id]
+  );
+  if (!p) return;
+  const opts = safeJsonParse(p.product_options_json, []);
+  const hasDyn = Array.isArray(opts) && opts.length > 0;
+  const vOpts = meta.variant_options;
+  const hasPick =
+    vOpts && typeof vOpts === "object" && !Array.isArray(vOpts) && Object.keys(vOpts).length > 0;
+  if (hasDyn && hasPick) {
+    let inv = safeJsonParse(p.inventory_json, []);
+    if (!Array.isArray(inv)) inv = [];
+    const idx = findDynamicInventoryRowIndex(inv, vOpts);
+    if (idx >= 0) {
+      const row = inv[idx];
+      const cur = Number(row.stock || 0);
+      inv[idx] = { ...row, stock: Math.max(0, cur - qty) };
+      await run(
+        `UPDATE marketplace_products SET inventory_json=?, stock = GREATEST(0, COALESCE(stock,0) - ?), sales_count = COALESCE(sales_count,0) + ? WHERE id=?`,
+        [JSON.stringify(inv), qty, qty, id]
+      );
+      return;
+    }
+  }
   await run(
     `UPDATE marketplace_products SET stock = GREATEST(0, COALESCE(stock,0) - ?), sales_count = COALESCE(sales_count,0) + ? WHERE id=?`,
     [qty, qty, id]
@@ -361,17 +403,7 @@ async function decrementProductStock(productId, qty, meta = {}) {
   let idx = -1;
   if (inv.length > 0) {
     if (hasDyn) {
-      idx = inv.findIndex((row) => {
-        if (!row.options || typeof row.options !== "object") return false;
-        const keys = Object.keys(vOpts);
-        for (const k of keys) {
-          if (String(row.options[k] || "") !== String(vOpts[k] || "")) return false;
-        }
-        for (const k of Object.keys(row.options)) {
-          if (!(k in vOpts)) return false;
-        }
-        return Object.keys(row.options).length === keys.length;
-      });
+      idx = findDynamicInventoryRowIndex(inv, vOpts);
     } else if (sz || cl) {
       idx = inv.findIndex((row) => {
         if (row.options && typeof row.options === "object" && Object.keys(row.options).length) return false;
@@ -1686,13 +1718,30 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
       if (!mpid) continue;
       const mp = await get(
-        `SELECT id, stock, name_ar FROM marketplace_products WHERE id=? AND is_active = 1`,
+        `SELECT id, stock, name_ar, inventory_json, product_options_json FROM marketplace_products WHERE id=? AND is_active = 1`,
         [mpid]
       );
       if (!mp) {
         return res.status(400).json({ error: "Invalid marketplace product" });
       }
-      if (Number(mp.stock) < qn) {
+      const po = safeJsonParse(mp.product_options_json, []);
+      const hasDynMp = Array.isArray(po) && po.length > 0;
+      const vOptPre = item.variant_options;
+      const variantOptsPre =
+        vOptPre && typeof vOptPre === "object" && !Array.isArray(vOptPre) ? vOptPre : null;
+      if (hasDynMp) {
+        const inv = safeJsonParse(mp.inventory_json, []);
+        const vIdx = findDynamicInventoryRowIndex(inv, variantOptsPre);
+        if (vIdx < 0) {
+          return res.status(400).json({
+            error: "Invalid marketplace variant",
+            detail: mp.name_ar || String(mpid),
+          });
+        }
+        if (Number(inv[vIdx].stock) < qn) {
+          return res.status(400).json({ error: "Insufficient stock", detail: mp.name_ar || String(mpid) });
+        }
+      } else if (Number(mp.stock) < qn) {
         return res.status(400).json({ error: "Insufficient stock", detail: mp.name_ar || String(mpid) });
       }
     }
@@ -1741,7 +1790,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         ]
       );
       if (mpid && qn > 0) {
-        await decrementMarketplaceStock(mpid, qn);
+        await decrementMarketplaceStock(mpid, qn, { variant_options });
       } else if (pid && qn > 0) {
         await decrementProductStock(pid, qn, {
           size: item.size,

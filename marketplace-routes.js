@@ -19,7 +19,14 @@ function mapProductRow(row) {
   const is_section_featured_promo = slot === "section_featured" && row.promo_id != null ? 1 : 0;
   const is_listing_top_promo = slot === "listing_top" && row.promo_id != null ? 1 : 0;
   const is_home_featured_promo = slot === "home_featured" && row.promo_id != null ? 1 : 0;
-  const { promo_id: _pid, promo_priority: _pp, promo_slot: _ps, ...rest } = row;
+  const {
+    promo_id: _pid,
+    promo_priority: _pp,
+    promo_slot: _ps,
+    inventory_json: _invj,
+    product_options_json: _poj,
+    ...rest
+  } = row;
   const disc = Math.min(100, Math.max(0, Number(row.discount_percent ?? 0)));
   const listPrice = Number(row.price ?? 0);
   const finalPrice =
@@ -29,6 +36,14 @@ function mapProductRow(row) {
       ? Math.round(Number(row.review_avg) * 10) / 10
       : null;
   const review_count = Number(row.review_count || 0);
+  const product_options = safeJsonParse(row.product_options_json, []);
+  const inventory = safeJsonParse(row.inventory_json, []);
+  const poArr = Array.isArray(product_options) ? product_options : [];
+  const invArr = Array.isArray(inventory) ? inventory : [];
+  let stockOut = Number(row.stock ?? 0);
+  if (poArr.length && invArr.length) {
+    stockOut = invArr.reduce((a, r) => a + Math.max(0, Math.floor(Number(r.stock) || 0)), 0);
+  }
   return {
     ...rest,
     images: safeJsonParse(row.images_json, []),
@@ -42,6 +57,9 @@ function mapProductRow(row) {
     marketplace_promo_slot: slot && row.promo_id != null ? slot : null,
     review_avg,
     review_count,
+    inventory: invArr,
+    product_options: poArr,
+    stock: stockOut,
   };
 }
 
@@ -74,7 +92,7 @@ function normalizeMpHomeSlot(slot) {
 }
 
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id, mp.is_mp_featured,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
@@ -207,7 +225,7 @@ async function findMarketplaceProductDuplicate(vendorId, { name_ar, name_en, sku
 async function fetchMarketplaceProductsByPromotionSlot(slot, limit) {
   const rows = await all(
     `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
@@ -299,6 +317,17 @@ function clampDiscountPercent(raw) {
   const n = Number(raw);
   if (!Number.isFinite(n)) return 0;
   return Math.min(100, Math.max(0, n));
+}
+
+/** مواصفات ديناميكية + مخزون صفوف — يُحدَّث عمود stock ليكون مجموع المخزون عند وجود مجموعات */
+function normalizeMpVariantsForSave({ product_options, inventory, stock }) {
+  const optArr = Array.isArray(product_options) ? product_options : [];
+  const invArr = Array.isArray(inventory) ? inventory : [];
+  let stockNum = Math.max(0, Math.floor(Number(stock) || 0));
+  if (optArr.length) {
+    stockNum = invArr.reduce((a, r) => a + Math.max(0, Math.floor(Number(r.stock) || 0)), 0);
+  }
+  return { optArr, invArr, stockNum };
 }
 
 /** صورة بطاقة دخول السوق في التطبيق: المحفوظة في الإعدادات، أو أول صورة كرت من أقسام السوق */
@@ -453,7 +482,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
 
       let sql = `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
-                        mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+                        mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
                         mp.department_id,
                         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
                         mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
@@ -1082,7 +1111,12 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const description_ar = b.description_ar != null ? String(b.description_ar).trim() : "";
       const description_en = b.description_en != null ? String(b.description_en).trim() : "";
       const price = Number(b.price);
-      const stock = Math.max(0, Math.floor(Number(b.stock) || 0));
+      const { optArr, invArr, stockNum } = normalizeMpVariantsForSave({
+        product_options: b.product_options,
+        inventory: b.inventory,
+        stock: b.stock,
+      });
+      const stock = stockNum;
       let images = b.images;
       if (!Array.isArray(images)) images = [];
       images = images.map((u) => String(u || "").trim()).filter(Boolean).slice(0, 12);
@@ -1108,8 +1142,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (!depRes.ok) return res.status(400).json({ error: depRes.error });
       const department_id = depRes.department_id;
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1122,6 +1156,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           discount_percent,
           stock,
           JSON.stringify(images),
+          JSON.stringify(invArr),
+          JSON.stringify(optArr),
           is_offer,
           sort_order,
           is_active,
@@ -1157,7 +1193,24 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const description_ar = b.description_ar != null ? String(b.description_ar).trim() : cur.description_ar;
       const description_en = b.description_en != null ? String(b.description_en).trim() : cur.description_en;
       const price = b.price != null ? Number(b.price) : cur.price;
-      const stock = b.stock != null ? Math.max(0, Math.floor(Number(b.stock) || 0)) : cur.stock;
+      const hasVariantBody = b.product_options != null || b.inventory != null;
+      let stock;
+      let invJson;
+      let optJson;
+      if (hasVariantBody) {
+        const { optArr, invArr, stockNum } = normalizeMpVariantsForSave({
+          product_options: b.product_options,
+          inventory: b.inventory,
+          stock: b.stock != null ? b.stock : cur.stock,
+        });
+        stock = stockNum;
+        invJson = JSON.stringify(invArr);
+        optJson = JSON.stringify(optArr);
+      } else {
+        stock = b.stock != null ? Math.max(0, Math.floor(Number(b.stock) || 0)) : cur.stock;
+        invJson = cur.inventory_json != null ? cur.inventory_json : "[]";
+        optJson = cur.product_options_json != null ? cur.product_options_json : "[]";
+      }
       let images_json = cur.images_json;
       if (b.images != null) {
         let images = Array.isArray(b.images) ? b.images : [];
@@ -1199,7 +1252,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
       await run(
         `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
-         price=?, discount_percent=?, stock=?, images_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=? WHERE id=?`,
+         price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=? WHERE id=?`,
         [
           section_id,
           vendor_id,
@@ -1212,6 +1265,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           discount_percent,
           stock,
           images_json,
+          invJson,
+          optJson,
           is_offer,
           sort_order,
           is_active,

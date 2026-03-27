@@ -325,6 +325,7 @@ async function initDb() {
   await migrateOrderItemsBrandColumn();
   await migrateProductsInventoryJson();
   await migrateProductsDynamicOptionsV1();
+  await migrateMarketplaceProductsVariantsV1();
   await migrateBrandsShowcaseJson();
   await migrateAppBannersTable();
   await migrateOrderStatusesToV2();
@@ -531,6 +532,16 @@ async function migrateProductsDynamicOptionsV1() {
   );
   await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_options_json TEXT`);
   await run(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_label TEXT`);
+}
+
+/** نفس نموذج المتغيرات لمنتجات السوق الشامل */
+async function migrateMarketplaceProductsVariantsV1() {
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS inventory_json TEXT NOT NULL DEFAULT '[]'`
+  );
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS product_options_json TEXT NOT NULL DEFAULT '[]'`
+  );
 }
 
 async function migrateBrandsShowcaseJson() {

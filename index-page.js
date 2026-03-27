@@ -730,7 +730,7 @@
             cod: { en: 'Cash on Delivery', ar: 'الدفع عند الاستلام' },
             card: { en: 'Card', ar: 'بطاقة' }
         };
-        const ADORA_CART_KEY = 'adora_cart_v4';
+        const ADORA_CART_KEY = 'adora_cart_v5';
         let cartItems = [];
         const cartTotals = { subtotal: 0, discount: 0, shipping: 0, total: 0 };
 
@@ -788,7 +788,15 @@
 
         function getCartLineKey(item) {
             if (item && item.marketplaceProductId != null) {
-                return `mp_${Number(item.marketplaceProductId)}`;
+                const mpid = Number(item.marketplaceProductId);
+                const vo = item.variantOptions;
+                if (vo && typeof vo === 'object' && !Array.isArray(vo)) {
+                    const keys = Object.keys(vo).sort();
+                    if (keys.length) {
+                        return `mp_${mpid}__vo:${keys.map((k) => `${k}=${vo[k]}`).join('|')}`;
+                    }
+                }
+                return `mp_${mpid}`;
             }
             const id = item.productId ?? item.id;
             const vo = item.variantOptions;
@@ -1094,6 +1102,7 @@
         let marketplaceBrowseSectionsCache = [];
         let marketplaceBrowseVendorsCache = [];
         let marketplaceDetailQty = 1;
+        let marketplaceDetailVariantPick = {};
         let marketplaceReviewSelected = 0;
         let currentMarketplaceProductDetail = null;
 
@@ -3598,6 +3607,12 @@
         function renderMarketplaceProductDetailUi() {
             const p = currentMarketplaceProductDetail;
             if (!p) return;
+            const isDyn = productUsesDynamicOptions(p);
+            if (isDyn) {
+                marketplaceDetailVariantPick = defaultVariantPickDynamic(p);
+            } else {
+                marketplaceDetailVariantPick = {};
+            }
             const loc = isRTL ? 'ar' : 'en';
             const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
             const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
@@ -3614,37 +3629,97 @@
             const stEl = document.getElementById('marketplace-detail-stock');
             const dEl = document.getElementById('marketplace-detail-desc');
             const off = document.getElementById('marketplace-detail-offer-badge');
-            const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
-            const listP = Number(p.price || 0);
-            const finalP = p.final_price != null ? Number(p.final_price) : listP;
+            const dynRoot = document.getElementById('marketplace-dynamic-variant-root');
+            if (dynRoot && !isDyn) {
+                dynRoot.innerHTML = '';
+                dynRoot.classList.add('hidden');
+            }
             if (tEl) tEl.textContent = title || '—';
             if (vEl) {
                 if (vendor) vEl.innerHTML = formatVendorBrandPill(vendor);
                 else vEl.textContent = '—';
             }
             if (sEl) sEl.textContent = secLine || '';
-            if (priceEl) priceEl.textContent = formatSyp(discPct > 0 && discPct < 100 ? finalP : listP);
+            if (dEl) dEl.textContent = desc || (isRTL ? 'لا يوجد وصف.' : 'No description.');
+            if (off) off.classList.toggle('hidden', Number(p.is_offer) !== 1);
+            if (!isDyn) {
+                const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
+                const listP = Number(p.price || 0);
+                const finalP = p.final_price != null ? Number(p.final_price) : listP;
+                if (priceEl) priceEl.textContent = formatSyp(discPct > 0 && discPct < 100 ? finalP : listP);
+                if (priceOldEl) {
+                    const showOld = discPct > 0 && discPct < 100;
+                    priceOldEl.classList.toggle('hidden', !showOld);
+                    priceOldEl.textContent = showOld ? formatSyp(listP) : '';
+                }
+                if (discBadge) {
+                    const showD = discPct > 0 && discPct < 100;
+                    discBadge.classList.toggle('hidden', !showD);
+                    discBadge.textContent = showD ? (isRTL ? `-${discPct}%` : `-${discPct}%`) : '';
+                }
+                if (stEl) {
+                    const st = Number(p.stock != null ? p.stock : 0);
+                    stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
+                }
+                const gal = document.getElementById('marketplace-product-gallery');
+                if (gal) {
+                    stopGalleryAutoScroll('marketplace-product-gallery');
+                    const imgs =
+                        Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+                    gal.innerHTML = imgs
+                        .map(
+                            (src) =>
+                                `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>`
+                        )
+                        .join('');
+                    startGalleryAutoScroll('marketplace-product-gallery', 4200);
+                }
+                const stockN = Number(p.stock != null ? p.stock : 0);
+                if (stockN > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, stockN));
+                else marketplaceDetailQty = 1;
+                const qd = document.getElementById('marketplace-qty-display');
+                if (qd) qd.textContent = String(marketplaceDetailQty);
+            } else {
+                applyMarketplaceDetailVariantToUi(p);
+            }
+            const wbtn = document.getElementById('marketplace-detail-wishlist-btn');
+            if (wbtn) wbtn.classList.toggle('active', isWishlistEntry('mp', Number(p.id)));
+        }
+
+        function applyMarketplaceDetailVariantToUi(p) {
+            if (!p || !productUsesDynamicOptions(p)) return;
+            const row = findInventoryRowDynamic(p, marketplaceDetailVariantPick);
+            const listU = variantListUnitForRow(p, row);
+            const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
+            const saleU = saleUnitFromListAndDiscount(listU, discPct);
+            const priceEl = document.getElementById('marketplace-detail-price');
+            const priceOldEl = document.getElementById('marketplace-detail-price-old');
+            const discBadge = document.getElementById('marketplace-detail-discount-badge');
+            const stEl = document.getElementById('marketplace-detail-stock');
+            if (priceEl) priceEl.textContent = formatSyp(discPct > 0 && discPct < 100 ? saleU : listU);
             if (priceOldEl) {
                 const showOld = discPct > 0 && discPct < 100;
                 priceOldEl.classList.toggle('hidden', !showOld);
-                priceOldEl.textContent = showOld ? formatSyp(listP) : '';
+                priceOldEl.textContent = showOld ? formatSyp(listU) : '';
             }
             if (discBadge) {
                 const showD = discPct > 0 && discPct < 100;
                 discBadge.classList.toggle('hidden', !showD);
                 discBadge.textContent = showD ? (isRTL ? `-${discPct}%` : `-${discPct}%`) : '';
             }
+            const st = row ? Number(row.stock || 0) : 0;
             if (stEl) {
-                const st = Number(p.stock != null ? p.stock : 0);
                 stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
             }
-            if (dEl) dEl.textContent = desc || (isRTL ? 'لا يوجد وصف.' : 'No description.');
-            if (off) off.classList.toggle('hidden', Number(p.is_offer) !== 1);
             const gal = document.getElementById('marketplace-product-gallery');
+            const baseImgs =
+                Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+            const extraRaw = row && row.image ? String(row.image).trim() : '';
+            const extraAbs = extraRaw ? absoluteMediaUrl(extraRaw) : '';
+            const merged = extraAbs && !baseImgs.includes(extraAbs) ? [extraAbs, ...baseImgs] : baseImgs;
             if (gal) {
                 stopGalleryAutoScroll('marketplace-product-gallery');
-                const imgs = Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
-                gal.innerHTML = imgs
+                gal.innerHTML = merged
                     .map(
                         (src) =>
                             `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>`
@@ -3652,13 +3727,71 @@
                     .join('');
                 startGalleryAutoScroll('marketplace-product-gallery', 4200);
             }
-            const stockN = Number(p.stock != null ? p.stock : 0);
-            if (stockN > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, stockN));
+            renderMarketplaceDynamicVariantOptions(p);
+            if (st > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, st));
             else marketplaceDetailQty = 1;
             const qd = document.getElementById('marketplace-qty-display');
             if (qd) qd.textContent = String(marketplaceDetailQty);
-            const wbtn = document.getElementById('marketplace-detail-wishlist-btn');
-            if (wbtn) wbtn.classList.toggle('active', isWishlistEntry('mp', Number(p.id)));
+        }
+
+        function renderMarketplaceDynamicVariantOptions(p) {
+            const root = document.getElementById('marketplace-dynamic-variant-root');
+            if (!root) return;
+            const defs = productOptionDefinitions(p);
+            if (!defs.length) {
+                root.innerHTML = '';
+                root.classList.add('hidden');
+                return;
+            }
+            root.classList.remove('hidden');
+            root.innerHTML = defs
+                .map((d) => {
+                    const partial = { ...marketplaceDetailVariantPick };
+                    delete partial[d.id];
+                    const avail = valuesAvailableForOptionDynamic(p, d.id, partial);
+                    const title = isRTL ? d.name_ar || d.name_en : d.name_en || d.name_ar;
+                    const chips = (d.values || [])
+                        .map((v) => {
+                            const on = String(marketplaceDetailVariantPick[d.id] || '') === String(v.id);
+                            const dis = !avail.has(String(v.id));
+                            const lab = isRTL ? v.label_ar || v.label_en : v.label_en || v.label_ar;
+                            return `<button type="button" role="radio" aria-checked="${on}" class="px-3 py-2 rounded-xl border-2 text-sm font-semibold transition ${
+                                on
+                                    ? 'border-purple-600 bg-purple-50 text-purple-800'
+                                    : dis
+                                      ? 'border-gray-100 text-gray-300 cursor-not-allowed'
+                                      : 'border-gray-200 text-gray-800 hover:border-purple-300'
+                            }" data-mpdv-opt="${escapeHtml(d.id)}" data-mpdv-val="${escapeHtml(v.id)}" ${dis ? 'disabled' : ''}>${escapeHtml(lab)}</button>`;
+                        })
+                        .join('');
+                    return `<div class="space-y-2">
+                        <h3 class="font-semibold text-gray-900">${escapeHtml(title)}</h3>
+                        <div class="flex flex-wrap gap-2">${chips}</div>
+                    </div>`;
+                })
+                .join('');
+            root.querySelectorAll('[data-mpdv-opt]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    if (btn.disabled) return;
+                    const oid = btn.getAttribute('data-mpdv-opt');
+                    const vid = btn.getAttribute('data-mpdv-val');
+                    marketplaceDetailVariantPick[oid] = vid;
+                    const defs2 = productOptionDefinitions(p);
+                    const idx = defs2.findIndex((x) => x.id === oid);
+                    for (let j = idx + 1; j < defs2.length; j++) {
+                        const nx = defs2[j];
+                        const partial = {};
+                        for (let k = 0; k < j; k++) partial[defs2[k].id] = marketplaceDetailVariantPick[defs2[k].id];
+                        const av = valuesAvailableForOptionDynamic(p, nx.id, partial);
+                        const cur = marketplaceDetailVariantPick[nx.id];
+                        if (!av.has(String(cur))) {
+                            const pickFirst = (nx.values || []).find((v) => av.has(String(v.id)));
+                            marketplaceDetailVariantPick[nx.id] = pickFirst ? pickFirst.id : '';
+                        }
+                    }
+                    applyMarketplaceDetailVariantToUi(p);
+                });
+            });
         }
 
         function updateMarketplaceReviewLoginHint() {
@@ -3764,7 +3897,14 @@
             marketplaceDetailQty += delta;
             if (marketplaceDetailQty < 1) marketplaceDetailQty = 1;
             if (marketplaceDetailQty > 99) marketplaceDetailQty = 99;
-            if (p && Number(p.stock) > 0) marketplaceDetailQty = Math.min(marketplaceDetailQty, Number(p.stock));
+            if (p) {
+                let cap = Number(p.stock) || 0;
+                if (productUsesDynamicOptions(p)) {
+                    const row = findInventoryRowDynamic(p, marketplaceDetailVariantPick);
+                    cap = row ? Number(row.stock) || 0 : 0;
+                }
+                if (cap > 0) marketplaceDetailQty = Math.min(marketplaceDetailQty, cap);
+            }
             const qd = document.getElementById('marketplace-qty-display');
             if (qd) qd.textContent = String(marketplaceDetailQty);
         }
@@ -3772,20 +3912,37 @@
         function addMarketplacePayloadToCart(p, qty, opts = {}) {
             const silent = opts.silent === true;
             const resetDetailQty = opts.resetDetailQty !== false;
+            const pick = opts.variantPick != null ? opts.variantPick : marketplaceDetailVariantPick;
             if (!p || !p.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
                 return false;
             }
             const q = Math.max(1, Math.min(99, Number(qty || 1)));
-            const stock = Number(p.stock != null ? p.stock : 0);
+            let listUnit = Number(p.price || 0);
+            let variantOptions = null;
+            let variantLabel = '';
+            const imgs = Array.isArray(p.images) ? p.images : [];
+            let img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
+            if (productUsesDynamicOptions(p)) {
+                const row = findInventoryRowDynamic(p, pick);
+                if (!row || Number(row.stock || 0) < 1) {
+                    showToast(isRTL ? 'غير متوفر بهذه المواصفات' : 'Not available for this combination');
+                    return false;
+                }
+                listUnit = variantListUnitForRow(p, row);
+                variantOptions = { ...pick };
+                variantLabel = formatVariantLabelFromPick(p, pick);
+                const ri = row.image && String(row.image).trim();
+                if (ri) img0 = absoluteMediaUrl(ri);
+            }
+            const stock = productUsesDynamicOptions(p)
+                ? Number(findInventoryRowDynamic(p, pick)?.stock || 0)
+                : Number(p.stock != null ? p.stock : 0);
             if (stock < q) {
                 showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
                 return false;
             }
-            const imgs = Array.isArray(p.images) ? p.images : [];
-            const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
             const vendorLabel = isRTL ? p.vendor_name_ar || p.vendor_name_en || '' : p.vendor_name_en || p.vendor_name_ar || '';
-            const listUnit = Number(p.price || 0);
             const discPct = Math.min(100, Math.max(0, Number(p.discount_percent || 0)));
             const line = {
                 marketplaceProductId: p.id,
@@ -3798,6 +3955,8 @@
                 brand: vendorLabel,
                 size: '',
                 color: '',
+                variantOptions,
+                variantLabel,
                 selected: true,
             };
             const key = getCartLineKey(line);
@@ -3816,6 +3975,8 @@
                 if (img0) existing.image = img0;
                 existing.name = { ar: p.name_ar, en: p.name_en };
                 existing.brand = vendorLabel;
+                existing.variantOptions = variantOptions;
+                existing.variantLabel = variantLabel;
             } else {
                 cartItems.push(line);
             }
@@ -3842,6 +4003,16 @@
             try {
                 const p = await apiFetch(`/api/marketplace/products/${Number(productId)}`, { requireAuth: false });
                 if (!p || !p.id) throw new Error('x');
+                if (productUsesDynamicOptions(p)) {
+                    const pick = defaultVariantPickDynamic(p);
+                    const row = findInventoryRowDynamic(p, pick);
+                    if (!row || Number(row.stock || 0) < 1) {
+                        showToast(isRTL ? 'افتح المنتج واختر المواصفات' : 'Open the product to choose options');
+                        return;
+                    }
+                    addMarketplacePayloadToCart(p, 1, { silent: false, resetDetailQty: false, variantPick: pick });
+                    return;
+                }
                 addMarketplacePayloadToCart(p, 1, { silent: false, resetDetailQty: false });
             } catch (_e) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');

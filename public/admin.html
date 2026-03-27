@@ -630,6 +630,23 @@
                   <div class="md:col-span-2"><label class="text-xs font-bold">Description EN</label><textarea id="mp-p-desc-en" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></textarea></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">صور المنتج (حتى 12) — رابط لكل سطر أو افصل بينها بفاصلة</label><textarea id="mp-p-images" rows="3" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://...&#10;https://..."></textarea></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">أو ارفع عدة صور دفعة واحدة (Ctrl/⌘ لاختيار أكثر من ملف)</label><input type="file" id="mp-p-images-file" accept="image/*" multiple class="mt-1 block w-full text-sm" /></div>
+                  <div class="md:col-span-2 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50/90 to-white p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <h3 class="text-sm font-bold text-gray-900">
+                        <span data-en="Dynamic options & variants" data-ar="مواصفات ديناميكية ومتغيرات (سعر/مخزون/صورة لكل تركيبة)">مواصفات ديناميكية ومتغيرات</span>
+                      </h3>
+                      <div class="flex flex-wrap gap-2">
+                        <button type="button" id="mpv-add-group" class="px-3 py-2 rounded-xl bg-white border border-violet-300 text-violet-800 text-xs font-bold hover:bg-violet-50">
+                          <span data-en="+ Option group" data-ar="+ مجموعة مواصفات">+ مجموعة مواصفات</span>
+                        </button>
+                        <button type="button" id="mpv-add-variant-row" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700">
+                          <span data-en="+ Variant row" data-ar="+ صف متغير">+ صف متغير</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-600 leading-relaxed" data-en="Same as catalog: groups, values, then rows with optional price, stock, image per combination." data-ar="نفس كتالوج أدورا: مجموعات وقيم ثم صفوف بسعر ومخزون وصورة اختيارية لكل تركيبة. عند وجود مجموعات يُحسب المخزون الإجمالي من مجموع الصفوف.">نفس منطق الكتالوج: مجموعات ثم صفوف تركيبات.</p>
+                    <div id="mpv-builder-root" class="space-y-3 min-h-[2rem]"></div>
+                  </div>
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-p-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-offer" class="rounded" /><label for="mp-p-offer" class="text-sm font-bold">عرض ترويجي</label></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured" class="rounded" /><label for="mp-p-featured" class="text-sm font-bold" data-en="Featured (home strip & search priority)" data-ar="مميز (الرئيسية وأولوية بالبحث)">مميز (الرئيسية وأولوية بالبحث)</label></div>
