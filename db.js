@@ -746,6 +746,19 @@ async function migrateAppAdBannerV1() {
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  /* تفعيل لمرة واحدة فقط عندما لم يُضبط البنر بعد (معطّل + لا مواضع)، دون المساس بمن فعّل يدوياً */
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_defaults_seeded INTEGER NOT NULL DEFAULT 0`);
+  await run(
+    `UPDATE vendor_platform_settings SET app_ad_banner_enabled = 1, app_ad_banner_placements_json = ?, app_ad_defaults_seeded = 1
+     WHERE id = 1 AND COALESCE(app_ad_defaults_seeded, 0) = 0 AND COALESCE(app_ad_banner_enabled, 0) = 0
+     AND (app_ad_banner_placements_json IS NULL OR TRIM(COALESCE(app_ad_banner_placements_json, '')) = '' OR TRIM(COALESCE(app_ad_banner_placements_json, '')) = '[]')`,
+    ['["home_above_partner","home_below_partner","home_above_marketplace","side_menu_account"]']
+  );
+  await run(
+    `UPDATE vendor_platform_settings SET app_ad_defaults_seeded = 1
+     WHERE id = 1 AND COALESCE(app_ad_defaults_seeded, 0) = 0 AND COALESCE(app_ad_banner_enabled, 0) = 1
+     AND TRIM(COALESCE(app_ad_banner_placements_json, '')) NOT IN ('', '[]')`
+  );
 }
 
 /** ظهور منتجات/شركات السوق الشامل في أقسام الرئيسية + أولوية بحث حسب الشركة */

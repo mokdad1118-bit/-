@@ -84,6 +84,23 @@ function parseAppAdPlacementsJson(raw) {
   }
 }
 
+/** مواضع افتراضية إذا كان البنر مفعّلاً ولم تُختر مواضع في لوحة التحكم */
+const DEFAULT_APP_AD_PLACEMENTS_JSON = JSON.stringify([
+  "home_above_partner",
+  "home_below_partner",
+  "home_above_marketplace",
+  "side_menu_account",
+]);
+
+function effectiveAppAdPlacementsForPublic(enabled, placementsJson) {
+  const enabledOn = Number(enabled) === 1;
+  let list = parseAppAdPlacementsJson(placementsJson || "[]");
+  if (enabledOn && !list.length) {
+    list = parseAppAdPlacementsJson(DEFAULT_APP_AD_PLACEMENTS_JSON);
+  }
+  return { enabledOn, list };
+}
+
 function normalizeAppAdPlacementsFromBody(body, curJson) {
   if (body != null && Array.isArray(body.app_ad_banner_placements)) {
     return parseAppAdPlacementsJson(JSON.stringify(body.app_ad_banner_placements));
@@ -170,18 +187,18 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           vendor_join_terms_ar: "",
           vendor_join_terms_en: "",
           bestsellers_boost_enabled: 1,
-          app_ad_banner_enabled: 0,
+          app_ad_banner_enabled: 1,
           app_ad_banner_text_ar: "أعلن عن منتجك داخل تطبيق أدورا",
           app_ad_banner_text_en: "Advertise your product on Adora",
           app_ad_banner_subtitle_ar: "",
           app_ad_banner_subtitle_en: "",
-          app_ad_banner_placements: [],
+          app_ad_banner_placements: parseAppAdPlacementsJson(DEFAULT_APP_AD_PLACEMENTS_JSON),
           app_ad_terms_ar: "",
           app_ad_terms_en: "",
         });
       }
       const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
-      const appAdPl = parseAppAdPlacementsJson(s.app_ad_banner_placements_json || "[]");
+      const appAdEff = effectiveAppAdPlacementsForPublic(s.app_ad_banner_enabled, s.app_ad_banner_placements_json);
       return res.json({
         partner_banner_enabled: Number(s.partner_banner_enabled) === 1 ? 1 : 0,
         partner_banner_text_ar: s.partner_banner_text_ar || "",
@@ -192,12 +209,12 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         vendor_join_terms_ar: s.vendor_join_terms_ar || "",
         vendor_join_terms_en: s.vendor_join_terms_en || "",
         bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
-        app_ad_banner_enabled: Number(s.app_ad_banner_enabled) === 1 ? 1 : 0,
+        app_ad_banner_enabled: appAdEff.enabledOn ? 1 : 0,
         app_ad_banner_text_ar: String(s.app_ad_banner_text_ar || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_AR,
         app_ad_banner_text_en: String(s.app_ad_banner_text_en || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_EN,
         app_ad_banner_subtitle_ar: s.app_ad_banner_subtitle_ar || "",
         app_ad_banner_subtitle_en: s.app_ad_banner_subtitle_en || "",
-        app_ad_banner_placements: appAdPl,
+        app_ad_banner_placements: appAdEff.list,
         app_ad_terms_ar: s.app_ad_terms_ar || "",
         app_ad_terms_en: s.app_ad_terms_en || "",
       });
