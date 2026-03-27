@@ -84,6 +84,7 @@ function setAdminLang(lang) {
     loadUsers().catch(() => {}),
     loadSiteRatings().catch(() => {}),
     loadAdminProductReviews().catch(() => {}),
+    loadAdminMarketplaceProductReviews().catch(() => {}),
     loadBroadcasts().catch(() => {}),
     loadBrandProductsSection().catch(() => {}),
     loadDatabaseOverview().catch(() => {}),
@@ -233,6 +234,9 @@ let ordersAdminUiBound = false;
 let adminUsersCache = [];
 let adminSiteRatingsCache = [];
 let adminProductReviewsCache = [];
+let adminProductReviewsLoadError = null;
+let adminMpProductReviewsCache = [];
+let adminMpProductReviewsLoadError = null;
 let adminFlashCache = [];
 let adminBannersCache = [];
 /** منتجات العلامة المختارة حسب القسم الرئيسي (Men/Women/Kids) */
@@ -411,6 +415,7 @@ function setActiveTab(tabId) {
   if (tabId === "tab-ratings") {
     loadSiteRatings().catch(() => {});
     loadAdminProductReviews().catch(() => {});
+    loadAdminMarketplaceProductReviews().catch(() => {});
   }
   if (tabId === "tab-notifications") {
     loadNotificationTargetOptions().catch(() => {});
@@ -3061,19 +3066,44 @@ function renderSiteRatingsTable() {
 
 async function loadAdminProductReviews() {
   const token = getToken();
+  adminProductReviewsLoadError = null;
   let rows = [];
   try {
     rows = await api("/api/admin/product-reviews", { token });
   } catch (e) {
     console.error(e);
+    adminProductReviewsLoadError = e.message || String(e);
+    rows = [];
   }
   adminProductReviewsCache = Array.isArray(rows) ? rows : [];
   renderAdminProductReviewsTable();
 }
 
+async function loadAdminMarketplaceProductReviews() {
+  const token = getToken();
+  adminMpProductReviewsLoadError = null;
+  let rows = [];
+  try {
+    rows = await api("/api/admin/marketplace-product-reviews", { token });
+  } catch (e) {
+    console.error(e);
+    adminMpProductReviewsLoadError = e.message || String(e);
+    rows = [];
+  }
+  adminMpProductReviewsCache = Array.isArray(rows) ? rows : [];
+  renderAdminMpProductReviewsTable();
+}
+
 function renderAdminProductReviewsTable() {
   const tbody = document.getElementById("product-reviews-tbody");
   if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  if (adminProductReviewsLoadError) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-red-600 text-sm break-words">${escapeHtml(
+      adminProductReviewsLoadError
+    )}</td></tr>`;
+    return;
+  }
   const f = getAdminFilter();
   const list = f
     ? adminProductReviewsCache.filter((r) =>
@@ -3082,7 +3112,6 @@ function renderAdminProductReviewsTable() {
           .includes(f)
       )
     : adminProductReviewsCache;
-  const ar = getAdminLang() === "ar";
   if (!list.length) {
     tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-500">${
       adminProductReviewsCache.length && f ? (ar ? "لا نتائج." : "No matches.") : ar ? "لا تقييمات منتجات بعد." : "No product reviews yet."
@@ -3100,6 +3129,54 @@ function renderAdminProductReviewsTable() {
             <div class="font-semibold">${escapeHtml(pname || "—")}</div>
             <div class="text-xs text-gray-500">#${r.product_id ?? "—"}</div>
           </td>
+          <td class="py-2 pr-2 font-semibold">${escapeHtml(r.user_name || "—")}</td>
+          <td class="py-2 pr-2 font-mono text-xs text-gray-600">${escapeHtml(r.user_phone || "")}</td>
+          <td class="py-2 pr-2 whitespace-nowrap"><span class="text-amber-500">${starsLabel}</span> <span class="text-xs text-gray-500">(${stars}/5)</span></td>
+          <td class="py-2 pr-2 text-gray-700 max-w-md break-words">${escapeHtml(r.comment || "—")}</td>
+          <td class="py-2 text-xs text-gray-500 whitespace-nowrap">${escapeHtml(r.created_at || "—")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderAdminMpProductReviewsTable() {
+  const tbody = document.getElementById("mp-product-reviews-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  if (adminMpProductReviewsLoadError) {
+    tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-red-600 text-sm break-words">${escapeHtml(
+      adminMpProductReviewsLoadError
+    )}</td></tr>`;
+    return;
+  }
+  const f = getAdminFilter();
+  const list = f
+    ? adminMpProductReviewsCache.filter((r) =>
+        `${r.user_name || ""} ${r.user_phone || ""} ${r.comment || ""} ${r.stars} ${r.product_name_en || ""} ${r.product_name_ar || ""} ${r.vendor_name_en || ""} ${r.vendor_name_ar || ""} ${r.marketplace_product_id || ""}`
+          .toLowerCase()
+          .includes(f)
+      )
+    : adminMpProductReviewsCache;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-500">${
+      adminMpProductReviewsCache.length && f ? (ar ? "لا نتائج." : "No matches.") : ar ? "لا تقييمات لمنتجات السوق بعد." : "No marketplace product reviews yet."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list
+    .map((r) => {
+      const stars = Math.min(5, Math.max(1, Number(r.stars) || 1));
+      const starsLabel = `${"★".repeat(stars)}${"☆".repeat(5 - stars)}`;
+      const pname = ar ? r.product_name_ar || r.product_name_en : r.product_name_en || r.product_name_ar;
+      const vname = ar ? r.vendor_name_ar || r.vendor_name_en : r.vendor_name_en || r.vendor_name_ar;
+      return `
+        <tr>
+          <td class="py-2 pr-2">
+            <div class="font-semibold">${escapeHtml(pname || "—")}</div>
+            <div class="text-xs text-gray-500">#${r.marketplace_product_id ?? "—"}</div>
+          </td>
+          <td class="py-2 pr-2 text-gray-800">${escapeHtml(vname || "—")}</td>
           <td class="py-2 pr-2 font-semibold">${escapeHtml(r.user_name || "—")}</td>
           <td class="py-2 pr-2 font-mono text-xs text-gray-600">${escapeHtml(r.user_phone || "")}</td>
           <td class="py-2 pr-2 whitespace-nowrap"><span class="text-amber-500">${starsLabel}</span> <span class="text-xs text-gray-500">(${stars}/5)</span></td>
@@ -3576,6 +3653,7 @@ function refilterAdminActiveTab() {
   else if (vis === "tab-ratings") {
     renderSiteRatingsTable();
     renderAdminProductReviewsTable();
+    renderAdminMpProductReviewsTable();
   }
   else if (vis === "tab-flash") renderFlashSalesTable();
   else if (vis === "tab-banners") renderBannersTable();
@@ -4008,6 +4086,7 @@ async function bootstrapAuthed() {
   document.getElementById("btn-push-diagnostics")?.addEventListener("click", () => refreshPushDiagnostics().catch(() => {}));
   document.getElementById("btn-refresh-site-ratings")?.addEventListener("click", () => loadSiteRatings().catch(() => {}));
   document.getElementById("btn-refresh-product-reviews")?.addEventListener("click", () => loadAdminProductReviews().catch(() => {}));
+  document.getElementById("btn-refresh-mp-product-reviews")?.addEventListener("click", () => loadAdminMarketplaceProductReviews().catch(() => {}));
   document.getElementById("btn-refresh-database-overview")?.addEventListener("click", () => loadDatabaseOverview().catch(() => {}));
   document.getElementById("banner-form")?.addEventListener("submit", (ev) => saveBanner(ev).catch((err) => alert(err.message || String(err))));
   document.getElementById("btn-refresh-banners")?.addEventListener("click", () => loadBanners().catch(() => {}));
@@ -4036,6 +4115,7 @@ async function bootstrapAuthed() {
     ["users", () => loadUsers()],
     ["siteRatings", () => loadSiteRatings()],
     ["productReviews", () => loadAdminProductReviews()],
+    ["mpProductReviews", () => loadAdminMarketplaceProductReviews()],
     ["broadcasts", () => loadBroadcasts()],
     ["contact", () => loadContact()],
     ["banners", () => loadBanners()],

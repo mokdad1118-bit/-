@@ -637,6 +637,34 @@
             scroll-snap-align: start;
         }
 
+        /* سهم «دخول السوق» — أكبر وحركة لفت الانتباه */
+        .marketplace-entrance-chevron {
+            animation: adoraMpEntrancePulse 1.25s ease-in-out infinite;
+        }
+        @keyframes adoraMpEntrancePulse {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.92;
+            }
+            50% {
+                transform: translateX(-10px) scale(1.08);
+                opacity: 1;
+            }
+        }
+        [dir="rtl"] #marketplace-home-entrance-card .marketplace-entrance-chevron {
+            animation-name: adoraMpEntrancePulseRtl;
+        }
+        @keyframes adoraMpEntrancePulseRtl {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.92;
+            }
+            50% {
+                transform: translateX(10px) scale(1.08);
+                opacity: 1;
+            }
+        }
+
         /* بطاقة منتج موحّدة (سوق + كتالوج + شرائط الرئيسية) */
         .adora-pcard {
             position: relative;
@@ -3420,7 +3448,9 @@
                 </div>
                 <div class="px-4 py-3 bg-white/10 backdrop-blur-sm flex items-center justify-between gap-2 text-white text-sm font-bold">
                     <span data-en="Open market" data-ar="دخول السوق">دخول السوق</span>
-                    <i class="fas fa-arrow-left rtl:rotate-180 text-sm opacity-90" aria-hidden="true"></i>
+                    <span class="marketplace-entrance-chevron inline-flex items-center justify-center rounded-full bg-white/18 p-2 ring-2 ring-white/35 shadow-md" aria-hidden="true">
+                        <i class="fas fa-arrow-left rtl:rotate-180 text-lg sm:text-xl text-white opacity-95"></i>
+                    </span>
                 </div>
             </button>
             <div id="marketplace-home-highlights" class="hidden space-y-4 pt-3"></div>
@@ -5135,12 +5165,22 @@
         </div>
     </div>
 
-    <!-- معاينة صورة المنتج بملء الشاشة عند الضغط -->
-    <div id="adora-image-lightbox" class="fixed inset-0 z-[120] hidden flex items-center justify-center bg-black/92 p-3" role="dialog" aria-modal="true" aria-label="">
-        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-10 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-white/25 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+    <!-- معاينة صورة المنتج بملء الشاشة — تكبير/تصغير (عجلة، إصبعين، أزرار، نقرتان) -->
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[120] hidden flex flex-col bg-black/92" role="dialog" aria-modal="true" aria-label="">
+        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-20 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-sm border border-white/20 hover:bg-white/25 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
             <i class="fas fa-times text-lg" aria-hidden="true"></i>
         </button>
-        <img id="adora-image-lightbox-img" src="" alt="" class="max-w-full max-h-[90dvh] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
+        <p id="adora-lightbox-hint" class="absolute top-14 left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none" data-en="Pinch or scroll to zoom · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · اسحب عند التكبير</p>
+        <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-16 pb-24 px-2">
+            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center cursor-grab active:cursor-grabbing" style="transform: translate(0px, 0px) scale(1)">
+                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(78dvh,100%)] max-w-[min(96vw,100%)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
+            </div>
+        </div>
+        <div class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">
+            <button type="button" id="adora-lightbox-zoom-out" class="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold border border-white/25 hover:bg-white/25 transition" aria-label="Zoom out">−</button>
+            <button type="button" id="adora-lightbox-zoom-reset" class="min-w-[3.25rem] h-11 px-2 rounded-full bg-white/15 text-white text-xs font-extrabold border border-white/25 hover:bg-white/25 transition" aria-label="Reset zoom">1×</button>
+            <button type="button" id="adora-lightbox-zoom-in" class="w-11 h-11 rounded-full bg-white/15 text-white text-xl font-bold border border-white/25 hover:bg-white/25 transition" aria-label="Zoom in">+</button>
+        </div>
     </div>
 
     <script src="/index-page.js"></script>

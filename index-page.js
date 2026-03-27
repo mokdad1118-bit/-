@@ -7774,30 +7774,198 @@
 
         function initAdoraProductImageLightbox() {
             const overlay = document.getElementById('adora-image-lightbox');
+            const viewport = document.getElementById('adora-lightbox-viewport');
+            const panzoom = document.getElementById('adora-lightbox-panzoom');
             const imgEl = document.getElementById('adora-image-lightbox-img');
             const closeBtn = document.getElementById('adora-image-lightbox-close');
-            if (!overlay || !imgEl) return;
+            const btnIn = document.getElementById('adora-lightbox-zoom-in');
+            const btnOut = document.getElementById('adora-lightbox-zoom-out');
+            const btnReset = document.getElementById('adora-lightbox-zoom-reset');
+            if (!overlay || !viewport || !panzoom || !imgEl) return;
+
+            const MIN_SCALE = 1;
+            const MAX_SCALE = 5;
+            let scale = 1;
+            let tx = 0;
+            let ty = 0;
+            let touchMode = null;
+            let pinchStartDist = 0;
+            let pinchStartScale = 1;
+            let panStart = null;
+            let drag = false;
+            let dragStart = null;
+            let lastTapTs = 0;
+
+            function clampScale(s) {
+                return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+            }
+
+            function applyPanzoom() {
+                panzoom.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+            }
+
+            function resetPanzoom() {
+                scale = 1;
+                tx = 0;
+                ty = 0;
+                applyPanzoom();
+            }
+
             function closeAdoraImageLightbox() {
                 overlay.classList.add('hidden');
                 document.body.style.overflow = '';
                 imgEl.removeAttribute('src');
+                resetPanzoom();
+                touchMode = null;
+                panStart = null;
+                drag = false;
+                dragStart = null;
             }
+
             function openAdoraImageLightbox(src) {
                 const s = src && String(src).trim();
                 if (!s) return;
+                resetPanzoom();
                 imgEl.src = s;
                 overlay.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
             }
+
             window.closeAdoraImageLightbox = closeAdoraImageLightbox;
             window.openAdoraImageLightbox = openAdoraImageLightbox;
+
             closeBtn?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeAdoraImageLightbox();
             });
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) closeAdoraImageLightbox();
+
+            btnIn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                scale = clampScale(scale * 1.22);
+                applyPanzoom();
             });
+            btnOut?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                scale = clampScale(scale / 1.22);
+                if (scale <= MIN_SCALE + 0.02) resetPanzoom();
+                else applyPanzoom();
+            });
+            btnReset?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetPanzoom();
+            });
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay || e.target === viewport) closeAdoraImageLightbox();
+            });
+
+            viewport.addEventListener(
+                'wheel',
+                (e) => {
+                    if (overlay.classList.contains('hidden')) return;
+                    e.preventDefault();
+                    const factor = e.deltaY < 0 ? 1.09 : 1 / 1.09;
+                    scale = clampScale(scale * factor);
+                    if (scale <= MIN_SCALE + 0.02) resetPanzoom();
+                    else applyPanzoom();
+                },
+                { passive: false }
+            );
+
+            viewport.addEventListener('touchstart', (e) => {
+                if (overlay.classList.contains('hidden')) return;
+                if (e.touches.length === 2) {
+                    touchMode = 'pinch';
+                    const a = e.touches[0];
+                    const b = e.touches[1];
+                    pinchStartDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+                    pinchStartScale = scale;
+                } else if (e.touches.length === 1 && scale > MIN_SCALE + 0.03) {
+                    touchMode = 'pan';
+                    panStart = {
+                        x: e.touches[0].clientX,
+                        y: e.touches[0].clientY,
+                        tx,
+                        ty,
+                    };
+                } else {
+                    touchMode = null;
+                }
+            });
+
+            viewport.addEventListener(
+                'touchmove',
+                (e) => {
+                    if (overlay.classList.contains('hidden') || !touchMode) return;
+                    if (touchMode === 'pinch' && e.touches.length === 2) {
+                        e.preventDefault();
+                        const a = e.touches[0];
+                        const b = e.touches[1];
+                        const d = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+                        if (pinchStartDist > 4) {
+                            scale = clampScale(pinchStartScale * (d / pinchStartDist));
+                            applyPanzoom();
+                        }
+                    } else if (touchMode === 'pan' && e.touches.length === 1 && panStart) {
+                        e.preventDefault();
+                        const t = e.touches[0];
+                        tx = panStart.tx + (t.clientX - panStart.x);
+                        ty = panStart.ty + (t.clientY - panStart.y);
+                        applyPanzoom();
+                    }
+                },
+                { passive: false }
+            );
+
+            viewport.addEventListener('touchend', (e) => {
+                if (overlay.classList.contains('hidden')) return;
+                touchMode = null;
+                panStart = null;
+                if (scale < MIN_SCALE + 0.06) resetPanzoom();
+                if (e.touches.length > 0) return;
+                const now = Date.now();
+                if (now - lastTapTs < 300) {
+                    if (scale > MIN_SCALE + 0.08) resetPanzoom();
+                    else {
+                        scale = clampScale(2.35);
+                        applyPanzoom();
+                    }
+                    lastTapTs = 0;
+                } else {
+                    lastTapTs = now;
+                }
+            });
+
+            panzoom.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                if (scale <= MIN_SCALE + 0.03) return;
+                drag = true;
+                dragStart = { x: e.clientX, y: e.clientY, tx, ty };
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!drag || !dragStart) return;
+                tx = dragStart.tx + (e.clientX - dragStart.x);
+                ty = dragStart.ty + (e.clientY - dragStart.y);
+                applyPanzoom();
+            });
+
+            window.addEventListener('mouseup', () => {
+                drag = false;
+                dragStart = null;
+            });
+
+            panzoom.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (scale > MIN_SCALE + 0.08) resetPanzoom();
+                else {
+                    scale = clampScale(2.35);
+                    applyPanzoom();
+                }
+            });
+
             ['product-gallery', 'marketplace-product-gallery'].forEach((id) => {
                 const host = document.getElementById(id);
                 if (!host) return;

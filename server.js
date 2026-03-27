@@ -1975,6 +1975,27 @@ app.get("/api/admin/product-reviews", requireAuth, requireAdmin, async (_req, re
   }
 });
 
+/** تقييمات منتجات السوق الشامل (جدول منفصل عن كتالوج الألبسة) */
+app.get("/api/admin/marketplace-product-reviews", requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const rows = await all(
+      `SELECT r.id, r.stars, r.comment, r.created_at,
+              u.name AS user_name, u.phone AS user_phone,
+              mp.id AS marketplace_product_id, mp.name_ar AS product_name_ar, mp.name_en AS product_name_en,
+              mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en
+       FROM marketplace_product_reviews r
+       JOIN users u ON u.id = r.user_id
+       JOIN marketplace_products mp ON mp.id = r.marketplace_product_id
+       JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
+       ORDER BY r.id DESC`
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error("[admin] marketplace-product-reviews", err);
+    return res.status(500).json({ error: "Failed to load marketplace product reviews" });
+  }
+});
+
 /** الأكثر مبيعاً من مجموع كميات order_items */
 app.get("/api/bestsellers", async (req, res) => {
   try {
