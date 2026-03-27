@@ -726,11 +726,32 @@
         [dir="rtl"] .adora-cta-pill-chevron {
             animation-name: adora-cta-chevron-nudge-rtl;
         }
+        /* سهم بداية البنر: نفس الإيقاع باتجاه معاكس (نحو النص) */
+        .adora-cta-pill-chevron--lead {
+            animation-name: adora-cta-chevron-nudge-rtl;
+        }
+        [dir="rtl"] .adora-cta-pill-chevron--lead {
+            animation-name: adora-cta-chevron-nudge;
+        }
         .adora-cta-pill-chevron--sm {
             animation-duration: 1.25s;
         }
         .adora-cta-pill-chevron--sm i {
             font-size: 0.75rem;
+        }
+        @keyframes adora-mp-strip-title-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+            50% { opacity: 0.92; transform: scale(1.035); filter: brightness(1.06); }
+        }
+        .adora-mp-strip-title {
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #6d28d9;
+            animation: adora-mp-strip-title-pulse 2.2s ease-in-out infinite;
         }
         /* بنر الإعلان: نفس عائلة اللون البنفسجي لكن أفتح من بنر الشراكة */
         .app-ad-cta-pill {
@@ -1379,6 +1400,13 @@
             height: 3.5rem;
             margin-bottom: 4px;
             border-radius: 10px;
+        }
+
+        .home-compact-flash .flash-card-thumb .wishlist-btn,
+        .home-compact-flash .flash-card-thumb .flash-card-cart-btn {
+            width: 1.5rem;
+            height: 1.5rem;
+            font-size: 0.5625rem;
         }
 
         .home-compact-flash .flash-card h4 {
@@ -2274,6 +2302,7 @@
             transform: scale(0.98);
         }
         .flash-card-thumb {
+            position: relative;
             width: 100%;
             height: 5.5rem;
             border-radius: 16px;
@@ -3034,6 +3063,7 @@
             </div>
             <div id="app-ad-cta-home-above-partner" class="hidden pt-2">
                 <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryPage()" aria-label="">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/35 backdrop-blur-sm">
                         <i class="fas fa-bullhorn text-lg text-indigo-950" aria-hidden="true"></i>
                     </span>
@@ -3046,6 +3076,7 @@
             </div>
             <div id="partner-cta-home-under-search" class="hidden pt-3">
                 <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()" aria-label="">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
                         <i class="fas fa-store text-lg" aria-hidden="true"></i>
                     </span>
@@ -3058,6 +3089,7 @@
             </div>
             <div id="app-ad-cta-home-below-partner" class="hidden pt-2">
                 <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryPage()" aria-label="">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/35 backdrop-blur-sm">
                         <i class="fas fa-bullhorn text-lg text-indigo-950" aria-hidden="true"></i>
                     </span>
@@ -3081,6 +3113,7 @@
             </div>
             <div id="partner-cta-home-above-marketplace" class="hidden px-1 pt-2">
                 <button type="button" class="partner-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openVendorJoinPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-handshake text-base"></i></span>
                     <span class="min-w-0 flex-1 text-center sm:text-start">
                         <span id="partner-cta-above-market-title" class="block text-sm font-extrabold"></span>
@@ -3091,6 +3124,7 @@
             </div>
             <div id="app-ad-cta-home-above-marketplace" class="hidden px-1 pt-2">
                 <button type="button" class="app-ad-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openAppAdInquiryPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/25"><i class="fas fa-bullhorn text-base text-indigo-950"></i></span>
                     <span class="min-w-0 flex-1 text-center sm:text-start">
                         <span id="app-ad-cta-above-market-title" class="block text-sm font-extrabold"></span>
@@ -3311,6 +3345,7 @@
 
         <div id="app-ad-cta-home-between-brands" class="hidden px-4 mt-4 max-w-lg mx-auto w-full">
             <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryPage()">
+                <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/35"><i class="fas fa-bullhorn text-base text-indigo-950"></i></span>
                 <span class="min-w-0 flex-1 text-start">
                     <span id="app-ad-cta-between-brands-title" class="block text-sm font-extrabold text-indigo-950"></span>
@@ -3447,6 +3482,7 @@
             </div>
             <div id="partner-cta-listing-screen" class="hidden mb-3">
                 <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180"></i></span>
                     <i class="fas fa-store text-sm shrink-0"></i>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-listing-title"></span>
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -3454,6 +3490,7 @@
             </div>
             <div id="app-ad-cta-listing-screen" class="hidden mb-3">
                 <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <i class="fas fa-bullhorn text-sm shrink-0"></i>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-listing-title"></span>
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -3514,6 +3551,7 @@
             <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed" data-en="Current promotions and discounted items." data-ar="عروض وتخفيضات حالية.">عروض وتخفيضات حالية.</p>
             <div id="partner-cta-offers-screen" class="hidden mt-3">
                 <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180"></i></span>
                     <i class="fas fa-briefcase text-sm shrink-0"></i>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-offers-title"></span>
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -3521,6 +3559,7 @@
             </div>
             <div id="app-ad-cta-offers-screen" class="hidden mt-2">
                 <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <i class="fas fa-bullhorn text-sm shrink-0"></i>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-offers-title"></span>
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -3716,6 +3755,7 @@
         </div>
         <div id="partner-cta-marketplace-screen" class="hidden px-3 pt-2">
             <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180"></i></span>
                 <i class="fas fa-store text-sm shrink-0"></i>
                 <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-marketplace-title"></span>
                 <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -3723,6 +3763,7 @@
         </div>
         <div id="app-ad-cta-marketplace-screen" class="hidden px-3 pt-2">
             <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 <i class="fas fa-bullhorn text-sm shrink-0"></i>
                 <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-marketplace-title"></span>
                 <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
@@ -4089,9 +4130,10 @@
 
             <div id="app-ad-cta-profile-screen" class="hidden mb-4">
                 <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-indigo-600 shadow-sm"><i class="fas fa-bullhorn text-sm"></i></span>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-profile-title"></span>
-                    <i class="fas fa-chevron-left text-indigo-300 text-xs rtl:rotate-180"></i>
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 </button>
             </div>
 
@@ -4533,6 +4575,7 @@
 
         <div id="app-ad-side-menu" class="hidden px-4 pt-3">
             <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="closeSideDrawer(); openAppAdInquiryPage();">
+                <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 <i class="fas fa-bullhorn text-sm shrink-0"></i>
                 <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-side-menu-title"></span>
                 <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>

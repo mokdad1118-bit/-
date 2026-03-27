@@ -1017,6 +1017,32 @@
             return 'icons/adora-icon.svg';
         }
         let flashSaleItems = [];
+        const adoraGalleryAutoScrollTimers = {};
+        function stopGalleryAutoScroll(galleryDomId) {
+            const t = adoraGalleryAutoScrollTimers[galleryDomId];
+            if (t) {
+                clearInterval(t);
+                delete adoraGalleryAutoScrollTimers[galleryDomId];
+            }
+        }
+        function startGalleryAutoScroll(galleryDomId, intervalMs = 4200) {
+            stopGalleryAutoScroll(galleryDomId);
+            const el = document.getElementById(galleryDomId);
+            if (!el) return;
+            const children = [...el.children];
+            if (children.length <= 1) return;
+            let idx = 0;
+            adoraGalleryAutoScrollTimers[galleryDomId] = setInterval(() => {
+                idx = (idx + 1) % children.length;
+                try {
+                    children[idx].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+                } catch (_e) {
+                    try {
+                        children[idx].scrollIntoView();
+                    } catch (_e2) {}
+                }
+            }, intervalMs);
+        }
         const searchHistoryKey = 'adora_search_history';
         let searchHistory = [];
         const selectedFilters = new Set();
@@ -3118,7 +3144,7 @@
                 })
                 .join('');
             return `<div class="space-y-1.5">
-                <p class="text-xs font-extrabold text-gray-800 px-0.5">${escapeHtml(title)}</p>
+                <p class="adora-mp-strip-title px-0.5">${escapeHtml(title)}</p>
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-0.5 px-0.5">${cards}</div>
             </div>`;
         }
@@ -3167,6 +3193,7 @@
         }
 
         function backFromMarketplaceProduct() {
+            stopGalleryAutoScroll('marketplace-product-gallery');
             if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-marketplace-product') {
                 adoraNavStack.pop();
                 navigateTo('screen-marketplace', { skipHistory: true });
@@ -3585,6 +3612,7 @@
             if (off) off.classList.toggle('hidden', Number(p.is_offer) !== 1);
             const gal = document.getElementById('marketplace-product-gallery');
             if (gal) {
+                stopGalleryAutoScroll('marketplace-product-gallery');
                 const imgs = Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
                 gal.innerHTML = imgs
                     .map(
@@ -3592,6 +3620,7 @@
                             `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>`
                     )
                     .join('');
+                startGalleryAutoScroll('marketplace-product-gallery', 4200);
             }
             const stockN = Number(p.stock != null ? p.stock : 0);
             if (stockN > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, stockN));
@@ -5911,6 +5940,7 @@
             const saleP = productSaleUnitPrice(p);
             const gal = document.getElementById('product-gallery');
             if (gal) {
+                stopGalleryAutoScroll('product-gallery');
                 const imgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
                 gal.innerHTML = imgs
                     .map(
@@ -5918,6 +5948,7 @@
                             `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt=""></div>`
                     )
                     .join('');
+                startGalleryAutoScroll('product-gallery', 4200);
             }
             const tEl = document.getElementById('product-detail-title');
             if (tEl) tEl.textContent = title;
@@ -6194,6 +6225,7 @@
         }
 
         function backFromProductDetail() {
+            stopGalleryAutoScroll('product-gallery');
             if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-product') {
                 adoraNavStack.pop();
                 const prev = adoraNavStack[adoraNavStack.length - 1];
@@ -6429,9 +6461,27 @@
                     ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${br}</p>`
                     : '';
                 const isMp = item.isMp === true && item.mpId != null && Number.isFinite(Number(item.mpId));
-                const openFn = isMp ? `openMarketplaceProductDetail(${Number(item.mpId)})` : `openProductDetail(${Number(item.id)})`;
-                return `<div class="flash-card" role="button" tabindex="0" onclick="${openFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${openFn};}">
-                            <div class="flash-card-thumb"><img src="${imgSrc}" alt=""></div>
+                const pid = isMp ? Number(item.mpId) : Number(item.id);
+                const wlNs = isMp ? 'mp' : 'p';
+                const openFn = isMp ? `openMarketplaceProductDetail(${pid})` : `openProductDetail(${pid})`;
+                const inWish = isWishlistEntry(wlNs, pid);
+                const canCart = isMp ? Number(item.stock || 0) > 0 : !!item.canCart;
+                const hCls = `wishlist-btn absolute top-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-white/92 shadow-md text-[11px] ${inWish ? 'active' : ''}`;
+                const cCls = canCart
+                    ? 'flash-card-cart-btn absolute bottom-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-violet-600 text-white shadow-md text-[10px]'
+                    : 'flash-card-cart-btn absolute bottom-1 right-1 rtl:right-auto rtl:left-1 z-[3] w-7 h-7 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow-md text-[10px] cursor-not-allowed opacity-80';
+                const cartOn = canCart
+                    ? isMp
+                        ? `event.stopPropagation(); quickAddMarketplaceProductToCart(${pid},event)`
+                        : `event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)`
+                    : 'event.stopPropagation()';
+                const cartDisabled = canCart ? '' : ' disabled';
+                return `<div class="flash-card text-start" role="button" tabindex="0" onclick="${openFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${openFn};}">
+                            <div class="flash-card-thumb">
+                                <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'${wlNs}',${pid},this)"><i class="fas fa-heart"></i></button>
+                                <button type="button"${cartDisabled} class="${cCls}" aria-label="Cart" onclick="${cartOn}"><i class="fas fa-cart-plus"></i></button>
+                                <img src="${imgSrc}" alt="">
+                            </div>
                             <p class="text-xs text-gray-500" data-en="Ends soon" data-ar="ينتهي قريباً">Ends soon</p>
                             ${brandLine}
                             <h4>${safeTitle}</h4>
@@ -6541,9 +6591,20 @@
                     const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
                     const badge =
                         disc > 0
-                            ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
+                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 z-[1] badge-sale text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">-${Math.round(disc)}%</span>`
                             : '';
-                    pieces.push(`<div onclick="openMarketplaceProductDetail(${id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                    const inWish = isWishlistEntry('mp', id);
+                    const canCart = Number(p.stock || 0) > 0;
+                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-white/92 shadow text-[10px] ${inWish ? 'active' : ''}`;
+                    const cCls = canCart
+                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-violet-600 text-white shadow text-[9px]'
+                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[9px] cursor-not-allowed opacity-80';
+                    const cartDis = canCart ? '' : ' disabled';
+                    const cartClk = canCart ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${id},event)"` : 'onclick="event.stopPropagation()"';
+                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative">
+                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'mp',${id},this)"><i class="fas fa-heart"></i></button>
+                        <button type="button"${cartDis} class="${cCls}" aria-label="Cart" ${cartClk}><i class="fas fa-cart-plus"></i></button>
+                        <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openMarketplaceProductDetail(${id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${id});}">
                         <div class="aspect-[3/4] max-h-[102px] relative">
                             <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
                             ${badge}
@@ -6555,6 +6616,7 @@
                                 <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
                                 ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
+                        </div>
                         </div>
                     </div>`);
                 }
@@ -6571,9 +6633,21 @@
                     const saleP = productSaleUnitPrice(p);
                     const badge =
                         disc > 0
-                            ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
+                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 z-[1] badge-sale text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">-${Math.round(disc)}%</span>`
                             : '';
-                    pieces.push(`<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                    const pid = Number(p.id);
+                    const inWish = isWishlistEntry('p', pid);
+                    const canCart = productHasAnyStockQuick(p);
+                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-white/92 shadow text-[10px] ${inWish ? 'active' : ''}`;
+                    const cCls = canCart
+                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-900 text-white shadow text-[9px]'
+                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-[2] w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[9px] cursor-not-allowed opacity-80';
+                    const cartDis = canCart ? '' : ' disabled';
+                    const cartClk = canCart ? `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"` : 'onclick="event.stopPropagation()"';
+                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative">
+                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="event.stopPropagation(); wishlistCardToggle(event,'p',${pid},this)"><i class="fas fa-heart"></i></button>
+                        <button type="button"${cartDis} class="${cCls}" aria-label="Cart" ${cartClk}><i class="fas fa-cart-plus"></i></button>
+                        <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                         <div class="aspect-[3/4] max-h-[102px] relative">
                             <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
                             ${badge}
@@ -6585,6 +6659,7 @@
                                 <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
                                 ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
+                        </div>
                         </div>
                     </div>`);
                 }
@@ -6869,6 +6944,7 @@
                         old: oldPrice,
                         now: nowPrice,
                         discount: `${discountPercent}% OFF`,
+                        stock: Number(p.stock ?? 0),
                     });
                 }
 
@@ -6906,6 +6982,7 @@
                         old: oldPrice,
                         now: nowPrice,
                         discount: `${discountPercent}% OFF`,
+                        canCart: productHasAnyStockQuick(p),
                     };
                 });
 

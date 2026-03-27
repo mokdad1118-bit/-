@@ -421,7 +421,11 @@ function setActiveTab(tabId) {
     loadBrandProductsSection().catch(() => {});
   }
   if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
-  if (tabId === "tab-banners") loadBanners().catch(() => {});
+  if (tabId === "tab-banners") {
+    loadBanners().catch(() => {});
+    loadVendorPlatformSettingsUi().catch(() => {});
+    bindVendorPlatformAdminListenersOnce();
+  }
   if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
   if (tabId === "tab-vendor-platform") initVendorPlatformAdminTab().catch(() => {});
   if (tabId === "tab-vendor-subscriptions") {
@@ -671,95 +675,115 @@ async function loadVendorCommissionReportUi() {
   }
 }
 
+function collectVendorPlatformSettingsBody() {
+  const fv = document.getElementById("vp-featured-vendors")?.value?.trim() ?? "";
+  const vendorIds = fv
+    ? fv
+        .split(/[\s,]+/)
+        .map((x) => Number(x.trim()))
+        .filter((n) => Number.isFinite(n) && n > 0)
+    : [];
+  const partner_cta_placements = VP_PARTNER_CTA_PLACEMENT_KEYS.filter((k) => {
+    const el = document.getElementById(`vp-pl-${k}`);
+    return el && el.checked;
+  });
+  const app_ad_banner_placements = VP_APP_AD_PLACEMENT_KEYS.filter((k) => {
+    const el = document.getElementById(`vp-aad-pl-${k}`);
+    return el && el.checked;
+  });
+  return {
+    product_quota_enabled: document.getElementById("vp-quota-on")?.checked ? 1 : 0,
+    free_products_per_vendor: Number(document.getElementById("vp-free-n")?.value || 0),
+    extra_product_price_usd: Number(document.getElementById("vp-extra-price")?.value || 0),
+    commission_percent: Number(document.getElementById("vp-commission")?.value || 0),
+    ads_module_enabled: document.getElementById("vp-ads-on")?.checked ? 1 : 0,
+    partner_banner_enabled: document.getElementById("vp-banner-on")?.checked ? 1 : 0,
+    partner_banner_text_ar: document.getElementById("vp-banner-ar")?.value?.trim() ?? "",
+    partner_banner_text_en: document.getElementById("vp-banner-en")?.value?.trim() ?? "",
+    partner_cta_subtitle_ar: document.getElementById("vp-cta-sub-ar")?.value?.trim() ?? "",
+    partner_cta_subtitle_en: document.getElementById("vp-cta-sub-en")?.value?.trim() ?? "",
+    partner_cta_placements,
+    vendor_join_terms_ar: document.getElementById("vp-join-terms-ar")?.value ?? "",
+    vendor_join_terms_en: document.getElementById("vp-join-terms-en")?.value ?? "",
+    app_ad_banner_enabled: document.getElementById("vp-app-ad-on")?.checked ? 1 : 0,
+    app_ad_banner_text_ar: document.getElementById("vp-app-ad-ar")?.value?.trim() ?? "",
+    app_ad_banner_text_en: document.getElementById("vp-app-ad-en")?.value?.trim() ?? "",
+    app_ad_banner_subtitle_ar: document.getElementById("vp-app-ad-sub-ar")?.value?.trim() ?? "",
+    app_ad_banner_subtitle_en: document.getElementById("vp-app-ad-sub-en")?.value?.trim() ?? "",
+    app_ad_banner_placements,
+    app_ad_terms_ar: document.getElementById("vp-app-ad-terms-ar")?.value ?? "",
+    app_ad_terms_en: document.getElementById("vp-app-ad-terms-en")?.value ?? "",
+    featured_products_mode: document.getElementById("vp-featured-mode")?.value ?? "manual",
+    featured_vendor_ids: vendorIds,
+    bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost")?.checked ? 1 : 0,
+  };
+}
+
+async function saveVendorPlatformSettingsFromForm() {
+  const token = getToken();
+  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  const body = collectVendorPlatformSettingsBody();
+  await api("/api/admin/vendor-platform/settings", { method: "PUT", token, body });
+  await loadVendorPlatformSettingsUi();
+  alert(ar ? "تم حفظ الإعدادات." : "Settings saved.");
+}
+
+function bindVendorPlatformAdminListenersOnce() {
+  if (vendorPlatformListenersBound) return;
+  vendorPlatformListenersBound = true;
+  document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!getToken()) return;
+    try {
+      await saveVendorPlatformSettingsFromForm();
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("btn-save-app-cta-banners")?.addEventListener("click", async () => {
+    if (!getToken()) return;
+    try {
+      await saveVendorPlatformSettingsFromForm();
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("vp-promo-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) return;
+    const ar = getAdminLang() === "ar";
+    const maxRaw = document.getElementById("vp-promo-max-imp").value.trim();
+    const body = {
+      product_id: Number(document.getElementById("vp-promo-pid").value),
+      slot: document.getElementById("vp-promo-slot").value,
+      priority: Number(document.getElementById("vp-promo-priority").value || 0),
+      price_usd: Number(document.getElementById("vp-promo-price").value || 0),
+      starts_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-start").value),
+      ends_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-end").value),
+      max_impressions: maxRaw === "" ? null : Number(maxRaw),
+      is_active: document.getElementById("vp-promo-active").checked ? 1 : 0,
+    };
+    if (!Number.isFinite(body.product_id) || !body.starts_at || !body.ends_at) {
+      alert(ar ? "أدخل معرّف المنتج وتواريخ البداية والنهاية." : "Enter product id and start/end dates.");
+      return;
+    }
+    try {
+      await api("/api/admin/vendor-platform/promotions", { method: "POST", token, body });
+      await loadVendorPromotionsUi();
+      alert(ar ? "تمت الإضافة." : "Added.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
+}
+
 async function initVendorPlatformAdminTab() {
   await loadVendorPlatformSettingsUi();
   await loadVendorPromotionsUi();
-  if (!vendorPlatformListenersBound) {
-    vendorPlatformListenersBound = true;
-    document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const token = getToken();
-      if (!token) return;
-      const ar = getAdminLang() === "ar";
-      const fv = document.getElementById("vp-featured-vendors").value.trim();
-      const vendorIds = fv
-        ? fv
-            .split(/[\s,]+/)
-            .map((x) => Number(x.trim()))
-            .filter((n) => Number.isFinite(n) && n > 0)
-        : [];
-      const partner_cta_placements = VP_PARTNER_CTA_PLACEMENT_KEYS.filter((k) => {
-        const el = document.getElementById(`vp-pl-${k}`);
-        return el && el.checked;
-      });
-      const app_ad_banner_placements = VP_APP_AD_PLACEMENT_KEYS.filter((k) => {
-        const el = document.getElementById(`vp-aad-pl-${k}`);
-        return el && el.checked;
-      });
-      const body = {
-        product_quota_enabled: document.getElementById("vp-quota-on").checked ? 1 : 0,
-        free_products_per_vendor: Number(document.getElementById("vp-free-n").value || 0),
-        extra_product_price_usd: Number(document.getElementById("vp-extra-price").value || 0),
-        commission_percent: Number(document.getElementById("vp-commission").value || 0),
-        ads_module_enabled: document.getElementById("vp-ads-on").checked ? 1 : 0,
-        partner_banner_enabled: document.getElementById("vp-banner-on").checked ? 1 : 0,
-        partner_banner_text_ar: document.getElementById("vp-banner-ar").value.trim(),
-        partner_banner_text_en: document.getElementById("vp-banner-en").value.trim(),
-        partner_cta_subtitle_ar: document.getElementById("vp-cta-sub-ar")?.value?.trim() ?? "",
-        partner_cta_subtitle_en: document.getElementById("vp-cta-sub-en")?.value?.trim() ?? "",
-        partner_cta_placements,
-        vendor_join_terms_ar: document.getElementById("vp-join-terms-ar")?.value ?? "",
-        vendor_join_terms_en: document.getElementById("vp-join-terms-en")?.value ?? "",
-        app_ad_banner_enabled: document.getElementById("vp-app-ad-on")?.checked ? 1 : 0,
-        app_ad_banner_text_ar: document.getElementById("vp-app-ad-ar")?.value?.trim() ?? "",
-        app_ad_banner_text_en: document.getElementById("vp-app-ad-en")?.value?.trim() ?? "",
-        app_ad_banner_subtitle_ar: document.getElementById("vp-app-ad-sub-ar")?.value?.trim() ?? "",
-        app_ad_banner_subtitle_en: document.getElementById("vp-app-ad-sub-en")?.value?.trim() ?? "",
-        app_ad_banner_placements,
-        app_ad_terms_ar: document.getElementById("vp-app-ad-terms-ar")?.value ?? "",
-        app_ad_terms_en: document.getElementById("vp-app-ad-terms-en")?.value ?? "",
-        featured_products_mode: document.getElementById("vp-featured-mode").value,
-        featured_vendor_ids: vendorIds,
-        bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost").checked ? 1 : 0,
-      };
-      try {
-        await api("/api/admin/vendor-platform/settings", { method: "PUT", token, body });
-        await loadVendorPlatformSettingsUi();
-        alert(ar ? "تم حفظ الإعدادات." : "Settings saved.");
-      } catch (err) {
-        alert(err.message || String(err));
-      }
-    });
-    document.getElementById("vp-promo-form")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const token = getToken();
-      if (!token) return;
-      const ar = getAdminLang() === "ar";
-      const maxRaw = document.getElementById("vp-promo-max-imp").value.trim();
-      const body = {
-        product_id: Number(document.getElementById("vp-promo-pid").value),
-        slot: document.getElementById("vp-promo-slot").value,
-        priority: Number(document.getElementById("vp-promo-priority").value || 0),
-        price_usd: Number(document.getElementById("vp-promo-price").value || 0),
-        starts_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-start").value),
-        ends_at: vpLocalDateTimeToIso(document.getElementById("vp-promo-end").value),
-        max_impressions: maxRaw === "" ? null : Number(maxRaw),
-        is_active: document.getElementById("vp-promo-active").checked ? 1 : 0,
-      };
-      if (!Number.isFinite(body.product_id) || !body.starts_at || !body.ends_at) {
-        alert(ar ? "أدخل معرّف المنتج وتواريخ البداية والنهاية." : "Enter product id and start/end dates.");
-        return;
-      }
-      try {
-        await api("/api/admin/vendor-platform/promotions", { method: "POST", token, body });
-        await loadVendorPromotionsUi();
-        alert(ar ? "تمت الإضافة." : "Added.");
-      } catch (err) {
-        alert(err.message || String(err));
-      }
-    });
-    document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
-  }
+  bindVendorPlatformAdminListenersOnce();
 }
 
 const VP_SUB_STATUS_LABELS_AR = {

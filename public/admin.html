@@ -687,53 +687,11 @@
                 <div><label class="text-xs font-bold">سعر المنتج الإضافي (USD)</label><input id="vp-extra-price" type="number" step="any" min="0" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                 <div><label class="text-xs font-bold">عمولة أدورا (%)</label><input id="vp-commission" type="number" step="any" min="0" max="100" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                 <div class="flex items-center gap-2"><input type="checkbox" id="vp-ads-on" class="rounded" /><label for="vp-ads-on" class="text-sm font-bold">تفعيل إعلانات البحث (ممول)</label></div>
-                <div class="flex items-center gap-2 md:col-span-2"><input type="checkbox" id="vp-banner-on" class="rounded" /><label for="vp-banner-on" class="text-sm font-bold">تفعيل دعوة «انضم كشركة» (يظهر حسب المواضع أدناه عند التشغيل)</label></div>
-                <div class="md:col-span-2"><label class="text-xs font-bold">نص الدعوة الرئيسي (عربي)</label><input id="vp-banner-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div class="md:col-span-2"><label class="text-xs font-bold">Main CTA text (EN)</label><input id="vp-banner-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
-                <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي تحت العنوان (عربي)</label><input id="vp-cta-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
-                <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle under title (EN)</label><input id="vp-cta-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
-                <div class="md:col-span-2 border border-gray-100 rounded-xl p-3 space-y-2">
-                  <p class="text-xs font-bold text-gray-700">أين تظهر الدعوة داخل التطبيق</p>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-home_under_search" class="rounded" /><span>تحت البحث في الرئيسية</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
-                  </div>
-                  <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل الدعوة» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
-                </div>
                 <div class="md:col-span-2 border border-violet-100 rounded-xl p-3 space-y-2">
                   <p class="text-xs font-bold text-gray-700">شروط نموذج «انضم كشركة» (تظهر في التطبيق)</p>
                   <div class="md:col-span-2"><label class="text-xs font-bold">نص الشروط (عربي)</label><textarea id="vp-join-terms-ar" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="فقرة أو سطر لكل بند…"></textarea></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">Terms (English)</label><textarea id="vp-join-terms-en" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="One line per bullet or full paragraph…"></textarea></div>
                   <p class="text-[11px] text-gray-500 leading-relaxed">إذا تركت الحقلين فارغين يُعرض في التطبيق قائمة الشروط الافتراضية.</p>
-                </div>
-                <div class="md:col-span-2 border border-violet-100 rounded-xl p-3 space-y-2 bg-violet-50/40">
-                  <p class="text-xs font-bold text-violet-900">بنر الإعلانات (طلبات إعلان منتج داخل التطبيق)</p>
-                  <div class="flex items-center gap-2"><input type="checkbox" id="vp-app-ad-on" class="rounded" /><label for="vp-app-ad-on" class="text-sm font-bold">تفعيل بنر الإعلانات (يظهر حسب المواضع أدناه)</label></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">عنوان البنر (عربي)</label><input id="vp-app-ad-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="أعلن عن منتجك داخل تطبيق أدورا" /></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">Banner title (EN)</label><input id="vp-app-ad-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="Advertise your product on Adora" /></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي (عربي)</label><input id="vp-app-ad-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle (EN)</label><input id="vp-app-ad-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
-                  <div class="border border-violet-100/80 rounded-xl p-3 space-y-2 bg-white/80">
-                    <p class="text-xs font-bold text-gray-700">أين يظهر بنر الإعلانات</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_above_partner" class="rounded" /><span>فوق بنر «انضم كشركة» (تحت البحث)</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_below_partner" class="rounded" /><span>تحت بنر «انضم كشركة»</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_between_main_and_brands" class="rounded" /><span>بين الأقسام الرئيسية وقسم الشركات</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-side_menu_account" class="rounded" /><span>قائمة الحساب (القائمة الجانبية ☰)</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-profile_screen" class="rounded" /><span>شاشة الملف الشخصي (حسابي)</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
-                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
-                    </div>
-                    <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل بنر الإعلانات» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
-                  </div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">شروط نموذج الإعلان (عربي)</label><textarea id="vp-app-ad-terms-ar" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="فقرة أو سطر لكل بند…"></textarea></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">Ad inquiry terms (English)</label><textarea id="vp-app-ad-terms-en" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="One line per bullet…"></textarea></div>
-                  <p class="text-[11px] text-gray-500 leading-relaxed">إذا تركت حقول الشروط فارغة يُعرض في التطبيق قائمة شروط افتراضية (صورة واضحة، سعر مقبول، بيانات صحيحة).</p>
                 </div>
                 <div><label class="text-xs font-bold">وضع المنتجات المميزة بالرئيسية</label><select id="vp-featured-mode" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="manual">يدوي (علامة منتج مميز)</option><option value="auto_bestsellers">تلقائي (الأكثر مبيعاً)</option><option value="by_vendor">من شركات محددة (معرّفات)</option></select></div>
                 <div><label class="text-xs font-bold">معرّفات الشركات (فاصلة)</label><input id="vp-featured-vendors" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="1, 2, 3" /></div>
@@ -1218,7 +1176,62 @@
             </div>
           </div>
 
-          <div id="tab-banners" class="tab-panel hidden">
+          <div id="tab-banners" class="tab-panel hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <h2 class="text-lg font-bold" data-en="Join Adora CTA banner" data-ar="بنر «انضم كشركة في أدورا»">بنر «انضم كشركة في أدورا»</h2>
+              <p class="text-sm text-gray-600" data-en="Purple CTA strip in the app (text, subtitle, placements)." data-ar="شريط الدعوة البنفسجي في التطبيق (النص والمواضع).">شريط الدعوة البنفسجي في التطبيق (النص والمواضع).</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 border border-gray-100 rounded-xl p-3">
+                <div class="flex items-center gap-2 md:col-span-2"><input type="checkbox" id="vp-banner-on" class="rounded" /><label for="vp-banner-on" class="text-sm font-bold">تفعيل دعوة «انضم كشركة» (يظهر حسب المواضع أدناه عند التشغيل)</label></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">نص الدعوة الرئيسي (عربي)</label><input id="vp-banner-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">Main CTA text (EN)</label><input id="vp-banner-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي تحت العنوان (عربي)</label><input id="vp-cta-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle under title (EN)</label><input id="vp-cta-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
+                <div class="md:col-span-2 border border-gray-100 rounded-xl p-3 space-y-2">
+                  <p class="text-xs font-bold text-gray-700">أين تظهر الدعوة داخل التطبيق</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-home_under_search" class="rounded" /><span>تحت البحث في الرئيسية</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
+                  </div>
+                  <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل الدعوة» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-violet-200 p-4 space-y-3 bg-violet-50/30">
+              <h2 class="text-lg font-bold text-violet-900" data-en="In-app ad inquiry banner" data-ar="بنر الإعلانات (طلب إعلان منتج)">بنر الإعلانات (طلب إعلان منتج)</h2>
+              <p class="text-sm text-gray-600" data-en="Light purple CTA linking to the ad inquiry form." data-ar="البنر الفاتح الذي يفتح نموذج طلب إعلان.">البنر الفاتح الذي يفتح نموذج طلب إعلان.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 border border-violet-100 rounded-xl p-3 bg-white/90">
+                <div class="flex items-center gap-2 md:col-span-2"><input type="checkbox" id="vp-app-ad-on" class="rounded" /><label for="vp-app-ad-on" class="text-sm font-bold">تفعيل بنر الإعلانات (يظهر حسب المواضع أدناه)</label></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">عنوان البنر (عربي)</label><input id="vp-app-ad-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="أعلن عن منتجك داخل تطبيق أدورا" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">Banner title (EN)</label><input id="vp-app-ad-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="Advertise your product on Adora" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">نص فرعي (عربي)</label><input id="vp-app-ad-sub-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">Subtitle (EN)</label><input id="vp-app-ad-sub-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="optional" /></div>
+                <div class="md:col-span-2 border border-violet-100/80 rounded-xl p-3 space-y-2">
+                  <p class="text-xs font-bold text-gray-700">أين يظهر بنر الإعلانات</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_above_partner" class="rounded" /><span>فوق بنر «انضم كشركة» (تحت البحث)</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_below_partner" class="rounded" /><span>تحت بنر «انضم كشركة»</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_between_main_and_brands" class="rounded" /><span>بين الأقسام الرئيسية وقسم الشركات</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-side_menu_account" class="rounded" /><span>قائمة الحساب (القائمة الجانبية ☰)</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-profile_screen" class="rounded" /><span>شاشة الملف الشخصي (حسابي)</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
+                  </div>
+                  <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل بنر الإعلانات» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
+                </div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">شروط نموذج الإعلان (عربي)</label><textarea id="vp-app-ad-terms-ar" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="فقرة أو سطر لكل بند…"></textarea></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold">Ad inquiry terms (English)</label><textarea id="vp-app-ad-terms-en" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="One line per bullet…"></textarea></div>
+                <p class="md:col-span-2 text-[11px] text-gray-500 leading-relaxed">إذا تركت حقول الشروط فارغة يُعرض في التطبيق قائمة شروط افتراضية.</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="btn-save-app-cta-banners" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold text-sm" data-en="Save CTA & ad banner settings" data-ar="حفظ إعدادات بنرات الدعوة والإعلان">حفظ إعدادات بنرات الدعوة والإعلان</button>
+              <p class="text-xs text-gray-500 self-center" data-en="Saves join-company + ad inquiry banner fields (same API as vendor platform)." data-ar="يحفظ حقول بنر الانضمام وبنر الإعلان (نفس واجهة منصة البائعين).">يحفظ حقول بنر الانضمام وبنر الإعلان.</p>
+            </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-2" data-en="App banners" data-ar="بانرات التطبيق">بانرات التطبيق</h2>
               <p class="text-sm text-gray-600 mb-4" data-en="Title and body are required; image is optional (text-only banners supported). Choose placement on the home screen." data-ar="العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.">العنوان والنص إلزاميان؛ الصورة اختيارية (بانر نصي). اختر موضع الظهور في الرئيسية.</p>
