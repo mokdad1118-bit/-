@@ -664,6 +664,33 @@
                 opacity: 1;
             }
         }
+        /* السهم الموازي (نحو النص) — يُستخدم على جانب «دخول السوق» المقابل */
+        #marketplace-home-entrance-card .marketplace-entrance-chevron--lead {
+            animation-name: adoraMpEntrancePulseLead;
+        }
+        @keyframes adoraMpEntrancePulseLead {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.92;
+            }
+            50% {
+                transform: translateX(10px) scale(1.08);
+                opacity: 1;
+            }
+        }
+        [dir="rtl"] #marketplace-home-entrance-card .marketplace-entrance-chevron--lead {
+            animation-name: adoraMpEntrancePulseLeadRtl;
+        }
+        @keyframes adoraMpEntrancePulseLeadRtl {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.92;
+            }
+            50% {
+                transform: translateX(-10px) scale(1.08);
+                opacity: 1;
+            }
+        }
 
         /* بطاقة منتج موحّدة (سوق + كتالوج + شرائط الرئيسية) */
         .adora-pcard {
@@ -3498,11 +3525,18 @@
                         <p id="marketplace-home-entrance-subtitle" class="mt-1 text-xs sm:text-sm text-white/90 leading-snug line-clamp-2">—</p>
                     </div>
                 </div>
-                <div class="px-4 py-3 bg-white/10 backdrop-blur-sm flex items-center justify-between gap-2 text-white text-sm font-bold">
-                    <span data-en="Open market" data-ar="دخول السوق">دخول السوق</span>
-                    <span class="marketplace-entrance-chevron inline-flex items-center justify-center rounded-full bg-white/18 p-2 ring-2 ring-white/35 shadow-md" aria-hidden="true">
-                        <i class="fas fa-arrow-left rtl:rotate-180 text-lg sm:text-xl text-white opacity-95"></i>
-                    </span>
+                <div class="px-4 py-3 bg-white/10 backdrop-blur-sm grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-white text-sm font-bold w-full">
+                    <div class="flex justify-end min-w-0">
+                        <span class="marketplace-entrance-chevron marketplace-entrance-chevron--lead inline-flex items-center justify-center rounded-full bg-white/18 p-2 ring-2 ring-white/35 shadow-md" aria-hidden="true">
+                            <i class="fas fa-arrow-right rtl:rotate-180 text-lg sm:text-xl text-white opacity-95"></i>
+                        </span>
+                    </div>
+                    <span class="text-center whitespace-nowrap px-1 shrink-0" data-en="Open market" data-ar="دخول السوق">دخول السوق</span>
+                    <div class="flex justify-start min-w-0">
+                        <span class="marketplace-entrance-chevron inline-flex items-center justify-center rounded-full bg-white/18 p-2 ring-2 ring-white/35 shadow-md" aria-hidden="true">
+                            <i class="fas fa-arrow-left rtl:rotate-180 text-lg sm:text-xl text-white opacity-95"></i>
+                        </span>
+                    </div>
                 </div>
             </button>
             <div id="marketplace-home-highlights" class="hidden space-y-4 pt-3"></div>
