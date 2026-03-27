@@ -565,7 +565,7 @@ async function loadAppAdInquiriesUi() {
           </select>
         </td>
         <td class="p-2"><textarea class="app-ad-inq-note w-full min-h-[52px] p-1.5 rounded-lg border border-gray-200 text-[11px]" rows="2" data-app-ad-inq-note="${r.id}"></textarea></td>
-        <td class="p-2"><button type="button" class="text-xs px-2 py-1.5 rounded-lg bg-orange-600 text-white font-bold app-ad-inq-save" data-app-ad-inq-save="${r.id}">${ar ? "حفظ" : "Save"}</button></td>
+        <td class="p-2"><button type="button" class="text-xs px-2 py-1.5 rounded-lg bg-violet-600 text-white font-bold app-ad-inq-save" data-app-ad-inq-save="${r.id}">${ar ? "حفظ" : "Save"}</button></td>
       </tr>`;
     })
     .join("");

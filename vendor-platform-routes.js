@@ -85,9 +85,9 @@ function parseAppAdPlacementsJson(raw) {
 }
 
 /** مواضع افتراضية إذا كان البنر مفعّلاً ولم تُختر مواضع في لوحة التحكم */
+/** موضع واحد فقط تحت البحث بجانب «انضم كشركة» لتفادي تكرار البنر */
 const DEFAULT_APP_AD_PLACEMENTS_JSON = JSON.stringify([
   "home_above_partner",
-  "home_below_partner",
   "home_above_marketplace",
   "side_menu_account",
 ]);

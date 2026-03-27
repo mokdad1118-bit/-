@@ -752,12 +752,21 @@ async function migrateAppAdBannerV1() {
     `UPDATE vendor_platform_settings SET app_ad_banner_enabled = 1, app_ad_banner_placements_json = ?, app_ad_defaults_seeded = 1
      WHERE id = 1 AND COALESCE(app_ad_defaults_seeded, 0) = 0 AND COALESCE(app_ad_banner_enabled, 0) = 0
      AND (app_ad_banner_placements_json IS NULL OR TRIM(COALESCE(app_ad_banner_placements_json, '')) = '' OR TRIM(COALESCE(app_ad_banner_placements_json, '')) = '[]')`,
-    ['["home_above_partner","home_below_partner","home_above_marketplace","side_menu_account"]']
+    ['["home_above_partner","home_above_marketplace","side_menu_account"]']
   );
   await run(
     `UPDATE vendor_platform_settings SET app_ad_defaults_seeded = 1
      WHERE id = 1 AND COALESCE(app_ad_defaults_seeded, 0) = 0 AND COALESCE(app_ad_banner_enabled, 0) = 1
      AND TRIM(COALESCE(app_ad_banner_placements_json, '')) NOT IN ('', '[]')`
+  );
+  /* إزالة الموضع المكرر تحت البحث (فوق + تحت بنر الشراكة = بنران) */
+  await run(
+    `UPDATE vendor_platform_settings SET app_ad_banner_placements_json = ?
+     WHERE id = 1 AND app_ad_banner_placements_json = ?`,
+    [
+      '["home_above_partner","home_above_marketplace","side_menu_account"]',
+      '["home_above_partner","home_below_partner","home_above_marketplace","side_menu_account"]',
+    ]
   );
 }
 
