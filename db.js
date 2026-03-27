@@ -340,6 +340,7 @@ async function initDb() {
   await migrateVendorSubscriptionUserLink();
   await migrateVendorJoinTermsAndDocImages();
   await migrateMarketplaceComprehensiveV2();
+  await migrateMarketplaceHomePlacementsV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -709,6 +710,23 @@ async function migrateMarketplaceComprehensiveV2() {
         ]);
     }
   }
+}
+
+/** ظهور منتجات/شركات السوق الشامل في أقسام الرئيسية + أولوية بحث حسب الشركة */
+async function migrateMarketplaceHomePlacementsV1() {
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS search_priority INTEGER NOT NULL DEFAULT 0`);
+  await run(`CREATE TABLE IF NOT EXISTS marketplace_home_placements (
+    id SERIAL PRIMARY KEY,
+    slot TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT mp_home_slot_target_unique UNIQUE (slot, target_type, target_id)
+  )`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_mp_home_placements_slot_order ON marketplace_home_placements (slot, sort_order, id)`
+  );
 }
 
 async function migrateVendorJoinTermsAndDocImages() {

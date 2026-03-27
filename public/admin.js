@@ -712,6 +712,7 @@ let adminMpSectionsCache = [];
 let adminMpVendorsCache = [];
 let adminMpProductsCache = [];
 let adminMpDeptsCache = [];
+let adminMpHomePlacementsAll = [];
 let adminMpListenersBound = false;
 
 function setMpSubtab(name) {
@@ -908,6 +909,8 @@ function mpFillVendorForm(v) {
   document.getElementById("mp-v-logo").value = v ? v.logo_url || "" : "";
   document.getElementById("mp-v-cover").value = v ? v.cover_image_url || "" : "";
   document.getElementById("mp-v-sort").value = v ? String(v.sort_order ?? 0) : "0";
+  const spEl = document.getElementById("mp-v-search-priority");
+  if (spEl) spEl.value = v ? String(v.search_priority ?? 0) : "0";
   document.getElementById("mp-v-paid-slots").value = v ? String(v.paid_product_slots ?? 0) : "0";
   document.getElementById("mp-v-premium").checked = v && Number(v.is_premium) === 1;
   const ptype = v && v.premium_subscription_type ? String(v.premium_subscription_type) : "none";
@@ -1240,6 +1243,55 @@ async function initMarketplaceAdminTab() {
   bindMarketplaceAdminListeners();
 }
 
+async function loadMpHomePlacementsAdmin() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    adminMpHomePlacementsAll = await api("/api/admin/marketplace/home-placements", { token });
+  } catch (_e) {
+    adminMpHomePlacementsAll = [];
+  }
+  renderMpHomePlacementsTable();
+}
+
+function renderMpHomePlacementsTable() {
+  const tbody = document.getElementById("mp-hp-tbody");
+  const slotEl = document.getElementById("mp-hp-slot");
+  if (!tbody || !slotEl) return;
+  const slot = slotEl.value;
+  const ar = getAdminLang() === "ar";
+  const rows = adminMpHomePlacementsAll
+    .filter((r) => r.slot === slot)
+    .sort((a, b) => (a.sort_order - b.sort_order) || a.id - b.id);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-gray-500">${ar ? "لا عناصر في هذا الشريط." : "No items in this strip."}</td></tr>`;
+    return;
+  }
+  const ttLab = (tt) =>
+    tt === "vendor" ? (ar ? "شركة" : "Company") : tt === "department" ? (ar ? "قسم" : "Dept") : ar ? "منتج" : "Product";
+  tbody.innerHTML = rows
+    .map(
+      (r) => `<tr>
+      <td class="p-2">${r.sort_order}</td>
+      <td class="p-2">${escapeHtml(ttLab(r.target_type))}</td>
+      <td class="p-2 font-mono">${r.target_id}</td>
+      <td class="p-2"><button type="button" class="text-red-600 font-bold text-xs" data-mp-hp-del="${r.id}">${ar ? "حذف" : "Remove"}</button></td>
+    </tr>`
+    )
+    .join("");
+}
+
+async function mpHomePlacementSaveSlotItems(slot, items) {
+  const token = getToken();
+  if (!token) return;
+  await api(`/api/admin/marketplace/home-placements/${encodeURIComponent(slot)}`, {
+    method: "PUT",
+    token,
+    body: { items },
+  });
+  await loadMpHomePlacementsAdmin();
+}
+
 function bindMarketplaceAdminListeners() {
   if (adminMpListenersBound) return;
   adminMpListenersBound = true;
@@ -1247,7 +1299,10 @@ function bindMarketplaceAdminListeners() {
   document.querySelectorAll(".mp-subtab").forEach((b) => {
     b.addEventListener("click", () => {
       const sub = b.getAttribute("data-mp-sub");
-      if (sub) setMpSubtab(sub);
+      if (sub) {
+        setMpSubtab(sub);
+        if (sub === "homeplacements") loadMpHomePlacementsAdmin().catch(() => {});
+      }
     });
   });
 
@@ -1385,6 +1440,10 @@ function bindMarketplaceAdminListeners() {
       logo_url,
       cover_image_url,
       sort_order: Number(document.getElementById("mp-v-sort").value || 0),
+      search_priority: Math.max(
+        0,
+        Math.min(1000, Math.floor(Number(document.getElementById("mp-v-search-priority")?.value || 0)))
+      ),
       is_active: document.getElementById("mp-v-active").checked ? 1 : 0,
       paid_product_slots: Number(document.getElementById("mp-v-paid-slots").value || 0),
       is_premium: document.getElementById("mp-v-premium").checked ? 1 : 0,
@@ -1635,6 +1694,84 @@ function bindMarketplaceAdminListeners() {
       }
       await loadMpProductsAdmin();
       alert(getAdminLang() === "ar" ? "تم الحفظ." : "Saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-hp-slot")?.addEventListener("change", () => renderMpHomePlacementsTable());
+  document.getElementById("btn-mp-hp-refresh")?.addEventListener("click", () => loadMpHomePlacementsAdmin().catch(() => {}));
+  document.getElementById("mp-hp-tbody")?.addEventListener("click", async (e) => {
+    const del = e.target.closest("[data-mp-hp-del]");
+    if (!del) return;
+    const id = del.getAttribute("data-mp-hp-del");
+    const token = getToken();
+    if (!token || !id) return;
+    if (!confirm(getAdminLang() === "ar" ? "إزالة هذا العنصر من الشريط؟" : "Remove this item from the strip?")) return;
+    try {
+      await api(`/api/admin/marketplace/home-placements/item/${id}`, { method: "DELETE", token });
+      await loadMpHomePlacementsAdmin();
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("btn-mp-hp-add")?.addEventListener("click", async () => {
+    const slot = document.getElementById("mp-hp-slot")?.value;
+    const tt = document.getElementById("mp-hp-tt")?.value;
+    const tid = Number(document.getElementById("mp-hp-id")?.value);
+    const token = getToken();
+    if (!token || !slot || !tt || !Number.isFinite(tid)) {
+      alert(getAdminLang() === "ar" ? "أكمل الحقول." : "Fill all fields.");
+      return;
+    }
+    const cur = adminMpHomePlacementsAll.filter((r) => r.slot === slot);
+    const items = cur.map((r) => ({ target_type: r.target_type, target_id: r.target_id, sort_order: r.sort_order }));
+    const maxO = items.reduce((m, r) => Math.max(m, r.sort_order), -1);
+    items.push({ target_type: tt, target_id: tid, sort_order: maxO + 1 });
+    try {
+      await mpHomePlacementSaveSlotItems(slot, items);
+      document.getElementById("mp-hp-id").value = "";
+      alert(getAdminLang() === "ar" ? "تمت الإضافة." : "Added.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("btn-mp-hp-bulk-vendor")?.addEventListener("click", async () => {
+    const slot = document.getElementById("mp-hp-slot")?.value;
+    const vendor_id = Number(document.getElementById("mp-hp-bulk-vid")?.value);
+    const token = getToken();
+    if (!token || !slot || !Number.isFinite(vendor_id)) {
+      alert(getAdminLang() === "ar" ? "اختر الشريط ومعرّف الشركة." : "Choose strip and company ID.");
+      return;
+    }
+    try {
+      await api("/api/admin/marketplace/home-placements/bulk-vendor", {
+        method: "POST",
+        token,
+        body: { slot, vendor_id },
+      });
+      await loadMpHomePlacementsAdmin();
+      alert(getAdminLang() === "ar" ? "تمت الإضافة." : "Added.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+  document.getElementById("btn-mp-hp-bulk-dept")?.addEventListener("click", async () => {
+    const slot = document.getElementById("mp-hp-slot")?.value;
+    const department_id = Number(document.getElementById("mp-hp-bulk-did")?.value);
+    const token = getToken();
+    if (!token || !slot || !Number.isFinite(department_id)) {
+      alert(getAdminLang() === "ar" ? "اختر الشريط ومعرّف القسم." : "Choose strip and department ID.");
+      return;
+    }
+    try {
+      await api("/api/admin/marketplace/home-placements/bulk-department", {
+        method: "POST",
+        token,
+        body: { slot, department_id },
+      });
+      await loadMpHomePlacementsAdmin();
+      alert(getAdminLang() === "ar" ? "تمت الإضافة." : "Added.");
     } catch (err) {
       alert(err.message || String(err));
     }

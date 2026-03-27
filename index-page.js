@@ -1050,6 +1050,10 @@
         let flashCountdownInterval = null;
         let trackingCycleIndex = 0;
         let marketplaceBrowsePreset = null;
+        let marketplaceBrowseVendorId = null;
+        let marketplaceBrowseSectionId = null;
+        let mpAppHomePlacements = null;
+        let mpAppHomePlacementsPromise = null;
         let marketplaceBrowseSectionsCache = [];
         let marketplaceBrowseVendorsCache = [];
         let marketplaceDetailQty = 1;
@@ -2952,9 +2956,17 @@
             attachMarketplaceSearchListeners();
             const preset = marketplaceBrowsePreset;
             marketplaceBrowsePreset = null;
-            if (preset && preset.q) {
-                const si = document.getElementById('marketplace-search-input');
-                if (si) si.value = String(preset.q);
+            marketplaceBrowseVendorId = null;
+            marketplaceBrowseSectionId = null;
+            if (preset && typeof preset === 'object') {
+                const vid = preset.vendor_id != null ? Number(preset.vendor_id) : NaN;
+                const sid = preset.section_id != null ? Number(preset.section_id) : NaN;
+                if (Number.isFinite(vid)) marketplaceBrowseVendorId = vid;
+                if (Number.isFinite(sid)) marketplaceBrowseSectionId = sid;
+                if (preset.q) {
+                    const si = document.getElementById('marketplace-search-input');
+                    if (si) si.value = String(preset.q);
+                }
             }
             await refreshMarketplaceProductList();
         }
@@ -3005,6 +3017,12 @@
             const params = new URLSearchParams();
             const q = (document.getElementById('marketplace-search-input')?.value || '').trim();
             if (q) params.set('q', q);
+            if (marketplaceBrowseVendorId != null && Number.isFinite(marketplaceBrowseVendorId)) {
+                params.set('vendor_id', String(marketplaceBrowseVendorId));
+            }
+            if (marketplaceBrowseSectionId != null && Number.isFinite(marketplaceBrowseSectionId)) {
+                params.set('section_id', String(marketplaceBrowseSectionId));
+            }
             params.set('sort', 'newest');
             grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
             try {
@@ -4377,6 +4395,7 @@
             } catch (_e) {
                 apiBrandsList = [];
             }
+            await ensureMpAppHomePlacements();
             renderBrandCards();
             renderTopBrands();
         }
@@ -4408,6 +4427,24 @@
         function renderBrandCards() {
             const container = document.getElementById('brand-scroll');
             if (!container) return;
+            const mpVen = Array.isArray(mpAppHomePlacements?.brands_strip)
+                ? mpAppHomePlacements.brands_strip.filter((x) => x && x.kind === 'mp_vendor')
+                : [];
+            const mpHtml = mpVen
+                .map((v) => {
+                    const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
+                    if (!name) return '';
+                    const logo = v.logo_url ? String(v.logo_url).trim() : '';
+                    const logoHtml = logo
+                        ? `<img src="${escapeHtml(logo)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                        : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+                    return `<button type="button" class="brand-strip-card mp-vendor-strip-card" data-mp-vendor-id="${Number(v.id)}" title="${escapeHtml(isRTL ? 'شركة في السوق الشامل' : 'Marketplace vendor')}">
+                            <div class="brand-strip-logo">${logoHtml}</div>
+                            <div class="brand-strip-name">${escapeHtml(name)}</div>
+                        </button>`;
+                })
+                .filter(Boolean)
+                .join('');
             const rows = apiBrandsList.map((b) => ({
                 key: String(b.id),
                 name: String(b.name || '').trim(),
@@ -4415,12 +4452,12 @@
                 selling: Number(b.product_count || 0),
                 popular: (Number(b.is_top_brand) ? 1000 : 0) + Number(b.product_count || 0),
             }));
-            if (!rows.length) {
+            if (!mpHtml && !rows.length) {
                 container.innerHTML = `<p class="text-xs text-gray-500 px-2">${isRTL ? 'لا توجد علامات تجارية لعرضها حالياً.' : 'No brands to show yet.'}</p>`;
                 return;
             }
             const sorted = [...rows].sort((a, b) => b[brandSortKey] - a[brandSortKey]);
-            container.innerHTML = sorted
+            const catHtml = sorted
                 .map((brand) => {
                     const activeClass = activeBrandKey === brand.name ? ' active' : '';
                     const logoHtml = brand.logo
@@ -4433,6 +4470,7 @@
                         </button>`;
                 })
                 .join('');
+            container.innerHTML = mpHtml + catHtml;
         }
 
         function sortBrands(key) {
@@ -5117,6 +5155,81 @@
             </div>`;
         }
 
+        function mpHomeVendorLabel(p) {
+            const v = isRTL ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
+            return String(v || '').trim();
+        }
+
+        async function ensureMpAppHomePlacements() {
+            if (mpAppHomePlacements && typeof mpAppHomePlacements === 'object') return mpAppHomePlacements;
+            if (mpAppHomePlacementsPromise) return mpAppHomePlacementsPromise;
+            mpAppHomePlacementsPromise = apiFetch('/api/marketplace/app-home-placements', { requireAuth: false })
+                .then((data) => {
+                    mpAppHomePlacements = data && typeof data === 'object' ? data : {};
+                    return mpAppHomePlacements;
+                })
+                .catch(() => {
+                    mpAppHomePlacements = {};
+                    return mpAppHomePlacements;
+                })
+                .finally(() => {
+                    mpAppHomePlacementsPromise = null;
+                });
+            return mpAppHomePlacementsPromise;
+        }
+
+        /** بطاقة منتج سوق للرئيسية: يفتح تفاصيل السوق ويعرض اسم الشركة */
+        function renderMpProductCardHomeCompact(p) {
+            const vendorName = mpHomeVendorLabel(p);
+            const brandHtml = vendorName
+                ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(vendorName)}</p>`
+                : '';
+            const rawImg = p.images && p.images.length ? p.images[0] : '';
+            const img = rawImg ? absoluteMediaUrl(String(rawImg)) : adoraPlaceholderImageUrl();
+            const name = isRTL ? p.name_ar : p.name_en;
+            const listP = Number(p.price ?? 0);
+            const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
+            const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
+            const badge =
+                disc > 0
+                    ? `<span class="absolute top-0.5 left-0.5 text-[8px] px-1 py-0.5 badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    : '';
+            return `<div onclick="openMarketplaceProductDetail(${Number(p.id)})" class="product-card home-compact-product-card bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
+                <div class="relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100">
+                    <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
+                    ${badge}
+                </div>
+                <div class="p-1.5">
+                    ${brandHtml}
+                    <h3 class="font-semibold text-gray-900 text-[11px] line-clamp-2 mb-0.5">${escapeHtml(name)}</h3>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-bold text-gray-900 text-[11px]">${formatSyp(saleP)}</span>
+                        ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function mergeHomeGridHtmlFromSlot(slotKey, catalogList, maxN) {
+            const slot = mpAppHomePlacements && mpAppHomePlacements[slotKey];
+            const mpProds = Array.isArray(slot) ? slot.filter((x) => x && x.kind === 'mp_product') : [];
+            const seen = new Set();
+            const pieces = [];
+            for (const x of mpProds) {
+                if (pieces.length >= maxN) break;
+                const id = Number(x.id);
+                if (!Number.isFinite(id) || seen.has(id)) continue;
+                seen.add(id);
+                pieces.push(renderMpProductCardHomeCompact(x));
+            }
+            const cat = Array.isArray(catalogList) ? catalogList : [];
+            for (const p of cat) {
+                if (pieces.length >= maxN) break;
+                pieces.push(renderProductCardHtml(p, { compact: true }));
+            }
+            return pieces.join('');
+        }
+
         function offerRowIsActive(o) {
             if (!o.offer_end_time) return true;
             const end = new Date(o.offer_end_time).getTime();
@@ -5655,22 +5768,43 @@
                 Women: { en: 'Women', ar: 'نسائي' },
                 Kids: { en: 'Kids', ar: 'ولادي' },
             };
+            const mpTop = Array.isArray(mpAppHomePlacements?.top_brands_strip)
+                ? mpAppHomePlacements.top_brands_strip.filter((x) => x && x.kind === 'mp_vendor')
+                : [];
+            const mpBlock = mpTop
+                .map((v) => {
+                    const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
+                    if (!name) return '';
+                    const logo = v.logo_url ? String(v.logo_url).trim() : '';
+                    const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
+                    return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
+                            <button type="button" class="top-brand-card mp-top-vendor-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-mp-vendor-id="${Number(v.id)}">
+                                <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-emerald-200/80">
+                                    ${logo ? `<img src="${escapeHtml(logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
+                                </div>
+                                <h4 class="font-bold text-gray-900 truncate">${escapeHtml(name)}</h4>
+                            </button>
+                            <div class="flex flex-wrap gap-1"><span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-100 bg-white text-emerald-800">${escapeHtml(chip)}</span></div>
+                        </div>`;
+                })
+                .filter(Boolean)
+                .join('');
             const tops = apiBrandsList.filter((b) => Number(b.is_top_brand));
-            if (tops.length) {
-                container.innerHTML = tops
-                    .map((b) => {
-                        const nameEnc = encodeURIComponent(String(b.name || ''));
-                        let sc = Array.isArray(b.showcase_categories) ? b.showcase_categories.map(String) : [];
-                        sc = sc.filter((c) => ['Men', 'Women', 'Kids'].includes(c));
-                        if (!sc.length) sc = ['Men', 'Women', 'Kids'];
-                        const chips = sc
-                            .map((cat) => {
-                                const lab = MAIN_CAT_LABELS[cat] || { en: cat, ar: cat };
-                                const t = isRTL ? lab.ar : lab.en;
-                                return `<button type="button" class="top-brand-cat-chip shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-100 bg-white text-purple-700 hover:bg-purple-50 transition" data-brand-name="${nameEnc}" data-main-cat="${cat}">${escapeHtml(t)}</button>`;
-                            })
-                            .join('');
-                        return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
+            const catBlock = tops.length
+                ? tops
+                      .map((b) => {
+                          const nameEnc = encodeURIComponent(String(b.name || ''));
+                          let sc = Array.isArray(b.showcase_categories) ? b.showcase_categories.map(String) : [];
+                          sc = sc.filter((c) => ['Men', 'Women', 'Kids'].includes(c));
+                          if (!sc.length) sc = ['Men', 'Women', 'Kids'];
+                          const chips = sc
+                              .map((cat) => {
+                                  const lab = MAIN_CAT_LABELS[cat] || { en: cat, ar: cat };
+                                  const t = isRTL ? lab.ar : lab.en;
+                                  return `<button type="button" class="top-brand-cat-chip shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-100 bg-white text-purple-700 hover:bg-purple-50 transition" data-brand-name="${nameEnc}" data-main-cat="${cat}">${escapeHtml(t)}</button>`;
+                              })
+                              .join('');
+                          return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
                             <button type="button" class="top-brand-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-brand-name="${nameEnc}">
                                 <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-black/5">
                                     ${b.logo ? `<img src="${escapeHtml(b.logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`}
@@ -5679,8 +5813,11 @@
                             </button>
                             <div class="flex flex-wrap gap-1">${chips}</div>
                         </div>`;
-                    })
-                    .join('');
+                      })
+                      .join('')
+                : '';
+            if (mpBlock || catBlock) {
+                container.innerHTML = mpBlock + catBlock;
                 return;
             }
             container.innerHTML = `<p class="text-xs text-gray-500 px-1 py-4 leading-relaxed">${
@@ -5699,14 +5836,15 @@
             }
             container.innerHTML = flashSaleItems.map((item) => {
                 const title = isRTL ? item.name.ar : item.name.en;
-                const pid = Number(item.id);
                 const imgSrc = item.image ? escapeHtml(item.image) : escapeHtml(adoraPlaceholderImageUrl());
                 const safeTitle = escapeHtml(String(title || ''));
                 const br = item.brand ? escapeHtml(String(item.brand)) : '';
                 const brandLine = br
                     ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${br}</p>`
                     : '';
-                return `<div class="flash-card" role="button" tabindex="0" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
+                const isMp = item.isMp === true && item.mpId != null && Number.isFinite(Number(item.mpId));
+                const openFn = isMp ? `openMarketplaceProductDetail(${Number(item.mpId)})` : `openProductDetail(${Number(item.id)})`;
+                return `<div class="flash-card" role="button" tabindex="0" onclick="${openFn}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${openFn};}">
                             <div class="flash-card-thumb"><img src="${imgSrc}" alt=""></div>
                             <p class="text-xs text-gray-500" data-en="Ends soon" data-ar="ينتهي قريباً">Ends soon</p>
                             ${brandLine}
@@ -5742,9 +5880,11 @@
             const grid = document.getElementById('home-featured-grid');
             if (!grid) return;
             try {
+                await ensureMpAppHomePlacements();
                 const products = await apiFetch('/api/products?featured=1&adora_only=1', { requireAuth: false });
-                const list = Array.isArray(products) ? products.slice(0, 28) : [];
-                if (!list.length) {
+                const list = Array.isArray(products) ? products : [];
+                const merged = mergeHomeGridHtmlFromSlot('curated', list, 28);
+                if (!merged) {
                     grid.className = '';
                     grid.innerHTML = `<p class="text-center text-gray-500 text-sm py-8 leading-relaxed px-3 w-[min(100%,22rem)]">${
                         isRTL ? 'لا توجد منتجات مميزة لعرضها حالياً.' : 'No featured picks to show yet.'
@@ -5752,7 +5892,7 @@
                     return;
                 }
                 grid.className = 'home-product-strip';
-                grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+                grid.innerHTML = merged;
             } catch (_e) {
                 grid.className = '';
                 grid.innerHTML = `<p class="text-center text-red-500 text-sm py-6 px-3 w-[min(100%,22rem)]">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
@@ -5763,9 +5903,11 @@
             const grid = document.getElementById('home-new-collection-grid');
             if (!grid) return;
             try {
+                await ensureMpAppHomePlacements();
                 const products = await apiFetch('/api/products?new_collection=1', { requireAuth: false });
-                const list = Array.isArray(products) ? products.slice(0, 36) : [];
-                if (!list.length) {
+                const list = Array.isArray(products) ? products : [];
+                const merged = mergeHomeGridHtmlFromSlot('promo_collection', list, 36);
+                if (!merged) {
                     grid.className = '';
                     grid.innerHTML = `<p class="text-center text-white/85 text-xs py-4 leading-relaxed px-3 w-[min(100vw-2rem,22rem)]">${
                         isRTL ? 'فعّل «الظهور في البانر» من إعدادات المنتج في لوحة التحكم.' : 'Enable the banner & list option on products in the admin panel.'
@@ -5773,7 +5915,7 @@
                     return;
                 }
                 grid.className = 'home-product-strip';
-                grid.innerHTML = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+                grid.innerHTML = merged;
             } catch (_e) {
                 grid.className = '';
                 grid.innerHTML = `<p class="text-center text-red-200 text-xs py-4 px-3 w-[min(100vw-2rem,22rem)]">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
@@ -5788,30 +5930,34 @@
                 return;
             }
             try {
+                await ensureMpAppHomePlacements();
+                const slot = mpAppHomePlacements && mpAppHomePlacements.bestsellers;
+                const mpList = Array.isArray(slot) ? slot.filter((x) => x && x.kind === 'mp_product') : [];
                 const rows = await apiFetch('/api/bestsellers?limit=14', { requireAuth: false });
-                const list = Array.isArray(rows) ? rows : [];
-                if (!list.length) {
-                    el.innerHTML = `<p class="text-sm text-gray-500 py-6 px-2">${
-                        isRTL ? 'لا مبيعات بعد — تظهر هنا بعد أول طلبات.' : 'No sales yet — appears after orders.'
-                    }</p>`;
-                    return;
-                }
-                el.innerHTML = list
-                    .map((p) => {
-                        const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
-                        const name = isRTL ? p.name_ar : p.name_en;
-                        const br = resolveDisplayBrand(p.brand);
-                        const brandLine = br
-                            ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
+                const catList = Array.isArray(rows) ? rows : [];
+                const maxN = 14;
+                const seenMp = new Set();
+                const pieces = [];
+                for (const p of mpList) {
+                    if (pieces.length >= maxN) break;
+                    const id = Number(p.id);
+                    if (!Number.isFinite(id) || seenMp.has(id)) continue;
+                    seenMp.add(id);
+                    const imgRaw = p.images && p.images.length ? p.images[0] : '';
+                    const img = imgRaw ? absoluteMediaUrl(String(imgRaw)) : adoraPlaceholderImageUrl();
+                    const name = isRTL ? p.name_ar : p.name_en;
+                    const vn = mpHomeVendorLabel(p);
+                    const brandLine = vn
+                        ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(vn)}</p>`
+                        : '';
+                    const listP = Number(p.price ?? 0);
+                    const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
+                    const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
+                    const badge =
+                        disc > 0
+                            ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
                             : '';
-                        const listP = productListPrice(p);
-                        const disc = productDiscountPct(p);
-                        const saleP = productSaleUnitPrice(p);
-                        const badge =
-                            disc > 0
-                                ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
-                                : '';
-                        return `<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                    pieces.push(`<div onclick="openMarketplaceProductDetail(${id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
                         <div class="aspect-[3/4] max-h-[102px] relative">
                             <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
                             ${badge}
@@ -5824,9 +5970,45 @@
                                 ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                             </div>
                         </div>
-                    </div>`;
-                    })
-                    .join('');
+                    </div>`);
+                }
+                for (const p of catList) {
+                    if (pieces.length >= maxN) break;
+                    const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
+                    const name = isRTL ? p.name_ar : p.name_en;
+                    const br = resolveDisplayBrand(p.brand);
+                    const brandLine = br
+                        ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
+                        : '';
+                    const listP = productListPrice(p);
+                    const disc = productDiscountPct(p);
+                    const saleP = productSaleUnitPrice(p);
+                    const badge =
+                        disc > 0
+                            ? `<span class="absolute top-2 left-2 badge-sale text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round(disc)}%</span>`
+                            : '';
+                    pieces.push(`<div onclick="openProductDetail(${p.id})" class="home-bestseller-card flex-shrink-0 w-[6.5rem] bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden cursor-pointer">
+                        <div class="aspect-[3/4] max-h-[102px] relative">
+                            <img src="${escapeHtml(img)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async">
+                            ${badge}
+                        </div>
+                        <div class="p-1.5">
+                            ${brandLine}
+                            <h4 class="font-semibold text-[10px] text-gray-900 line-clamp-2 leading-tight">${escapeHtml(name)}</h4>
+                            <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                <span class="font-bold text-purple-600 text-[10px]">${formatSyp(saleP)}</span>
+                                ${disc > 0 ? `<span class="text-[8px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>`);
+                }
+                if (!pieces.length) {
+                    el.innerHTML = `<p class="text-sm text-gray-500 py-6 px-2">${
+                        isRTL ? 'لا مبيعات بعد — تظهر هنا بعد أول طلبات.' : 'No sales yet — appears after orders.'
+                    }</p>`;
+                    return;
+                }
+                el.innerHTML = pieces.join('');
             } catch (_e) {
                 el.innerHTML = `<p class="text-sm text-red-500 py-6">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
             }
@@ -6075,23 +6257,51 @@
 
         async function syncFlashSaleFromApi() {
             try {
-                const products = await apiFetch('/api/products?flash=1', { requireAuth: false });
-                if (!Array.isArray(products) || products.length === 0) {
-                    flashSaleItems.splice(0, flashSaleItems.length);
-                    return;
+                await ensureMpAppHomePlacements();
+                const mpSlot = mpAppHomePlacements && mpAppHomePlacements.flash_sale;
+                const mpProds = Array.isArray(mpSlot) ? mpSlot.filter((x) => x && x.kind === 'mp_product') : [];
+                const mpMapped = [];
+                for (const p of mpProds) {
+                    if (mpMapped.length >= 4) break;
+                    const discountPercent = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
+                    const listPrice = Number(p.price || 0);
+                    let nowPrice = listPrice;
+                    let oldPrice = listPrice;
+                    if (discountPercent > 0 && discountPercent < 100) {
+                        nowPrice = listPrice * (1 - discountPercent / 100);
+                        oldPrice = listPrice;
+                    }
+                    const rawImg = p.images && p.images.length ? p.images[0] : '';
+                    const mpId = Number(p.id);
+                    mpMapped.push({
+                        isMp: true,
+                        mpId,
+                        id: mpId,
+                        image: rawImg ? absoluteMediaUrl(String(rawImg)) : '',
+                        name: { en: p.name_en, ar: p.name_ar },
+                        brand: mpHomeVendorLabel(p) || '',
+                        old: oldPrice,
+                        now: nowPrice,
+                        discount: `${discountPercent}% OFF`,
+                    });
                 }
 
-                const first = products[0];
-                if (first.flash_sale_end_time) {
-                    const end = new Date(first.flash_sale_end_time).getTime();
-                    const now = Date.now();
-                    const diffSeconds = Math.floor((end - now) / 1000);
-                    if (!isNaN(diffSeconds) && diffSeconds > 0) {
-                        flashSaleRemaining = diffSeconds;
+                const products = await apiFetch('/api/products?flash=1', { requireAuth: false });
+                const catArr = Array.isArray(products) ? products : [];
+
+                if (catArr.length) {
+                    const first = catArr[0];
+                    if (first.flash_sale_end_time) {
+                        const end = new Date(first.flash_sale_end_time).getTime();
+                        const now = Date.now();
+                        const diffSeconds = Math.floor((end - now) / 1000);
+                        if (!isNaN(diffSeconds) && diffSeconds > 0) {
+                            flashSaleRemaining = diffSeconds;
+                        }
                     }
                 }
 
-                const mapped = products.slice(0, 4).map((p) => {
+                const catMapped = catArr.slice(0, Math.max(0, 4 - mpMapped.length)).map((p) => {
                     const discountPercent = Number(p.discount || 0);
                     const listPrice = Number(p.price || 0);
                     let nowPrice = listPrice;
@@ -6102,6 +6312,7 @@
                     }
                     const rawImg = p.images && p.images.length ? p.images[0] : '';
                     return {
+                        isMp: false,
                         id: Number(p.id),
                         image: rawImg ? absoluteMediaUrl(rawImg) : '',
                         name: { en: p.name_en, ar: p.name_ar },
@@ -6112,7 +6323,12 @@
                     };
                 });
 
-                flashSaleItems.splice(0, flashSaleItems.length, ...mapped);
+                const combined = [...mpMapped, ...catMapped];
+                if (!combined.length) {
+                    flashSaleItems.splice(0, flashSaleItems.length);
+                    return;
+                }
+                flashSaleItems.splice(0, flashSaleItems.length, ...combined.slice(0, 4));
             } catch (_e) {
                 flashSaleItems.splice(0, flashSaleItems.length);
             }
@@ -6727,6 +6943,14 @@
             const shell = document.getElementById('app-shell');
             if (!shell) return;
             shell.addEventListener('click', (e) => {
+                const mpV = e.target.closest('.mp-vendor-strip-card[data-mp-vendor-id], .mp-top-vendor-card[data-mp-vendor-id]');
+                if (mpV && shell.contains(mpV)) {
+                    e.preventDefault();
+                    const raw = mpV.getAttribute('data-mp-vendor-id');
+                    const vid = raw != null ? Number(raw) : NaN;
+                    if (Number.isFinite(vid)) openMarketplaceBrowse({ vendor_id: vid });
+                    return;
+                }
                 const chip = e.target.closest('.top-brand-cat-chip[data-brand-name][data-main-cat]');
                 if (chip && shell.contains(chip)) {
                     e.preventDefault();

@@ -42,6 +42,119 @@ function normLower(s) {
   return String(s ?? "").trim().toLowerCase();
 }
 
+/** أقسام الرئيسية التي يمكن ربط منتجات/شركات السوق الشامل بها */
+const MP_HOME_SLOTS = new Set([
+  "brands_strip",
+  "top_brands_strip",
+  "flash_sale",
+  "curated",
+  "promo_collection",
+  "bestsellers",
+]);
+
+function normalizeMpHomeSlot(slot) {
+  const s = String(slot || "").trim();
+  return MP_HOME_SLOTS.has(s) ? s : null;
+}
+
+const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
+      mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
+      mp.department_id, mp.is_mp_featured,
+      mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+      mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
+      ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en`;
+
+const MP_FROM = `FROM marketplace_products mp
+      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+      INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+      LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id`;
+
+async function resolveMpHomeSlotItems(placements, slot) {
+  const isBrandSlot = slot === "brands_strip" || slot === "top_brands_strip";
+  const out = [];
+  const seen = new Set();
+  for (const pl of placements) {
+    const tt = String(pl.target_type || "").trim().toLowerCase();
+    const tid = Number(pl.target_id);
+    if (!Number.isFinite(tid)) continue;
+    if (tt === "vendor") {
+      const v = await get(
+        `SELECT id, name_ar, name_en, logo_url FROM marketplace_vendors WHERE id=? AND COALESCE(is_active,1)=1`,
+        [tid]
+      );
+      if (!v) continue;
+      if (isBrandSlot) {
+        const k = `v:${v.id}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push({
+          kind: "mp_vendor",
+          id: v.id,
+          name_ar: v.name_ar,
+          name_en: v.name_en,
+          logo_url: v.logo_url || "",
+        });
+      } else {
+        const prows = await all(
+          `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.vendor_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
+          [tid]
+        );
+        for (const row of prows) {
+          const k = `p:${row.id}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          out.push({ kind: "mp_product", ...mapProductRow(row) });
+        }
+      }
+    } else if (tt === "department") {
+      if (isBrandSlot) continue;
+      const d = await get(
+        `SELECT id FROM marketplace_vendor_departments WHERE id=? AND COALESCE(is_active,1)=1`,
+        [tid]
+      );
+      if (!d) continue;
+      const prows = await all(
+        `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.department_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
+        [tid]
+      );
+      for (const row of prows) {
+        const k = `p:${row.id}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push({ kind: "mp_product", ...mapProductRow(row) });
+      }
+    } else if (tt === "product") {
+      if (isBrandSlot) continue;
+      const row = await get(`SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.id=?`, [tid]);
+      if (!row) continue;
+      const k = `p:${row.id}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ kind: "mp_product", ...mapProductRow(row) });
+    }
+  }
+  return out;
+}
+
+async function buildAppHomePlacementsResponse() {
+  const slotList = Array.from(MP_HOME_SLOTS);
+  const ph = slotList.map(() => "?").join(", ");
+  const rows = await all(
+    `SELECT id, slot, target_type, target_id, sort_order FROM marketplace_home_placements WHERE slot IN (${ph}) ORDER BY slot ASC, sort_order ASC, id ASC`,
+    slotList
+  );
+  const bySlot = {};
+  for (const s of slotList) bySlot[s] = [];
+  for (const r of rows) {
+    if (bySlot[r.slot]) bySlot[r.slot].push(r);
+  }
+  const result = {};
+  for (const slot of slotList) {
+    result[slot] = await resolveMpHomeSlotItems(bySlot[slot] || [], slot);
+  }
+  return result;
+}
+
 async function findMarketplaceProductDuplicate(vendorId, { name_ar, name_en, sku, barcode }, excludeId) {
   const nar = normLower(name_ar);
   const nen = normLower(name_en);
@@ -337,7 +450,9 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const params = [];
       if (promoSlot) params.push(promoSlot);
 
-      if (!q) {
+      const narrowBrowse =
+        (vendorId != null && Number.isFinite(vendorId)) || (sectionId != null && Number.isFinite(sectionId));
+      if (!q && !narrowBrowse) {
         sql += ` AND COALESCE(mp.is_mp_featured,0) = 1`;
       }
 
@@ -377,9 +492,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       else if (sort === "bestsellers") orderBody = "mp.sales_count DESC, mp.created_at DESC";
 
       const featuredFirst = `(CASE WHEN COALESCE(mp.is_mp_featured,0) = 1 THEN 0 ELSE 1 END)`;
+      const searchVendorBoost = q ? `COALESCE(mv.search_priority, 0) DESC, ` : "";
       const orderSql = promoSlot
-        ? `${featuredFirst} ASC, (CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
-        : `${featuredFirst} ASC, ${orderBody}`;
+        ? `${searchVendorBoost}${featuredFirst} ASC, (CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
+        : `${searchVendorBoost}${featuredFirst} ASC, ${orderBody}`;
       sql += ` ORDER BY ${orderSql} LIMIT 200`;
 
       const rows = await all(sql, params);
@@ -544,6 +660,15 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
     }
   });
 
+  app.get("/api/marketplace/app-home-placements", async (_req, res) => {
+    try {
+      const data = await buildAppHomePlacementsResponse();
+      return res.json(data);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load home placements" });
+    }
+  });
+
   /* ---------- Admin: sections ---------- */
   app.get("/api/admin/marketplace/sections", requireAuth, requireAdmin, async (_req, res) => {
     try {
@@ -675,10 +800,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       )
         ? String(b.premium_subscription_type).trim()
         : "none";
+      const search_priority = Math.max(0, Math.min(1000, Math.floor(Number(b.search_priority) || 0)));
       const ins = await run(
         `INSERT INTO marketplace_vendors (section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order, is_active,
-          paid_product_slots, is_premium, premium_until, premium_subscription_type)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?)`,
+          paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)`,
         [
           section_id,
           name_ar,
@@ -692,6 +818,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           is_premium,
           premium_until,
           premium_subscription_type,
+          search_priority,
         ]
       );
       return res.status(201).json(await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [ins.id]));
@@ -731,9 +858,13 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         const t = String(b.premium_subscription_type).trim();
         if (["none", "permanent", "monthly", "weekly"].includes(t)) premium_subscription_type = t;
       }
+      const search_priority =
+        b.search_priority != null
+          ? Math.max(0, Math.min(1000, Math.floor(Number(b.search_priority) || 0)))
+          : cur.search_priority ?? 0;
       await run(
         `UPDATE marketplace_vendors SET section_id=?, name_ar=?, name_en=?, vendor_type=?, logo_url=?, cover_image_url=?, sort_order=?, is_active=?,
-         paid_product_slots=?, is_premium=?, premium_until=?::timestamptz, premium_subscription_type=?
+         paid_product_slots=?, is_premium=?, premium_until=?::timestamptz, premium_subscription_type=?, search_priority=?
          WHERE id=?`,
         [
           section_id,
@@ -748,6 +879,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           is_premium,
           premium_until,
           premium_subscription_type,
+          search_priority,
           id,
         ]
       );
@@ -1099,6 +1231,120 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json({ ok: true });
     } catch (err) {
       return res.status(500).json({ error: "Failed to reorder products" });
+    }
+  });
+
+  app.get("/api/admin/marketplace/home-placements", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const rows = await all(
+        `SELECT id, slot, target_type, target_id, sort_order, created_at FROM marketplace_home_placements ORDER BY slot ASC, sort_order ASC, id ASC`
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to list placements" });
+    }
+  });
+
+  app.put("/api/admin/marketplace/home-placements/:slot", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const slot = normalizeMpHomeSlot(req.params.slot);
+      if (!slot) return res.status(400).json({ error: "Invalid slot" });
+      const items = req.body && Array.isArray(req.body.items) ? req.body.items : null;
+      if (!items) return res.status(400).json({ error: "items array required" });
+      await run(`DELETE FROM marketplace_home_placements WHERE slot=?`, [slot]);
+      let o = 0;
+      for (const raw of items) {
+        const target_type = String(raw.target_type || "").trim().toLowerCase();
+        const target_id = Number(raw.target_id);
+        if (!["product", "vendor", "department"].includes(target_type) || !Number.isFinite(target_id)) continue;
+        const sort_order = Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : o;
+        await run(
+          `INSERT INTO marketplace_home_placements (slot, target_type, target_id, sort_order) VALUES (?, ?, ?, ?)`,
+          [slot, target_type, target_id, sort_order]
+        );
+        o += 1;
+      }
+      return res.json({ ok: true, slot });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to save placements" });
+    }
+  });
+
+  app.delete("/api/admin/marketplace/home-placements/item/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      await run(`DELETE FROM marketplace_home_placements WHERE id=?`, [id]);
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to delete" });
+    }
+  });
+
+  app.post("/api/admin/marketplace/home-placements/bulk-vendor", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const slot = normalizeMpHomeSlot(req.body && req.body.slot);
+      const vendor_id = Number(req.body && req.body.vendor_id);
+      if (!slot || !Number.isFinite(vendor_id)) return res.status(400).json({ error: "slot and vendor_id required" });
+      const v = await get(`SELECT id FROM marketplace_vendors WHERE id=?`, [vendor_id]);
+      if (!v) return res.status(404).json({ error: "Vendor not found" });
+      const maxRow = await get(`SELECT COALESCE(MAX(sort_order), -1) AS m FROM marketplace_home_placements WHERE slot=?`, [slot]);
+      let o = Number(maxRow && maxRow.m != null ? maxRow.m : -1) + 1;
+      if (slot === "brands_strip" || slot === "top_brands_strip") {
+        await run(
+          `INSERT INTO marketplace_home_placements (slot, target_type, target_id, sort_order) VALUES (?, 'vendor', ?, ?)
+           ON CONFLICT (slot, target_type, target_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+          [slot, vendor_id, o]
+        );
+        return res.json({ ok: true, mode: "vendor" });
+      }
+      const products = await all(
+        `SELECT id FROM marketplace_products WHERE vendor_id=? AND COALESCE(is_active,1)=1 ORDER BY sort_order ASC, id ASC`,
+        [vendor_id]
+      );
+      for (const p of products) {
+        await run(
+          `INSERT INTO marketplace_home_placements (slot, target_type, target_id, sort_order) VALUES (?, 'product', ?, ?)
+           ON CONFLICT (slot, target_type, target_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+          [slot, p.id, o]
+        );
+        o += 1;
+      }
+      return res.json({ ok: true, mode: "products", count: products.length });
+    } catch (_e) {
+      return res.status(500).json({ error: "Bulk vendor failed" });
+    }
+  });
+
+  app.post("/api/admin/marketplace/home-placements/bulk-department", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const slot = normalizeMpHomeSlot(req.body && req.body.slot);
+      const department_id = Number(req.body && req.body.department_id);
+      if (!slot || !Number.isFinite(department_id)) return res.status(400).json({ error: "slot and department_id required" });
+      if (slot === "brands_strip" || slot === "top_brands_strip") {
+        return res.status(400).json({ error: "Brand strips accept companies only (vendor), not departments" });
+      }
+      const d = await get(`SELECT id FROM marketplace_vendor_departments WHERE id=? AND COALESCE(is_active,1)=1`, [
+        department_id,
+      ]);
+      if (!d) return res.status(404).json({ error: "Department not found" });
+      const maxRow = await get(`SELECT COALESCE(MAX(sort_order), -1) AS m FROM marketplace_home_placements WHERE slot=?`, [slot]);
+      let o = Number(maxRow && maxRow.m != null ? maxRow.m : -1) + 1;
+      const products = await all(
+        `SELECT id FROM marketplace_products WHERE department_id=? AND COALESCE(is_active,1)=1 ORDER BY sort_order ASC, id ASC`,
+        [department_id]
+      );
+      for (const p of products) {
+        await run(
+          `INSERT INTO marketplace_home_placements (slot, target_type, target_id, sort_order) VALUES (?, 'product', ?, ?)
+           ON CONFLICT (slot, target_type, target_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+          [slot, p.id, o]
+        );
+        o += 1;
+      }
+      return res.json({ ok: true, count: products.length });
+    } catch (_e) {
+      return res.status(500).json({ error: "Bulk department failed" });
     }
   });
 }

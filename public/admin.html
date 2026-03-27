@@ -400,7 +400,17 @@
           <div id="tab-marketplace" class="tab-panel hidden space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <h2 class="text-lg font-bold mb-3" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
-              <p class="text-sm text-gray-600 mb-4" data-en="Manage marketplace sections, malls/companies, and products (separate from clothing catalog)." data-ar="إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).">إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).</p>
+              <p class="text-sm text-gray-600 mb-2" data-en="Manage marketplace sections, malls/companies, and products (separate from clothing catalog)." data-ar="إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).">إدارة أقسام السوق الشامل والمولات/الشركات والمنتجات (منفصلة عن كتالوج الألبسة).</p>
+              <div class="rounded-xl border border-violet-200 bg-violet-50/80 p-3 text-xs text-violet-950 leading-relaxed mb-4 space-y-1">
+                <p class="font-bold" data-en="Structure (one flow)" data-ar="البنية (مسار واحد واضح)">البنية (مسار واحد واضح)</p>
+                <ol class="list-decimal list-inside space-y-0.5" dir="rtl">
+                  <li data-ar="قسم السوق الشامل (مثلاً شركات / مولات)." data-en="Marketplace section (e.g. companies / malls).">قسم السوق الشامل (مثلاً شركات / مولات).</li>
+                  <li data-ar="داخل القسم: تضيف شركة أو مولاً." data-en="Inside it: add a mall/company.">داخل القسم: تضيف شركة أو مولاً.</li>
+                  <li data-ar="داخل كل شركة: أقسام ثانوية (من تبويب «أقسام الشركات»)." data-en="Inside each company: secondary departments (Company departments tab).">داخل كل شركة: أقسام ثانوية (من تبويب «أقسام الشركات»).</li>
+                  <li data-ar="داخل الأقسام أو تحت الشركة: المنتجات (تبويب المنتجات)." data-en="Products live under departments or the company (Products tab).">داخل الأقسام أو تحت الشركة: المنتجات (تبويب المنتجات).</li>
+                </ol>
+                <p class="text-[11px] text-violet-900/90 pt-1" data-en="Use «Home placement» to pin companies or products into main app strips (brands row, featured picks, bestsellers, etc.). Higher «Search priority» on a company pushes its products earlier when shoppers search the market." data-ar="استخدم «الظهور في الرئيسية» لربط شركات أو منتجات السوق بشرائط التطبيق الرئيسية (صف الشركات، الاختيارات الأنيقة، الأكثر مبيعاً…). رقم «أولوية البحث» الأعلى للشركة يجعل منتجاتها تظهر أولاً عند البحث في السوق.">استخدم «الظهور في الرئيسية» لربط شركات أو منتجات السوق بشرائط التطبيق الرئيسية. أولوية البحث الأعلى للشركة تجعل منتجاتها أولاً في نتائج بحث السوق.</p>
+              </div>
               <div class="border border-violet-100 rounded-xl p-3 space-y-2 mb-4">
                 <h3 class="text-sm font-bold" data-en="Market entrance (home)" data-ar="واجهة دخول السوق (الرئيسية)">واجهة دخول السوق (الرئيسية)</h3>
                 <p class="text-xs text-gray-600 leading-relaxed" data-en="Image and text on the purple «Open market» card on the home screen (not the top promo banner)." data-ar="الصورة والنص تظهران على بطاقة «دخول السوق» البنفسجية في الرئيسية — وليس على بانر أعلى الصفحة.">الصورة والنص تظهران على بطاقة «دخول السوق» البنفسجية في الرئيسية — وليس على بانر أعلى الصفحة.</p>
@@ -427,6 +437,7 @@
                 <button type="button" data-mp-sub="vendors" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200">المولات والشركات</button>
                 <button type="button" data-mp-sub="departments" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Company departments" data-ar="أقسام الشركات">أقسام الشركات</button>
                 <button type="button" data-mp-sub="products" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200">المنتجات</button>
+                <button type="button" data-mp-sub="homeplacements" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Home placement" data-ar="الظهور في الرئيسية">الظهور في الرئيسية</button>
               </div>
 
               <div id="mp-pane-sections" class="mp-pane space-y-4">
@@ -497,6 +508,11 @@
                   <div><label class="text-xs font-bold">Name EN</label><input id="mp-v-name-en" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div><label class="text-xs font-bold">النوع</label><select id="mp-v-type" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="company">شركة</option><option value="mall">مول</option></select></div>
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-v-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
+                  <div>
+                    <label class="text-xs font-bold" data-en="Search priority (0–1000)" data-ar="أولوية البحث (0–1000)">أولوية البحث (0–1000)</label>
+                    <input id="mp-v-search-priority" type="number" min="0" max="1000" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" />
+                    <p class="text-[10px] text-gray-500 mt-0.5" data-en="Higher = this company’s products sort first in marketplace search." data-ar="كلما زاد الرقم ظهرت منتجات هذه الشركة أولاً في بحث السوق الشامل.">كلما زاد الرقم ظهرت منتجات هذه الشركة أولاً في بحث السوق الشامل.</p>
+                  </div>
                   <div><label class="text-xs font-bold">حصص منتجات مدفوعة (+ فوق المجاني)</label><input id="mp-v-paid-slots" type="number" min="0" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-premium" class="rounded" /><label for="mp-v-premium" class="text-sm font-bold">متجر مميز (ظهور أولاً)</label></div>
                   <div><label class="text-xs font-bold">نوع الاشتراك المميز</label><select id="mp-v-premium-type" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="none">بدون</option><option value="permanent">دائم</option><option value="monthly">شهري</option><option value="weekly">أسبوعي</option></select></div>
@@ -602,6 +618,62 @@
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-active" checked class="rounded" /><label for="mp-p-active" class="text-sm font-bold">نشط</label></div>
                   <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ المنتج</button></div>
                 </form>
+              </div>
+
+              <div id="mp-pane-homeplacements" class="mp-pane hidden space-y-4">
+                <p class="text-xs text-gray-600 leading-relaxed" data-en="Link marketplace companies or products to main home strips. For «Companies» and «Featured brands» rows, add targets of type «company». For product strips, add products — or use bulk by company/department." data-ar="اربط شركات أو منتجات السوق الشامل بشرائط الرئيسية في التطبيق. في «الشركات المتاحة» و«العلامات المميزة» أضف نوع «شركة». في باقي الشرائط أضف منتجات — أو استخدم «كل منتجات شركة/قسم» بالأسفل.">اربط شركات أو منتجات السوق الشامل بشرائط الرئيسية في التطبيق.</p>
+                <div class="flex flex-wrap gap-2 items-end">
+                  <div>
+                    <label class="text-xs font-bold block" data-en="Home strip" data-ar="شريط الرئيسية">شريط الرئيسية</label>
+                    <select id="mp-hp-slot" class="mt-1 p-2 rounded-xl border border-gray-200 min-w-[14rem]">
+                      <option value="brands_strip" data-en="Companies row" data-ar="الشركات المتاحة">الشركات المتاحة</option>
+                      <option value="top_brands_strip" data-en="Featured brands" data-ar="العلامات المميزة">العلامات المميزة</option>
+                      <option value="flash_sale" data-en="Limited-time offers" data-ar="عروض لفترة محدودة">عروض لفترة محدودة</option>
+                      <option value="curated" data-en="Curated / featured picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</option>
+                      <option value="promo_collection" data-en="New collection strip" data-ar="وصل حديثاً / ترويجي">وصل حديثاً / ترويجي</option>
+                      <option value="bestsellers" data-en="Bestsellers" data-ar="الأكثر مبيعاً">الأكثر مبيعاً</option>
+                    </select>
+                  </div>
+                  <button type="button" id="btn-mp-hp-refresh" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold" data-en="Refresh list" data-ar="تحديث القائمة">تحديث القائمة</button>
+                </div>
+                <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600"><tr>
+                      <th class="text-start p-2">#</th>
+                      <th class="text-start p-2" data-en="Type" data-ar="النوع">النوع</th>
+                      <th class="text-start p-2">ID</th>
+                      <th class="text-start p-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    </tr></thead>
+                    <tbody id="mp-hp-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border border-gray-100 rounded-xl p-3">
+                  <div>
+                    <label class="text-xs font-bold" data-en="Target type" data-ar="نوع الهدف">نوع الهدف</label>
+                    <select id="mp-hp-tt" class="mt-1 w-full p-2 rounded-xl border border-gray-200">
+                      <option value="product" data-en="Product" data-ar="منتج">منتج</option>
+                      <option value="vendor" data-en="Company" data-ar="شركة">شركة</option>
+                      <option value="department" data-en="Secondary department" data-ar="قسم ثانوي">قسم ثانوي</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold">ID</label>
+                    <input id="mp-hp-id" type="number" min="1" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="id" />
+                  </div>
+                  <button type="button" id="btn-mp-hp-add" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold" data-en="Add to strip" data-ar="إضافة للشريط">إضافة للشريط</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border border-violet-100 rounded-xl p-3 bg-violet-50/40">
+                  <div>
+                    <label class="text-xs font-bold" data-en="Company ID (bulk products)" data-ar="معرّف الشركة (كل المنتجات)">معرّف الشركة (كل المنتجات)</label>
+                    <input id="mp-hp-bulk-vid" type="number" min="1" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                  </div>
+                  <button type="button" id="btn-mp-hp-bulk-vendor" class="px-3 py-2 rounded-xl bg-violet-700 text-white text-sm font-bold md:col-span-2" data-en="Add all products of company (or company card on brand strips)" data-ar="إضافة كل منتجات الشركة (أو كرت شركة في شرائط العلامات)">إضافة كل منتجات الشركة</button>
+                  <div>
+                    <label class="text-xs font-bold" data-en="Department ID (bulk)" data-ar="معرّف القسم الثانوي">معرّف القسم الثانوي</label>
+                    <input id="mp-hp-bulk-did" type="number" min="1" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                  </div>
+                  <button type="button" id="btn-mp-hp-bulk-dept" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold md:col-span-2" data-en="Add all products in department" data-ar="إضافة كل منتجات هذا القسم">إضافة كل منتجات هذا القسم</button>
+                </div>
               </div>
             </div>
           </div>
