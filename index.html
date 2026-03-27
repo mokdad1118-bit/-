@@ -1397,6 +1397,24 @@
             box-shadow: 0 14px 32px rgba(124, 58, 237, 0.28);
         }
 
+        /* شركات السوق الشامل في شريط الرئيسية — شعار واسم أوضح */
+        .brand-strip-card.mp-vendor-strip-card {
+            min-width: 102px;
+            max-width: 118px;
+            gap: 10px;
+        }
+
+        .brand-strip-card.mp-vendor-strip-card .brand-strip-logo {
+            border-radius: 26px;
+            box-shadow: 0 14px 32px rgba(16, 185, 129, 0.14);
+            border: 2px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .brand-strip-card.mp-vendor-strip-card .brand-strip-name {
+            font-size: 0.875rem;
+            font-weight: 800;
+        }
+
         @keyframes adoraGlowTitlePulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.035); }
@@ -3412,7 +3430,7 @@
         </div>
         <div id="marketplace-vendors-strip-wrap" class="hidden px-3 pt-1 pb-2 bg-white border-b border-gray-100">
             <p class="text-[11px] font-bold text-gray-800 mb-1.5 px-0.5" data-en="Companies in this market" data-ar="الشركات في السوق">الشركات في السوق</p>
-            <div id="marketplace-vendors-scroll" class="flex gap-2 overflow-x-auto no-scrollbar pb-0.5 -mx-0.5 px-0.5"></div>
+            <div id="marketplace-vendors-scroll" class="flex items-end gap-2.5 overflow-x-auto no-scrollbar pb-0.5 -mx-0.5 px-0.5"></div>
         </div>
         <div id="marketplace-products-grid" class="p-3 grid grid-cols-2 gap-2.5 pb-32 min-h-[40vh]">
             <p class="col-span-2 text-center text-gray-500 py-10 text-sm" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>

@@ -2867,7 +2867,7 @@
             const loc = isRTL ? 'ar' : 'en';
             const allLabel = isRTL ? 'الكل' : 'All';
             const selAll = marketplaceBrowseVendorId == null;
-            const allCls = `flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition active:scale-[0.98] ${
+            const allCls = `flex-shrink-0 self-center rounded-full px-3.5 py-2 text-sm font-bold border transition active:scale-[0.98] ${
                 selAll ? 'bg-purple-600 text-white border-purple-600' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-50'
             }`;
             let html = `<button type="button" data-mp-browse-vendor-clear="1" class="${allCls}">${escapeHtml(allLabel)}</button>`;
@@ -2876,14 +2876,14 @@
                 const vid = Number(v.id);
                 if (!Number.isFinite(vid)) continue;
                 const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
-                const cls = `flex-shrink-0 flex items-center gap-1.5 rounded-xl pl-1.5 pr-2 py-1 text-xs font-bold border transition max-w-[min(72vw,14rem)] active:scale-[0.98] ${
-                    sel ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-200' : 'bg-white border-gray-200 hover:bg-gray-50'
+                const cls = `mp-vendor-chip flex-shrink-0 flex flex-col items-center gap-2 rounded-2xl px-2 pt-2.5 pb-2 border transition w-[5.75rem] active:scale-[0.98] ${
+                    sel ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-200 shadow-sm' : 'bg-white border-gray-200 hover:bg-gray-50'
                 }`;
                 const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
                 const logo = logoRaw
-                    ? `<span class="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shrink-0 ring-1 ring-black/5"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                    : `<span class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-[11px] font-extrabold">${escapeHtml((name || '?').charAt(0))}</span>`;
-                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="truncate min-w-0">${escapeHtml(name || '—')}</span></button>`;
+                    ? `<span class="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shrink-0 ring-2 ring-black/[0.06] shadow-sm"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-xl font-extrabold ring-2 ring-emerald-200/60 shadow-sm">${escapeHtml((name || '?').charAt(0))}</span>`;
+                html += `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="text-center text-[12px] font-extrabold text-gray-900 leading-snug line-clamp-2 w-full px-0.5">${escapeHtml(name || '—')}</span></button>`;
             }
             sc.innerHTML = html;
         }
@@ -5860,12 +5860,12 @@
                     if (!name) return '';
                     const logo = v.logo_url ? String(v.logo_url).trim() : '';
                     const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
-                    return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
+                    return `                        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
                             <button type="button" class="top-brand-card mp-top-vendor-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-mp-vendor-id="${Number(v.id)}">
-                                <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-emerald-200/80">
-                                    ${logo ? `<img src="${escapeHtml(logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
+                                <div class="w-[4.25rem] h-[4.25rem] rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-md ring-2 ring-emerald-200/70">
+                                    ${logo ? `<img src="${escapeHtml(logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
                                 </div>
-                                <h4 class="font-bold text-gray-900 truncate">${escapeHtml(name)}</h4>
+                                <h4 class="font-bold text-gray-900 text-sm leading-snug line-clamp-2">${escapeHtml(name)}</h4>
                             </button>
                             <div class="flex flex-wrap gap-1"><span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-100 bg-white text-emerald-800">${escapeHtml(chip)}</span></div>
                         </div>`;
