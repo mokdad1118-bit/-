@@ -29,6 +29,9 @@ function vendorJoinMultipartMiddleware(req, res, next) {
 
 const PROMOTION_SLOTS = ["search_sponsored", "home_featured", "section_featured", "listing_top"];
 
+const DEFAULT_APP_AD_BANNER_TEXT_AR = "أعلن عن منتجك داخل تطبيق أدورا";
+const DEFAULT_APP_AD_BANNER_TEXT_EN = "Advertise your product on Adora";
+
 const PARTNER_CTA_PLACEMENT_KEYS = [
   "home_under_search",
   "home_above_marketplace",
@@ -190,8 +193,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         vendor_join_terms_en: s.vendor_join_terms_en || "",
         bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
         app_ad_banner_enabled: Number(s.app_ad_banner_enabled) === 1 ? 1 : 0,
-        app_ad_banner_text_ar: s.app_ad_banner_text_ar || "",
-        app_ad_banner_text_en: s.app_ad_banner_text_en || "",
+        app_ad_banner_text_ar: String(s.app_ad_banner_text_ar || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_AR,
+        app_ad_banner_text_en: String(s.app_ad_banner_text_en || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_EN,
         app_ad_banner_subtitle_ar: s.app_ad_banner_subtitle_ar || "",
         app_ad_banner_subtitle_en: s.app_ad_banner_subtitle_en || "",
         app_ad_banner_placements: appAdPl,

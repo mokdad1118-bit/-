@@ -716,11 +716,12 @@ async function migrateMarketplaceComprehensiveV2() {
 /** بنر طلبات الإعلان على التطبيق + طلبات المستخدمين */
 async function migrateAppAdBannerV1() {
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_enabled INTEGER NOT NULL DEFAULT 0`);
+  /* DEFAULT فارغ فقط في SQL لتفادي مشاكل ترميز/تحليل على بعض خوادم PostgreSQL (مثل Render) */
   await run(
-    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_ar TEXT NOT NULL DEFAULT 'أعلن عن منتجك داخل تطبيق أدورا'`
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_ar TEXT NOT NULL DEFAULT ''`
   );
   await run(
-    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_en TEXT NOT NULL DEFAULT 'Advertise your product on Adora'`
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_en TEXT NOT NULL DEFAULT ''`
   );
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_subtitle_ar TEXT NOT NULL DEFAULT ''`);
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_subtitle_en TEXT NOT NULL DEFAULT ''`);
