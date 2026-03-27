@@ -68,6 +68,7 @@ const APP_AD_PLACEMENT_KEYS = [
   "home_between_main_and_brands",
   "home_above_marketplace",
   "side_menu_account",
+  "profile_screen",
   "marketplace_screen",
   "offers_screen",
   "listing_screen",

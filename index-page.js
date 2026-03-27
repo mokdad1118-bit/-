@@ -2517,35 +2517,102 @@
             showToast('Size guide opened');
         }
 
-        const WISHLIST_STORAGE_KEY = 'adora_wishlist_ids';
+        const WISHLIST_ENTRIES_KEY = 'adora_wishlist_entries_v1';
+        const WISHLIST_LEGACY_IDS_KEY = 'adora_wishlist_ids';
 
-        function loadWishlistIds() {
+        function migrateWishlistStorageOnce() {
             try {
-                const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
+                if (localStorage.getItem(WISHLIST_ENTRIES_KEY)) return;
+                const leg = localStorage.getItem(WISHLIST_LEGACY_IDS_KEY);
+                let entries = [];
+                if (leg) {
+                    const arr = JSON.parse(leg);
+                    if (Array.isArray(arr)) {
+                        const seen = new Set();
+                        for (const x of arr) {
+                            const id = Number(x);
+                            if (!Number.isFinite(id) || id < 1 || seen.has(id)) continue;
+                            seen.add(id);
+                            entries.push({ k: 'p', id });
+                        }
+                    }
+                }
+                localStorage.setItem(WISHLIST_ENTRIES_KEY, JSON.stringify(entries));
+            } catch (_e) {
+                try {
+                    localStorage.setItem(WISHLIST_ENTRIES_KEY, '[]');
+                } catch (_x) {}
+            }
+        }
+
+        function loadWishlistEntries() {
+            migrateWishlistStorageOnce();
+            try {
+                const raw = localStorage.getItem(WISHLIST_ENTRIES_KEY);
                 const arr = JSON.parse(raw || '[]');
                 if (!Array.isArray(arr)) return [];
-                return [...new Set(arr.map((x) => Number(x)).filter((n) => n > 0 && Number.isFinite(n)))];
+                const seen = new Set();
+                const out = [];
+                for (const x of arr) {
+                    const k = x && x.k === 'mp' ? 'mp' : 'p';
+                    const id = Number(x && x.id);
+                    if (!Number.isFinite(id) || id < 1) continue;
+                    const key = `${k}:${id}`;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    out.push({ k, id });
+                }
+                return out;
             } catch (_e) {
                 return [];
             }
         }
 
-        function saveWishlistIds(ids) {
-            const uniq = [...new Set((ids || []).map((x) => Number(x)).filter((n) => n > 0 && Number.isFinite(n)))];
+        function saveWishlistEntries(entries) {
+            const uniq = [];
+            const seen = new Set();
+            for (const x of entries || []) {
+                const k = x && x.k === 'mp' ? 'mp' : 'p';
+                const id = Number(x && x.id);
+                if (!Number.isFinite(id) || id < 1) continue;
+                const key = `${k}:${id}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                uniq.push({ k, id });
+            }
             try {
-                localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(uniq));
+                localStorage.setItem(WISHLIST_ENTRIES_KEY, JSON.stringify(uniq));
             } catch (_e) {}
             updateProfileWishlistUi();
         }
 
-        function isProductInWishlist(productId) {
-            const id = Number(productId);
-            if (!id) return false;
-            return loadWishlistIds().includes(id);
+        function wishlistEntryKey(k, id) {
+            return `${k === 'mp' ? 'mp' : 'p'}:${Number(id)}`;
+        }
+
+        function isWishlistEntry(k, id) {
+            const key = wishlistEntryKey(k, id);
+            return loadWishlistEntries().some((e) => wishlistEntryKey(e.k, e.id) === key);
+        }
+
+        function toggleWishlistEntryByKind(k, id) {
+            const kind = k === 'mp' ? 'mp' : 'p';
+            const nid = Number(id);
+            const entries = loadWishlistEntries();
+            const key = wishlistEntryKey(kind, nid);
+            const idx = entries.findIndex((e) => wishlistEntryKey(e.k, e.id) === key);
+            let nowOn = false;
+            if (idx >= 0) entries.splice(idx, 1);
+            else {
+                entries.push({ k: kind, id: nid });
+                nowOn = true;
+            }
+            saveWishlistEntries(entries);
+            return nowOn;
         }
 
         function updateProfileWishlistUi() {
-            const c = loadWishlistIds().length;
+            const c = loadWishlistEntries().length;
             const stat = document.getElementById('profile-wishlist-stat');
             const line = document.getElementById('profile-wishlist-count');
             if (stat) stat.textContent = String(c);
@@ -2561,8 +2628,7 @@
         function updateWishlistButtonForProduct(productId) {
             const btn = document.getElementById('product-wishlist-btn');
             if (!btn) return;
-            const on = isProductInWishlist(productId);
-            btn.classList.toggle('active', on);
+            btn.classList.toggle('active', isWishlistEntry('p', Number(productId)));
         }
 
         function toggleWishlist(btn) {
@@ -2571,18 +2637,29 @@
                 showToast(isRTL ? 'افتح منتجاً أولاً' : 'Open a product first');
                 return;
             }
-            let ids = loadWishlistIds();
-            const idx = ids.indexOf(id);
-            if (idx >= 0) {
-                ids.splice(idx, 1);
-                btn.classList.remove('active');
-                showToast(isRTL ? 'أُزيل من المفضلة' : 'Removed from wishlist');
-            } else {
-                ids.push(id);
-                btn.classList.add('active');
-                showToast(isRTL ? 'أُضيف إلى المفضلة' : 'Added to wishlist');
-            }
-            saveWishlistIds(ids);
+            const nowOn = toggleWishlistEntryByKind('p', id);
+            if (btn) btn.classList.toggle('active', nowOn);
+            showToast(nowOn ? (isRTL ? 'أُضيف إلى المفضلة' : 'Added to wishlist') : (isRTL ? 'أُزيل من المفضلة' : 'Removed from wishlist'));
+            if (currentScreen === 'screen-wishlist') loadWishlistPageProducts().catch(() => {});
+        }
+
+        function toggleMarketplaceWishlistBtn(btn) {
+            const id = currentMarketplaceProductDetail && currentMarketplaceProductDetail.id ? Number(currentMarketplaceProductDetail.id) : null;
+            if (!id) return;
+            const nowOn = toggleWishlistEntryByKind('mp', id);
+            const b = btn || document.getElementById('marketplace-detail-wishlist-btn');
+            if (b) b.classList.toggle('active', nowOn);
+            showToast(nowOn ? (isRTL ? 'أُضيف إلى المفضلة' : 'Added to wishlist') : (isRTL ? 'أُزيل من المفضلة' : 'Removed from wishlist'));
+            if (currentScreen === 'screen-wishlist') loadWishlistPageProducts().catch(() => {});
+        }
+
+        function wishlistCardToggle(ev, kind, id, btn) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            const k = kind === 'mp' ? 'mp' : 'p';
+            const nid = Number(id);
+            const nowOn = toggleWishlistEntryByKind(k, nid);
+            if (btn) btn.classList.toggle('active', nowOn);
+            showToast(nowOn ? (isRTL ? 'أُضيف إلى المفضلة' : 'Added to wishlist') : (isRTL ? 'أُزيل من المفضلة' : 'Removed from wishlist'));
             if (currentScreen === 'screen-wishlist') loadWishlistPageProducts().catch(() => {});
         }
 
@@ -2594,31 +2671,42 @@
         async function loadWishlistPageProducts() {
             const grid = document.getElementById('wishlist-products-grid');
             if (!grid) return;
-            const ids = loadWishlistIds();
-            if (!ids.length) {
+            const entries = loadWishlistEntries();
+            if (!entries.length) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm leading-relaxed px-2">${
                     isRTL
-                        ? 'المفضلة فارغة. اضغط القلب ❤ في صفحة أي منتج لإضافته.'
-                        : 'Your wishlist is empty. Tap the heart on a product page to add items.'
+                        ? 'المفضلة فارغة. اضغط القلب ❤ على أي منتج لإضافته.'
+                        : 'Your wishlist is empty. Tap the heart on any product card to add items.'
                 }</p>`;
                 return;
             }
             grid.innerHTML = `<p class="col-span-2 text-center text-gray-400 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
             try {
                 const results = await Promise.all(
-                    ids.map((pid) => apiFetch(`/api/products/${pid}`, { requireAuth: false }).catch(() => null))
+                    entries.map((e) =>
+                        e.k === 'mp'
+                            ? apiFetch(`/api/marketplace/products/${e.id}`, { requireAuth: false }).catch(() => null)
+                            : apiFetch(`/api/products/${e.id}`, { requireAuth: false }).catch(() => null)
+                    )
                 );
-                const products = results.filter(Boolean);
-                const validIds = products.map((p) => p.id);
-                const pruned = ids.filter((i) => validIds.includes(i));
-                if (pruned.length !== ids.length) saveWishlistIds(pruned);
-                if (!products.length) {
+                const nextEntries = [];
+                const parts = [];
+                for (let i = 0; i < entries.length; i++) {
+                    const e = entries[i];
+                    const p = results[i];
+                    if (!p || p.id == null) continue;
+                    nextEntries.push(e);
+                    if (e.k === 'mp') parts.push(renderMpProductCardHomeCompact(p));
+                    else parts.push(renderProductCardHtml(p, { compact: true }));
+                }
+                if (nextEntries.length !== entries.length) saveWishlistEntries(nextEntries);
+                if (!parts.length) {
                     grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-12 text-sm">${
                         isRTL ? 'تعذر تحميل المنتجات.' : 'Could not load products.'
                     }</p>`;
                     return;
                 }
-                grid.innerHTML = products.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+                grid.innerHTML = parts.join('');
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             }
@@ -2733,6 +2821,7 @@
             toggle('app-ad-cta-offers-screen', master && appAdCtaPlacementOn('offers_screen'));
             toggle('app-ad-cta-listing-screen', master && appAdCtaPlacementOn('listing_screen'));
             toggle('app-ad-side-menu', master && appAdCtaPlacementOn('side_menu_account'));
+            toggle('app-ad-cta-profile-screen', master && appAdCtaPlacementOn('profile_screen'));
 
             const setSubVis = (subEl, show) => {
                 if (!subEl) return;
@@ -2761,7 +2850,7 @@
             setSubVis(s4, !!sub);
 
             const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
-            [['app-ad-cta-listing-title'], ['app-ad-cta-offers-title'], ['app-ad-cta-marketplace-title'], ['app-ad-side-menu-title']].forEach(([id]) => {
+            [['app-ad-cta-listing-title'], ['app-ad-cta-offers-title'], ['app-ad-cta-marketplace-title'], ['app-ad-side-menu-title'], ['app-ad-cta-profile-title']].forEach(([id]) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = compact;
             });
@@ -3004,17 +3093,28 @@
             const showHomePromo = opts && opts.showHomePromo;
             const cards = products
                 .map((p) => {
+                    const pid = Number(p.id);
                     const ptitle = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
                     const imgs = Array.isArray(p.images) ? p.images : [];
                     const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                     const homeAd =
                         showHomePromo && Number(p.is_home_featured_promo) === 1
-                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm">${isRTL ? 'رئيسية' : 'Home'}</span>`
+                            ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm z-[1]">${isRTL ? 'رئيسية' : 'Home'}</span>`
                             : '';
-                    return `<button type="button" onclick="openMarketplaceProductDetail(${Number(p.id)})" class="flex-shrink-0 w-[38%] max-w-[9.5rem] rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm text-start active:scale-[0.98] transition-transform">
+                    const inWish = isWishlistEntry('mp', pid);
+                    const canCart = Number(p.stock || 0) > 0;
+                    const hCls = `wishlist-btn absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-white/90 shadow text-[11px] ${inWish ? 'active' : ''}`;
+                    const cCls = canCart
+                        ? 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-violet-600 text-white shadow text-[10px]'
+                        : 'absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 w-7 h-7 rounded-full flex items-center justify-center bg-gray-200 text-gray-400 shadow text-[10px]';
+                    return `<div class="flex-shrink-0 w-[38%] max-w-[9.5rem] rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm text-start relative">
+                        <button type="button" class="${hCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${pid},this)"><i class="fas fa-heart"></i></button>
+                        <button type="button" class="${cCls}" aria-label="Cart" onclick="quickAddMarketplaceProductToCart(${pid},event)"><i class="fas fa-cart-plus"></i></button>
+                        <button type="button" onclick="openMarketplaceProductDetail(${pid})" class="w-full text-start active:scale-[0.98] transition-transform">
                         <div class="aspect-square bg-gray-100 relative">${homeAd}<img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
                         <p class="p-1.5 text-[10px] font-bold text-gray-900 line-clamp-2 leading-tight">${escapeHtml(ptitle)}</p>
-                    </button>`;
+                        </button>
+                    </div>`;
                 })
                 .join('');
             return `<div class="space-y-1.5">
@@ -3372,15 +3472,17 @@
                 const loc = isRTL ? 'ar' : 'en';
                 grid.innerHTML = arr
                     .map((p) => {
+                        const mid = Number(p.id);
                         const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
                         const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
+                        const vendorPill = vendor ? `<div class="mt-0.5">${formatVendorBrandPill(vendor)}</div>` : '';
                         const imgs = Array.isArray(p.images) ? p.images : [];
                         const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
                         const offer = Number(p.is_offer) === 1;
                         const sponsored = Number(p.is_search_sponsored) === 1;
                         let promoLeft = '';
                         if (sponsored) {
-                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
+                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full z-[1]">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
                         }
                         const disc = Number(p.discount_percent || 0);
                         const finalP = p.final_price != null ? Number(p.final_price) : Number(p.price || 0);
@@ -3391,19 +3493,30 @@
                                 : `<p class="text-sm font-extrabold text-purple-600">${escapeHtml(formatSyp(listP))}</p>`;
                         const featBadge =
                             Number(p.is_mp_featured) === 1
-                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm">${isRTL ? 'مميز' : 'Featured'}</span>`
+                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[1]">${isRTL ? 'مميز' : 'Featured'}</span>`
                                 : '';
-                        return `<div role="button" tabindex="0" onclick="openMarketplaceProductDetail(${Number(p.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${Number(p.id)});}" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer active:scale-[0.99] transition-transform">
+                        const inWish = isWishlistEntry('mp', mid);
+                        const canCart = Number(p.stock || 0) > 0;
+                        const heartCls = `wishlist-btn absolute top-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
+                        const cartCls = canCart
+                            ? 'absolute bottom-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-violet-600 text-white hover:bg-violet-700'
+                            : 'absolute bottom-2 right-2 rtl:right-auto rtl:left-2 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
+                        const offerTop = sponsored ? 'top-10' : 'top-2';
+                        return `<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative active:scale-[0.99] transition-transform">
+                            <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)"><i class="fas fa-heart text-sm"></i></button>
+                            <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
+                            <div role="button" tabindex="0" class="cursor-pointer" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                             <div class="aspect-square bg-gray-100 relative">
                                 <img src="${escapeHtml(img0)}" class="w-full h-full object-cover" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                                 ${promoLeft}
-                                ${offer ? `<span class="absolute top-2 right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
+                                ${offer ? `<span class="absolute ${offerTop} right-2 rtl:right-auto rtl:left-2 text-[10px] font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full z-[1]">${isRTL ? 'عرض' : 'Offer'}</span>` : ''}
                                 ${featBadge}
                             </div>
                             <div class="p-2.5 space-y-0.5">
                                 <p class="text-xs font-bold text-gray-900 line-clamp-2 leading-snug">${escapeHtml(title)}</p>
-                                <p class="text-[10px] text-purple-700 font-semibold truncate">${escapeHtml(vendor || '')}</p>
+                                ${vendorPill}
                                 ${priceHtml}
+                            </div>
                             </div>
                         </div>`;
                     })
@@ -3448,7 +3561,10 @@
             const listP = Number(p.price || 0);
             const finalP = p.final_price != null ? Number(p.final_price) : listP;
             if (tEl) tEl.textContent = title || '—';
-            if (vEl) vEl.textContent = vendor || '—';
+            if (vEl) {
+                if (vendor) vEl.innerHTML = formatVendorBrandPill(vendor);
+                else vEl.textContent = '—';
+            }
             if (sEl) sEl.textContent = secLine || '';
             if (priceEl) priceEl.textContent = formatSyp(discPct > 0 && discPct < 100 ? finalP : listP);
             if (priceOldEl) {
@@ -3482,6 +3598,8 @@
             else marketplaceDetailQty = 1;
             const qd = document.getElementById('marketplace-qty-display');
             if (qd) qd.textContent = String(marketplaceDetailQty);
+            const wbtn = document.getElementById('marketplace-detail-wishlist-btn');
+            if (wbtn) wbtn.classList.toggle('active', isWishlistEntry('mp', Number(p.id)));
         }
 
         function updateMarketplaceReviewLoginHint() {
@@ -3592,16 +3710,16 @@
             if (qd) qd.textContent = String(marketplaceDetailQty);
         }
 
-        function addMarketplaceProductToCart(opts = {}) {
+        function addMarketplacePayloadToCart(p, qty, opts = {}) {
             const silent = opts.silent === true;
-            const p = currentMarketplaceProductDetail;
+            const resetDetailQty = opts.resetDetailQty !== false;
             if (!p || !p.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
                 return false;
             }
-            const qty = Math.max(1, Math.min(99, Number(marketplaceDetailQty || 1)));
+            const q = Math.max(1, Math.min(99, Number(qty || 1)));
             const stock = Number(p.stock != null ? p.stock : 0);
-            if (stock < qty) {
+            if (stock < q) {
                 showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
                 return false;
             }
@@ -3613,7 +3731,7 @@
             const line = {
                 marketplaceProductId: p.id,
                 name: { ar: p.name_ar, en: p.name_en },
-                qty,
+                qty: q,
                 unitPrice: listUnit,
                 price: listUnit,
                 discountPct: discPct,
@@ -3626,7 +3744,7 @@
             const key = getCartLineKey(line);
             const existing = cartItems.find((x) => getCartLineKey(x) === key);
             if (existing) {
-                const nextQty = Math.min(99, Number(existing.qty || 1) + qty);
+                const nextQty = Math.min(99, Number(existing.qty || 1) + q);
                 if (nextQty > stock) {
                     showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
                     return false;
@@ -3642,12 +3760,33 @@
             } else {
                 cartItems.push(line);
             }
-            marketplaceDetailQty = 1;
-            const qd = document.getElementById('marketplace-qty-display');
-            if (qd) qd.textContent = '1';
+            if (resetDetailQty) {
+                marketplaceDetailQty = 1;
+                const qd = document.getElementById('marketplace-qty-display');
+                if (qd) qd.textContent = '1';
+            }
             persistCart();
             if (!silent) showToast(isRTL ? 'أُضيف إلى السلة' : 'Added to cart');
             return true;
+        }
+
+        function addMarketplaceProductToCart(opts = {}) {
+            const silent = opts.silent === true;
+            const p = currentMarketplaceProductDetail;
+            const qty = Math.max(1, Math.min(99, Number(marketplaceDetailQty || 1)));
+            return addMarketplacePayloadToCart(p, qty, { silent, resetDetailQty: true });
+        }
+
+        async function quickAddMarketplaceProductToCart(productId, ev) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+            try {
+                const p = await apiFetch(`/api/marketplace/products/${Number(productId)}`, { requireAuth: false });
+                if (!p || !p.id) throw new Error('x');
+                addMarketplacePayloadToCart(p, 1, { silent: false, resetDetailQty: false });
+            } catch (_e) {
+                showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
+            }
         }
 
         function buyMarketplaceNow() {
@@ -3721,6 +3860,95 @@
         function buyNow() {
             if (!addToCart({ silent: true, forceQtyOne: true })) return;
             openOrderOptions();
+        }
+
+        async function quickAddCatalogProductToCart(productId, ev) {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+            try {
+                const p = await apiFetch(`/api/products/${Number(productId)}`, { requireAuth: false });
+                if (!p || !p.id) throw new Error('x');
+                const inv = Array.isArray(p.inventory) ? p.inventory : [];
+                let size = '—';
+                let color = '';
+                if (inv.length) {
+                    const row = inv.find((r) => Number(r.stock || 0) > 0);
+                    if (!row) {
+                        showToast(isRTL ? 'غير متوفر' : 'Out of stock');
+                        return;
+                    }
+                    size = String(row.size != null ? row.size : '—').trim() || '—';
+                    color = String(row.color != null ? row.color : '').trim();
+                } else {
+                    if (Number(p.stock || 0) < 1) {
+                        showToast(isRTL ? 'غير متوفر' : 'Out of stock');
+                        return;
+                    }
+                    const sizes = Array.isArray(p.sizes) && p.sizes.length ? p.sizes.map((s) => String(s)) : ['—'];
+                    const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [''];
+                    let picked = null;
+                    for (const szRaw of sizes) {
+                        const szTrim = String(szRaw).trim();
+                        const sv = szTrim === '—' ? '' : szTrim;
+                        for (const col of colors) {
+                            const cl = String(col).trim();
+                            if (variantHasStock(p, sv, cl)) {
+                                picked = { size: szTrim === '—' ? '—' : szTrim, color: cl };
+                                break;
+                            }
+                        }
+                        if (picked) break;
+                    }
+                    if (!picked) {
+                        showToast(isRTL ? 'غير متوفر' : 'Out of stock');
+                        return;
+                    }
+                    size = picked.size;
+                    color = picked.color;
+                }
+                const sizeArg = size === '—' ? '' : size;
+                if (!variantHasStock(p, sizeArg, color)) {
+                    showToast(isRTL ? 'غير متوفر' : 'Out of stock');
+                    return;
+                }
+                const qty = 1;
+                const listUnit = Number(p.price || 0);
+                const discPct = Number(p.discount || 0);
+                const img0 = p.images && p.images.length ? p.images[0] : '';
+                const brandVal = String(p.brand || '').trim();
+                const line = {
+                    productId: p.id,
+                    id: p.id,
+                    name: { ar: p.name_ar, en: p.name_en },
+                    qty,
+                    unitPrice: listUnit,
+                    price: listUnit,
+                    discountPct: discPct,
+                    image: img0,
+                    brand: brandVal,
+                    size: size === '—' ? '' : size,
+                    color,
+                    selected: true,
+                };
+                const key = getCartLineKey(line);
+                const existing = cartItems.find((x) => getCartLineKey(x) === key);
+                if (existing) {
+                    existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
+                    existing.selected = true;
+                    existing.unitPrice = listUnit;
+                    existing.price = listUnit;
+                    existing.discountPct = discPct;
+                    if (img0) existing.image = img0;
+                    existing.name = { ar: p.name_ar, en: p.name_en };
+                    existing.brand = brandVal;
+                } else {
+                    cartItems.push(line);
+                }
+                persistCart();
+                showToast(isRTL ? 'أُضيف إلى السلة' : 'Added to cart');
+            } catch (_e) {
+                showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
+            }
         }
 
         function updateCartBadge() {
@@ -5442,22 +5670,32 @@
             navigateTo('screen-listing');
         }
 
+        function formatVendorBrandPill(text) {
+            const t = String(text || '').trim();
+            if (!t) return '';
+            return `<span class="inline-flex items-center gap-0.5 max-w-full px-2 py-0.5 rounded-full text-[9px] font-bold tracking-tight bg-gradient-to-r from-violet-50 via-fuchsia-50 to-purple-50 text-violet-800 border border-violet-100/90 shadow-sm" dir="auto"><i class="fas fa-store text-[8px] opacity-75 shrink-0"></i><span class="truncate min-w-0">${escapeHtml(t)}</span></span>`;
+        }
+
+        function productHasAnyStockQuick(p) {
+            if (!p) return false;
+            const inv = Array.isArray(p.inventory) ? p.inventory : [];
+            if (inv.length) return inv.some((r) => Number(r.stock || 0) > 0);
+            return Number(p.stock || 0) > 0;
+        }
+
         function renderProductCardHtml(p, opts = {}) {
             const compact = opts.compact === true;
             const br = resolveDisplayBrand(p.brand);
-            const brandHtml = br
-                ? `<p class="${
-                      compact ? 'text-[8px]' : 'text-[9px]'
-                  } text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(br)}</p>`
-                : '';
+            const brandHtml = br ? `<div class="mb-1">${formatVendorBrandPill(br)}</div>` : '';
             const img = p.images && p.images.length ? p.images[0] : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
             const listP = productListPrice(p);
             const disc = productDiscountPct(p);
             const saleP = productSaleUnitPrice(p);
+            const pid = Number(p.id);
             const badge =
                 disc > 0
-                    ? `<span class="absolute ${compact ? 'top-0.5 left-0.5 text-[8px] px-1 py-0.5' : 'top-1 left-1 text-[9px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    ? `<span class="absolute ${compact ? 'top-0.5 left-0.5 rtl:left-auto rtl:right-0.5 text-[8px] px-1 py-0.5' : 'top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] px-1.5 py-0.5'} badge-sale text-white font-bold rounded-full shadow-md z-[1]">-${Math.round(disc)}%</span>`
                     : '';
             const mediaCls = compact
                 ? 'relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100'
@@ -5468,7 +5706,16 @@
                 : 'font-semibold text-gray-900 text-xs line-clamp-2 mb-0.5';
             const priceMain = compact ? 'font-bold text-gray-900 text-[11px]' : 'font-bold text-gray-900 text-xs';
             const cardExtra = compact ? ' home-compact-product-card' : '';
-            return `<div onclick="openProductDetail(${p.id})" class="product-card${cardExtra} bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
+            const inWish = isWishlistEntry('p', pid);
+            const canCart = productHasAnyStockQuick(p);
+            const heartCls = `wishlist-btn absolute top-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
+            const cartCls = canCart
+                ? 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-900 text-white hover:bg-gray-800 transition-colors'
+                : 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
+            return `<div class="product-card${cardExtra} bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group transition-shadow hover:shadow-lg hover:ring-black/[0.06] relative">
+                <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'p',${pid},this)"><i class="fas fa-heart text-sm"></i></button>
+                <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddCatalogProductToCart(${pid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
+                <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                 <div class="${mediaCls}">
                     <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                     ${badge}
@@ -5480,6 +5727,7 @@
                         <span class="${priceMain}">${formatSyp(saleP)}</span>
                         ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                     </div>
+                </div>
                 </div>
             </div>`;
         }
@@ -5510,20 +5758,28 @@
         /** بطاقة منتج سوق للرئيسية: يفتح تفاصيل السوق ويعرض اسم الشركة */
         function renderMpProductCardHomeCompact(p) {
             const vendorName = mpHomeVendorLabel(p);
-            const brandHtml = vendorName
-                ? `<p class="text-[8px] text-violet-700 font-semibold line-clamp-1 mb-0.5 text-left" dir="auto">${escapeHtml(vendorName)}</p>`
-                : '';
+            const brandHtml = vendorName ? `<div class="mb-1">${formatVendorBrandPill(vendorName)}</div>` : '';
             const rawImg = p.images && p.images.length ? p.images[0] : '';
             const img = rawImg ? absoluteMediaUrl(String(rawImg)) : adoraPlaceholderImageUrl();
             const name = isRTL ? p.name_ar : p.name_en;
             const listP = Number(p.price ?? 0);
             const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
             const saleP = disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
+            const mid = Number(p.id);
             const badge =
                 disc > 0
-                    ? `<span class="absolute top-0.5 left-0.5 text-[8px] px-1 py-0.5 badge-sale text-white font-bold rounded-full shadow-md">-${Math.round(disc)}%</span>`
+                    ? `<span class="absolute top-0.5 left-0.5 rtl:left-auto rtl:right-0.5 text-[8px] px-1 py-0.5 badge-sale text-white font-bold rounded-full shadow-md z-[1]">-${Math.round(disc)}%</span>`
                     : '';
-            return `<div onclick="openMarketplaceProductDetail(${Number(p.id)})" class="product-card home-compact-product-card bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group cursor-pointer transition-shadow hover:shadow-lg hover:ring-black/[0.06]">
+            const inWish = isWishlistEntry('mp', mid);
+            const canCart = Number(p.stock || 0) > 0;
+            const heartCls = `wishlist-btn absolute top-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-white/90 backdrop-blur-sm ${inWish ? 'active' : ''}`;
+            const cartCls = canCart
+                ? 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-violet-600 text-white hover:bg-violet-700 transition-colors'
+                : 'absolute bottom-1.5 right-1.5 rtl:right-auto rtl:left-1.5 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md bg-gray-200 text-gray-400 cursor-not-allowed';
+            return `<div class="product-card home-compact-product-card bg-white rounded-xl shadow-md shadow-gray-200/80 ring-1 ring-black/[0.04] overflow-hidden group transition-shadow hover:shadow-lg hover:ring-black/[0.06] relative">
+                <button type="button" class="${heartCls}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)"><i class="fas fa-heart text-sm"></i></button>
+                <button type="button" class="${cartCls}" aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${mid},event)"><i class="fas fa-cart-plus text-xs"></i></button>
+                <div role="button" tabindex="0" class="cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                 <div class="relative aspect-[3/4] max-h-[140px] overflow-hidden bg-gray-100">
                     <img src="${escapeHtml(img)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                     ${badge}
@@ -5535,6 +5791,7 @@
                         <span class="font-bold text-gray-900 text-[11px]">${formatSyp(saleP)}</span>
                         ${disc > 0 ? `<span class="text-[10px] text-gray-400 line-through">${formatSyp(listP)}</span>` : ''}
                     </div>
+                </div>
                 </div>
             </div>`;
         }

@@ -610,8 +610,8 @@
                   <div><label class="text-xs font-bold">Barcode</label><input id="mp-p-barcode" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="اختياري" /></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">وصف عربي</label><textarea id="mp-p-desc-ar" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></textarea></div>
                   <div class="md:col-span-2"><label class="text-xs font-bold">Description EN</label><textarea id="mp-p-desc-en" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200"></textarea></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">روابط الصور (سطر أو فاصلة لكل رابط)</label><textarea id="mp-p-images" rows="2" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://..."></textarea></div>
-                  <div class="md:col-span-2"><label class="text-xs font-bold">رفع صور إضافية</label><input type="file" id="mp-p-images-file" accept="image/*" multiple class="mt-1 block w-full text-sm" /></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">صور المنتج (حتى 12) — رابط لكل سطر أو افصل بينها بفاصلة</label><textarea id="mp-p-images" rows="3" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="https://...&#10;https://..."></textarea></div>
+                  <div class="md:col-span-2"><label class="text-xs font-bold">أو ارفع عدة صور دفعة واحدة (Ctrl/⌘ لاختيار أكثر من ملف)</label><input type="file" id="mp-p-images-file" accept="image/*" multiple class="mt-1 block w-full text-sm" /></div>
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-p-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-offer" class="rounded" /><label for="mp-p-offer" class="text-sm font-bold">عرض ترويجي</label></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured" class="rounded" /><label for="mp-p-featured" class="text-sm font-bold" data-en="Featured (home strip & search priority)" data-ar="مميز (الرئيسية وأولوية بالبحث)">مميز (الرئيسية وأولوية بالبحث)</label></div>
@@ -724,6 +724,7 @@
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_between_main_and_brands" class="rounded" /><span>بين الأقسام الرئيسية وقسم الشركات</span></label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-side_menu_account" class="rounded" /><span>قائمة الحساب (القائمة الجانبية ☰)</span></label>
+                      <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-profile_screen" class="rounded" /><span>شاشة الملف الشخصي (حسابي)</span></label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
                       <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>

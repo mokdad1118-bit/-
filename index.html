@@ -3753,9 +3753,12 @@
 
     <!-- ==================== COMPREHENSIVE MARKET (product) ==================== -->
     <div id="screen-marketplace-product" class="screen bg-white">
-        <div class="adora-screen-toolbar px-4 py-2 flex items-center border-b border-gray-100">
+        <div class="adora-screen-toolbar px-4 py-2 flex items-center justify-between border-b border-gray-100 gap-2">
             <button type="button" onclick="backFromMarketplaceProduct()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
                 <i class="fas fa-arrow-left text-gray-800 rtl:rotate-180"></i>
+            </button>
+            <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition shrink-0" aria-label="Wishlist">
+                <i class="fas fa-heart text-lg"></i>
             </button>
         </div>
         <div class="relative bg-gray-50">
@@ -3764,7 +3767,7 @@
         <div class="px-5 pt-5 pb-36 space-y-4">
             <div>
                 <h1 id="marketplace-detail-title" class="text-xl font-bold text-gray-900 leading-tight">—</h1>
-                <p id="marketplace-detail-vendor" class="text-sm font-semibold text-purple-700 mt-1">—</p>
+                <div id="marketplace-detail-vendor" class="mt-1 min-h-[1.5rem] flex flex-wrap items-center gap-1">—</div>
                 <p id="marketplace-detail-section" class="text-xs text-gray-500 mt-0.5">—</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -4082,6 +4085,14 @@
                     <p class="text-gray-500 text-sm mt-0.5" id="profile-user-phone"></p>
                     <p id="profile-member-since" class="text-xs text-gray-500 mt-2"></p>
                 </div>
+            </div>
+
+            <div id="app-ad-cta-profile-screen" class="hidden mb-4">
+                <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-indigo-600 shadow-sm"><i class="fas fa-bullhorn text-sm"></i></span>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-profile-title"></span>
+                    <i class="fas fa-chevron-left text-indigo-300 text-xs rtl:rotate-180"></i>
+                </button>
             </div>
 
             <div class="flex justify-around mt-6 pt-6 border-t border-gray-100">
