@@ -2409,17 +2409,13 @@
             });
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
-                const placeholder = isRTL ? searchInput.getAttribute('data-ar-placeholder') : searchInput.getAttribute('data-en-placeholder');
-                if (placeholder) searchInput.setAttribute('placeholder', placeholder);
-                else searchInput.setAttribute('placeholder', '');
+                searchInput.setAttribute('placeholder', '');
                 const ariaS = isRTL ? searchInput.getAttribute('data-ar-aria') : searchInput.getAttribute('data-en-aria');
                 if (ariaS) searchInput.setAttribute('aria-label', ariaS);
             }
-            restartSearchRotatingHintTimer();
             const listingSearchInput = document.getElementById('listing-search-input');
             if (listingSearchInput) {
-                const lph = isRTL ? listingSearchInput.getAttribute('data-ar-placeholder') : listingSearchInput.getAttribute('data-en-placeholder');
-                if (lph) listingSearchInput.setAttribute('placeholder', lph);
+                listingSearchInput.setAttribute('placeholder', '');
             }
             ['auth-name', 'auth-email', 'auth-phone', 'auth-phone-login'].forEach((id) => {
                 const el = document.getElementById(id);
@@ -2444,8 +2440,7 @@
             }
             const mpSearch = document.getElementById('marketplace-search-input');
             if (mpSearch) {
-                const mph = isRTL ? mpSearch.getAttribute('data-ar-ph') : mpSearch.getAttribute('data-en-ph');
-                if (mph) mpSearch.setAttribute('placeholder', mph);
+                mpSearch.setAttribute('placeholder', '');
             }
             const mpRevTa = document.getElementById('marketplace-review-comment');
             if (mpRevTa) {
@@ -2476,6 +2471,7 @@
             if (typeof currentScreen === 'string' && currentScreen === 'screen-app-ad-inquiry') {
                 syncAppAdInquiryPageHeroFromConfig();
             }
+            restartAdoraAnimatedSearchTimer();
         }
 
         function toggleLanguage() {
@@ -3313,6 +3309,7 @@
                     marketplaceBrowseSectionId = null;
                     const si = document.getElementById('marketplace-search-input');
                     if (si) si.value = '';
+                    syncAdoraAnimatedSearchVisibility();
                 }
                 renderMarketplaceVendorsStrip();
                 refreshMarketplaceProductList().catch(() => {});
@@ -3434,6 +3431,7 @@
                     if (si) si.value = String(preset.q);
                 }
             }
+            syncAdoraAnimatedSearchVisibility();
             await loadMarketplaceVendorsStrip();
             await refreshMarketplaceProductList();
         }
@@ -5404,7 +5402,7 @@
                         te.setAttribute('data-ar', 'نتائج البحث');
                         te.textContent = isRTL ? te.getAttribute('data-ar') : te.getAttribute('data-en');
                     }
-                    syncSearchRotatingHintVisibility();
+                    syncAdoraAnimatedSearchVisibility();
                 }
                 syncSearchInputsFromQuery();
                 updateListingBrandMainCatBar();
@@ -5565,109 +5563,149 @@
                     } else if (document.activeElement !== home) {
                         home.value = '';
                     }
-                    syncSearchRotatingHintVisibility();
                 }
                 if (list) {
                     if (document.activeElement !== list) list.value = q;
                     else if (!String(list.value || '').trim() && q) list.value = q;
                 }
+                syncAdoraAnimatedSearchVisibility();
             } catch (_e) {}
         }
 
-        const SEARCH_ROTATE_HINTS_AR = [
+        /** كلمات تظهر بعد «بحث عن» / Search for — كل حقول البحث في التطبيق */
+        const ADORA_SEARCH_ROTATE_AR = [
+            'عطور',
+            'ملابس',
+            'موبايلات',
+            'أحذية',
+            'حقائب',
+            'ساعات',
+            'مكياج',
+            'أثاث',
+            'إلكترونيات',
+            'ألعاب',
+            'هدايا',
+            'رياضة',
+            'شركات',
             'نسائي',
             'رجالي',
             'أطفال',
-            'تيشرتات',
-            'كنزات',
-            'قمصان',
-            'فساتين',
-            'إكسسوارات',
-            'أحذية',
-            'حقائب',
             'عروض',
         ];
-        const SEARCH_ROTATE_HINTS_EN = [
+        const ADORA_SEARCH_ROTATE_EN = [
+            'Perfumes',
+            'Clothes',
+            'Phones',
+            'Shoes',
+            'Bags',
+            'Watches',
+            'Makeup',
+            'Furniture',
+            'Electronics',
+            'Games',
+            'Gifts',
+            'Sports',
+            'Brands',
             'Women',
             'Men',
             'Kids',
-            'T-shirts',
-            'Sweaters',
-            'Shirts',
-            'Dresses',
-            'Accessories',
-            'Shoes',
-            'Bags',
             'Deals',
         ];
-        let searchRotateHintIndex = 0;
-        let searchRotateHintTimer = null;
-        let searchRotatingHintListenersBound = false;
+        let adoraSearchRotateIndex = 0;
+        let adoraSearchRotateTimer = null;
+        let adoraAnimatedSearchListenersBound = false;
 
-        function getSearchRotateHintWords() {
-            return isRTL ? SEARCH_ROTATE_HINTS_AR : SEARCH_ROTATE_HINTS_EN;
+        function getAdoraSearchRotateWords() {
+            return isRTL ? ADORA_SEARCH_ROTATE_AR : ADORA_SEARCH_ROTATE_EN;
         }
 
-        function updateSearchRotatingHintText(opts) {
+        function syncAdoraSearchFauxPrefixes() {
+            document.querySelectorAll('.adora-search-faux-prefix').forEach((el) => {
+                const v = isRTL ? el.getAttribute('data-ar') : el.getAttribute('data-en');
+                if (v !== null) el.textContent = v;
+            });
+        }
+
+        function getInputForAnimatedPh(fauxEl) {
+            const wrap = fauxEl.parentElement;
+            if (!wrap) return null;
+            return (
+                wrap.querySelector('#search-input, #listing-search-input, #marketplace-search-input') ||
+                wrap.querySelector('input[type="search"], input[type="text"]')
+            );
+        }
+
+        function syncAdoraAnimatedSearchVisibility() {
+            document.querySelectorAll('[data-adora-animated-ph]').forEach((faux) => {
+                const input = getInputForAnimatedPh(faux);
+                const show = input && !String(input.value || '').trim() && document.activeElement !== input;
+                faux.classList.toggle('adora-search-faux-ph--hidden', !show);
+            });
+        }
+
+        function onAdoraSearchRotAnimationEnd(ev) {
+            if (ev.animationName !== 'adoraSearchRotWord') return;
+            ev.target.classList.remove('adora-search-rot-tick');
+        }
+
+        function updateAdoraAnimatedSearchWords(opts) {
             const animate = opts && opts.animate === true;
-            const hint = document.getElementById('search-rotating-hint');
-            if (!hint) return;
-            const words = getSearchRotateHintWords();
+            const words = getAdoraSearchRotateWords();
             if (!words.length) return;
-            searchRotateHintIndex = ((searchRotateHintIndex % words.length) + words.length) % words.length;
-            const next = words[searchRotateHintIndex];
-            if (animate) {
-                hint.classList.remove('search-hint-anim-in');
-                void hint.offsetWidth;
-                hint.textContent = next;
-                hint.classList.add('search-hint-anim-in');
-            } else {
-                hint.textContent = next;
-            }
+            adoraSearchRotateIndex = ((adoraSearchRotateIndex % words.length) + words.length) % words.length;
+            const next = words[adoraSearchRotateIndex];
+            document.querySelectorAll('.adora-search-faux-rot-text').forEach((el) => {
+                if (animate) {
+                    el.classList.remove('adora-search-rot-tick');
+                    void el.offsetWidth;
+                    el.textContent = next;
+                    el.classList.add('adora-search-rot-tick');
+                } else {
+                    el.textContent = next;
+                }
+            });
         }
 
-        function syncSearchRotatingHintVisibility() {
-            const input = document.getElementById('search-input');
-            const hint = document.getElementById('search-rotating-hint');
-            if (!input || !hint) return;
-            const show = !String(input.value || '').trim() && document.activeElement !== input;
-            hint.classList.remove('search-hint-anim-in');
-            hint.classList.toggle('opacity-0', !show);
-            hint.classList.toggle('opacity-100', show);
-        }
-
-        function tickSearchRotatingHint() {
-            const words = getSearchRotateHintWords();
+        function tickAdoraAnimatedSearch() {
+            const words = getAdoraSearchRotateWords();
             if (!words.length) return;
-            searchRotateHintIndex = (searchRotateHintIndex + 1) % words.length;
-            updateSearchRotatingHintText({ animate: true });
+            adoraSearchRotateIndex = (adoraSearchRotateIndex + 1) % words.length;
+            updateAdoraAnimatedSearchWords({ animate: true });
         }
 
-        function restartSearchRotatingHintTimer() {
-            if (searchRotateHintTimer) {
-                clearInterval(searchRotateHintTimer);
-                searchRotateHintTimer = null;
+        function restartAdoraAnimatedSearchTimer() {
+            if (adoraSearchRotateTimer) {
+                clearInterval(adoraSearchRotateTimer);
+                adoraSearchRotateTimer = null;
             }
-            searchRotateHintIndex = 0;
-            updateSearchRotatingHintText();
-            syncSearchRotatingHintVisibility();
-            const hint = document.getElementById('search-rotating-hint');
-            if (hint) {
-                searchRotateHintTimer = setInterval(tickSearchRotatingHint, 2000);
-            }
+            if (!document.querySelector('[data-adora-animated-ph]')) return;
+            adoraSearchRotateIndex = 0;
+            syncAdoraSearchFauxPrefixes();
+            updateAdoraAnimatedSearchWords({ animate: false });
+            syncAdoraAnimatedSearchVisibility();
+            adoraSearchRotateTimer = setInterval(tickAdoraAnimatedSearch, 2800);
         }
 
-        function initSearchRotatingHint() {
-            const input = document.getElementById('search-input');
-            if (!input) return;
-            if (!searchRotatingHintListenersBound) {
-                searchRotatingHintListenersBound = true;
-                const onChange = () => syncSearchRotatingHintVisibility();
-                input.addEventListener('focus', onChange);
-                input.addEventListener('blur', onChange);
-                input.addEventListener('input', onChange);
+        function initAdoraAnimatedSearch() {
+            document.querySelectorAll('.adora-search-faux-rot-text').forEach((el) => {
+                el.removeEventListener('animationend', onAdoraSearchRotAnimationEnd);
+                el.addEventListener('animationend', onAdoraSearchRotAnimationEnd);
+            });
+            if (!adoraAnimatedSearchListenersBound) {
+                adoraAnimatedSearchListenersBound = true;
+                const bind = (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    const onChange = () => syncAdoraAnimatedSearchVisibility();
+                    el.addEventListener('focus', onChange);
+                    el.addEventListener('blur', onChange);
+                    el.addEventListener('input', onChange);
+                };
+                bind('search-input');
+                bind('listing-search-input');
+                bind('marketplace-search-input');
             }
-            restartSearchRotatingHintTimer();
+            restartAdoraAnimatedSearchTimer();
         }
 
         function runProductSearch() {
@@ -5676,7 +5714,7 @@
             listingAdoraOnly = false;
             listingNewCollectionOnly = false;
             if (input) input.value = '';
-            syncSearchRotatingHintVisibility();
+            syncAdoraAnimatedSearchVisibility();
             navigateTo('screen-listing');
         }
 
@@ -8027,7 +8065,7 @@
                 const ov = document.getElementById('home-subcat-overlay');
                 if (ov && !ov.classList.contains('hidden')) closeHomeCategoryPanel();
             });
-            initSearchRotatingHint();
+            initAdoraAnimatedSearch();
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('keydown', (e) => {

@@ -2250,7 +2250,8 @@
             align-items: center;
             overflow: hidden;
         }
-        #search-rotating-hint {
+        /* placeholder متحرك: بادئة ثابتة + كلمة دوّارة (خفيف — بدون blur) */
+        .adora-search-faux-ph {
             position: absolute;
             inset-inline-start: 0;
             inset-inline-end: 0;
@@ -2259,40 +2260,73 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding-inline: 0.2rem;
-            font-size: clamp(0.95rem, 3.6vw, 1.125rem);
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            color: rgb(107 114 128);
+            gap: 0.15em;
             pointer-events: none;
-            z-index: 1;
+            z-index: 2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             transition: opacity 0.2s ease;
-            transform-origin: center bottom;
         }
-        #search-rotating-hint.search-hint-anim-out {
-            opacity: 0;
-            transform: translateY(4px);
+        .adora-search-faux-ph--hidden {
+            opacity: 0 !important;
         }
-        #search-rotating-hint.search-hint-anim-in {
-            animation: adoraSearchHintIn 0.32s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        .adora-search-faux-ph--home {
+            padding-inline: 0.25rem;
+            font-size: clamp(0.9rem, 3.2vw, 1rem);
+            font-weight: 500;
         }
-        @keyframes adoraSearchHintIn {
+        .adora-search-faux-ph--toolbar {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .adora-search-faux-ph--listing {
+            padding-inline-start: 2.5rem;
+            padding-inline-end: 0.75rem;
+        }
+        [dir="rtl"] .adora-search-faux-ph--listing {
+            padding-inline-start: 0.75rem;
+            padding-inline-end: 2.5rem;
+        }
+        .adora-search-faux-ph--marketplace {
+            padding-inline-start: 0.75rem;
+            padding-inline-end: 2.5rem;
+        }
+        [dir="rtl"] .adora-search-faux-ph--marketplace {
+            padding-inline-start: 2.5rem;
+            padding-inline-end: 0.75rem;
+        }
+        .adora-search-faux-prefix {
+            color: rgb(107 114 128);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+        .adora-search-faux-rot {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .adora-search-faux-rot-text {
+            display: inline-block;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: linear-gradient(120deg, #6d28d9 0%, #7c3aed 45%, #5b21b6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        .adora-search-faux-rot-text.adora-search-rot-tick {
+            animation: adoraSearchRotWord 0.42s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+        }
+        @keyframes adoraSearchRotWord {
             from {
-                opacity: 0;
-                transform: translateY(12px) scale(0.94);
-                filter: blur(2px);
-            }
-            70% {
-                opacity: 1;
-                filter: blur(0);
+                opacity: 0.25;
+                transform: translateY(0.4em);
             }
             to {
                 opacity: 1;
-                transform: translateY(0) scale(1);
-                filter: blur(0);
+                transform: translateY(0);
             }
         }
         #search-input {
@@ -3346,7 +3380,10 @@
                             <i class="fas fa-search text-lg"></i>
                         </button>
                         <div class="adora-search-field__input-wrap">
-                            <span id="search-rotating-hint" class="opacity-100 transition-opacity duration-200 truncate" aria-hidden="true">تيشرتات</span>
+                            <div class="adora-search-faux-ph adora-search-faux-ph--home" data-adora-animated-ph aria-hidden="true">
+                                <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
+                                <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
+                            </div>
                             <input id="search-input" type="text"
                                    placeholder=""
                                    data-en-placeholder=""
@@ -3780,10 +3817,15 @@
                 <span class="w-8 sm:w-10 shrink-0" aria-hidden="true"></span>
             </div>
             <div class="relative mb-3">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:left-auto rtl:right-3"></i>
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:left-auto rtl:right-3 z-[3]"></i>
+                <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--listing" data-adora-animated-ph aria-hidden="true">
+                    <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
+                    <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
+                </div>
                 <input type="search" id="listing-search-input" enterkeyhint="search" autocomplete="off"
-                    class="w-full bg-gray-100 text-gray-800 rounded-2xl py-2.5 pl-10 pr-3 rtl:pl-3 rtl:pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                    data-en-placeholder="Search products or brand…" data-ar-placeholder="ابحث عن منتج أو شركة…"
+                    class="relative z-[1] w-full bg-gray-100 text-gray-800 rounded-2xl py-2.5 pl-10 pr-3 rtl:pl-3 rtl:pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    placeholder=""
+                    data-en-placeholder="" data-ar-placeholder=""
                     oninput="scheduleListingSearchDebounced()" onkeydown="listingSearchOnEnter(event)" />
             </div>
             <div id="partner-cta-listing-screen" class="hidden mb-3">
@@ -4077,12 +4119,15 @@
         </div>
         <div class="px-3 pt-3 pb-2 space-y-2 bg-white border-b border-gray-100">
             <div class="relative">
-                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3"></i>
+                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3 z-[3]"></i>
+                <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--marketplace" data-adora-animated-ph aria-hidden="true">
+                    <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
+                    <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
+                </div>
                 <input type="search" id="marketplace-search-input" enterkeyhint="search" autocomplete="off"
-                    class="w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
-                    data-en-ph="Search by product or company…"
-                    data-ar-ph="ابحث باسم منتج أو شركة…"
-                    placeholder="ابحث باسم منتج أو شركة…" />
+                    class="relative z-[1] w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
+                    placeholder=""
+                    data-en-ph="" data-ar-ph="" />
             </div>
             <p id="marketplace-browse-hint" class="text-[11px] text-gray-500 leading-relaxed px-0.5" data-en="Pick a company below or use search." data-ar="اختر شركة من الأسفل أو استخدم البحث.">اختر شركة من الأسفل أو استخدم البحث.</p>
         </div>
