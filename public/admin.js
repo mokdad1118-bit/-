@@ -424,7 +424,10 @@ function setActiveTab(tabId) {
   if (tabId === "tab-banners") loadBanners().catch(() => {});
   if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
   if (tabId === "tab-vendor-platform") initVendorPlatformAdminTab().catch(() => {});
-  if (tabId === "tab-vendor-subscriptions") loadVendorSubscriptionRequests().catch(() => {});
+  if (tabId === "tab-vendor-subscriptions") {
+    loadVendorSubscriptionRequests().catch(() => {});
+    loadAppAdInquiriesUi().catch(() => {});
+  }
 }
 
 function vpLocalDateTimeToIso(val) {
@@ -668,7 +671,6 @@ async function loadVendorCommissionReportUi() {
 async function initVendorPlatformAdminTab() {
   await loadVendorPlatformSettingsUi();
   await loadVendorPromotionsUi();
-  await loadAppAdInquiriesUi();
   if (!vendorPlatformListenersBound) {
     vendorPlatformListenersBound = true;
     document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
@@ -754,9 +756,6 @@ async function initVendorPlatformAdminTab() {
       }
     });
     document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
-    document.getElementById("btn-app-ad-inq-refresh")?.addEventListener("click", () =>
-      loadAppAdInquiriesUi().catch((err) => alert(err.message || err))
-    );
   }
 }
 
@@ -3951,7 +3950,13 @@ async function bootstrapAuthed() {
   document.getElementById("banner-form")?.addEventListener("submit", (ev) => saveBanner(ev).catch((err) => alert(err.message || String(err))));
   document.getElementById("btn-refresh-banners")?.addEventListener("click", () => loadBanners().catch(() => {}));
   document.getElementById("btn-reset-banner")?.addEventListener("click", () => resetBannerForm());
-  document.getElementById("btn-vp-sub-refresh")?.addEventListener("click", () => loadVendorSubscriptionRequests().catch(() => {}));
+  document.getElementById("btn-vp-sub-refresh")?.addEventListener("click", () => {
+    loadVendorSubscriptionRequests().catch(() => {});
+    loadAppAdInquiriesUi().catch(() => {});
+  });
+  document.getElementById("btn-app-ad-inq-refresh")?.addEventListener("click", () =>
+    loadAppAdInquiriesUi().catch((err) => alert(err.message || err))
+  );
 
   try {
     await loadOfferProductsIntoSelect();

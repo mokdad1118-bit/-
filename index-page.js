@@ -1070,6 +1070,7 @@
             'screen-offers',
             'screen-wishlist',
             'screen-vendor-join',
+            'screen-app-ad-inquiry',
             'screen-marketplace',
             'screen-marketplace-product',
             'screen-cart',
@@ -2317,7 +2318,7 @@
                 loadPartnerCtaConfig().catch(() => {});
                 loadMarketplaceHomeHighlights().catch(() => {});
                 bindVendorJoinPageFormOnce();
-                bindAppAdInquiryFormOnce();
+                bindAppAdPageFormOnce();
             }
             if (screenId === 'screen-marketplace') {
                 initMarketplaceBrowseScreen()
@@ -2331,6 +2332,11 @@
                 syncVendorJoinHeroFromConfig();
                 syncVendorJoinTermsFromConfig();
                 bindVendorJoinPageFormOnce();
+            }
+            if (screenId === 'screen-app-ad-inquiry') {
+                syncAppAdInquiryPageHeroFromConfig();
+                syncAppAdInquiryTermsFromConfig();
+                bindAppAdPageFormOnce();
             }
             if (screenId === 'screen-offers' || screenId === 'screen-listing') {
                 syncPartnerCtaDom();
@@ -2420,7 +2426,7 @@
                 const mph = isRTL ? mpRevTa.getAttribute('data-ar-ph') : mpRevTa.getAttribute('data-en-ph');
                 if (mph) mpRevTa.setAttribute('placeholder', mph);
             }
-            const appAdPrice = document.getElementById('app-ad-product-price');
+            const appAdPrice = document.getElementById('aad-p-product-price');
             if (appAdPrice) {
                 const ph = isRTL ? appAdPrice.getAttribute('data-ar-ph') : appAdPrice.getAttribute('data-en-ph');
                 if (ph) appAdPrice.setAttribute('placeholder', ph);
@@ -2441,6 +2447,9 @@
             syncVendorJoinHeroFromConfig();
             syncVendorJoinTermsFromConfig();
             syncAppAdInquiryTermsFromConfig();
+            if (typeof currentScreen === 'string' && currentScreen === 'screen-app-ad-inquiry') {
+                syncAppAdInquiryPageHeroFromConfig();
+            }
         }
 
         function toggleLanguage() {
@@ -2824,9 +2833,33 @@
             }
         }
 
+        function syncAppAdInquiryPageHeroFromConfig() {
+            if (!partnerCtaConfig) return;
+            const titleAr = partnerCtaConfig.app_ad_banner_text_ar || '';
+            const titleEn = partnerCtaConfig.app_ad_banner_text_en || '';
+            const subAr = partnerCtaConfig.app_ad_banner_subtitle_ar || '';
+            const subEn = partnerCtaConfig.app_ad_banner_subtitle_en || '';
+            const title = isRTL ? titleAr || titleEn : titleEn || titleAr;
+            const sub = isRTL ? subAr || subEn : subEn || subAr;
+            const ht = document.getElementById('app-ad-page-hero-title');
+            const hs = document.getElementById('app-ad-page-hero-sub');
+            if (ht) {
+                ht.textContent =
+                    title || (isRTL ? 'إعلاناتكم على التطبيق' : 'Advertise on the app');
+            }
+            if (hs) {
+                hs.textContent =
+                    sub ||
+                    (isRTL
+                        ? 'عبّئ النموذج وارفع صورة المنتج — يصل الطلب لفريق أدورا للمراجعة.'
+                        : 'Fill the form and upload a product photo — your request goes to the Adora team for review.');
+                hs.classList.remove('hidden');
+            }
+        }
+
         function syncAppAdInquiryTermsFromConfig() {
-            const customEl = document.getElementById('app-ad-inquiry-terms-custom');
-            const defaultEl = document.getElementById('app-ad-inquiry-terms-default');
+            const customEl = document.getElementById('app-ad-page-terms-custom');
+            const defaultEl = document.getElementById('app-ad-page-terms-default');
             if (!customEl || !defaultEl) return;
             const primary = isRTL
                 ? String(partnerCtaConfig?.app_ad_terms_ar || '').trim()
@@ -2846,39 +2879,46 @@
             }
         }
 
-        function openAppAdInquiryModal() {
+        function openAppAdInquiryPage() {
+            syncAppAdInquiryPageHeroFromConfig();
             syncAppAdInquiryTermsFromConfig();
-            const titleAr = partnerCtaConfig?.app_ad_banner_text_ar || '';
-            const titleEn = partnerCtaConfig?.app_ad_banner_text_en || '';
-            const lineTitle = isRTL ? titleAr || titleEn : titleEn || titleAr;
-            const ht = document.getElementById('app-ad-inquiry-modal-title');
-            if (ht) {
-                ht.textContent =
-                    lineTitle || (isRTL ? 'إعلاناتكم على التطبيق' : 'Advertise on the app');
+            navigateTo('screen-app-ad-inquiry');
+            bindAppAdPageFormOnce();
+        }
+        window.openAppAdInquiryPage = openAppAdInquiryPage;
+        window.openAppAdInquiryModal = openAppAdInquiryPage;
+
+        function backFromAppAdInquiry() {
+            if (adoraNavStack.length > 1 && adoraNavStack[adoraNavStack.length - 1] === 'screen-app-ad-inquiry') {
+                adoraNavStack.pop();
+                const prev = adoraNavStack[adoraNavStack.length - 1];
+                navigateTo(prev, { skipHistory: true });
+                try {
+                    history.replaceState(
+                        { adora: 1, screen: prev },
+                        '',
+                        window.location.pathname + window.location.search + window.location.hash
+                    );
+                } catch (_e) {}
+                persistAdoraSessionState();
+            } else {
+                navigateTo('screen-categories', { rootTab: true, skipHistory: true });
             }
-            const modal = document.getElementById('app-ad-inquiry-modal');
-            if (modal) modal.classList.remove('hidden');
-            bindAppAdInquiryFormOnce();
         }
-        window.openAppAdInquiryModal = openAppAdInquiryModal;
+        window.backFromAppAdInquiry = backFromAppAdInquiry;
 
-        function closeAppAdInquiryModal() {
-            document.getElementById('app-ad-inquiry-modal')?.classList.add('hidden');
-        }
-        window.closeAppAdInquiryModal = closeAppAdInquiryModal;
-
-        function bindAppAdInquiryFormOnce() {
-            const form = document.getElementById('app-ad-inquiry-form');
+        function bindAppAdPageFormOnce() {
+            const form = document.getElementById('app-ad-page-form');
             if (!form || form.dataset.adoraAppAdBound === '1') return;
             form.dataset.adoraAppAdBound = '1';
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const msg = document.getElementById('app-ad-inquiry-msg');
+                const msg = document.getElementById('app-ad-page-msg');
                 if (msg) {
                     msg.classList.add('hidden');
                     msg.textContent = '';
                 }
-                const imgIn = document.getElementById('app-ad-product-image');
+                const imgIn = document.getElementById('aad-p-product-image');
                 const file = imgIn?.files?.[0];
                 if (!file) {
                     if (msg) {
@@ -2890,13 +2930,13 @@
                     return;
                 }
                 const fd = new FormData();
-                fd.append('full_name', document.getElementById('app-ad-full-name')?.value?.trim() || '');
-                fd.append('company_name', document.getElementById('app-ad-company')?.value?.trim() || '');
-                fd.append('email', document.getElementById('app-ad-email')?.value?.trim() || '');
-                fd.append('phone', document.getElementById('app-ad-phone')?.value?.trim() || '');
-                fd.append('residence', document.getElementById('app-ad-residence')?.value?.trim() || '');
-                fd.append('product_price', document.getElementById('app-ad-product-price')?.value?.trim() || '');
-                fd.append('terms_accepted', document.getElementById('app-ad-terms')?.checked ? '1' : '0');
+                fd.append('full_name', document.getElementById('aad-p-full-name')?.value?.trim() || '');
+                fd.append('company_name', document.getElementById('aad-p-company')?.value?.trim() || '');
+                fd.append('email', document.getElementById('aad-p-email')?.value?.trim() || '');
+                fd.append('phone', document.getElementById('aad-p-phone')?.value?.trim() || '');
+                fd.append('residence', document.getElementById('aad-p-residence')?.value?.trim() || '');
+                fd.append('product_price', document.getElementById('aad-p-product-price')?.value?.trim() || '');
+                fd.append('terms_accepted', document.getElementById('aad-p-terms')?.checked ? '1' : '0');
                 fd.append('product_image', file);
                 try {
                     const headers = {};
@@ -2912,13 +2952,15 @@
                         throw new Error(data.error || (isRTL ? 'تعذر الإرسال' : 'Could not submit'));
                     }
                     if (msg) {
-                        msg.textContent = isRTL ? 'تم إرسال طلبك. سيتواصل الفريق معك قريباً.' : 'Your request was sent. Our team will reach out soon.';
+                        msg.textContent = isRTL
+                            ? 'تم إرسال طلبك. سيتواصل الفريق معك قريباً.'
+                            : 'Your request was sent. Our team will reach out soon.';
                         msg.className =
                             'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-emerald-100 text-emerald-800 border border-emerald-200/80';
                         msg.classList.remove('hidden');
                     }
                     form.reset();
-                    setTimeout(() => closeAppAdInquiryModal(), 2200);
+                    setTimeout(() => backFromAppAdInquiry(), 2400);
                 } catch (err) {
                     if (msg) {
                         msg.textContent = err.message || (isRTL ? 'تعذر الإرسال' : 'Could not submit');
@@ -7284,7 +7326,7 @@
             loadPartnerCtaConfig().catch(() => {});
             loadMarketplaceHomeHighlights().catch(() => {});
             bindVendorJoinPageFormOnce();
-            bindAppAdInquiryFormOnce();
+            bindAppAdPageFormOnce();
             refreshAdoraHomeSubcategoryCounts().catch(() => {});
             updateProfileWishlistUi();
             initOnboardingStorageMigration();
@@ -7300,11 +7342,6 @@
             applyAppLanguage();
             document.addEventListener('keydown', (e) => {
                 if (e.key !== 'Escape') return;
-                const adModal = document.getElementById('app-ad-inquiry-modal');
-                if (adModal && !adModal.classList.contains('hidden')) {
-                    closeAppAdInquiryModal();
-                    return;
-                }
                 const ov = document.getElementById('home-subcat-overlay');
                 if (ov && !ov.classList.contains('hidden')) closeHomeCategoryPanel();
             });

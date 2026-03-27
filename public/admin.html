@@ -741,28 +741,6 @@
               </form>
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-              <div class="flex flex-wrap gap-2 items-center justify-between">
-                <h3 class="text-md font-bold">طلبات بنر الإعلانات</h3>
-                <button type="button" id="btn-app-ad-inq-refresh" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
-              </div>
-              <p class="text-xs text-gray-600 leading-relaxed">طلبات المستخدمين لإعلان منتج: الاسم، الشركة، السعر المقترح، صورة المنتج. غيّر الحالة أو أضف ملاحظة داخلية ثم احفظ الصف.</p>
-              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[28rem] overflow-y-auto">
-                <table class="min-w-full text-xs">
-                  <thead class="bg-gray-50 sticky top-0 z-10"><tr>
-                    <th class="p-2 text-start">#</th>
-                    <th class="p-2 text-start">الاسم / الشركة</th>
-                    <th class="p-2 text-start">تواصل</th>
-                    <th class="p-2 text-start">سعر</th>
-                    <th class="p-2 text-start">صورة</th>
-                    <th class="p-2 text-start">حالة</th>
-                    <th class="p-2 text-start min-w-[140px]">ملاحظة</th>
-                    <th class="p-2 text-start">إجراء</th>
-                  </tr></thead>
-                  <tbody id="app-ad-inq-tbody"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <h3 class="text-md font-bold">تقرير عمولة السوق الشامل</h3>
               <div class="flex flex-wrap gap-2 items-end">
                 <div><label class="text-xs font-bold block">من</label><input id="vp-comm-from" type="datetime-local" class="mt-1 p-2 rounded-xl border border-gray-200" /></div>
@@ -794,18 +772,41 @@
             </div>
           </div>
 
-          <div id="tab-vendor-subscriptions" class="tab-panel hidden">
+          <div id="tab-vendor-subscriptions" class="tab-panel hidden space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <div class="flex flex-wrap gap-2 items-center justify-between">
                 <h2 class="text-lg font-bold">طلبات الاشتراك كشركة</h2>
-                <button type="button" id="btn-vp-sub-refresh" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+                <button type="button" id="btn-vp-sub-refresh" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث القسمين</button>
               </div>
+              <p class="text-xs text-gray-500 leading-relaxed">طلبات الانضمام كشركة في أدورا (نموذج «انضم كشركة») — منفصلة عن طلبات إعلان المنتج أدناه.</p>
               <div class="overflow-x-auto border border-gray-100 rounded-xl">
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50 text-gray-600"><tr>
                     <th class="text-start p-2">#</th><th class="text-start p-2">الاسم</th><th class="text-start p-2">الشركة</th><th class="text-start p-2">الجوال</th><th class="text-start p-2">البريد</th><th class="text-start p-2">وثائق</th><th class="text-start p-2">الحالة</th><th class="text-start p-2">إجراءات</th>
                   </tr></thead>
                   <tbody id="vp-sub-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-violet-100 p-4 space-y-3 bg-violet-50/40">
+              <div class="flex flex-wrap gap-2 items-center justify-between">
+                <h2 class="text-lg font-bold text-violet-900">طلبات إعلان منتج (بنر الإعلانات)</h2>
+                <button type="button" id="btn-app-ad-inq-refresh" class="px-3 py-2 rounded-xl bg-violet-100 text-sm font-bold text-violet-900">تحديث هذا القسم</button>
+              </div>
+              <p class="text-xs text-gray-600 leading-relaxed">طلبات من نموذج «إعلاناتكم على التطبيق» فقط — جدول وقاعدة بيانات منفصلة عن طلبات الانضمام كشركة أعلاه.</p>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[28rem] overflow-y-auto bg-white">
+                <table class="min-w-full text-xs">
+                  <thead class="bg-gray-50 sticky top-0 z-10"><tr>
+                    <th class="p-2 text-start">#</th>
+                    <th class="p-2 text-start">الاسم / الشركة</th>
+                    <th class="p-2 text-start">تواصل</th>
+                    <th class="p-2 text-start">سعر</th>
+                    <th class="p-2 text-start">صورة</th>
+                    <th class="p-2 text-start">حالة</th>
+                    <th class="p-2 text-start min-w-[140px]">ملاحظة</th>
+                    <th class="p-2 text-start">إجراء</th>
+                  </tr></thead>
+                  <tbody id="app-ad-inq-tbody"></tbody>
                 </table>
               </div>
             </div>
