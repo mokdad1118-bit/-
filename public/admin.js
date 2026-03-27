@@ -443,6 +443,17 @@ const VP_PARTNER_CTA_PLACEMENT_KEYS = [
   "listing_screen",
 ];
 
+const VP_APP_AD_PLACEMENT_KEYS = [
+  "home_above_partner",
+  "home_below_partner",
+  "home_between_main_and_brands",
+  "home_above_marketplace",
+  "side_menu_account",
+  "marketplace_screen",
+  "offers_screen",
+  "listing_screen",
+];
+
 async function loadVendorPlatformSettingsUi() {
   const token = getToken();
   if (!token) return;
@@ -484,6 +495,107 @@ async function loadVendorPlatformSettingsUi() {
   const jtEn = document.getElementById("vp-join-terms-en");
   if (jtAr) jtAr.value = s.vendor_join_terms_ar || "";
   if (jtEn) jtEn.value = s.vendor_join_terms_en || "";
+  const appAdOn = document.getElementById("vp-app-ad-on");
+  if (appAdOn) appAdOn.checked = Number(s.app_ad_banner_enabled) !== 0;
+  const aar = document.getElementById("vp-app-ad-ar");
+  const aen = document.getElementById("vp-app-ad-en");
+  if (aar) aar.value = s.app_ad_banner_text_ar || "";
+  if (aen) aen.value = s.app_ad_banner_text_en || "";
+  const asar = document.getElementById("vp-app-ad-sub-ar");
+  const asen = document.getElementById("vp-app-ad-sub-en");
+  if (asar) asar.value = s.app_ad_banner_subtitle_ar || "";
+  if (asen) asen.value = s.app_ad_banner_subtitle_en || "";
+  let appAdPl = [];
+  try {
+    appAdPl = JSON.parse(s.app_ad_banner_placements_json || "[]");
+  } catch (_e) {
+    appAdPl = [];
+  }
+  if (!Array.isArray(appAdPl)) appAdPl = [];
+  const adset = new Set(appAdPl.map((x) => String(x).trim()));
+  for (const k of VP_APP_AD_PLACEMENT_KEYS) {
+    const el = document.getElementById(`vp-aad-pl-${k}`);
+    if (el) el.checked = adset.has(k);
+  }
+  const ata = document.getElementById("vp-app-ad-terms-ar");
+  const ate = document.getElementById("vp-app-ad-terms-en");
+  if (ata) ata.value = s.app_ad_terms_ar || "";
+  if (ate) ate.value = s.app_ad_terms_en || "";
+}
+
+async function loadAppAdInquiriesUi() {
+  const token = getToken();
+  const tbody = document.getElementById("app-ad-inq-tbody");
+  if (!token || !tbody) return;
+  const ar = getAdminLang() === "ar";
+  let rows;
+  try {
+    rows = await api("/api/admin/app-ad-inquiries", { token });
+  } catch (_e) {
+    tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-red-600">${ar ? "تعذر التحميل." : "Failed to load."}</td></tr>`;
+    return;
+  }
+  if (!Array.isArray(rows) || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-gray-500">${ar ? "لا طلبات بعد." : "No inquiries yet."}</td></tr>`;
+    return;
+  }
+  const stLabel = (st) => {
+    const x = String(st || "").toLowerCase();
+    if (x === "reviewed") return ar ? "تمت المراجعة" : "Reviewed";
+    if (x === "archived") return ar ? "مؤرشف" : "Archived";
+    return ar ? "قيد الانتظار" : "Pending";
+  };
+  tbody.innerHTML = rows
+    .map((r) => {
+      const imgUrl = r.product_image_url ? String(r.product_image_url) : "";
+      const imgCell = imgUrl
+        ? `<a href="${escapeHtml(imgUrl)}" target="_blank" rel="noopener noreferrer" class="text-violet-600 font-bold underline">${ar ? "عرض" : "View"}</a>`
+        : "—";
+      return `<tr class="border-t border-gray-100 align-top" data-app-ad-inq-id="${r.id}">
+        <td class="p-2 font-mono">${r.id}</td>
+        <td class="p-2 max-w-[120px]"><div class="font-semibold">${escapeHtml(r.full_name || "")}</div><div class="text-gray-600">${escapeHtml(r.company_name || "")}</div></td>
+        <td class="p-2 max-w-[130px] text-[10px] break-all"><div>${escapeHtml(r.email || "")}</div><div class="mt-0.5">${escapeHtml(r.phone || "")}</div><div class="mt-0.5 text-gray-500">${escapeHtml(r.residence || "")}</div></td>
+        <td class="p-2 max-w-[72px] break-words">${escapeHtml(r.product_price || "")}</td>
+        <td class="p-2">${imgCell}</td>
+        <td class="p-2">
+          <select class="app-ad-inq-status w-full p-1.5 rounded-lg border border-gray-200 text-[11px]" data-app-ad-inq-status="${r.id}">
+            <option value="pending"${String(r.status).toLowerCase() === "pending" ? " selected" : ""}>${stLabel("pending")}</option>
+            <option value="reviewed"${String(r.status).toLowerCase() === "reviewed" ? " selected" : ""}>${stLabel("reviewed")}</option>
+            <option value="archived"${String(r.status).toLowerCase() === "archived" ? " selected" : ""}>${stLabel("archived")}</option>
+          </select>
+        </td>
+        <td class="p-2"><textarea class="app-ad-inq-note w-full min-h-[52px] p-1.5 rounded-lg border border-gray-200 text-[11px]" rows="2" data-app-ad-inq-note="${r.id}"></textarea></td>
+        <td class="p-2"><button type="button" class="text-xs px-2 py-1.5 rounded-lg bg-orange-600 text-white font-bold app-ad-inq-save" data-app-ad-inq-save="${r.id}">${ar ? "حفظ" : "Save"}</button></td>
+      </tr>`;
+    })
+    .join("");
+  for (const r of rows) {
+    const ta = tbody.querySelector(`textarea[data-app-ad-inq-note="${Number(r.id)}"]`);
+    if (ta) ta.value = r.admin_note != null ? String(r.admin_note) : "";
+  }
+  tbody.querySelectorAll(".app-ad-inq-save").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-app-ad-inq-save");
+      const token2 = getToken();
+      if (!token2 || !id) return;
+      const ar2 = getAdminLang() === "ar";
+      const sel = tbody.querySelector(`[data-app-ad-inq-status="${id}"]`);
+      const ta = tbody.querySelector(`[data-app-ad-inq-note="${id}"]`);
+      const status = sel && sel.value ? String(sel.value).trim() : "pending";
+      const admin_note = ta ? String(ta.value) : "";
+      try {
+        await api(`/api/admin/app-ad-inquiries/${id}`, {
+          method: "PATCH",
+          token: token2,
+          body: { status, admin_note },
+        });
+        alert(ar2 ? "تم الحفظ." : "Saved.");
+        await loadAppAdInquiriesUi();
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+  });
 }
 
 async function loadVendorPromotionsUi() {
@@ -556,6 +668,7 @@ async function loadVendorCommissionReportUi() {
 async function initVendorPlatformAdminTab() {
   await loadVendorPlatformSettingsUi();
   await loadVendorPromotionsUi();
+  await loadAppAdInquiriesUi();
   if (!vendorPlatformListenersBound) {
     vendorPlatformListenersBound = true;
     document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
@@ -574,6 +687,10 @@ async function initVendorPlatformAdminTab() {
         const el = document.getElementById(`vp-pl-${k}`);
         return el && el.checked;
       });
+      const app_ad_banner_placements = VP_APP_AD_PLACEMENT_KEYS.filter((k) => {
+        const el = document.getElementById(`vp-aad-pl-${k}`);
+        return el && el.checked;
+      });
       const body = {
         product_quota_enabled: document.getElementById("vp-quota-on").checked ? 1 : 0,
         free_products_per_vendor: Number(document.getElementById("vp-free-n").value || 0),
@@ -588,6 +705,14 @@ async function initVendorPlatformAdminTab() {
         partner_cta_placements,
         vendor_join_terms_ar: document.getElementById("vp-join-terms-ar")?.value ?? "",
         vendor_join_terms_en: document.getElementById("vp-join-terms-en")?.value ?? "",
+        app_ad_banner_enabled: document.getElementById("vp-app-ad-on")?.checked ? 1 : 0,
+        app_ad_banner_text_ar: document.getElementById("vp-app-ad-ar")?.value?.trim() ?? "",
+        app_ad_banner_text_en: document.getElementById("vp-app-ad-en")?.value?.trim() ?? "",
+        app_ad_banner_subtitle_ar: document.getElementById("vp-app-ad-sub-ar")?.value?.trim() ?? "",
+        app_ad_banner_subtitle_en: document.getElementById("vp-app-ad-sub-en")?.value?.trim() ?? "",
+        app_ad_banner_placements,
+        app_ad_terms_ar: document.getElementById("vp-app-ad-terms-ar")?.value ?? "",
+        app_ad_terms_en: document.getElementById("vp-app-ad-terms-en")?.value ?? "",
         featured_products_mode: document.getElementById("vp-featured-mode").value,
         featured_vendor_ids: vendorIds,
         bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost").checked ? 1 : 0,
@@ -629,6 +754,9 @@ async function initVendorPlatformAdminTab() {
       }
     });
     document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
+    document.getElementById("btn-app-ad-inq-refresh")?.addEventListener("click", () =>
+      loadAppAdInquiriesUi().catch((err) => alert(err.message || err))
+    );
   }
 }
 

@@ -710,6 +710,66 @@
             border-radius: 0.875rem;
             font-size: 0.8125rem;
         }
+        .app-ad-cta-pill {
+            background: linear-gradient(120deg, #c2410c 0%, #ea580c 45%, #d97706 100%);
+            color: #fff;
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            text-align: start;
+            box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .app-ad-cta-pill:active {
+            transform: scale(0.99);
+        }
+        .app-ad-cta-pill--compact {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.875rem;
+            font-size: 0.8125rem;
+        }
+        .app-ad-inquiry-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 10040;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            background: rgba(15, 23, 42, 0.58);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        @media (min-width: 640px) {
+            .app-ad-inquiry-modal {
+                align-items: center;
+                padding: 16px;
+            }
+        }
+        .app-ad-inquiry-modal.hidden {
+            display: none;
+        }
+        .app-ad-inquiry-modal-sheet {
+            width: 100%;
+            max-height: min(92dvh, 720px);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 1.5rem 1.5rem 0 0;
+            background: #fff;
+            box-shadow: 0 -12px 48px rgba(15, 23, 42, 0.2);
+        }
+        @media (min-width: 640px) {
+            .app-ad-inquiry-modal-sheet {
+                max-width: 26rem;
+                border-radius: 1.5rem;
+                box-shadow: 0 25px 80px rgba(15, 23, 42, 0.28);
+            }
+        }
+        .app-ad-inquiry-modal-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         .vendor-join-page-bg {
             min-height: 100dvh;
             background: linear-gradient(165deg, #4c1d95 0%, #6d28d9 38%, #7c3aed 72%, #312e81 100%);
@@ -2984,6 +3044,18 @@
                     <i class="fas fa-sliders-h"></i>
                 </button>
             </div>
+            <div id="app-ad-cta-home-above-partner" class="hidden pt-2">
+                <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryModal()" aria-label="">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                        <i class="fas fa-bullhorn text-lg" aria-hidden="true"></i>
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span id="app-ad-cta-above-partner-title" class="block text-sm font-extrabold leading-tight"></span>
+                        <span id="app-ad-cta-above-partner-sub" class="mt-0.5 block text-xs font-medium leading-snug text-white/85"></span>
+                    </span>
+                    <i class="fas fa-chevron-left shrink-0 text-sm opacity-90 rtl:rotate-180" aria-hidden="true"></i>
+                </button>
+            </div>
             <div id="partner-cta-home-under-search" class="hidden pt-3">
                 <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()" aria-label="">
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
@@ -2992,6 +3064,18 @@
                     <span class="min-w-0 flex-1">
                         <span id="partner-cta-under-search-title" class="block text-sm font-extrabold leading-tight"></span>
                         <span id="partner-cta-under-search-sub" class="mt-0.5 block text-xs font-medium leading-snug text-white/85"></span>
+                    </span>
+                    <i class="fas fa-chevron-left shrink-0 text-sm opacity-90 rtl:rotate-180" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div id="app-ad-cta-home-below-partner" class="hidden pt-2">
+                <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryModal()" aria-label="">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                        <i class="fas fa-bullhorn text-lg" aria-hidden="true"></i>
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span id="app-ad-cta-below-partner-title" class="block text-sm font-extrabold leading-tight"></span>
+                        <span id="app-ad-cta-below-partner-sub" class="mt-0.5 block text-xs font-medium leading-snug text-white/85"></span>
                     </span>
                     <i class="fas fa-chevron-left shrink-0 text-sm opacity-90 rtl:rotate-180" aria-hidden="true"></i>
                 </button>
@@ -3013,6 +3097,15 @@
                     <span class="min-w-0 flex-1 text-center sm:text-start">
                         <span id="partner-cta-above-market-title" class="block text-sm font-extrabold"></span>
                         <span id="partner-cta-above-market-sub" class="mt-0.5 block text-xs text-white/85"></span>
+                    </span>
+                </button>
+            </div>
+            <div id="app-ad-cta-home-above-marketplace" class="hidden px-1 pt-2">
+                <button type="button" class="app-ad-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openAppAdInquiryModal()">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-bullhorn text-base"></i></span>
+                    <span class="min-w-0 flex-1 text-center sm:text-start">
+                        <span id="app-ad-cta-above-market-title" class="block text-sm font-extrabold"></span>
+                        <span id="app-ad-cta-above-market-sub" class="mt-0.5 block text-xs text-white/85"></span>
                     </span>
                 </button>
             </div>
@@ -3226,6 +3319,17 @@
 
         <div id="banner-slot-below_categories" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_categories"></div>
 
+        <div id="app-ad-cta-home-between-brands" class="hidden px-4 mt-4 max-w-lg mx-auto w-full">
+            <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryModal()">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-bullhorn text-base"></i></span>
+                <span class="min-w-0 flex-1 text-start">
+                    <span id="app-ad-cta-between-brands-title" class="block text-sm font-extrabold"></span>
+                    <span id="app-ad-cta-between-brands-sub" class="mt-0.5 block text-xs text-white/85"></span>
+                </span>
+                <i class="fas fa-chevron-left shrink-0 text-sm opacity-90 rtl:rotate-180" aria-hidden="true"></i>
+            </button>
+        </div>
+
         <!-- Brands Section -->
         <div class="px-4 mt-6 space-y-4" data-adora-section="brands" data-home-order-key="brands">
             <div class="flex flex-col items-center text-center gap-2">
@@ -3358,6 +3462,13 @@
                     <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
                 </button>
             </div>
+            <div id="app-ad-cta-listing-screen" class="hidden mb-3">
+                <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryModal()">
+                    <i class="fas fa-bullhorn text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-listing-title"></span>
+                    <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+                </button>
+            </div>
 
             <!-- أقسام رجالي / نسائي / أطفال عند تصفح منتجات شركة -->
             <div id="listing-brand-main-cat-wrap" class="hidden mb-3" data-brand-theme="adora">
@@ -3415,6 +3526,13 @@
                 <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
                     <i class="fas fa-briefcase text-sm shrink-0"></i>
                     <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-offers-title"></span>
+                    <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+                </button>
+            </div>
+            <div id="app-ad-cta-offers-screen" class="hidden mt-2">
+                <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryModal()">
+                    <i class="fas fa-bullhorn text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-offers-title"></span>
                     <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
                 </button>
             </div>
@@ -3542,6 +3660,13 @@
             <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
                 <i class="fas fa-store text-sm shrink-0"></i>
                 <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-marketplace-title"></span>
+                <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+            </button>
+        </div>
+        <div id="app-ad-cta-marketplace-screen" class="hidden px-3 pt-2">
+            <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryModal()">
+                <i class="fas fa-bullhorn text-sm shrink-0"></i>
+                <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-marketplace-title"></span>
                 <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
             </button>
         </div>
@@ -4293,6 +4418,66 @@
         </div>
     </div>
 
+    <!-- طلب إعلان منتج داخل التطبيق -->
+    <div id="app-ad-inquiry-modal" class="app-ad-inquiry-modal hidden" role="dialog" aria-modal="true" aria-labelledby="app-ad-inquiry-modal-title" onclick="if (event.target === this) closeAppAdInquiryModal()">
+        <div class="app-ad-inquiry-modal-sheet" onclick="event.stopPropagation()">
+            <div class="flex-shrink-0 flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-gray-100">
+                <h2 id="app-ad-inquiry-modal-title" class="text-base font-extrabold text-gray-900 leading-tight min-w-0" data-en="Advertise on the app" data-ar="إعلاناتكم على التطبيق">إعلاناتكم على التطبيق</h2>
+                <button type="button" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center shrink-0 text-gray-600" onclick="closeAppAdInquiryModal()" aria-label="Close">
+                    <i class="fas fa-times text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="app-ad-inquiry-modal-body px-4 py-3 pb-6">
+                <p id="app-ad-inquiry-modal-lead" class="text-xs text-gray-500 leading-relaxed mb-3" data-en="Fill in your details and attach a clear product photo. Our team will contact you." data-ar="عبّئ بياناتك وارفع صورة واضحة للمنتج. سيتواصل فريق أدورا معك.">عبّئ بياناتك وارفع صورة واضحة للمنتج. سيتواصل فريق أدورا معك.</p>
+                <form id="app-ad-inquiry-form" class="space-y-3 text-sm">
+                    <div>
+                        <label for="app-ad-full-name" class="text-[11px] font-bold text-gray-600" data-en="Full name" data-ar="الاسم الثلاثي">الاسم الثلاثي</label>
+                        <input id="app-ad-full-name" name="full_name" type="text" required maxlength="200" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" autocomplete="name" />
+                    </div>
+                    <div>
+                        <label for="app-ad-company" class="text-[11px] font-bold text-gray-600" data-en="Company name" data-ar="اسم الشركة">اسم الشركة</label>
+                        <input id="app-ad-company" name="company_name" type="text" required maxlength="200" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" autocomplete="organization" />
+                    </div>
+                    <div>
+                        <label for="app-ad-email" class="text-[11px] font-bold text-gray-600" data-en="Email" data-ar="البريد الإلكتروني">البريد الإلكتروني</label>
+                        <input id="app-ad-email" name="email" type="email" required maxlength="200" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" dir="ltr" autocomplete="email" />
+                    </div>
+                    <div>
+                        <label for="app-ad-phone" class="text-[11px] font-bold text-gray-600" data-en="Phone" data-ar="رقم الجوال">رقم الجوال</label>
+                        <input id="app-ad-phone" name="phone" type="tel" required maxlength="40" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" dir="ltr" autocomplete="tel" />
+                    </div>
+                    <div>
+                        <label for="app-ad-residence" class="text-[11px] font-bold text-gray-600" data-en="Place of residence" data-ar="مكان الإقامة">مكان الإقامة</label>
+                        <input id="app-ad-residence" name="residence" type="text" required maxlength="400" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" />
+                    </div>
+                    <div>
+                        <label for="app-ad-product-price" class="text-[11px] font-bold text-gray-600" data-en="Product price (as you want it shown)" data-ar="سعر المنتج (كما تود عرضه)">سعر المنتج (كما تود عرضه)</label>
+                        <input id="app-ad-product-price" name="product_price" type="text" required maxlength="120" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25" placeholder="مثال: 25 دينار / $19" data-en-ph="e.g. 25 JOD / $19" data-ar-ph="مثال: 25 دينار / $19" />
+                    </div>
+                    <div>
+                        <label for="app-ad-product-image" class="text-[11px] font-bold text-gray-600" data-en="Product photo" data-ar="صورة المنتج">صورة المنتج</label>
+                        <input id="app-ad-product-image" type="file" accept="image/jpeg,image/png,image/webp" required class="mt-1 block w-full text-xs text-gray-700 file:me-2 file:rounded-lg file:border-0 file:bg-orange-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-orange-900" />
+                    </div>
+                    <div class="rounded-2xl bg-orange-50/90 border border-orange-100 p-3 text-xs text-gray-700 space-y-2">
+                        <p class="font-bold text-orange-900" data-en="Terms" data-ar="الشروط">الشروط</p>
+                        <div id="app-ad-inquiry-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800"></div>
+                        <ul id="app-ad-inquiry-terms-default" class="list-disc ps-4 space-y-1 leading-relaxed">
+                            <li data-en="Clear, well-lit product photo" data-ar="صورة واضحة للمنتج">صورة واضحة للمنتج</li>
+                            <li data-en="Fair and acceptable product price" data-ar="سعر مقبول للمنتج">سعر مقبول للمنتج</li>
+                            <li data-en="Accurate contact details" data-ar="صحة بيانات التواصل">صحة بيانات التواصل</li>
+                        </ul>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="app-ad-terms" required class="mt-1 rounded border-gray-300 text-orange-600 w-4 h-4 shrink-0" />
+                        <label for="app-ad-terms" class="text-xs leading-relaxed text-gray-700 font-medium" data-en="I have read and agree to the terms" data-ar="قرأت الشروط وأوافق عليها">قرأت الشروط وأوافق عليها</label>
+                    </div>
+                    <p id="app-ad-inquiry-msg" class="text-xs text-center font-semibold hidden rounded-xl py-2 px-3"></p>
+                    <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-500 text-white font-extrabold shadow-lg shadow-orange-900/20 active:scale-[0.99] transition-transform" data-en="Send request" data-ar="إرسال الطلب">إرسال الطلب</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- تأكيد الخروج من التطبيق (زر الرجوع في آخر مستوى) -->
     <div id="exit-app-modal" class="exit-app-modal hidden" role="dialog" aria-modal="true" aria-labelledby="exit-app-modal-title" onclick="if (event.target === this) confirmExitAppNo()">
         <div class="exit-app-modal-card" onclick="event.stopPropagation()">
@@ -4335,6 +4520,14 @@
                 <i class="fas fa-shield-check"></i>
                 <span data-en="Signed in" data-ar="مسجل الدخول">مسجل الدخول</span>
             </div>
+        </div>
+
+        <div id="app-ad-side-menu" class="hidden px-4 pt-3">
+            <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="closeSideDrawer(); openAppAdInquiryModal();">
+                <i class="fas fa-bullhorn text-sm shrink-0"></i>
+                <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-side-menu-title"></span>
+                <i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180 shrink-0"></i>
+            </button>
         </div>
 
         <nav class="p-4 space-y-1.5">

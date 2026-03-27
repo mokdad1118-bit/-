@@ -59,6 +59,47 @@ function normalizePartnerPlacementsFromBody(body, curJson) {
   return parsePartnerCtaPlacementsJson(curJson);
 }
 
+const APP_AD_PLACEMENT_KEYS = [
+  "home_above_partner",
+  "home_below_partner",
+  "home_between_main_and_brands",
+  "home_above_marketplace",
+  "side_menu_account",
+  "marketplace_screen",
+  "offers_screen",
+  "listing_screen",
+];
+
+function parseAppAdPlacementsJson(raw) {
+  const allowed = new Set(APP_AD_PLACEMENT_KEYS);
+  try {
+    const v = JSON.parse(raw || "[]");
+    if (!Array.isArray(v)) return [];
+    return [...new Set(v.map((x) => String(x).trim()).filter((k) => allowed.has(k)))];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeAppAdPlacementsFromBody(body, curJson) {
+  if (body != null && Array.isArray(body.app_ad_banner_placements)) {
+    return parseAppAdPlacementsJson(JSON.stringify(body.app_ad_banner_placements));
+  }
+  if (body != null && body.app_ad_banner_placements_json != null) {
+    return parseAppAdPlacementsJson(String(body.app_ad_banner_placements_json));
+  }
+  return parseAppAdPlacementsJson(curJson);
+}
+
+const appAdProductUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /^image\/(jpeg|jpg|pjpeg|png|webp)$/i.test(file.mimetype || "");
+    cb(null, ok);
+  },
+});
+
 async function resolveVendorSubscriptionNotifyUserId(row) {
   if (row.user_id != null && Number(row.user_id) > 0) {
     const u = await get(`SELECT id FROM users WHERE id=? AND COALESCE(role,'user') <> 'admin'`, [Number(row.user_id)]);
@@ -126,9 +167,18 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           vendor_join_terms_ar: "",
           vendor_join_terms_en: "",
           bestsellers_boost_enabled: 1,
+          app_ad_banner_enabled: 0,
+          app_ad_banner_text_ar: "أعلن عن منتجك داخل تطبيق أدورا",
+          app_ad_banner_text_en: "Advertise your product on Adora",
+          app_ad_banner_subtitle_ar: "",
+          app_ad_banner_subtitle_en: "",
+          app_ad_banner_placements: [],
+          app_ad_terms_ar: "",
+          app_ad_terms_en: "",
         });
       }
       const placements = parsePartnerCtaPlacementsJson(s.partner_cta_placements_json);
+      const appAdPl = parseAppAdPlacementsJson(s.app_ad_banner_placements_json || "[]");
       return res.json({
         partner_banner_enabled: Number(s.partner_banner_enabled) === 1 ? 1 : 0,
         partner_banner_text_ar: s.partner_banner_text_ar || "",
@@ -139,6 +189,14 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         vendor_join_terms_ar: s.vendor_join_terms_ar || "",
         vendor_join_terms_en: s.vendor_join_terms_en || "",
         bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
+        app_ad_banner_enabled: Number(s.app_ad_banner_enabled) === 1 ? 1 : 0,
+        app_ad_banner_text_ar: s.app_ad_banner_text_ar || "",
+        app_ad_banner_text_en: s.app_ad_banner_text_en || "",
+        app_ad_banner_subtitle_ar: s.app_ad_banner_subtitle_ar || "",
+        app_ad_banner_subtitle_en: s.app_ad_banner_subtitle_en || "",
+        app_ad_banner_placements: appAdPl,
+        app_ad_terms_ar: s.app_ad_terms_ar || "",
+        app_ad_terms_en: s.app_ad_terms_en || "",
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load public settings" });
@@ -204,6 +262,24 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const vendor_join_terms_en =
         b.vendor_join_terms_en != null ? String(b.vendor_join_terms_en).slice(0, 8000) : cur.vendor_join_terms_en ?? "";
 
+      const app_ad_banner_enabled =
+        b.app_ad_banner_enabled != null ? (Number(b.app_ad_banner_enabled) === 0 ? 0 : 1) : Number(cur.app_ad_banner_enabled) === 1 ? 1 : 0;
+      const app_ad_banner_text_ar =
+        b.app_ad_banner_text_ar != null ? String(b.app_ad_banner_text_ar).slice(0, 500) : cur.app_ad_banner_text_ar ?? "";
+      const app_ad_banner_text_en =
+        b.app_ad_banner_text_en != null ? String(b.app_ad_banner_text_en).slice(0, 500) : cur.app_ad_banner_text_en ?? "";
+      const app_ad_banner_subtitle_ar =
+        b.app_ad_banner_subtitle_ar != null ? String(b.app_ad_banner_subtitle_ar).slice(0, 500) : cur.app_ad_banner_subtitle_ar ?? "";
+      const app_ad_banner_subtitle_en =
+        b.app_ad_banner_subtitle_en != null ? String(b.app_ad_banner_subtitle_en).slice(0, 500) : cur.app_ad_banner_subtitle_en ?? "";
+      const app_ad_banner_placements_json = JSON.stringify(
+        normalizeAppAdPlacementsFromBody(b, cur.app_ad_banner_placements_json || "[]")
+      );
+      const app_ad_terms_ar =
+        b.app_ad_terms_ar != null ? String(b.app_ad_terms_ar).slice(0, 8000) : cur.app_ad_terms_ar ?? "";
+      const app_ad_terms_en =
+        b.app_ad_terms_en != null ? String(b.app_ad_terms_en).slice(0, 8000) : cur.app_ad_terms_en ?? "";
+
       await run(
         `UPDATE vendor_platform_settings SET
           product_quota_enabled=?, free_products_per_vendor=?, extra_product_price_usd=?, commission_percent=?,
@@ -211,6 +287,9 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_subtitle_ar=?, partner_cta_subtitle_en=?, partner_cta_placements_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
           vendor_join_terms_ar=?, vendor_join_terms_en=?,
+          app_ad_banner_enabled=?, app_ad_banner_text_ar=?, app_ad_banner_text_en=?,
+          app_ad_banner_subtitle_ar=?, app_ad_banner_subtitle_en=?, app_ad_banner_placements_json=?,
+          app_ad_terms_ar=?, app_ad_terms_en=?,
           updated_at=CURRENT_TIMESTAMP
          WHERE id=1`,
         [
@@ -230,6 +309,14 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           bestsellers_boost_enabled,
           vendor_join_terms_ar,
           vendor_join_terms_en,
+          app_ad_banner_enabled,
+          app_ad_banner_text_ar,
+          app_ad_banner_text_en,
+          app_ad_banner_subtitle_ar,
+          app_ad_banner_subtitle_en,
+          app_ad_banner_placements_json,
+          app_ad_terms_ar,
+          app_ad_terms_en,
         ]
       );
       return res.json(await getVendorPlatformSettings());
@@ -552,6 +639,95 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       return res.status(500).json({ error: "Failed to load commission report" });
     }
   });
+
+  app.post("/api/app-ad-inquiries", optionalAuth, appAdProductUpload.single("product_image"), async (req, res) => {
+    try {
+      const uploadReady = typeof isVendorJoinUploadReady === "function" ? isVendorJoinUploadReady() : false;
+      const b = req.body || {};
+      const full_name = b.full_name != null ? String(b.full_name).trim().slice(0, 200) : "";
+      const company_name = b.company_name != null ? String(b.company_name).trim().slice(0, 200) : "";
+      const email = b.email != null ? String(b.email).trim().slice(0, 200) : "";
+      const phone = b.phone != null ? String(b.phone).trim().slice(0, 40) : "";
+      const residence = b.residence != null ? String(b.residence).trim().slice(0, 400) : "";
+      const product_price = b.product_price != null ? String(b.product_price).trim().slice(0, 120) : "";
+      const terms_accepted = Number(b.terms_accepted) === 1 || String(b.terms_accepted).trim() === "1" ? 1 : 0;
+      if (!full_name || !company_name || !email || !phone || !residence || !product_price) {
+        return res.status(400).json({ error: "يرجى تعبئة جميع الحقول المطلوبة." });
+      }
+      if (!terms_accepted) {
+        return res.status(400).json({ error: "يجب الموافقة على الشروط." });
+      }
+      const f = req.file;
+      if (!f || !f.buffer) {
+        return res.status(400).json({ error: "يرجى إرفاق صورة المنتج." });
+      }
+      if (!uploadReady || typeof uploadVendorJoinImageBuffer !== "function") {
+        return res.status(503).json({
+          error:
+            "رفع الصور غير متاح — أضف إعدادات Cloudinary على الخادم (CLOUDINARY_URL أو اسم السحابة والمفاتيح).",
+        });
+      }
+      let product_image_url;
+      try {
+        product_image_url = await uploadVendorJoinImageBuffer(f.buffer);
+      } catch (e) {
+        const msg = e && e.message ? String(e.message) : "Upload failed";
+        return res.status(500).json({ error: msg });
+      }
+      let user_id = null;
+      if (req.user && String(req.user.role || "").trim().toLowerCase() !== "admin") {
+        const uid = Number(req.user.id);
+        if (Number.isFinite(uid) && uid > 0) user_id = uid;
+      }
+      const ins = await run(
+        `INSERT INTO app_ad_inquiries (full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, status, user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        [full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, user_id]
+      );
+      return res.status(201).json({ ok: true, id: ins.id });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to submit inquiry" });
+    }
+  });
+
+  app.get("/api/admin/app-ad-inquiries", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const rows = await all(
+        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, status, admin_note, user_id, created_at, updated_at
+         FROM app_ad_inquiries ORDER BY created_at DESC, id DESC LIMIT 500`
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load inquiries" });
+    }
+  });
+
+  app.patch("/api/admin/app-ad-inquiries/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const row = await get(`SELECT * FROM app_ad_inquiries WHERE id=?`, [id]);
+      if (!row) return res.status(404).json({ error: "Not found" });
+      const b = req.body || {};
+      const statusIn = b.status != null ? String(b.status).trim().toLowerCase() : null;
+      let newStatus = row.status;
+      if (statusIn === "pending" || statusIn === "reviewed" || statusIn === "archived") {
+        newStatus = statusIn;
+      }
+      let newNote = row.admin_note;
+      if (b.admin_note !== undefined) {
+        newNote = b.admin_note != null ? String(b.admin_note).slice(0, 4000) : null;
+      }
+      await run(`UPDATE app_ad_inquiries SET status=?, admin_note=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [
+        newStatus,
+        newNote,
+        id,
+      ]);
+      return res.json(await get(`SELECT * FROM app_ad_inquiries WHERE id=?`, [id]));
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to update inquiry" });
+    }
+  });
 }
 
-module.exports = { registerVendorPlatformRoutes, PROMOTION_SLOTS };
+module.exports = { registerVendorPlatformRoutes, PROMOTION_SLOTS, APP_AD_PLACEMENT_KEYS };

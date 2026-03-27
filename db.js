@@ -341,6 +341,7 @@ async function initDb() {
   await migrateVendorJoinTermsAndDocImages();
   await migrateMarketplaceComprehensiveV2();
   await migrateMarketplaceHomePlacementsV1();
+  await migrateAppAdBannerV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -710,6 +711,40 @@ async function migrateMarketplaceComprehensiveV2() {
         ]);
     }
   }
+}
+
+/** بنر طلبات الإعلان على التطبيق + طلبات المستخدمين */
+async function migrateAppAdBannerV1() {
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_enabled INTEGER NOT NULL DEFAULT 0`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_ar TEXT NOT NULL DEFAULT 'أعلن عن منتجك داخل تطبيق أدورا'`
+  );
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_text_en TEXT NOT NULL DEFAULT 'Advertise your product on Adora'`
+  );
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_subtitle_ar TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_subtitle_en TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_banner_placements_json TEXT NOT NULL DEFAULT '[]'`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_terms_ar TEXT NOT NULL DEFAULT ''`
+  );
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS app_ad_terms_en TEXT NOT NULL DEFAULT ''`);
+  await run(`CREATE TABLE IF NOT EXISTS app_ad_inquiries (
+    id SERIAL PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    company_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    residence TEXT NOT NULL DEFAULT '',
+    product_price TEXT NOT NULL DEFAULT '',
+    product_image_url TEXT,
+    terms_accepted INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    admin_note TEXT,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
 }
 
 /** ظهور منتجات/شركات السوق الشامل في أقسام الرئيسية + أولوية بحث حسب الشركة */
