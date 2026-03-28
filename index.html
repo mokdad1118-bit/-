@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="google" content="notranslate">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, minimum-scale=1, viewport-fit=cover">
     <!-- Netlify / استضافة ثابتة: ضع هنا رابط خادم Node الكامل فقط (مثل https://adora-api.onrender.com) بدون / في النهاية. إذا فارغ يُفترض أن الـ API على نفس النطاق. -->
     <meta name="adora-api-base" content="">
     <script src="/adora-config.js"></script>
@@ -2007,15 +2007,19 @@
         .product-noon-gallery-host {
             background: linear-gradient(180deg, #f3f4f6 0%, #f9fafb 100%);
         }
+        /* يثبت المعرض تحت الهيدر الثابت — لا يختبئ تحته */
         #screen-product .product-noon-gallery-host,
         #screen-marketplace-product .product-noon-gallery-host {
+            position: -webkit-sticky;
             position: sticky;
-            top: 0;
-            z-index: 0;
+            top: var(--adora-header-offset);
+            z-index: 1;
             width: 100%;
         }
+        /* تمرير أفقي موحّد (LTR) حتى يعمل السلايدر بشكل صحيح في الواجهة العربية */
         #product-gallery.product-noon-gallery,
         #marketplace-product-gallery.product-noon-gallery {
+            direction: ltr;
             min-height: min(38vh, 320px);
             height: min(42vh, 340px);
             max-height: 340px;
@@ -2025,6 +2029,10 @@
             overscroll-behavior-x: contain;
             touch-action: pan-x;
             scroll-behavior: smooth;
+        }
+        #product-gallery .adora-gallery-top-actions--noon,
+        #marketplace-product-gallery .adora-gallery-top-actions--noon {
+            direction: rtl;
         }
         @media (prefers-reduced-motion: reduce) {
             #product-gallery.product-noon-gallery,
@@ -2049,6 +2057,8 @@
             object-position: center;
         }
         .adora-gallery-fraction {
+            direction: ltr;
+            unicode-bidi: isolate;
             font-size: 0.6875rem;
             font-weight: 800;
             color: rgba(55, 65, 81, 0.88);
@@ -2132,6 +2142,8 @@
             background: #818cf8;
         }
         .product-noon-sheet {
+            position: relative;
+            z-index: 2;
             border-radius: 1.35rem 1.35rem 0 0;
             box-shadow: 0 -12px 44px rgba(79, 70, 229, 0.07);
         }
@@ -4874,8 +4886,8 @@
                 </div>
             </div>
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
+                <div class="flex justify-center gap-1.5 hidden pointer-events-auto" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
                 <span id="marketplace-gallery-fraction" class="adora-gallery-fraction hidden tabular-nums" aria-hidden="true"></span>
-                <div class="flex justify-center gap-1.5 hidden" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
             </div>
             <div id="marketplace-gallery-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
@@ -5028,8 +5040,8 @@
             </div>
 
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
+                <div class="flex justify-center gap-1.5 pointer-events-auto" id="product-gallery-dots" role="tablist" aria-label="Product images"></div>
                 <span id="product-gallery-fraction" class="adora-gallery-fraction hidden tabular-nums" aria-hidden="true"></span>
-                <div class="flex justify-center gap-1.5" id="product-gallery-dots" role="tablist" aria-label="Product images"></div>
             </div>
 
             <div id="product-detail-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
