@@ -2003,32 +2003,57 @@
             cursor: zoom-in;
         }
 
-        /* صفحة منتج أدورا — أسلوب قريب من تطبيقات مثل Noon */
+        /* صفحة منتج — معرض نون: عرض كامل، ارتفاع متوسط، تمرير ناعم، يثبت أعلى الشاشة */
         .product-noon-gallery-host {
             background: linear-gradient(180deg, #f3f4f6 0%, #f9fafb 100%);
         }
+        #screen-product .product-noon-gallery-host,
+        #screen-marketplace-product .product-noon-gallery-host {
+            position: sticky;
+            top: 0;
+            z-index: 0;
+            width: 100%;
+        }
         #product-gallery.product-noon-gallery,
         #marketplace-product-gallery.product-noon-gallery {
-            min-height: min(36vh, 300px);
-            height: min(40vh, 320px);
-            max-height: 320px;
+            min-height: min(38vh, 320px);
+            height: min(42vh, 340px);
+            max-height: 340px;
+            width: 100%;
             -webkit-overflow-scrolling: touch;
             scroll-snap-type: x mandatory;
             overscroll-behavior-x: contain;
             touch-action: pan-x;
+            scroll-behavior: smooth;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #product-gallery.product-noon-gallery,
+            #marketplace-product-gallery.product-noon-gallery {
+                scroll-behavior: auto;
+            }
         }
         #product-gallery.product-noon-gallery .product-gallery-slide,
         #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
-            min-height: min(36vh, 300px);
-            height: min(40vh, 320px);
+            min-height: min(38vh, 320px);
+            height: min(42vh, 340px);
+            width: 100%;
+            max-width: 100%;
         }
         #product-gallery.product-noon-gallery .product-gallery-slide img,
         #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
-            max-height: min(38vh, 300px);
-            width: auto;
+            max-height: min(40vh, 320px);
+            width: 100%;
             max-width: 100%;
             height: auto;
             object-fit: contain;
+            object-position: center;
+        }
+        .adora-gallery-fraction {
+            font-size: 0.6875rem;
+            font-weight: 800;
+            color: rgba(55, 65, 81, 0.88);
+            letter-spacing: 0.02em;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
         }
         .adora-gallery-top-actions--noon .adora-noon-fab {
             width: 2.625rem;
@@ -4848,7 +4873,10 @@
                     </button>
                 </div>
             </div>
-            <div class="absolute bottom-2 left-0 right-0 z-[50] flex justify-center gap-1.5 pointer-events-none px-4 hidden" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
+            <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
+                <span id="marketplace-gallery-fraction" class="adora-gallery-fraction hidden tabular-nums" aria-hidden="true"></span>
+                <div class="flex justify-center gap-1.5 hidden" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
+            </div>
             <div id="marketplace-gallery-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
 
@@ -4995,11 +5023,14 @@
                     </button>
                 </div>
                 <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
-                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="max-w-full max-h-[min(38vh,300px)] w-auto h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
+                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
             </div>
 
-            <div class="absolute bottom-2 left-0 right-0 z-[50] flex justify-center gap-1.5 pointer-events-none px-4" id="product-gallery-dots" role="tablist" aria-label="Product images"></div>
+            <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
+                <span id="product-gallery-fraction" class="adora-gallery-fraction hidden tabular-nums" aria-hidden="true"></span>
+                <div class="flex justify-center gap-1.5" id="product-gallery-dots" role="tablist" aria-label="Product images"></div>
+            </div>
 
             <div id="product-detail-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
@@ -6024,18 +6055,18 @@
         </div>
     </div>
 
-    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة">
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-neutral-950 transition-opacity duration-200 ease-out" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة" style="will-change: transform, opacity;">
         <div class="absolute top-0 left-0 right-0 z-[35] flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black via-black/90 to-transparent pointer-events-none rtl:flex-row-reverse">
             <button type="button" id="adora-image-lightbox-close" class="pointer-events-auto w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center backdrop-blur-md border-2 border-white/50 shadow-lg hover:bg-white/30 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
                 <i class="fas fa-times text-2xl" aria-hidden="true"></i>
             </button>
-            <span id="adora-lightbox-counter" class="pointer-events-auto hidden min-w-[3.5rem] text-center text-sm font-bold text-white/90 tabular-nums px-2 py-1 rounded-full bg-white/10 border border-white/25"></span>
+            <span id="adora-lightbox-counter" class="pointer-events-auto hidden min-w-[3.25rem] text-center text-sm font-extrabold text-white tabular-nums px-3 py-1.5 rounded-full bg-white/12 border border-white/30 shadow-sm"></span>
             <button type="button" id="adora-image-lightbox-close-text" class="pointer-events-auto px-4 py-2.5 rounded-full bg-white/20 text-white text-sm font-bold backdrop-blur-md border border-white/45 hover:bg-white/30 active:scale-95 transition" onclick="window.closeAdoraImageLightbox && window.closeAdoraImageLightbox()" data-en="Close" data-ar="إغلاق">إغلاق</button>
         </div>
-        <p id="adora-lightbox-hint" class="absolute top-[5.25rem] left-0 right-0 z-10 text-center text-[11px] text-white/75 px-4 pointer-events-none sm:top-[5.5rem]" data-en="Pinch to zoom · double-tap · drag when zoomed · swipe for more photos" data-ar="قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة">قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة</p>
-        <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-[5.5rem] pb-28 px-2 relative select-none">
-            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-none max-w-full max-h-full flex items-center justify-center">
-                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(76dvh,560px)] max-w-[min(96vw,420px)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none block adora-no-context-img" draggable="false" />
+        <p id="adora-lightbox-hint" class="absolute top-[5.25rem] left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none sm:top-[5.5rem]" data-en="Pinch to zoom · swipe photos · swipe down to close" data-ar="قرّب بإصبعين · اسحب للصور · اسحب للأسفل للإغلاق">قرّب بإصبعين · اسحب للصور · اسحب للأسفل للإغلاق</p>
+        <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden min-h-0 w-full pt-[5.5rem] pb-28 px-1 sm:px-2 relative select-none touch-pan-y">
+            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center max-w-full max-h-full flex items-center justify-center touch-none">
+                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(82dvh,620px)] max-w-[min(100vw,480px)] w-auto h-auto object-contain rounded-md shadow-2xl select-none pointer-events-none block adora-no-context-img" draggable="false" />
             </div>
         </div>
         <div id="adora-lightbox-toolbar" class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">

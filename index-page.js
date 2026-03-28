@@ -4448,11 +4448,11 @@
                     const slides = imgs
                         .map(
                             (src) =>
-                                `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full max-h-[min(38vh,300px)] w-auto h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
+                                `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                         )
                         .join('');
                     adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
-                    syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots');
+                    syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
                 }
                 const stockN = legacyMarketplaceStockForPick(
                     p,
@@ -4519,11 +4519,11 @@
                 const slides = merged
                     .map(
                         (src) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full max-h-[min(38vh,300px)] w-auto h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
-                syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots');
+                syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
             }
             renderMarketplaceDynamicVariantOptions(p);
             if (st > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, st));
@@ -7470,7 +7470,7 @@
                 const slides = imgs
                     .map(
                         (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full max-h-[min(38vh,300px)] w-auto h-auto object-contain" alt="" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
@@ -7762,7 +7762,7 @@
                 const slides = merged
                     .map(
                         (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full max-h-[min(38vh,300px)] w-auto h-auto object-contain" alt="" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
@@ -7978,23 +7978,32 @@
         }
 
         const adoraHorizontalGalleryDotsBound = new Set();
-        function syncHorizontalGalleryDots(galleryId, dotsHostId) {
+        function syncHorizontalGalleryDots(galleryId, dotsHostId, fractionId) {
             const gal = document.getElementById(galleryId);
             const host = document.getElementById(dotsHostId);
+            const frac = fractionId ? document.getElementById(fractionId) : null;
             if (!gal || !host) return;
             const slides = [...gal.querySelectorAll('.product-gallery-slide')];
             const n = slides.length;
             host.innerHTML = '';
             if (n <= 1) {
                 host.classList.add('hidden');
+                if (frac) {
+                    frac.classList.add('hidden');
+                    frac.textContent = '';
+                }
                 return;
             }
             host.classList.remove('hidden');
             host.classList.add('noon-dots');
+            if (frac) {
+                frac.classList.remove('hidden');
+            }
             const setActive = () => {
                 const w = Math.max(1, gal.clientWidth);
                 const idx = Math.min(n - 1, Math.max(0, Math.round(gal.scrollLeft / w)));
                 [...host.children].forEach((c, j) => c.setAttribute('aria-current', j === idx ? 'true' : 'false'));
+                if (frac) frac.textContent = `${idx + 1} / ${n}`;
             };
             for (let i = 0; i < n; i++) {
                 const btn = document.createElement('button');
@@ -8018,7 +8027,7 @@
         }
 
         function syncProductGalleryDotsFromGallery() {
-            syncHorizontalGalleryDots('product-gallery', 'product-gallery-dots');
+            syncHorizontalGalleryDots('product-gallery', 'product-gallery-dots', 'product-gallery-fraction');
         }
 
         let productDescExpanded = false;
@@ -9621,6 +9630,10 @@
                 document.getElementById('adora-lightbox-counter')?.classList.add('hidden');
                 overlay.classList.add('hidden');
                 overlay.setAttribute('aria-hidden', 'true');
+                try {
+                    overlay.style.transform = '';
+                    overlay.style.opacity = '';
+                } catch (_eTr) {}
                 const imgEl = document.getElementById('adora-image-lightbox-img');
                 if (imgEl) {
                     imgEl.removeAttribute('src');
@@ -10435,6 +10448,8 @@
             let swipeStartX = 0;
             let swipeStartY = 0;
             let swipeTracking = false;
+            let pullStart = null;
+            let pullDownActive = false;
 
             function lbPanzoom() {
                 return window.__adoraLightboxPanzoom;
@@ -10458,7 +10473,7 @@
                 const pz = PanzoomCtor(panzoomEl, {
                     canvas: true,
                     contain: 'inside',
-                    maxScale: 4,
+                    maxScale: 5,
                     minScale: 1,
                     startScale: 1,
                     startX: 0,
@@ -10467,8 +10482,8 @@
                     roundPixels: false,
                     cursor: 'grab',
                     animate: true,
-                    duration: 280,
-                    easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+                    duration: 320,
+                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
                     overflow: 'hidden',
                 });
                 window.__adoraLightboxPanzoom = pz;
@@ -10499,7 +10514,7 @@
 
             function updateLbCounter() {
                 if (!counterEl) return;
-                if (lbUrls.length > 1) {
+                if (lbUrls.length > 0) {
                     counterEl.classList.remove('hidden');
                     counterEl.textContent = `${lbIndex + 1} / ${lbUrls.length}`;
                 } else {
@@ -10581,7 +10596,7 @@
                     if (pz.getScale() > 1.08) {
                         pz.reset({ animate: true });
                     } else {
-                        const next = Math.min(4, 2.35);
+                        const next = Math.min(5, 2.35);
                         pz.zoomToPoint(next, pt, { animate: true }, originalEvent);
                     }
                 }
@@ -10623,28 +10638,86 @@
                         if (overlay.classList.contains('hidden')) return;
                         if (e.touches.length !== 1) {
                             swipeTracking = false;
+                            pullStart = null;
+                            pullDownActive = false;
                             return;
                         }
                         const pz = lbPanzoom();
                         if (pz && pz.getScale() > 1.06) {
                             swipeTracking = false;
+                            pullStart = null;
+                            pullDownActive = false;
                             return;
                         }
-                        if (lbUrls.length < 2) {
-                            swipeTracking = false;
-                            return;
-                        }
-                        swipeTracking = true;
-                        swipeStartX = e.touches[0].clientX;
-                        swipeStartY = e.touches[0].clientY;
+                        const t = e.touches[0];
+                        swipeStartX = t.clientX;
+                        swipeStartY = t.clientY;
+                        pullStart = { x: t.clientX, y: t.clientY };
+                        pullDownActive = false;
+                        swipeTracking = lbUrls.length >= 2;
                     },
                     { passive: true }
                 );
 
                 viewport.addEventListener(
+                    'touchmove',
+                    (e) => {
+                        if (overlay.classList.contains('hidden') || !pullStart) return;
+                        if (e.touches.length !== 1) return;
+                        const pz = lbPanzoom();
+                        if (pz && pz.getScale() > 1.06) return;
+                        const t = e.touches[0];
+                        const dx = t.clientX - pullStart.x;
+                        const dy = t.clientY - pullStart.y;
+                        if (!pullDownActive) {
+                            if (dy > 18 && dy > Math.abs(dx) * 1.35) {
+                                pullDownActive = true;
+                                swipeTracking = false;
+                            } else if (Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+                                pullStart = null;
+                                pullDownActive = false;
+                                return;
+                            }
+                        }
+                        if (pullDownActive && dy > 0) {
+                            try {
+                                overlay.style.transform = `translateY(${dy}px)`;
+                                overlay.style.opacity = String(Math.max(0.22, 1 - dy / 520));
+                            } catch (_ePd) {}
+                            e.preventDefault();
+                        }
+                    },
+                    { passive: false }
+                );
+
+                viewport.addEventListener(
                     'touchend',
                     (e) => {
-                        if (!swipeTracking || overlay.classList.contains('hidden')) return;
+                        if (overlay.classList.contains('hidden')) return;
+
+                        if (pullDownActive && pullStart && e.changedTouches.length === 1) {
+                            const dyClose = e.changedTouches[0].clientY - pullStart.y;
+                            pullDownActive = false;
+                            pullStart = null;
+                            swipeTracking = false;
+                            try {
+                                overlay.style.transform = '';
+                                overlay.style.opacity = '';
+                            } catch (_ePu) {}
+                            if (dyClose > 96) {
+                                closeAdoraImageLightbox();
+                                return;
+                            }
+                        } else {
+                            try {
+                                overlay.style.transform = '';
+                                overlay.style.opacity = '';
+                            } catch (_ePu2) {}
+                            pullStart = null;
+                            pullDownActive = false;
+                        }
+
+                        if (!swipeTracking) return;
                         if (e.changedTouches.length !== 1) {
                             swipeTracking = false;
                             return;
@@ -10686,6 +10759,9 @@
                 idx = Math.max(0, Math.min(urls.length - 1, idx));
                 lbUrls = urls;
                 lbIndex = idx;
+                pullStart = null;
+                pullDownActive = false;
+                swipeTracking = false;
                 updateLbCounter();
                 syncLbGlobals();
                 lbLoadToken++;
