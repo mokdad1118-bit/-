@@ -1090,6 +1090,12 @@
             -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
+        /* فوق التدرج البنفسجي: الخلفية البيضاء الافتراضية تخفي عنوان text-white */
+        #screen-vendor-join .adora-screen-toolbar,
+        #screen-app-ad-inquiry .adora-screen-toolbar {
+            background: rgba(76, 29, 149, 0.42);
+            border-bottom-color: rgba(255, 255, 255, 0.12);
+        }
         #app-shell:has(#screen-listing.active) .adora-screen-toolbar,
         body.adora-screen-listing-active #app-shell .adora-screen-toolbar {
             top: 0;
