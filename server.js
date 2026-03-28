@@ -208,9 +208,10 @@ const HOME_SECTION_LABELS = {
   bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
 
-/** ترتيب الكتل داخل #home-reorder-root (بانر home_top خارج الحاوية؛ التثبيت مع البحث اختياري من لوحة التحكم) */
+/** ترتيب الكتل داخل #home-reorder-root (بانر أعلى الرئيسية هنا افتراضياً؛ التثبيت مع شريط البحث اختياري من لوحة التحكم) */
 const HOME_SECTION_ORDER_KEYS = [
   "comprehensive_market",
+  "banner_home_top",
   "main_categories",
   "home_subcat_overlay",
   "banner_below_categories",
@@ -229,6 +230,7 @@ const HOME_SECTION_ORDER_KEYS = [
 
 const HOME_SECTION_ORDER_LABELS = {
   comprehensive_market: { ar: "السوق الشامل", en: "Comprehensive market" },
+  banner_home_top: { ar: "بانر أعلى الرئيسية (تحت السوق الشامل)", en: "Top home banner (below market block)" },
   main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories" },
   home_subcat_overlay: { ar: "لوحة الفئات الفرعية (منبثقة)", en: "Subcategory bottom sheet (fixed overlay)" },
   banner_below_categories: { ar: "بانر تحت الأقسام الرئيسية", en: "Banner below main categories" },
@@ -249,6 +251,7 @@ function mergeHomeSectionsOrder(raw) {
   const allowed = new Set(HOME_SECTION_ORDER_KEYS);
   const def = [...HOME_SECTION_ORDER_KEYS];
   if (!Array.isArray(raw)) return def;
+  const rawHadBannerHomeTop = raw.some((k) => k === "banner_home_top");
   const seen = new Set();
   const out = [];
   for (const k of raw) {
@@ -258,6 +261,13 @@ function mergeHomeSectionsOrder(raw) {
   }
   for (const k of def) {
     if (!seen.has(k)) out.push(k);
+  }
+  const mi = out.indexOf("comprehensive_market");
+  const bi = out.indexOf("banner_home_top");
+  if (!rawHadBannerHomeTop && mi >= 0 && bi >= 0) {
+    out.splice(bi, 1);
+    const mi2 = out.indexOf("comprehensive_market");
+    out.splice(mi2 + 1, 0, "banner_home_top");
   }
   return out;
 }

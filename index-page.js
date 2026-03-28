@@ -5926,6 +5926,7 @@
 
         const DEFAULT_HOME_SECTIONS_ORDER = [
             'comprehensive_market',
+            'banner_home_top',
             'main_categories',
             'home_subcat_overlay',
             'banner_below_categories',
@@ -5946,6 +5947,7 @@
             const allowed = new Set(DEFAULT_HOME_SECTIONS_ORDER);
             const def = [...DEFAULT_HOME_SECTIONS_ORDER];
             if (!Array.isArray(raw)) return def;
+            const rawHadBannerHomeTop = raw.some((k) => k === 'banner_home_top');
             const seen = new Set();
             const out = [];
             for (const k of raw) {
@@ -5956,10 +5958,43 @@
             for (const k of def) {
                 if (!seen.has(k)) out.push(k);
             }
+            const mi = out.indexOf('comprehensive_market');
+            const bi = out.indexOf('banner_home_top');
+            if (!rawHadBannerHomeTop && mi >= 0 && bi >= 0) {
+                out.splice(bi, 1);
+                const mi2 = out.indexOf('comprehensive_market');
+                out.splice(mi2 + 1, 0, 'banner_home_top');
+            }
             return out;
         }
 
         let cachedHomeSectionsOrder = null;
+        let cachedHomeTopBannersSticky = false;
+
+        function normalizeHomeTopBannersSticky(v) {
+            return v === true || v === 1 || v === '1';
+        }
+
+        function placeHomeTopBannerSlotInReorderRoot(slot, root) {
+            if (!slot || !root) return;
+            const order = mergeHomeSectionsOrder(cachedHomeSectionsOrder);
+            const idx = order.indexOf('banner_home_top');
+            if (idx < 0) {
+                const m = root.querySelector('[data-home-order-key="comprehensive_market"]');
+                if (m && m.nextSibling) root.insertBefore(slot, m.nextSibling);
+                else if (m) root.appendChild(slot);
+                else root.insertBefore(slot, root.firstChild);
+                return;
+            }
+            for (let j = idx + 1; j < order.length; j++) {
+                const el = root.querySelector(`[data-home-order-key="${order[j]}"]`);
+                if (el) {
+                    root.insertBefore(slot, el);
+                    return;
+                }
+            }
+            root.appendChild(slot);
+        }
 
         function applyHomeSectionOrder(raw) {
             const root = document.getElementById('home-reorder-root');
@@ -5992,18 +6027,18 @@
             });
         }
 
-        /** بانر placement home_top: افتراضياً يمرّر مع الصفحة؛ التثبيت مع البحث يُفعّل من لوحة التحكم فقط */
+        /** بانر placement home_top: افتراضياً داخل #home-reorder-root (بعد السوق الشامل)؛ التثبيت مع شريط البحث من لوحة التحكم */
         function applyHomeTopBannerStickyPlacement(sticky) {
             const slot = document.getElementById('banner-slot-home_top');
             const wrap = document.querySelector('#screen-categories .partner-cta-sticky-search-wrap');
             const root = document.getElementById('home-reorder-root');
             if (!slot || !wrap || !root) return;
-            const on = sticky === true || sticky === 1;
+            const on = normalizeHomeTopBannersSticky(sticky);
             slot.classList.toggle('adora-home-top-banners--sticky-below-search', on);
             if (on) {
                 wrap.appendChild(slot);
             } else {
-                wrap.parentNode.insertBefore(slot, root);
+                placeHomeTopBannerSlotInReorderRoot(slot, root);
             }
         }
 
@@ -6241,13 +6276,15 @@
                 initHomeSubcategorySliderHosts();
                 cachedHomeSectionsVisibility = data.home_sections_visibility;
                 cachedHomeSectionsOrder = data.home_sections_order;
+                cachedHomeTopBannersSticky = normalizeHomeTopBannersSticky(data.home_top_banners_sticky);
                 applyHomeSectionOrder(data.home_sections_order);
                 applyHomeSectionsVisibility(data.home_sections_visibility);
-                applyHomeTopBannerStickyPlacement(data.home_top_banners_sticky);
+                applyHomeTopBannerStickyPlacement(cachedHomeTopBannersSticky);
                 refreshBestsellersSectionCombinedVisibility();
             } catch (_e) {
                 cachedHomeSectionsVisibility = null;
                 cachedHomeSectionsOrder = null;
+                cachedHomeTopBannersSticky = false;
                 applyHomeSectionOrder(null);
                 applyHomeSectionsVisibility(null);
                 applyHomeTopBannerStickyPlacement(false);
@@ -11259,7 +11296,8 @@
             initAdoraNavigationHistory();
             applyHomeContactFromApi()
                 .then(() => injectHomeBanners())
-                .catch(() => injectHomeBanners());
+                .catch(() => {})
+                .finally(() => applyHomeTopBannerStickyPlacement(cachedHomeTopBannersSticky));
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeNewCollectionGrid().catch(() => {});
