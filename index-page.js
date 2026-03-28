@@ -4585,6 +4585,8 @@
             const desc = loc === 'ar' ? p.description_ar || p.description_en : p.description_en || p.description_ar;
             const tEl = document.getElementById('marketplace-detail-title');
             const vEl = document.getElementById('marketplace-detail-vendor');
+            const vNameEl = document.getElementById('marketplace-detail-vendor-name');
+            const vBtn = document.getElementById('marketplace-detail-vendor-products-btn');
             const sEl = document.getElementById('marketplace-detail-section');
             const priceEl = document.getElementById('marketplace-detail-price');
             const priceOldEl = document.getElementById('marketplace-detail-price-old');
@@ -4602,8 +4604,13 @@
             if (!isDyn) fillMarketplaceLegacyVariantUi(p);
             if (tEl) tEl.textContent = title || '—';
             if (vEl) {
-                if (vendor) vEl.innerHTML = formatVendorBrandPill(vendor);
-                else vEl.textContent = '—';
+                vEl.classList.add('hidden');
+                vEl.innerHTML = '';
+            }
+            if (vNameEl) vNameEl.textContent = vendor || '—';
+            if (vBtn) {
+                const okVid = p.vendor_id != null && Number.isFinite(Number(p.vendor_id));
+                vBtn.classList.toggle('hidden', !okVid);
             }
             if (sEl) sEl.textContent = secLine || '';
             syncMarketplaceDescriptionUi(desc);
@@ -4626,7 +4633,7 @@
                 const showD = discPct > 0 && discPct < 100;
                 if (dpill) {
                     if (showD) {
-                        dpill.textContent = `-${discPct}%`;
+                        dpill.textContent = formatPdpDiscountLine(discPct);
                         dpill.classList.remove('hidden');
                     } else dpill.classList.add('hidden');
                 }
@@ -4692,7 +4699,7 @@
             const showD = discPct > 0 && discPct < 100;
             if (dpill) {
                 if (showD) {
-                    dpill.textContent = `-${discPct}%`;
+                    dpill.textContent = formatPdpDiscountLine(discPct);
                     dpill.classList.remove('hidden');
                 } else dpill.classList.add('hidden');
             }
@@ -6634,6 +6641,30 @@
             navigateTo('screen-listing');
         }
 
+        function openBrandStoreFromCurrentProduct() {
+            const p = currentProductDetail;
+            if (!p) return;
+            const br = String(p.brand || '').trim();
+            if (!br) return;
+            const cat = String(p.category || '').trim();
+            openBrandStore(br, ['Men', 'Women', 'Kids'].includes(cat) ? cat : undefined);
+        }
+        window.openBrandStoreFromCurrentProduct = openBrandStoreFromCurrentProduct;
+
+        function openCurrentMpVendorProducts() {
+            const p = currentMarketplaceProductDetail;
+            if (!p || p.vendor_id == null) return;
+            const vid = Number(p.vendor_id);
+            if (!Number.isFinite(vid)) return;
+            openMarketplaceBrowse({ vendor_id: vid });
+        }
+        window.openCurrentMpVendorProducts = openCurrentMpVendorProducts;
+
+        function formatPdpDiscountLine(pct) {
+            const n = Math.round(Number(pct) || 0);
+            return isRTL ? `خصم ${n}%` : `${n}% off`;
+        }
+
         function navigateToListingAll() {
             listingSearchQuery = '';
             listingBrandName = null;
@@ -7900,23 +7931,18 @@
             }
             const tEl = document.getElementById('product-detail-title');
             if (tEl) tEl.textContent = title;
+            const brandNameEl = document.getElementById('product-detail-brand-name');
+            const brandBtn = document.getElementById('product-detail-brand-products-btn');
+            const displayBrand = resolveDisplayBrand(p.brand);
+            if (brandNameEl) brandNameEl.textContent = displayBrand || (isRTL ? 'أدورا' : 'Adora');
+            if (brandBtn) {
+                const rawBr = String(p.brand || '').trim();
+                brandBtn.classList.toggle('hidden', !rawBr);
+            }
             const metaEl = document.getElementById('product-detail-meta');
             if (metaEl) {
-                const cat = (p.category || '').trim();
-                const sub = (p.subcategory || '').trim();
-                const br = (p.brand || '').trim();
-                const catAr = { Men: 'رجالي', Women: 'نسائي', Kids: 'ولادي' };
-                const parts = [];
-                parts.push(br ? br : isRTL ? 'أدورا' : 'Adora');
-                if (cat) parts.push(isRTL ? catAr[cat] || cat : cat);
-                if (sub) parts.push(sub);
-                if (parts.length) {
-                    metaEl.textContent = parts.join(' · ');
-                    metaEl.classList.remove('hidden');
-                } else {
-                    metaEl.textContent = '';
-                    metaEl.classList.add('hidden');
-                }
+                metaEl.textContent = '';
+                metaEl.classList.add('hidden');
             }
             const pEl = document.getElementById('product-detail-price');
             if (pEl) pEl.textContent = formatSyp(saleP);
@@ -7930,14 +7956,7 @@
                 }
             }
             const sEl = document.getElementById('product-detail-save');
-            if (sEl) {
-                if (disc > 0) {
-                    sEl.classList.remove('hidden');
-                    sEl.textContent = isRTL ? `وفّر ${formatSyp(listP - saleP)}` : `Save ${formatSyp(listP - saleP)}`;
-                } else {
-                    sEl.classList.add('hidden');
-                }
-            }
+            if (sEl) sEl.classList.add('hidden');
             const db = document.getElementById('product-detail-discount-badge');
             if (db) {
                 if (disc > 0) {
@@ -7948,7 +7967,7 @@
             const dpill = document.getElementById('product-detail-discount-pill');
             if (dpill) {
                 if (disc > 0) {
-                    dpill.textContent = `-${Math.round(disc)}%`;
+                    dpill.textContent = formatPdpDiscountLine(disc);
                     dpill.classList.remove('hidden');
                 } else dpill.classList.add('hidden');
             }
@@ -8154,12 +8173,7 @@
                 } else oEl.classList.add('hidden');
             }
             const sEl = document.getElementById('product-detail-save');
-            if (sEl) {
-                if (disc > 0) {
-                    sEl.classList.remove('hidden');
-                    sEl.textContent = isRTL ? `وفّر ${formatSyp(listU - saleU)}` : `Save ${formatSyp(listU - saleU)}`;
-                } else sEl.classList.add('hidden');
-            }
+            if (sEl) sEl.classList.add('hidden');
             const db = document.getElementById('product-detail-discount-badge');
             if (db) {
                 if (disc > 0) {
@@ -8170,7 +8184,7 @@
             const dpill = document.getElementById('product-detail-discount-pill');
             if (dpill) {
                 if (disc > 0) {
-                    dpill.textContent = `-${Math.round(disc)}%`;
+                    dpill.textContent = formatPdpDiscountLine(disc);
                     dpill.classList.remove('hidden');
                 } else dpill.classList.add('hidden');
             }
@@ -8351,19 +8365,21 @@
                 return;
             }
             row.classList.remove('hidden');
-            starsEl.innerHTML = renderProductInlineStarsFromAvg(avg);
+            starsEl.innerHTML = '<i class="fas fa-star text-emerald-500 text-[13px]" aria-hidden="true"></i>';
             scoreEl.textContent = avg != null && !Number.isNaN(avg) ? avg.toFixed(1) : '—';
-            countBtn.textContent = isRTL
-                ? cnt === 0
-                    ? ''
-                    : cnt === 1
+            if (cnt > 0) {
+                countBtn.classList.remove('hidden');
+                countBtn.textContent = isRTL
+                    ? cnt === 1
                       ? '(تقييم واحد)'
                       : `(${cnt} تقييمات)`
-                : cnt === 0
-                  ? ''
-                  : cnt === 1
-                    ? '(1 rating)'
-                    : `(${cnt} ratings)`;
+                    : cnt === 1
+                      ? '(1 rating)'
+                      : `(${cnt} ratings)`;
+            } else {
+                countBtn.classList.add('hidden');
+                countBtn.textContent = '';
+            }
         }
 
         function updateMarketplaceDetailInlineRating(data) {
@@ -8379,19 +8395,21 @@
                 return;
             }
             row.classList.remove('hidden');
-            starsEl.innerHTML = renderProductInlineStarsFromAvg(avg);
+            starsEl.innerHTML = '<i class="fas fa-star text-emerald-500 text-[13px]" aria-hidden="true"></i>';
             scoreEl.textContent = avg != null && !Number.isNaN(avg) ? avg.toFixed(1) : '—';
-            countBtn.textContent = isRTL
-                ? cnt === 0
-                    ? ''
-                    : cnt === 1
+            if (cnt > 0) {
+                countBtn.classList.remove('hidden');
+                countBtn.textContent = isRTL
+                    ? cnt === 1
                       ? '(تقييم واحد)'
                       : `(${cnt} تقييمات)`
-                : cnt === 0
-                  ? ''
-                  : cnt === 1
-                    ? '(1 rating)'
-                    : `(${cnt} ratings)`;
+                    : cnt === 1
+                      ? '(1 rating)'
+                      : `(${cnt} ratings)`;
+            } else {
+                countBtn.classList.add('hidden');
+                countBtn.textContent = '';
+            }
         }
 
         const adoraHorizontalGalleryDotsBound = new Set();
