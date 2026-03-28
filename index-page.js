@@ -7536,6 +7536,7 @@
                 }
                 rebuildProductDetailSizes(p);
             }
+            syncProductDetailStockUi();
 
             loadProductReviewsForDetail(p.id).catch(() => {});
             updateWishlistButtonForProduct(p.id);
@@ -7734,6 +7735,49 @@
                 syncProductGalleryDotsFromGallery();
             }
             renderProductDynamicOptions(p);
+            syncProductDetailStockUi();
+        }
+
+        function getProductDetailStockCount() {
+            const p = currentProductDetail;
+            if (!p) return 0;
+            if (productUsesDynamicOptions(p)) {
+                const row = findInventoryRowDynamic(p, productDetailVariantPick);
+                return row ? Math.max(0, Number(row.stock || 0)) : 0;
+            }
+            const inv = Array.isArray(p.inventory) ? p.inventory : [];
+            const sz = String(getSelectedDetailSize() || '').trim().toLowerCase();
+            const cl = String(getSelectedDetailColor() || '').trim().toLowerCase();
+            if (!inv.length) return Math.max(0, Number(p.stock || 0));
+            const row = inv.find((r) => {
+                if (r.options && typeof r.options === 'object' && Object.keys(r.options).length) return false;
+                const rs = String(r.size || '').trim().toLowerCase();
+                const rc = String(r.color || '').trim().toLowerCase();
+                const szMatch = !sz || rs === sz;
+                const clMatch = !cl || rc === cl;
+                return szMatch && clMatch;
+            });
+            if (row) return Math.max(0, Number(row.stock || 0));
+            return Math.max(0, Number(p.stock || 0));
+        }
+
+        function syncProductDetailStockUi() {
+            const el = document.getElementById('product-detail-stock');
+            if (!el) return;
+            if (!currentProductDetail) {
+                el.classList.add('hidden');
+                return;
+            }
+            const st = getProductDetailStockCount();
+            el.classList.remove('hidden');
+            el.classList.remove('text-emerald-700', 'text-rose-600');
+            if (st > 0) {
+                el.textContent = isRTL ? `متوفر · ${st}` : `In stock · ${st}`;
+                el.classList.add('text-emerald-700');
+            } else {
+                el.textContent = isRTL ? 'غير متوفر' : 'Out of stock';
+                el.classList.add('text-rose-600');
+            }
         }
 
         function variantHasStock(p, size, color) {
@@ -7788,6 +7832,7 @@
             if (!btn || btn.classList.contains('disabled')) return;
             document.querySelectorAll('#product-size-options .size-btn').forEach((b) => b.classList.remove('selected'));
             btn.classList.add('selected');
+            syncProductDetailStockUi();
         }
 
         function rebuildProductDetailSizes(p) {
@@ -7807,6 +7852,7 @@
                     }" data-size="${safe}" ${ok ? '' : 'disabled'}>${safe}</button>`;
                 })
                 .join('');
+            syncProductDetailStockUi();
         }
 
         function renderFiveStarsDisplayHtml(avg) {
