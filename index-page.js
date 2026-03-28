@@ -2702,7 +2702,15 @@
 
         function adoraGetDocumentScrollTop() {
             try {
-                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                let y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const shell = document.getElementById('app-shell');
+                if (shell && !shell.classList.contains('hidden')) {
+                    const pdpScroll = shell.querySelector(
+                        '#screen-product.active .adora-pdp-scroll, #screen-marketplace-product.active .adora-pdp-scroll'
+                    );
+                    if (pdpScroll) y = Math.max(y, pdpScroll.scrollTop || 0);
+                }
+                return y;
             } catch (_e) {
                 return 0;
             }
@@ -2893,7 +2901,18 @@
         async function runAdoraPullRefresh() {
             if (adoraPtrRefreshBusy) return;
             adoraPtrRefreshBusy = true;
-            const savedY = adoraGetDocumentScrollTop();
+            let savedWinY = 0;
+            try {
+                savedWinY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            } catch (_e0) {}
+            const shell = document.getElementById('app-shell');
+            const pdpScroll =
+                shell && !shell.classList.contains('hidden')
+                    ? shell.querySelector(
+                          '#screen-product.active .adora-pdp-scroll, #screen-marketplace-product.active .adora-pdp-scroll'
+                      )
+                    : null;
+            const savedPdpScroll = pdpScroll ? pdpScroll.scrollTop : 0;
             const root = document.getElementById('adora-ptr-indicator');
             adoraPtrApplyPullVisual(100, 'load');
             if (root) {
@@ -2907,8 +2926,11 @@
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     try {
-                        window.scrollTo(0, savedY);
+                        window.scrollTo(0, savedWinY);
                     } catch (_e2) {}
+                    try {
+                        if (pdpScroll) pdpScroll.scrollTop = savedPdpScroll;
+                    } catch (_e3) {}
                     adoraPtrRefreshBusy = false;
                 });
             });
@@ -2925,6 +2947,11 @@
                 'touchstart',
                 (e) => {
                     if (adoraPtrRefreshBusy || adoraPtrShouldIgnore()) {
+                        armed = false;
+                        return;
+                    }
+                    const t = e.target;
+                    if (t && t.closest && t.closest('.adora-pdp-scroll')) {
                         armed = false;
                         return;
                     }
@@ -2946,6 +2973,12 @@
                 (e) => {
                     if (!armed || adoraPtrRefreshBusy || adoraPtrShouldIgnore()) return;
                     if (!e.touches || !e.touches.length) return;
+                    const t = e.target;
+                    if (t && t.closest && t.closest('.adora-pdp-scroll')) {
+                        armed = false;
+                        adoraPtrHidePullVisual();
+                        return;
+                    }
                     const y = e.touches[0].clientY;
                     const x = e.touches[0].clientX;
                     const dy = y - startY;
@@ -10873,60 +10906,12 @@
             ['product-gallery', 'marketplace-product-gallery'].forEach((id) => {
                 const host = document.getElementById(id);
                 if (!host) return;
-                let ignoreClickUntil = 0;
-                let touchStart = null;
-                host.addEventListener(
-                    'touchstart',
-                    (e) => {
-                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
-                        const im = e.target && e.target.closest && e.target.closest('img');
-                        if (!im || !host.contains(im) || !e.touches || e.touches.length !== 1) {
-                            touchStart = null;
-                            return;
-                        }
-                        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
-                    },
-                    { passive: true }
-                );
-                host.addEventListener(
-                    'touchend',
-                    (e) => {
-                        if (!touchStart) return;
-                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) {
-                            touchStart = null;
-                            return;
-                        }
-                        const im = e.target && e.target.closest && e.target.closest('img');
-                        if (!im || !host.contains(im) || e.changedTouches.length !== 1) {
-                            touchStart = null;
-                            return;
-                        }
-                        const t = e.changedTouches[0];
-                        const dist = Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y);
-                        const dt = Date.now() - touchStart.t;
-                        touchStart = null;
-                        if (dist > 22 || dt > 500) return;
-                        e.preventDefault();
-                        ignoreClickUntil = Date.now() + 480;
-                        openGalleryLightboxFromImg(host, im);
-                    },
-                    { passive: false }
-                );
-                host.addEventListener(
-                    'click',
-                    (e) => {
-                        if (Date.now() < ignoreClickUntil) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return;
-                        }
-                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
-                        const im = e.target && e.target.closest && e.target.closest('img');
-                        if (!im || !host.contains(im)) return;
-                        openGalleryLightboxFromImg(host, im);
-                    },
-                    true
-                );
+                host.addEventListener('click', (e) => {
+                    if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
+                    const im = e.target && e.target.closest && e.target.closest('img');
+                    if (!im || !host.contains(im)) return;
+                    openGalleryLightboxFromImg(host, im);
+                });
             });
         }
 
@@ -11007,10 +10992,6 @@
                     }
                 });
             }
-            document.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('touchstart', () => btn.style.transform = 'scale(0.95)');
-                btn.addEventListener('touchend', () => btn.style.transform = 'scale(1)');
-            });
             if (shouldSkipSplashOnLoad()) {
                 skipSplashAndEnterApp();
             } else {
