@@ -7718,6 +7718,16 @@
                 host.innerHTML = '';
                 return;
             }
+            const allCustomerNote =
+                banners.length > 0 &&
+                banners.every(
+                    (b) =>
+                        String(b.banner_kind || 'standard')
+                            .toLowerCase()
+                            .replace(/-/g, '_') === 'customer_note'
+                );
+            const sliderH = allCustomerNote ? 132 : 200;
+            const feedbackPillMin = allCustomerNote ? 'min-h-[88px]' : 'min-h-[120px]';
             const slidesHtml = banners
                 .map((b, slideIdx) => {
                     const title = isRTL ? b.title_ar || b.title_en : b.title_en || b.title_ar;
@@ -7744,31 +7754,40 @@
                     if (hasImg && isFeedback) {
                         const imgLoading = slideIdx < 3 ? 'eager' : 'lazy';
                         const ariaN = isRTL ? 'أرسل ملاحظة للفريق' : 'Send a note to the team';
-                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
+                        const gradPad = allCustomerNote ? 'pt-6 pb-2' : 'pt-10 pb-2.5';
+                        const tTitle = allCustomerNote ? 'text-[12px]' : 'text-[13px]';
+                        const tBody = allCustomerNote ? 'text-[10px]' : 'text-[11px]';
+                        return `<div class="adora-banner-slide relative shrink-0 overflow-hidden bg-gray-200 snap-start snap-always" style="height:${sliderH}px">
   <button type="button" class="absolute inset-0 z-[2] cursor-pointer bg-transparent border-0 p-0" style="-webkit-tap-highlight-color:transparent" onclick="openCustomerFeedbackBannerModal(${bid})" aria-label="${escapeHtml(ariaN)}"></button>
   <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover pointer-events-none" style="object-position:center center" width="1200" height="400" loading="${imgLoading}" decoding="async" fetchpriority="${slideIdx === 0 ? 'high' : 'auto'}" referrerpolicy="no-referrer" data-adora-banner-img="1" />
-  <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none">
-    ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
-    ${bodyTxt ? `<p class="mt-0.5 text-[11px] leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
+  <div class="absolute inset-x-0 bottom-0 z-[1] px-3 ${gradPad} bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none">
+    ${title ? `<p class="${tTitle} font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
+    ${bodyTxt ? `<p class="mt-0.5 ${tBody} leading-snug text-white/95 line-clamp-2">${escapeHtml(bodyTxt)}</p>` : ''}
   </div>
 </div>`;
                     }
                     if (!hasImg && isFeedback) {
-                        return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden snap-start snap-always px-2">
-<button type="button" class="partner-cta-pill flex w-full max-w-lg items-center gap-3 min-h-[168px]" onclick="openCustomerFeedbackBannerModal(${bid})">
-  <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
-  <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm"><i class="fas fa-message text-lg" aria-hidden="true"></i></span>
+                        const gap = allCustomerNote ? 'gap-2' : 'gap-2.5';
+                        const iconBox = allCustomerNote ? 'h-9 w-9 rounded-lg' : 'h-10 w-10 rounded-xl';
+                        const iconI = allCustomerNote ? 'text-base' : 'text-lg';
+                        const ch = allCustomerNote ? 'text-xs' : 'text-sm';
+                        const titSz = allCustomerNote ? 'text-xs' : 'text-sm';
+                        const bodySz = allCustomerNote ? 'text-[10px]' : 'text-xs';
+                        return `<div class="adora-banner-slide relative flex shrink-0 items-center justify-center overflow-hidden snap-start snap-always px-2" style="height:${sliderH}px">
+<button type="button" class="partner-cta-pill flex w-full max-w-lg items-center ${gap} py-2 ${feedbackPillMin}" onclick="openCustomerFeedbackBannerModal(${bid})">
+  <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right ${ch} opacity-90 rtl:rotate-180"></i></span>
+  <span class="flex ${iconBox} shrink-0 items-center justify-center bg-white/15 backdrop-blur-sm"><i class="fas fa-message ${iconI}" aria-hidden="true"></i></span>
   <span class="min-w-0 flex-1 text-start">
-    ${title ? `<span class="block text-sm font-extrabold leading-tight">${escapeHtml(title)}</span>` : ''}
-    ${bodyTxt ? `<span class="mt-0.5 block text-xs font-medium leading-snug text-white/85">${escapeHtml(bodyTxt)}</span>` : ''}
+    ${title ? `<span class="block ${titSz} font-extrabold leading-tight">${escapeHtml(title)}</span>` : ''}
+    ${bodyTxt ? `<span class="mt-0.5 block ${bodySz} font-medium leading-snug text-white/85">${escapeHtml(bodyTxt)}</span>` : ''}
   </span>
-  <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180"></i></span>
+  <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left ${ch} opacity-90 rtl:rotate-180"></i></span>
 </button>
 </div>`;
                     }
                     if (hasImg) {
                         const imgLoading = slideIdx < 3 ? 'eager' : 'lazy';
-                        return `<div class="adora-banner-slide relative h-[200px] shrink-0 overflow-hidden bg-gray-200 snap-start snap-always">
+                        return `<div class="adora-banner-slide relative shrink-0 overflow-hidden bg-gray-200 snap-start snap-always" style="height:${sliderH}px">
   <img src="${escapeHtml(imgAbs)}" alt="" class="absolute inset-0 z-0 h-full w-full object-cover" style="object-position:center center" width="1200" height="400" loading="${imgLoading}" decoding="async" fetchpriority="${slideIdx === 0 ? 'high' : 'auto'}" referrerpolicy="no-referrer" data-adora-banner-img="1" />
   <div class="absolute inset-x-0 bottom-0 z-[1] px-3 pb-2.5 pt-10 bg-gradient-to-t from-black/70 via-black/35 to-transparent">
     ${title ? `<p class="text-[13px] font-bold leading-tight text-white drop-shadow-sm line-clamp-1">${escapeHtml(title)}</p>` : ''}
@@ -7777,7 +7796,7 @@
   </div>
 </div>`;
                     }
-                    return `<div class="adora-banner-slide relative flex h-[200px] shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 px-4 text-center snap-start snap-always">
+                    return `<div class="adora-banner-slide relative flex shrink-0 items-center justify-center overflow-hidden bg-gradient-to-br from-purple-600 to-pink-600 px-4 text-center snap-start snap-always" style="height:${sliderH}px">
   <div class="max-w-full">
     ${title ? `<p class="text-[14px] font-bold text-white drop-shadow">${escapeHtml(title)}</p>` : ''}
     ${bodyTxt ? `<p class="mt-1 text-[12px] leading-snug text-white/95 line-clamp-3">${escapeHtml(bodyTxt)}</p>` : ''}
@@ -7786,8 +7805,8 @@
 </div>`;
                 })
                 .join('');
-            host.innerHTML = `<div dir="ltr" class="adora-banner-slider-viewport adora-banner-scroll relative w-full shadow-md snap-x snap-mandatory" style="height:200px;border-radius:16px">
-  <div class="adora-banner-slider-track flex flex-row flex-nowrap h-[200px]">
+            host.innerHTML = `<div dir="ltr" class="adora-banner-slider-viewport adora-banner-scroll relative w-full shadow-md snap-x snap-mandatory" style="height:${sliderH}px;border-radius:16px">
+  <div class="adora-banner-slider-track flex flex-row flex-nowrap" style="height:${sliderH}px">
     ${slidesHtml}
   </div>
 </div>`;
