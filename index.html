@@ -2093,11 +2093,11 @@
             margin: 0;
             word-break: break-word;
         }
-        /* مربع عنوان المنتج — ألوان أدورا (بنفسجي) مع شفافية للتمييز */
+        /* مربع عنوان المنتج — بعرض الشاشة ضمن الورقة، حواف دائرية فوق وتحت */
         .adora-pdp-title-card {
-            border-radius: 0.875rem;
+            border-radius: 1rem;
             padding: 0.85rem 1rem;
-            margin-bottom: 0.65rem;
+            margin-bottom: 0;
             background: linear-gradient(
                 145deg,
                 rgba(124, 58, 237, 0.17) 0%,
@@ -2197,6 +2197,7 @@
         #screen-product .product-noon-sheet,
         #screen-marketplace-product .product-noon-sheet {
             padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+            border-radius: 0;
         }
         #screen-product #product-review-panel,
         #screen-marketplace-product #marketplace-review-panel {
@@ -5112,7 +5113,8 @@
         </div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-5 pb-36 rounded-t-2xl">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-0 pb-36">
+            <div class="-mx-4 mb-3">
             <div class="adora-pdp-title-card">
                 <div class="flex items-start justify-between gap-2.5">
                     <h1 id="marketplace-detail-title" class="adora-pdp-title line-clamp-4 min-w-0 flex-1">—</h1>
@@ -5121,6 +5123,7 @@
                         <i class="fas fa-chevron-left text-[10px] opacity-85 rtl:rotate-180 shrink-0" aria-hidden="true"></i>
                     </button>
                 </div>
+            </div>
             </div>
             <div id="mp-pdp-vendor-row" class="pb-3 mb-1 border-b border-gray-100">
                 <span id="marketplace-detail-vendor-name" class="text-base font-bold text-[#3866DF] truncate min-w-0 leading-tight block">—</span>
@@ -5297,7 +5300,8 @@
         </div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-5 pb-36 rounded-t-2xl">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-0 pb-36">
+            <div class="-mx-4 mb-3">
             <div class="adora-pdp-title-card">
                 <div class="flex items-start justify-between gap-2.5">
                     <h1 id="product-detail-title" class="adora-pdp-title line-clamp-4 min-w-0 flex-1">Premium Wool Blend Overcoat</h1>
@@ -5306,6 +5310,7 @@
                         <i class="fas fa-chevron-left text-[10px] opacity-85 rtl:rotate-180 shrink-0" aria-hidden="true"></i>
                     </button>
                 </div>
+            </div>
             </div>
             <div id="product-pdp-brand-row" class="pb-3 mb-1 border-b border-gray-100">
                 <span id="product-detail-brand-name" class="text-base font-bold text-[#3866DF] truncate min-w-0 leading-tight block">—</span>
