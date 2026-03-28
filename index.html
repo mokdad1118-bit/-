@@ -2096,8 +2096,10 @@
         /* مربع عنوان المنتج — بعرض الشاشة ضمن الورقة، حواف دائرية فوق وتحت */
         .adora-pdp-title-card {
             border-radius: 1rem;
-            padding: 0.85rem 1rem;
+            padding: 0.85rem 0;
             margin-bottom: 0;
+            width: 100%;
+            box-sizing: border-box;
             background: linear-gradient(
                 145deg,
                 rgba(124, 58, 237, 0.17) 0%,
@@ -5113,10 +5115,9 @@
         </div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-0 pb-36">
-            <div class="-mx-4 mb-3">
-            <div class="adora-pdp-title-card">
-                <div class="flex items-start justify-between gap-2.5">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-0 pt-0 pb-36">
+            <div class="adora-pdp-title-card mb-3">
+                <div class="flex items-start justify-between gap-2.5 px-4">
                     <h1 id="marketplace-detail-title" class="adora-pdp-title line-clamp-4 min-w-0 flex-1">—</h1>
                     <button type="button" id="marketplace-detail-vendor-products-btn" class="adora-pdp-title-card__action hidden flex flex-wrap items-center justify-end gap-1 text-sm font-bold text-[#3866DF] hover:opacity-90 active:opacity-80 transition" onclick="openCurrentMpVendorProducts()">
                         <span data-en="See products" data-ar="شوف المنتجات">شوف المنتجات</span>
@@ -5124,7 +5125,7 @@
                     </button>
                 </div>
             </div>
-            </div>
+            <div class="px-4">
             <div id="mp-pdp-vendor-row" class="pb-3 mb-1 border-b border-gray-100">
                 <span id="marketplace-detail-vendor-name" class="text-base font-bold text-[#3866DF] truncate min-w-0 leading-tight block">—</span>
             </div>
@@ -5207,6 +5208,7 @@
                 <div id="marketplace-reviews-list" class="space-y-4 pb-4">
                     <p class="text-sm text-gray-500 py-2" data-en="Loading reviews…" data-ar="جاري تحميل التقييمات…">جاري تحميل التقييمات…</p>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -5300,10 +5302,9 @@
         </div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-0 pb-36">
-            <div class="-mx-4 mb-3">
-            <div class="adora-pdp-title-card">
-                <div class="flex items-start justify-between gap-2.5">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-0 pt-0 pb-36">
+            <div class="adora-pdp-title-card mb-3">
+                <div class="flex items-start justify-between gap-2.5 px-4">
                     <h1 id="product-detail-title" class="adora-pdp-title line-clamp-4 min-w-0 flex-1">Premium Wool Blend Overcoat</h1>
                     <button type="button" id="product-detail-brand-products-btn" class="adora-pdp-title-card__action hidden flex flex-wrap items-center justify-end gap-1 text-sm font-bold text-[#3866DF] hover:opacity-90 active:opacity-80 transition" onclick="openBrandStoreFromCurrentProduct()">
                         <span data-en="See products" data-ar="شوف المنتجات">شوف المنتجات</span>
@@ -5311,7 +5312,7 @@
                     </button>
                 </div>
             </div>
-            </div>
+            <div class="px-4">
             <div id="product-pdp-brand-row" class="pb-3 mb-1 border-b border-gray-100">
                 <span id="product-detail-brand-name" class="text-base font-bold text-[#3866DF] truncate min-w-0 leading-tight block">—</span>
             </div>
@@ -5405,6 +5406,7 @@
                     <p class="text-xs text-gray-500 leading-relaxed" data-en="From the same section in the catalog (live)." data-ar="من نفس القسم في الكتالوج (مباشر من السيرفر).">من نفس القسم في الكتالوج (مباشر من السيرفر).</p>
                 </div>
                 <div id="product-related-scroll" class="adora-scroll-strip product-detail-related-scroll pt-1 snap-x snap-proximity"></div>
+            </div>
             </div>
         </div>
 
