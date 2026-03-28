@@ -3012,6 +3012,15 @@
             if (searchVoiceBtn) {
                 searchVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي' : 'Voice search');
             }
+            const mpVoiceBtn = document.getElementById('marketplace-search-voice-btn');
+            if (mpVoiceBtn) {
+                mpVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي في السوق' : 'Voice search in marketplace');
+            }
+            const mpInp = document.getElementById('marketplace-search-input');
+            if (mpInp) {
+                const a = isRTL ? mpInp.getAttribute('data-ar-aria') : mpInp.getAttribute('data-en-aria');
+                if (a) mpInp.setAttribute('aria-label', a);
+            }
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
@@ -4092,6 +4101,12 @@
                 }
             }
         }
+
+        function runMarketplaceSearchFromUi() {
+            hideAdoraSearchSuggestions();
+            refreshMarketplaceProductList().catch(() => {});
+        }
+        window.runMarketplaceSearchFromUi = runMarketplaceSearchFromUi;
 
         async function refreshMarketplaceProductList() {
             const grid = document.getElementById('marketplace-products-grid');
@@ -6326,11 +6341,13 @@
 
         function setVoiceSearchUi(listening) {
             voiceSearchListening = !!listening;
-            const btn = document.getElementById('search-voice-btn');
-            if (btn) {
-                btn.classList.toggle('listening', voiceSearchListening);
-                btn.setAttribute('aria-pressed', voiceSearchListening ? 'true' : 'false');
-            }
+            ['search-voice-btn', 'marketplace-search-voice-btn'].forEach((id) => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.toggle('listening', voiceSearchListening);
+                    btn.setAttribute('aria-pressed', voiceSearchListening ? 'true' : 'false');
+                }
+            });
         }
 
         function stopVoiceSearch() {
@@ -6344,7 +6361,13 @@
             setVoiceSearchUi(false);
         }
 
-        function toggleVoiceSearch() {
+        function toggleVoiceSearch(ev) {
+            const fromBtn =
+                ev && ev.currentTarget && ev.currentTarget instanceof Element ? ev.currentTarget : null;
+            const voiceInputId =
+                (fromBtn && fromBtn.getAttribute && fromBtn.getAttribute('data-voice-input')) || 'search-input';
+            window.__adoraVoiceTargetInputId = voiceInputId;
+
             const Ctor = getSpeechRecognitionConstructor();
             if (!Ctor) {
                 showToast(isRTL ? 'المتصفح لا يدعم البحث الصوتي. جرّب كروم أو متصفحاً حديثاً.' : 'Voice search is not supported. Try Chrome or a recent browser.');
@@ -6394,10 +6417,24 @@
                 try {
                     let text = pickBestSpeechTranscript(event);
                     if (isRTL) text = prettifyArabicVoiceDisplay(text);
-                    const input = document.getElementById('search-input');
-                    if (input) input.value = text;
-                    if (text) {
-                        runProductSearch();
+                    const raw = normalizeArabicSpeechForSearch(text);
+                    const tid = window.__adoraVoiceTargetInputId || 'search-input';
+                    const input = document.getElementById(tid) || document.getElementById('search-input');
+                    if (input) input.value = raw;
+                    if (raw) {
+                        if (tid === 'marketplace-search-input') {
+                            hideAdoraSearchSuggestions();
+                            syncAdoraAnimatedSearchVisibility();
+                            refreshMarketplaceProductList().catch(() => {});
+                        } else if (tid === 'listing-search-input') {
+                            listingSearchQuery = raw;
+                            hideAdoraSearchSuggestions();
+                            if (input) resetAdoraSearchTypingForInput(input);
+                            syncAdoraAnimatedSearchVisibility();
+                            loadListingPageProducts().catch(() => {});
+                        } else {
+                            runProductSearch();
+                        }
                     } else {
                         showToast(isRTL ? 'لم يُفهم النص. أعد المحاولة.' : 'No text recognized. Try again.');
                     }
@@ -6541,6 +6578,7 @@
                 (ev) => {
                     const t = ev.target;
                     if (t && t.closest && t.closest('.adora-search-suggest-anchor')) return;
+                    if (t && t.closest && t.closest('.adora-search-suggest-panel')) return;
                     hideAdoraSearchSuggestions();
                 },
                 true
@@ -6594,7 +6632,47 @@
             return out;
         }
 
+        let adoraSuggestScrollListenersBound = false;
+        let adoraSuggestRepositionRaf = 0;
+
+        function positionAdoraSearchSuggestPanel(anchor, panel) {
+            if (!anchor || !panel || !document.body.contains(panel)) return;
+            try {
+                if (!anchor.isConnected) return;
+            } catch (_e) {
+                return;
+            }
+            const r = anchor.getBoundingClientRect();
+            const m = 8;
+            const vw = window.innerWidth;
+            const maxW = Math.min(Math.max(120, r.width), vw - m * 2);
+            const left = Math.min(Math.max(m, r.left), Math.max(m, vw - m - maxW));
+            panel.style.left = `${Math.round(left)}px`;
+            panel.style.width = `${Math.round(maxW)}px`;
+            panel.style.top = `${Math.round(r.bottom + 5)}px`;
+        }
+
+        function scheduleAdoraSuggestReposition() {
+            const anchor = window.__adoraSuggestActiveAnchor;
+            const panel = window.__adoraSuggestActivePanel;
+            if (!anchor || !panel || !document.body.contains(panel)) return;
+            if (adoraSuggestRepositionRaf) cancelAnimationFrame(adoraSuggestRepositionRaf);
+            adoraSuggestRepositionRaf = requestAnimationFrame(() => {
+                adoraSuggestRepositionRaf = 0;
+                positionAdoraSearchSuggestPanel(anchor, panel);
+            });
+        }
+
+        function ensureAdoraSuggestScrollListeners() {
+            if (adoraSuggestScrollListenersBound) return;
+            adoraSuggestScrollListenersBound = true;
+            window.addEventListener('scroll', scheduleAdoraSuggestReposition, true);
+            window.addEventListener('resize', scheduleAdoraSuggestReposition);
+        }
+
         function hideAdoraSearchSuggestions() {
+            window.__adoraSuggestActiveAnchor = null;
+            window.__adoraSuggestActivePanel = null;
             document.querySelectorAll('.adora-search-suggest-panel, .adora-search-suggestions').forEach((n) => n.remove());
         }
 
@@ -6643,9 +6721,8 @@
             hideAdoraSearchSuggestions();
             if (!input || !Array.isArray(items) || !items.length) return;
             const anchor = input.closest('.adora-search-suggest-anchor');
-            const host = anchor || input.closest('.adora-search-typography') || input.parentElement;
-            if (!host) return;
-            if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+            if (!anchor) return;
+            if (getComputedStyle(anchor).position === 'static') anchor.style.position = 'relative';
 
             const loc = isRTL ? 'ar' : 'en';
             const rowHtml = (it, i) => {
@@ -6691,7 +6768,7 @@
             };
 
             const el = document.createElement('div');
-            el.className = 'adora-search-suggest-panel';
+            el.className = 'adora-search-suggest-panel adora-search-suggest-panel--portal';
             el.setAttribute('role', 'listbox');
             el.innerHTML = items.map((it, i) => rowHtml(it, i)).join('');
 
@@ -6704,7 +6781,11 @@
                     handleAdoraSearchSuggestPick(input, items[i]);
                 });
             });
-            host.appendChild(el);
+            document.body.appendChild(el);
+            window.__adoraSuggestActiveAnchor = anchor;
+            window.__adoraSuggestActivePanel = el;
+            positionAdoraSearchSuggestPanel(anchor, el);
+            ensureAdoraSuggestScrollListeners();
         }
 
         function scheduleAdoraSearchSuggestions(input, scope) {

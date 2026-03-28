@@ -2431,6 +2431,29 @@
             -webkit-overflow-scrolling: touch;
             text-align: start;
         }
+        /* مرفق بـ document.body — فوق البنرات ولا يُقصّ داخل sticky */
+        .adora-search-suggest-panel.adora-search-suggest-panel--portal {
+            position: fixed;
+            right: auto;
+            margin-top: 0;
+            z-index: 50;
+            max-width: calc(100vw - 1rem);
+        }
+        .adora-search-field #marketplace-search-input {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            min-height: 2.75rem;
+            border: none;
+            background: transparent;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: rgb(15 23 42);
+            padding-inline: 0.25rem;
+        }
+        .adora-search-field #marketplace-search-input:focus {
+            outline: none;
+        }
         .adora-search-suggest-row {
             display: flex;
             align-items: center;
@@ -3698,7 +3721,7 @@
                                    data-en-aria="Search fashion"
                                    data-ar-aria="ابحث عن الموضة">
                         </div>
-                        <button type="button" id="search-voice-btn" class="voice-btn flex-shrink-0 w-10 h-10 my-auto rounded-full flex items-center justify-center text-gray-500 transition-colors z-20" onclick="toggleVoiceSearch()" aria-label="Voice search" aria-pressed="false">
+                        <button type="button" id="search-voice-btn" class="voice-btn flex-shrink-0 w-10 h-10 my-auto rounded-full flex items-center justify-center text-gray-500 transition-colors z-20" data-voice-input="search-input" onclick="toggleVoiceSearch(event)" aria-label="Voice search" aria-pressed="false">
                             <i class="fas fa-microphone" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -4424,16 +4447,28 @@
             </button>
         </div>
         <div class="px-3 pt-3 pb-2 space-y-2 bg-white border-b border-gray-100">
-            <div class="adora-search-suggest-anchor relative z-[35] adora-search-typography">
-                <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none rtl:right-auto rtl:left-3 z-[3]"></i>
-                <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--marketplace" data-adora-animated-ph aria-hidden="true">
-                    <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
-                    <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
+            <div class="adora-search-suggest-anchor relative z-[35] adora-search-typography w-full">
+                <div class="adora-search-field adora-search-typography w-full">
+                    <button type="button" class="adora-search-field__icon" onclick="runMarketplaceSearchFromUi()" aria-label="Search">
+                        <i class="fas fa-search text-lg"></i>
+                    </button>
+                    <div class="adora-search-field__input-wrap">
+                        <div class="adora-search-faux-ph adora-search-faux-ph--home" data-adora-animated-ph aria-hidden="true">
+                            <span class="adora-search-faux-prefix" data-en="Search for " data-ar="بحث عن ">بحث عن </span>
+                            <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">عطور</span></span>
+                        </div>
+                        <input type="search" id="marketplace-search-input" enterkeyhint="search" autocomplete="off"
+                            placeholder=""
+                            data-en-ph="" data-ar-ph=""
+                            aria-label=""
+                            data-en-aria="Search marketplace"
+                            data-ar-aria="ابحث في السوق الشامل"
+                            onkeydown="if(event.key==='Enter'){ event.preventDefault(); runMarketplaceSearchFromUi(); }" />
+                    </div>
+                    <button type="button" id="marketplace-search-voice-btn" class="voice-btn flex-shrink-0 w-10 h-10 my-auto rounded-full flex items-center justify-center text-gray-500 transition-colors z-20" data-voice-input="marketplace-search-input" onclick="toggleVoiceSearch(event)" aria-label="Voice search" aria-pressed="false">
+                        <i class="fas fa-microphone" aria-hidden="true"></i>
+                    </button>
                 </div>
-                <input type="search" id="marketplace-search-input" enterkeyhint="search" autocomplete="off"
-                    class="relative z-[1] w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pr-10 pl-3 text-[0.9375rem] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 rtl:pr-3 rtl:pl-10"
-                    placeholder=""
-                    data-en-ph="" data-ar-ph="" />
             </div>
             <p id="marketplace-browse-hint" class="text-[11px] text-gray-500 leading-relaxed px-0.5" data-en="Pick a company below or use search." data-ar="اختر شركة من الأسفل أو استخدم البحث.">اختر شركة من الأسفل أو استخدم البحث.</p>
         </div>
