@@ -4366,6 +4366,7 @@
         function renderMarketplaceProductDetailUi() {
             const p = currentMarketplaceProductDetail;
             if (!p) return;
+            applyProductReviewThemeById(p.id, 'marketplace');
             const isDyn = productUsesDynamicOptions(p);
             if (isDyn) {
                 marketplaceDetailVariantPick = defaultVariantPickDynamic(p);
@@ -7423,6 +7424,7 @@
         }
 
         function fillProductDetailScreen(p) {
+            applyProductReviewThemeById(p && p.id != null ? p.id : 0, 'adora');
             productDetailSelectedColorIndex = 0;
             productDetailVariantPick = {};
             currentQty = 1;
@@ -7869,8 +7871,8 @@
 
         function renderProductInlineStarsFromAvg(avg) {
             const emptyCls = 'far fa-star text-gray-300';
-            const fillCls = 'fas fa-star text-amber-400';
-            const halfCls = 'fas fa-star-half-alt text-amber-400';
+            const fillCls = 'fas fa-star adora-inline-rating-star-fill';
+            const halfCls = 'fas fa-star-half-alt adora-inline-rating-star-half';
             if (avg == null || Number.isNaN(Number(avg))) {
                 return [1, 2, 3, 4, 5].map(() => `<i class="${emptyCls} text-xs"></i>`).join('');
             }
@@ -8054,9 +8056,9 @@
         window.toggleMarketplaceDescExpanded = toggleMarketplaceDescExpanded;
 
         function renderProductSummaryStarsFromAvg(avg) {
-            const emptyCls = 'far fa-star text-gray-200';
-            const fillCls = 'fas fa-star text-emerald-500';
-            const halfCls = 'fas fa-star-half-alt text-emerald-500';
+            const emptyCls = 'far fa-star text-gray-200 adora-rating-summary-star-empty';
+            const fillCls = 'fas fa-star adora-rating-summary-star-fill';
+            const halfCls = 'fas fa-star-half-alt adora-rating-summary-star-half';
             if (avg == null || Number.isNaN(Number(avg))) {
                 return [1, 2, 3, 4, 5].map(() => `<i class="${emptyCls}"></i>`).join('');
             }
@@ -8120,13 +8122,45 @@
                 .join('');
         }
 
+        const ADORA_PR_THEME_CLASSES = [
+            'adora-pr-theme-0',
+            'adora-pr-theme-1',
+            'adora-pr-theme-2',
+            'adora-pr-theme-3',
+            'adora-pr-theme-4',
+            'adora-pr-theme-5',
+        ];
+
+        /** سمة ألوان التقييمات حسب معرف المنتج — أدورا أو السوق الشامل فقط */
+        function applyProductReviewThemeById(productId, scope) {
+            const n = Math.abs(Math.floor(Number(productId) || 0)) % ADORA_PR_THEME_CLASSES.length;
+            const theme = ADORA_PR_THEME_CLASSES[n];
+            const roots =
+                scope === 'marketplace'
+                    ? [
+                          document.querySelector('#screen-marketplace-product .product-noon-sheet'),
+                          document.getElementById('marketplace-review-panel'),
+                      ]
+                    : [
+                          document.querySelector('#screen-product .product-noon-sheet'),
+                          document.getElementById('product-review-panel'),
+                      ];
+            roots.forEach((el) => {
+                if (!el) return;
+                ADORA_PR_THEME_CLASSES.forEach((c) => el.classList.remove(c));
+                el.classList.add(theme);
+            });
+        }
+
         const ADORA_PRODUCT_RATING_SUMMARY_IDS = {
+            card: 'product-rating-summary-card',
             score: 'product-rating-summary-score',
             stars: 'product-rating-summary-stars',
             count: 'product-rating-summary-count',
             dist: 'product-rating-distribution',
         };
         const MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS = {
+            card: 'marketplace-rating-summary-card',
             score: 'marketplace-rating-summary-score',
             stars: 'marketplace-rating-summary-stars',
             count: 'marketplace-rating-summary-count',
@@ -8138,6 +8172,7 @@
             const starsEl = document.getElementById(ids.stars);
             const countEl = document.getElementById(ids.count);
             const distEl = document.getElementById(ids.dist);
+            const cardEl = ids.card ? document.getElementById(ids.card) : null;
             const avg = data && data.average != null ? Number(data.average) : null;
             const cnt = Math.max(0, Number(data && data.count != null ? data.count : 0) || 0);
             if (scoreEl) {
@@ -8146,12 +8181,21 @@
             if (starsEl) starsEl.innerHTML = renderProductSummaryStarsFromAvg(avg);
             if (countEl) countEl.textContent = formatProductReviewCountSubtitle(cnt);
             if (distEl) distEl.innerHTML = renderProductRatingDistributionHtml(data && data.distribution, cnt);
+            if (cardEl) {
+                cardEl.classList.remove('hidden');
+                cardEl.setAttribute('aria-hidden', 'false');
+            }
         }
 
         function resetRatingSummaryCardLoading(ids) {
             updateRatingSummaryCard(ids, { average: null, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
             const countEl = document.getElementById(ids.count);
             if (countEl) countEl.textContent = isRTL ? 'جاري التحميل…' : 'Loading…';
+            const cardEl = ids.card ? document.getElementById(ids.card) : null;
+            if (cardEl) {
+                cardEl.classList.remove('hidden');
+                cardEl.setAttribute('aria-hidden', 'false');
+            }
         }
 
         function updateProductRatingSummaryCard(data) {
@@ -8179,10 +8223,10 @@
             for (let i = 1; i <= 5; i++) {
                 starsHtml += `<i class="fas fa-star text-xs ${i <= stars ? 'text-yellow-400' : 'text-gray-200'}" style="${i > stars ? 'opacity:0.35' : ''}"></i>`;
             }
-            return `<div class="bg-gray-50 rounded-2xl p-4">
+            return `<div class="adora-review-user-card rounded-2xl p-4">
                 <div class="flex justify-between items-start mb-2 gap-2">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-sm flex-shrink-0">${escapeHtml(initials)}</div>
+                        <div class="adora-review-avatar w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0">${escapeHtml(initials)}</div>
                         <div class="min-w-0">
                             <div class="font-semibold text-sm text-gray-900 truncate">${name}</div>
                             <div class="flex gap-0.5 mt-0.5">${starsHtml}</div>

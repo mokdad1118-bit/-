@@ -2067,6 +2067,137 @@
             border-radius: 1.25rem 1.25rem 0 0;
             box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.06);
         }
+
+        /**
+         * ألوان التقييمات — سمة تتبدل حسب معرف المنتج (أدورا + السوق الشامل)
+         */
+        .adora-pr-theme-0 {
+            --rt-a: 99, 102, 241;
+            --rt-a2: 79, 70, 229;
+            --rt-from: #eef2ff;
+            --rt-to: #faf5ff;
+            --rt-panel: rgba(238, 242, 255, 0.55);
+            --rt-panel-border: rgba(99, 102, 241, 0.22);
+            --rt-hint-bg: rgba(99, 102, 241, 0.14);
+            --rt-hint-text: #3730a3;
+        }
+        .adora-pr-theme-1 {
+            --rt-a: 147, 51, 234;
+            --rt-a2: 126, 34, 206;
+            --rt-from: #f3e8ff;
+            --rt-to: #faf5ff;
+            --rt-panel: rgba(243, 232, 255, 0.55);
+            --rt-panel-border: rgba(147, 51, 234, 0.22);
+            --rt-hint-bg: rgba(147, 51, 234, 0.14);
+            --rt-hint-text: #6b21a8;
+        }
+        .adora-pr-theme-2 {
+            --rt-a: 5, 150, 105;
+            --rt-a2: 4, 120, 87;
+            --rt-from: #ecfdf5;
+            --rt-to: #f0fdfa;
+            --rt-panel: rgba(209, 250, 229, 0.5);
+            --rt-panel-border: rgba(5, 150, 105, 0.22);
+            --rt-hint-bg: rgba(5, 150, 105, 0.12);
+            --rt-hint-text: #065f46;
+        }
+        .adora-pr-theme-3 {
+            --rt-a: 225, 29, 72;
+            --rt-a2: 190, 18, 60;
+            --rt-from: #fff1f2;
+            --rt-to: #fdf2f8;
+            --rt-panel: rgba(255, 228, 230, 0.55);
+            --rt-panel-border: rgba(225, 29, 72, 0.2);
+            --rt-hint-bg: rgba(225, 29, 72, 0.12);
+            --rt-hint-text: #9f1239;
+        }
+        .adora-pr-theme-4 {
+            --rt-a: 217, 119, 6;
+            --rt-a2: 180, 83, 9;
+            --rt-from: #fffbeb;
+            --rt-to: #fff7ed;
+            --rt-panel: rgba(254, 243, 199, 0.55);
+            --rt-panel-border: rgba(217, 119, 6, 0.22);
+            --rt-hint-bg: rgba(217, 119, 6, 0.14);
+            --rt-hint-text: #92400e;
+        }
+        .adora-pr-theme-5 {
+            --rt-a: 2, 132, 199;
+            --rt-a2: 3, 105, 161;
+            --rt-from: #e0f2fe;
+            --rt-to: #f0f9ff;
+            --rt-panel: rgba(224, 242, 254, 0.55);
+            --rt-panel-border: rgba(2, 132, 199, 0.22);
+            --rt-hint-bg: rgba(2, 132, 199, 0.12);
+            --rt-hint-text: #075985;
+        }
+
+        .product-noon-sheet[class*='adora-pr-theme-'] #product-reviews-section,
+        .product-noon-sheet[class*='adora-pr-theme-'] #marketplace-reviews-section {
+            border-top-color: rgba(var(--rt-a), 0.22);
+        }
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-reviews-count-badge {
+            background: rgba(var(--rt-a), 0.16) !important;
+            color: rgb(var(--rt-a)) !important;
+        }
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-inline-rating-star-fill,
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-inline-rating-star-half {
+            color: rgb(var(--rt-a2)) !important;
+        }
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-rating-summary-star-fill,
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-rating-summary-star-half {
+            color: rgb(var(--rt-a2)) !important;
+        }
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-rating-count-btn:hover {
+            color: rgb(var(--rt-a)) !important;
+        }
+
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-rating-summary-card {
+            margin-top: 1rem;
+            margin-bottom: 0.35rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: linear-gradient(148deg, var(--rt-from), #ffffff 55%, var(--rt-to));
+            border: 1px solid rgba(var(--rt-a), 0.2);
+            box-shadow: 0 12px 36px rgba(var(--rt-a), 0.09);
+        }
+
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-review-user-card {
+            background: color-mix(in srgb, rgb(var(--rt-a)) 9%, rgb(249 250 251)) !important;
+            border: 1px solid rgba(var(--rt-a), 0.12);
+        }
+        .product-noon-sheet[class*='adora-pr-theme-'] .adora-review-user-card .adora-review-avatar {
+            background: rgba(var(--rt-a), 0.15) !important;
+            color: rgb(var(--rt-a2)) !important;
+        }
+
+        #product-review-panel.adora-review-write-panel[class*='adora-pr-theme-'],
+        #marketplace-review-panel.adora-review-write-panel[class*='adora-pr-theme-'] {
+            background: var(--rt-panel) !important;
+            border-top-color: var(--rt-panel-border) !important;
+        }
+        #product-review-panel[class*='adora-pr-theme-'] .adora-review-comment-field,
+        #marketplace-review-panel[class*='adora-pr-theme-'] .adora-review-comment-field {
+            border-color: rgba(var(--rt-a), 0.28);
+        }
+        #product-review-panel[class*='adora-pr-theme-'] .adora-review-comment-field:focus,
+        #marketplace-review-panel[class*='adora-pr-theme-'] .adora-review-comment-field:focus {
+            box-shadow: 0 0 0 2px rgba(var(--rt-a), 0.38);
+        }
+        #product-review-panel[class*='adora-pr-theme-'] .adora-review-submit-btn,
+        #marketplace-review-panel[class*='adora-pr-theme-'] .adora-review-submit-btn {
+            background: rgb(var(--rt-a)) !important;
+        }
+        #product-review-panel[class*='adora-pr-theme-'] .adora-review-submit-btn:hover,
+        #marketplace-review-panel[class*='adora-pr-theme-'] .adora-review-submit-btn:hover {
+            filter: brightness(1.05);
+        }
+        #product-review-panel[class*='adora-pr-theme-'] .adora-review-login-hint,
+        #marketplace-review-panel[class*='adora-pr-theme-'] .adora-review-login-hint {
+            background: var(--rt-hint-bg) !important;
+            color: var(--rt-hint-text) !important;
+        }
+
         .product-detail-sticky-noon {
             display: flex;
             align-items: stretch;
@@ -4668,15 +4799,15 @@
             <div id="marketplace-gallery-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet px-4 pt-5 pb-36">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 px-4 pt-5 pb-36">
             <h1 id="marketplace-detail-title" class="text-2xl font-extrabold text-gray-900 leading-snug tracking-tight line-clamp-3">—</h1>
             <div id="marketplace-detail-vendor" class="mt-1.5 min-h-[1.25rem] flex flex-wrap items-center gap-1 text-sm">—</div>
             <p id="marketplace-detail-section" class="text-xs text-gray-500 mt-1 leading-snug">—</p>
 
             <div id="marketplace-detail-rating-row" class="hidden mt-2 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
-                <span id="marketplace-detail-rating-stars" class="flex gap-0.5 text-amber-400 text-sm dir-ltr" dir="ltr" aria-hidden="true"></span>
+                <span id="marketplace-detail-rating-stars" class="flex gap-0.5 text-sm dir-ltr" dir="ltr" aria-hidden="true"></span>
                 <span id="marketplace-detail-rating-score" class="font-bold text-gray-900 tabular-nums">—</span>
-                <button type="button" id="marketplace-detail-rating-count" class="text-gray-500 font-medium hover:text-indigo-600 transition text-start" onclick="document.getElementById('marketplace-reviews-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })"></button>
+                <button type="button" id="marketplace-detail-rating-count" class="adora-rating-count-btn text-gray-500 font-medium transition text-start" onclick="document.getElementById('marketplace-reviews-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })"></button>
             </div>
 
             <div class="mt-4 flex flex-wrap items-baseline gap-2 gap-y-1">
@@ -4714,7 +4845,7 @@
                 </div>
             </div>
 
-            <div id="marketplace-rating-summary-card" class="hidden" aria-hidden="true">
+            <div id="marketplace-rating-summary-card" class="adora-rating-summary-card hidden" aria-hidden="true">
                 <div class="flex flex-col sm:flex-row sm:items-stretch">
                     <div class="flex-1 px-4 py-5 sm:px-5 sm:py-6 flex flex-col items-center sm:items-start text-center sm:text-start">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2" data-en="Average rating" data-ar="متوسط التقييم">متوسط التقييم</p>
@@ -4722,7 +4853,7 @@
                             <span id="marketplace-rating-summary-score" class="text-4xl sm:text-[2.75rem] font-extrabold text-gray-900 leading-none tracking-tight" aria-live="polite">—</span>
                             <span class="text-lg font-semibold text-gray-400" aria-hidden="true">/ 5</span>
                         </div>
-                        <div id="marketplace-rating-summary-stars" class="flex gap-0.5 mt-3 text-xl sm:text-2xl text-emerald-500 justify-center sm:justify-start" aria-hidden="true"></div>
+                        <div id="marketplace-rating-summary-stars" class="flex gap-0.5 mt-3 text-xl sm:text-2xl justify-center sm:justify-start" aria-hidden="true"></div>
                         <p id="marketplace-rating-summary-count" class="text-sm text-gray-600 mt-3 leading-relaxed max-w-[16rem] sm:max-w-none"></p>
                     </div>
                     <div class="hidden sm:block w-px bg-gray-100 shrink-0" aria-hidden="true"></div>
@@ -4732,13 +4863,13 @@
                 </div>
             </div>
 
-            <div id="marketplace-reviews-section" class="border-t border-gray-100 mt-6 mb-2">
-                <button type="button" onclick="document.getElementById('marketplace-review-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })" class="w-full py-3 flex justify-between items-center text-start">
+            <div id="marketplace-reviews-section" class="border-t border-gray-100 mt-6 mb-6">
+                <button type="button" onclick="document.getElementById('marketplace-review-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })" class="w-full py-4 flex justify-between items-center text-start">
                     <div class="flex items-center gap-2">
-                        <span class="font-bold text-gray-900 text-sm" data-en="Reviews" data-ar="التقييمات">التقييمات</span>
-                        <span id="marketplace-reviews-count-badge" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">0</span>
+                        <span class="font-semibold text-gray-900" data-en="Reviews" data-ar="التقييمات">التقييمات</span>
+                        <span id="marketplace-reviews-count-badge" class="adora-reviews-count-badge text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
                     </div>
-                    <i class="fas fa-chevron-down text-gray-400 text-sm" aria-hidden="true"></i>
+                    <i class="fas fa-chevron-down text-gray-400 text-sm transition-transform" aria-hidden="true"></i>
                 </button>
                 <div id="marketplace-reviews-list" class="space-y-4 pb-4">
                     <p class="text-sm text-gray-500 py-2" data-en="Loading reviews…" data-ar="جاري تحميل التقييمات…">جاري تحميل التقييمات…</p>
@@ -4746,10 +4877,10 @@
             </div>
         </div>
 
-        <div id="marketplace-review-panel" class="px-4 pt-2 pb-44 border-t border-amber-100 bg-amber-50/40 scroll-mt-4">
+        <div id="marketplace-review-panel" class="adora-review-write-panel adora-pr-theme-0 px-4 pt-2 pb-44 border-t border-gray-200/80 scroll-mt-4">
             <h3 class="font-bold text-gray-900 mb-0.5" data-en="Write your review" data-ar="اكتب تقييمك">اكتب تقييمك</h3>
             <p class="text-xs text-gray-600 mb-2 leading-relaxed" data-en="Your stars and comment appear with your account name." data-ar="تظهر النجوم والتعليق مع اسم حسابك.">تظهر النجوم والتعليق مع اسم حسابك.</p>
-            <p id="marketplace-review-login-hint" class="text-xs text-amber-800 bg-amber-100 rounded-lg px-2 py-1.5 mb-2 hidden" data-en="Sign in to submit a review." data-ar="سجّل الدخول لإرسال تقييم.">سجّل الدخول لإرسال تقييم.</p>
+            <p id="marketplace-review-login-hint" class="adora-review-login-hint text-xs rounded-lg px-2 py-1.5 mb-2 hidden" data-en="Sign in to submit a review." data-ar="سجّل الدخول لإرسال تقييم.">سجّل الدخول لإرسال تقييم.</p>
             <div id="marketplace-review-stars-row" class="flex gap-1 justify-center mb-2 dir-ltr" dir="ltr" role="group">
                 <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="1" aria-label="1"><i class="far fa-star text-gray-300"></i></button>
                 <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="2" aria-label="2"><i class="far fa-star text-gray-300"></i></button>
@@ -4757,8 +4888,8 @@
                 <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="4" aria-label="4"><i class="far fa-star text-gray-300"></i></button>
                 <button type="button" class="mp-product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="5" aria-label="5"><i class="far fa-star text-gray-300"></i></button>
             </div>
-            <textarea id="marketplace-review-comment" rows="3" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-amber-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
-            <button type="button" onclick="submitMarketplaceProductReview()" class="mt-2 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
+            <textarea id="marketplace-review-comment" rows="3" maxlength="2000" class="adora-review-comment-field w-full text-sm p-3 rounded-xl border bg-white focus:outline-none focus:ring-2 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
+            <button type="button" onclick="submitMarketplaceProductReview()" class="adora-review-submit-btn mt-2 w-full py-3 rounded-xl text-white font-bold text-sm shadow-sm active:scale-[0.98] transition flex items-center justify-center gap-2">
                 <i class="fas fa-paper-plane text-sm"></i>
                 <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
             </button>
@@ -4815,14 +4946,14 @@
             <div id="product-detail-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
 
-        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet px-4 pt-5 pb-36">
+        <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 px-4 pt-5 pb-36">
             <h1 id="product-detail-title" class="text-2xl font-extrabold text-gray-900 leading-snug tracking-tight line-clamp-3">Premium Wool Blend Overcoat</h1>
             <p id="product-detail-meta" class="text-sm font-semibold text-indigo-600 mt-1.5 leading-snug hidden"></p>
 
             <div id="product-detail-rating-row" class="hidden mt-2 flex flex-wrap items-center gap-2 text-sm" aria-live="polite">
-                <span id="product-detail-rating-stars" class="flex gap-0.5 text-amber-400 text-sm dir-ltr" dir="ltr" aria-hidden="true"></span>
+                <span id="product-detail-rating-stars" class="flex gap-0.5 text-sm dir-ltr" dir="ltr" aria-hidden="true"></span>
                 <span id="product-detail-rating-score" class="font-bold text-gray-900 tabular-nums">—</span>
-                <button type="button" id="product-detail-rating-count" class="text-gray-500 font-medium hover:text-indigo-600 transition text-start" onclick="document.getElementById('product-reviews-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })"></button>
+                <button type="button" id="product-detail-rating-count" class="adora-rating-count-btn text-gray-500 font-medium transition text-start" onclick="document.getElementById('product-reviews-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })"></button>
             </div>
 
             <div class="mt-4 flex flex-wrap items-baseline gap-2 gap-y-1">
@@ -4863,7 +4994,7 @@
             </div>
             </div>
 
-            <div id="product-rating-summary-card" class="hidden" aria-hidden="true">
+            <div id="product-rating-summary-card" class="adora-rating-summary-card hidden" aria-hidden="true">
                 <div class="flex flex-col sm:flex-row sm:items-stretch">
                     <div class="flex-1 px-4 py-5 sm:px-5 sm:py-6 flex flex-col items-center sm:items-start text-center sm:text-start">
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2" data-en="Average rating" data-ar="متوسط التقييم">متوسط التقييم</p>
@@ -4871,7 +5002,7 @@
                             <span id="product-rating-summary-score" class="text-4xl sm:text-[2.75rem] font-extrabold text-gray-900 leading-none tracking-tight" aria-live="polite">—</span>
                             <span class="text-lg font-semibold text-gray-400" aria-hidden="true">/ 5</span>
                         </div>
-                        <div id="product-rating-summary-stars" class="flex gap-0.5 mt-3 text-xl sm:text-2xl text-emerald-500 justify-center sm:justify-start" aria-hidden="true"></div>
+                        <div id="product-rating-summary-stars" class="flex gap-0.5 mt-3 text-xl sm:text-2xl justify-center sm:justify-start" aria-hidden="true"></div>
                         <p id="product-rating-summary-count" class="text-sm text-gray-600 mt-3 leading-relaxed max-w-[16rem] sm:max-w-none"></p>
                     </div>
                     <div class="hidden sm:block w-px bg-gray-100 shrink-0" aria-hidden="true"></div>
@@ -4885,7 +5016,7 @@
                 <button onclick="toggleAccordion('reviews')" class="w-full py-4 flex justify-between items-center">
                     <div class="flex items-center gap-2">
                         <span class="font-semibold text-gray-900" data-en="Reviews" data-ar="التقييمات">Reviews</span>
-                        <span id="product-reviews-count-badge" class="product-reviews-badge text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-semibold">0</span>
+                        <span id="product-reviews-count-badge" class="product-reviews-badge adora-reviews-count-badge text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
                     </div>
                     <i id="icon-reviews" class="fas fa-chevron-down text-gray-400 transition-transform"></i>
                 </button>
@@ -4905,10 +5036,10 @@
             </div>
         </div>
 
-        <div id="product-review-panel" class="px-4 pt-2 pb-44 border-t border-amber-100 bg-amber-50/40 scroll-mt-4">
+        <div id="product-review-panel" class="adora-review-write-panel adora-pr-theme-0 px-4 pt-2 pb-44 border-t border-gray-200/80 scroll-mt-4">
             <h3 class="font-bold text-gray-900 mb-0.5" data-en="Rate & review before you buy" data-ar="قيّم واكتب رأيك قبل الشراء">قيّم واكتب رأيك قبل الشراء</h3>
             <p class="text-xs text-gray-600 mb-2 leading-relaxed" data-en="Stars and comment are sent to the store team (shown with your account name)." data-ar="تُرسل النجوم والتعليق لفريق المتجر (يظهر اسم حسابك).">تُرسل النجوم والتعليق لفريق المتجر (يظهر اسم حسابك).</p>
-            <p id="product-review-login-hint" class="text-xs text-amber-800 bg-amber-100 rounded-lg px-2 py-1.5 mb-2 hidden" data-en="Sign in to submit a review." data-ar="سجّل الدخول لإرسال تقييم للمنتج.">سجّل الدخول لإرسال تقييم للمنتج.</p>
+            <p id="product-review-login-hint" class="adora-review-login-hint text-xs rounded-lg px-2 py-1.5 mb-2 hidden" data-en="Sign in to submit a review." data-ar="سجّل الدخول لإرسال تقييم للمنتج.">سجّل الدخول لإرسال تقييم للمنتج.</p>
             <div id="product-review-stars-row" class="flex gap-1 justify-center mb-2 dir-ltr" dir="ltr" role="group">
                 <button type="button" class="product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="1" aria-label="1"><i class="far fa-star text-gray-300"></i></button>
                 <button type="button" class="product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="2" aria-label="2"><i class="far fa-star text-gray-300"></i></button>
@@ -4916,8 +5047,8 @@
                 <button type="button" class="product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="4" aria-label="4"><i class="far fa-star text-gray-300"></i></button>
                 <button type="button" class="product-review-star p-1 rounded-lg transition hover:bg-white/80 text-2xl leading-none" data-star="5" aria-label="5"><i class="far fa-star text-gray-300"></i></button>
             </div>
-            <textarea id="product-review-comment" rows="3" maxlength="2000" class="w-full text-sm p-3 rounded-xl border border-amber-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
-            <button type="button" onclick="submitProductReview()" class="mt-2 w-full py-3 rounded-xl bg-amber-500 text-white font-bold text-sm shadow-sm hover:bg-amber-600 active:scale-[0.98] transition flex items-center justify-center gap-2">
+            <textarea id="product-review-comment" rows="3" maxlength="2000" class="adora-review-comment-field w-full text-sm p-3 rounded-xl border bg-white focus:outline-none focus:ring-2 resize-none" data-en-ph="Optional comment…" data-ar-ph="تعليق اختياري…"></textarea>
+            <button type="button" onclick="submitProductReview()" class="adora-review-submit-btn mt-2 w-full py-3 rounded-xl text-white font-bold text-sm shadow-sm active:scale-[0.98] transition flex items-center justify-center gap-2">
                 <i class="fas fa-paper-plane text-sm"></i>
                 <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
             </button>
