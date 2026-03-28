@@ -4719,6 +4719,7 @@
         function addMarketplacePayloadToCart(p, qty, opts = {}) {
             const silent = opts.silent === true;
             const resetDetailQty = opts.resetDetailQty !== false;
+            const replaceLineQty = opts.replaceLineQty === true;
             const pick = opts.variantPick != null ? opts.variantPick : marketplaceDetailVariantPick;
             if (!p || !p.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
@@ -4779,8 +4780,14 @@
             const key = getCartLineKey(line);
             const existing = cartItems.find((x) => getCartLineKey(x) === key);
             if (existing) {
-                const nextQty = Math.min(99, Number(existing.qty || 1) + q);
+                const nextQty = replaceLineQty
+                    ? Math.min(99, q, stock)
+                    : Math.min(99, Number(existing.qty || 1) + q);
                 if (nextQty > stock) {
+                    showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
+                    return false;
+                }
+                if (nextQty < 1) {
                     showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
                     return false;
                 }
@@ -4811,9 +4818,10 @@
 
         function addMarketplaceProductToCart(opts = {}) {
             const silent = opts.silent === true;
+            const replaceLineQty = opts.replaceLineQty === true;
             const p = currentMarketplaceProductDetail;
             const qty = Math.max(1, Math.min(99, Number(marketplaceDetailQty || 1)));
-            return addMarketplacePayloadToCart(p, qty, { silent, resetDetailQty: true });
+            return addMarketplacePayloadToCart(p, qty, { silent, resetDetailQty: true, replaceLineQty });
         }
 
         async function quickAddMarketplaceProductToCart(productId, ev) {
@@ -4839,7 +4847,7 @@
         }
 
         function buyMarketplaceNow() {
-            if (!addMarketplaceProductToCart({ silent: true })) return;
+            if (!addMarketplaceProductToCart({ silent: true, replaceLineQty: true })) return;
             openOrderOptions();
         }
 
@@ -4848,6 +4856,7 @@
         function addToCart(opts = {}) {
             const silent = opts.silent === true;
             const forceQtyOne = opts.forceQtyOne === true;
+            const replaceLineQty = opts.replaceLineQty === true;
             if (!currentProductDetail || !currentProductDetail.id) {
                 showToast(isRTL ? 'تعذر إضافة المنتج' : 'Cannot add to cart');
                 return false;
@@ -4856,6 +4865,13 @@
             const qty = forceQtyOne
                 ? 1
                 : Math.max(1, Math.min(99, Number(currentQty || 1)));
+            if (replaceLineQty && !forceQtyOne) {
+                const cap = getProductDetailStockCount();
+                if (cap > 0 && qty > cap) {
+                    showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
+                    return false;
+                }
+            }
             let size = getSelectedDetailSize();
             let color = getSelectedDetailColor();
             let listUnit = Number(p.price || 0);
@@ -4902,7 +4918,10 @@
             const key = getCartLineKey(line);
             const existing = cartItems.find((x) => getCartLineKey(x) === key);
             if (existing) {
-                if (forceQtyOne) {
+                if (replaceLineQty && !forceQtyOne) {
+                    const cap = getProductDetailStockCount();
+                    existing.qty = cap > 0 ? Math.min(qty, cap, 99) : Math.min(qty, 99);
+                } else if (forceQtyOne) {
                     existing.qty = 1;
                 } else {
                     existing.qty = Math.min(99, Number(existing.qty || 1) + qty);
@@ -4930,7 +4949,7 @@
         }
 
         function buyNow() {
-            if (!addToCart({ silent: true, forceQtyOne: true })) return;
+            if (!addToCart({ silent: true, replaceLineQty: true })) return;
             openOrderOptions();
         }
 
