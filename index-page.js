@@ -2210,13 +2210,15 @@
             disconnectAppSocket();
             const socketUrl = getApiOrigin();
             const norm = (o) => String(o || '').replace(/\/$/, '');
-            /* واجهة على نطاق وخادم على نطاق آخر (Netlify + Render): البروكسي غالباً يفشل في WebSocket — نستخدم polling فقط ونمنع الترقية لتختفي أخطاء manager.js */
-            const crossApi =
-                norm(socketUrl) !== norm(window.location.origin) ||
-                (typeof window.ADORA_FORCE_SOCKET_POLLING === 'boolean' && window.ADORA_FORCE_SOCKET_POLLING);
-            const transportOpts = crossApi
+            /* واجهة على نطاق وخادم على نطاق آخر: polling فقط يعيد 400 «Session ID unknown» خلف موزّع حمل (Render بعدة نسخ) لأن كل طلب قد يذهب لنسخة مختلفة. WebSocket يبقى على اتصال واحد فيُفضّل أولاً. */
+            const forcePollingOnly =
+                typeof window.ADORA_FORCE_SOCKET_POLLING === 'boolean' && window.ADORA_FORCE_SOCKET_POLLING;
+            const crossApi = norm(socketUrl) !== norm(window.location.origin) || forcePollingOnly;
+            const transportOpts = forcePollingOnly
                 ? { transports: ['polling'], upgrade: false }
-                : { transports: ['polling', 'websocket'], upgrade: true, rememberUpgrade: true };
+                : crossApi
+                  ? { transports: ['websocket', 'polling'], upgrade: true, rememberUpgrade: true }
+                  : { transports: ['polling', 'websocket'], upgrade: true, rememberUpgrade: true };
             appSocket = io(socketUrl, {
                 auth: { token },
                 ...transportOpts,

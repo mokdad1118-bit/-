@@ -9,6 +9,7 @@
 # - Build: فشل npm ci → تأكد أن package-lock.json مرفوع ومزامن مع package.json
 # - Runtime: [Adora] Database init failed → عيّن DATABASE_URL (رابط PostgreSQL من Render)
 # - Runtime: خطأ عند التحميل → تحقق من Health Check Path = /api/health
+# - Socket.IO 400 مع sid في الرابط: إن رفعت عدد النسخ (Instance Count > 1) عيّن REDIS_URL وربط Redis حتى يعمل Redis adapter (انظر server.js). أو اترك نسخة واحدة.
 
 services:
   - type: web
