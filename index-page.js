@@ -2206,12 +2206,18 @@
             if (!token) return;
             if (appSocket && appSocket.connected) return;
             disconnectAppSocket();
-            /* polling أولاً يقلّل أخطاء «WebSocket closed before established» على الوكلاء وبارد تشغيل Render، ثم ترقية لـ websocket */
-            appSocket = io(getApiOrigin(), {
+            const socketUrl = getApiOrigin();
+            const norm = (o) => String(o || '').replace(/\/$/, '');
+            /* واجهة على نطاق وخادم على نطاق آخر (Netlify + Render): البروكسي غالباً يفشل في WebSocket — نستخدم polling فقط ونمنع الترقية لتختفي أخطاء manager.js */
+            const crossApi =
+                norm(socketUrl) !== norm(window.location.origin) ||
+                (typeof window.ADORA_FORCE_SOCKET_POLLING === 'boolean' && window.ADORA_FORCE_SOCKET_POLLING);
+            const transportOpts = crossApi
+                ? { transports: ['polling'], upgrade: false }
+                : { transports: ['polling', 'websocket'], upgrade: true, rememberUpgrade: true };
+            appSocket = io(socketUrl, {
                 auth: { token },
-                transports: ['polling', 'websocket'],
-                upgrade: true,
-                rememberUpgrade: true,
+                ...transportOpts,
                 timeout: 60000,
                 reconnection: true,
                 reconnectionAttempts: Infinity,
