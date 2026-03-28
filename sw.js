@@ -1,5 +1,5 @@
 /* PWA + Web Push: تثبيت التطبيق وإشعارات النظام عند وصول Push من السيرفر */
-const ADORA_IMAGE_CACHE = "adora-images-v2";
+const ADORA_IMAGE_CACHE = "adora-images-v3";
 
 self.addEventListener("install", (_e) => self.skipWaiting());
 self.addEventListener("activate", (e) => {
@@ -66,7 +66,9 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-function adoraIsCacheableImageRequest(url, request) {
+/** صور نفس أصل التطبيق فقط — لا نمرّر Cloudinary عبر cache-first لأن ذلك سبب net::ERR_FAILED مع بعض المتصفحات/CORS */
+function adoraIsSameOriginCacheableImageRequest(url, request) {
+  if (url.origin !== self.location.origin) return false;
   if (request.method !== "GET") return false;
   const path = url.pathname.toLowerCase();
   const dest = request.destination;
@@ -74,10 +76,7 @@ function adoraIsCacheableImageRequest(url, request) {
     dest === "image" ||
     path.startsWith("/uploads/") ||
     /\.(jpg|jpeg|png|webp|gif|svg|avif|ico)(\?|$)/.test(path);
-  if (!looksLikeImage) return false;
-  if (url.origin === self.location.origin) return true;
-  if (/\.cloudinary\.com$/i.test(url.hostname)) return true;
-  return false;
+  return looksLikeImage;
 }
 
 async function adoraCacheFirstImage(request) {
@@ -99,17 +98,16 @@ async function adoraCacheFirstImage(request) {
   }
 }
 
-/* اعتراض طلبات نفس أصل الموقع؛ تخزين مؤقت للصور (نفس الأصل + Cloudinary) لتقليل الإنترنت وتسريع إعادة العرض */
+/* اعتراض طلبات نفس الأصل فقط؛ تخزين مؤقت لصور /uploads/ ونحوها. روابط Cloudinary تُحمّل مباشرة بدون SW. */
 self.addEventListener("fetch", (event) => {
   try {
     const url = new URL(event.request.url);
-    if (adoraIsCacheableImageRequest(url, event.request)) {
+    if (url.origin !== self.location.origin) return;
+    if (adoraIsSameOriginCacheableImageRequest(url, event.request)) {
       event.respondWith(adoraCacheFirstImage(event.request));
       return;
     }
-    if (url.origin === self.location.origin) {
-      event.respondWith(fetch(event.request));
-    }
+    event.respondWith(fetch(event.request));
   } catch (_e) {
     /* ignore */
   }
