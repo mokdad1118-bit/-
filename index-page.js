@@ -1080,6 +1080,11 @@
             const tb = gal.querySelector('.adora-gallery-top-actions');
             gal.innerHTML = slidesHtml;
             if (tb) gal.insertBefore(tb, gal.firstChild);
+            requestAnimationFrame(() => {
+                try {
+                    gal.scrollLeft = 0;
+                } catch (_e) {}
+            });
             if (gid && autoScrollIntervalMs && Number(autoScrollIntervalMs) > 0) {
                 startGalleryAutoScroll(gid, autoScrollIntervalMs);
             }
@@ -5720,11 +5725,12 @@
             if (!/^https?:\/\//i.test(s)) return s;
             if (!/res\.cloudinary\.com\/[^/?#\s]+\/image\/upload\//i.test(s)) return s;
             if (/\/image\/upload\/c_/i.test(s)) return s;
-            const w = Math.min(1600, Math.max(320, Number(maxW) || 800));
+            const w = Math.min(1024, Math.max(280, Number(maxW) || 720));
             return s.replace(/\/image\/upload\//i, `/image/upload/c_limit,w_${w},q_auto,f_auto/`);
         }
 
-        const ADORA_PDP_GALLERY_MAX_SLIDES = 48;
+        /** حد شرائح المعرض — تقليل DOM والذاكرة (أسلوب تطبيقات التسوق) */
+        const ADORA_PDP_GALLERY_MAX_SLIDES = 24;
 
         function adoraBuildPdpGallerySlidesHtml(imageUrls) {
             const raw = normalizePdpImageList(imageUrls);
@@ -5732,11 +5738,13 @@
             const urls = capped.length ? capped.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
             return urls
                 .map((src, i) => {
-                    const opt = pdpCloudinaryOptimizeUrl(src, i === 0 ? 960 : 720);
+                    const hero = i === 0;
+                    const opt = pdpCloudinaryOptimizeUrl(src, hero ? 840 : 560);
                     const esc = escapeHtml(opt);
-                    const lazy = i === 0 ? 'eager' : 'lazy';
-                    const fp = i === 0 ? ' fetchpriority="high"' : '';
-                    return `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${esc}" class="w-full max-w-full h-auto object-contain" alt="" loading="${lazy}" decoding="async"${fp} referrerpolicy="no-referrer" draggable="false"></div>`;
+                    const lazy = hero ? 'eager' : 'lazy';
+                    const fp = hero ? ' fetchpriority="high"' : ' fetchpriority="low"';
+                    const sizesEsc = escapeHtml('(max-width: 480px) 100vw, min(100vw, 480px)');
+                    return `<div class="snap-center product-gallery-slide adora-pdp-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${esc}" class="adora-pdp-gallery-img w-full max-w-full h-auto object-contain" alt="" width="800" height="800" sizes="${sizesEsc}" loading="${lazy}" decoding="async"${fp} referrerpolicy="no-referrer" draggable="false"></div>`;
                 })
                 .join('');
         }
@@ -5780,11 +5788,11 @@
                 loadProductRelatedForDetail(productId).catch(() => {});
             };
             if (typeof requestIdleCallback === 'function') {
-                requestIdleCallback(() => runReviews(), { timeout: 1800 });
-                requestIdleCallback(() => setTimeout(runRelated, 80), { timeout: 2400 });
+                requestIdleCallback(() => runReviews(), { timeout: 2200 });
+                requestIdleCallback(() => setTimeout(runRelated, 200), { timeout: 3200 });
             } else {
-                setTimeout(runReviews, 16);
-                setTimeout(runRelated, 120);
+                setTimeout(runReviews, 48);
+                setTimeout(runRelated, 220);
             }
         }
 
@@ -7783,32 +7791,34 @@
             const addP = document.getElementById('product-detail-add-price');
             if (addP) addP.textContent = ` — ${formatSyp(saleP)}`;
 
-            if (isDyn) {
-                applyProductDetailVariantToUi(p);
-            } else {
-                const colWrap = document.getElementById('product-color-options');
-                const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
-                if (colWrap) {
-                    if (!colors.length) {
-                        colWrap.innerHTML = `<span class="text-sm text-gray-500">${isRTL ? 'لون واحد' : 'Standard'}</span>`;
-                        const sc = document.getElementById('selected-color');
-                        if (sc) sc.textContent = '—';
-                    } else {
-                        colWrap.innerHTML = colors
-                            .map((c, i) => {
-                                const lab = escapeHtml(String(c).slice(0, 6));
-                                return `<button type="button" class="color-btn ${i === 0 ? 'selected' : ''} w-10 h-10 min-w-[2.5rem] rounded-full border-2 border-gray-200 shadow-sm text-[9px] font-bold text-gray-700 flex items-center justify-center px-1" data-color-idx="${i}" onclick="selectProductDetailColorIdx(${i})">${lab}</button>`;
-                            })
-                            .join('');
-                        const sc = document.getElementById('selected-color');
-                        if (sc) sc.textContent = colors[0];
+            const finishVariantsAndChrome = () => {
+                if (isDyn) {
+                    applyProductDetailVariantToUi(p);
+                } else {
+                    const colWrap = document.getElementById('product-color-options');
+                    const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
+                    if (colWrap) {
+                        if (!colors.length) {
+                            colWrap.innerHTML = `<span class="text-sm text-gray-500">${isRTL ? 'لون واحد' : 'Standard'}</span>`;
+                            const sc = document.getElementById('selected-color');
+                            if (sc) sc.textContent = '—';
+                        } else {
+                            colWrap.innerHTML = colors
+                                .map((c, i) => {
+                                    const lab = escapeHtml(String(c).slice(0, 6));
+                                    return `<button type="button" class="color-btn ${i === 0 ? 'selected' : ''} w-10 h-10 min-w-[2.5rem] rounded-full border-2 border-gray-200 shadow-sm text-[9px] font-bold text-gray-700 flex items-center justify-center px-1" data-color-idx="${i}" onclick="selectProductDetailColorIdx(${i})">${lab}</button>`;
+                                })
+                                .join('');
+                            const sc = document.getElementById('selected-color');
+                            if (sc) sc.textContent = colors[0];
+                        }
                     }
+                    rebuildProductDetailSizes(p);
                 }
-                rebuildProductDetailSizes(p);
-            }
-            syncProductDetailStockUi();
-
-            updateWishlistButtonForProduct(p.id);
+                syncProductDetailStockUi();
+                updateWishlistButtonForProduct(p.id);
+            };
+            requestAnimationFrame(() => requestAnimationFrame(finishVariantsAndChrome));
         }
 
         function productOptionDefinitions(p) {

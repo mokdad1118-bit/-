@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* PDP gallery: سلاسة تمرير مثل تطبيقات التسوق، تقليل تسلسل التمرير للصفحة */
+@layer components {
+    .adora-pdp-gallery-scroll {
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pinch-zoom;
+    }
+
+    .adora-pdp-gallery-slide {
+        content-visibility: auto;
+        contain-intrinsic-size: 100vw min(42vh, 400px);
+    }
+
+    .adora-pdp-gallery-img {
+        max-height: min(72vh, 640px);
+    }
+}
