@@ -3021,6 +3021,12 @@
                 const a = isRTL ? mpInp.getAttribute('data-ar-aria') : mpInp.getAttribute('data-en-aria');
                 if (a) mpInp.setAttribute('aria-label', a);
             }
+            ['product-save-img-btn', 'marketplace-save-img-btn'].forEach((id) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const a = isRTL ? btn.getAttribute('data-ar-aria') : btn.getAttribute('data-en-aria');
+                if (a) btn.setAttribute('aria-label', a);
+            });
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
@@ -4283,7 +4289,7 @@
                     gal.innerHTML = imgs
                         .map(
                             (src) =>
-                                `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>`
+                                `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                         )
                         .join('');
                     startGalleryAutoScroll('marketplace-product-gallery', 4200);
@@ -4336,7 +4342,7 @@
                 gal.innerHTML = merged
                     .map(
                         (src) =>
-                            `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></div>`
+                            `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                     )
                     .join('');
                 startGalleryAutoScroll('marketplace-product-gallery', 4200);
@@ -7246,7 +7252,7 @@
                 gal.innerHTML = imgs
                     .map(
                         (url) =>
-                            `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt=""></div>`
+                            `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt="" draggable="false"></div>`
                     )
                     .join('');
                 startGalleryAutoScroll('product-gallery', 4200);
@@ -9305,6 +9311,290 @@
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
+        function adoraAllowNativeTextInteraction(target) {
+            if (!target || !target.closest) return false;
+            if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
+            if (target.closest('#auth-modal, #auth-gate-screen, #signup-credentials-modal')) return true;
+            return false;
+        }
+
+        function adoraDrawWatermarkOnCanvas(ctx, w, h) {
+            if (!ctx || !w || !h) return;
+            const cx = w * 0.5;
+            const cy = h * 0.5;
+            ctx.save();
+            ctx.globalAlpha = 0.075;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `900 ${Math.max(40, Math.floor(w * 0.15))}px system-ui, -apple-system, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.translate(cx, cy);
+            ctx.rotate(-0.38);
+            ctx.fillText('Adora', 0, 0);
+            ctx.restore();
+
+            const fs = Math.max(12, Math.floor(w * 0.026));
+            ctx.save();
+            ctx.font = `700 ${fs}px system-ui, -apple-system, sans-serif`;
+            const label = 'Adora';
+            const tw = ctx.measureText(label).width;
+            const padX = fs * 0.9;
+            const padY = fs * 0.55;
+            const boxW = tw + padX * 2;
+            const boxH = fs + padY * 2;
+            const margin = Math.max(8, Math.floor(Math.min(w, h) * 0.018));
+            const bx = w - boxW - margin;
+            const by = h - boxH - margin;
+            ctx.globalAlpha = 0.4;
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            if (typeof ctx.roundRect === 'function') {
+                ctx.beginPath();
+                ctx.roundRect(bx, by, boxW, boxH, Math.min(10, fs * 0.65));
+                ctx.fill();
+            } else {
+                ctx.fillRect(bx, by, boxW, boxH);
+            }
+            ctx.globalAlpha = 0.78;
+            ctx.fillStyle = '#5b21b6';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(label, bx + padX, by + padY * 0.75);
+            ctx.restore();
+        }
+
+        async function adoraDownloadImageWithWatermark(imageUrl, baseName) {
+            const src = String(imageUrl || '').trim();
+            if (!src) throw new Error('no src');
+
+            let drawable = null;
+            try {
+                const res = await fetch(src, { mode: 'cors', credentials: 'omit', cache: 'no-store' });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    if (typeof createImageBitmap === 'function') {
+                        try {
+                            drawable = await createImageBitmap(blob);
+                        } catch (_e) {}
+                    }
+                }
+            } catch (_e) {}
+
+            if (!drawable) {
+                await new Promise((resolve, reject) => {
+                    const im = new Image();
+                    im.crossOrigin = 'anonymous';
+                    im.onload = () => {
+                        drawable = im;
+                        resolve();
+                    };
+                    im.onerror = () => reject(new Error('img load'));
+                    im.src = src;
+                });
+            }
+
+            const nw = drawable.naturalWidth || drawable.width;
+            const nh = drawable.naturalHeight || drawable.height;
+            if (!nw || !nh) throw new Error('dims');
+
+            const canvas = document.createElement('canvas');
+            canvas.width = nw;
+            canvas.height = nh;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('ctx');
+            try {
+                ctx.drawImage(drawable, 0, 0, nw, nh);
+            } catch (_e) {
+                throw new Error('draw');
+            }
+            adoraDrawWatermarkOnCanvas(ctx, nw, nh);
+
+            await new Promise((resolve, reject) => {
+                canvas.toBlob(
+                    (b) => {
+                        if (!b) {
+                            reject(new Error('blob'));
+                            return;
+                        }
+                        const u = URL.createObjectURL(b);
+                        const a = document.createElement('a');
+                        a.href = u;
+                        const safe = String(baseName || 'adora-product')
+                            .replace(/[^a-z0-9-_]+/gi, '-')
+                            .replace(/^-+|-+$/g, '')
+                            .slice(0, 72);
+                        a.download = `${safe || 'adora-product'}.png`;
+                        a.rel = 'noopener';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(u);
+                        resolve();
+                    },
+                    'image/png',
+                    0.92
+                );
+            });
+
+            try {
+                if (drawable && typeof drawable.close === 'function') drawable.close();
+            } catch (_e2) {}
+        }
+
+        function adoraGetVisibleGalleryImageUrl(galleryId) {
+            const host = document.getElementById(galleryId);
+            if (!host) return '';
+            const hostRect = host.getBoundingClientRect();
+            let bestSrc = '';
+            let bestScore = 0;
+            host.querySelectorAll('img[src]').forEach((im) => {
+                const s = (im.getAttribute('src') || '').trim();
+                if (!s || s.includes('adora-icon.svg')) return;
+                const r = im.getBoundingClientRect();
+                const iw = Math.max(0, Math.min(r.right, hostRect.right) - Math.max(r.left, hostRect.left));
+                const ih = Math.max(0, Math.min(r.bottom, hostRect.bottom) - Math.max(r.top, hostRect.top));
+                const area = iw * ih;
+                if (area > bestScore) {
+                    bestScore = area;
+                    bestSrc = s;
+                }
+            });
+            return bestSrc;
+        }
+
+        async function adoraSaveGalleryImageWithWatermark(galleryId, filenameHint) {
+            const url = adoraGetVisibleGalleryImageUrl(galleryId);
+            if (!url) {
+                showToast(isRTL ? 'لا توجد صورة للحفظ' : 'No image to save');
+                return;
+            }
+            try {
+                await adoraDownloadImageWithWatermark(url, filenameHint);
+                showToast(isRTL ? 'تم تنزيل الصورة مع علامة Adora' : 'Image downloaded with Adora watermark');
+            } catch (_e) {
+                showToast(
+                    isRTL
+                        ? 'تعذر حفظ الصورة. جرّب مرة أخرى أو تأكد أن الصورة من نفس الموقع.'
+                        : 'Could not save the image. Try again or ensure the image loads from this site.'
+                );
+            }
+        }
+
+        function adoraSaveCurrentProductImage() {
+            const id = currentProductDetail && currentProductDetail.id ? `product-${currentProductDetail.id}` : 'adora-product';
+            adoraSaveGalleryImageWithWatermark('product-gallery', id);
+        }
+
+        function adoraSaveCurrentMarketplaceProductImage() {
+            const id =
+                currentMarketplaceProductDetail && currentMarketplaceProductDetail.id
+                    ? `mp-product-${currentMarketplaceProductDetail.id}`
+                    : 'adora-marketplace-product';
+            adoraSaveGalleryImageWithWatermark('marketplace-product-gallery', id);
+        }
+
+        window.adoraSaveCurrentProductImage = adoraSaveCurrentProductImage;
+        window.adoraSaveCurrentMarketplaceProductImage = adoraSaveCurrentMarketplaceProductImage;
+
+        let adoraContentProtectionBound = false;
+        function initAdoraContentProtection() {
+            if (adoraContentProtectionBound) return;
+            adoraContentProtectionBound = true;
+
+            const blockClipboardUnlessAllowed = (e) => {
+                if (adoraAllowNativeTextInteraction(e.target)) return;
+                const shell = document.getElementById('app-shell');
+                if (shell && !shell.classList.contains('hidden') && shell.contains(e.target)) {
+                    e.preventDefault();
+                }
+            };
+            document.addEventListener('copy', blockClipboardUnlessAllowed, true);
+            document.addEventListener('cut', blockClipboardUnlessAllowed, true);
+            document.addEventListener('paste', blockClipboardUnlessAllowed, true);
+
+            document.addEventListener(
+                'selectstart',
+                (e) => {
+                    if (adoraAllowNativeTextInteraction(e.target)) return;
+                    const shell = document.getElementById('app-shell');
+                    if (shell && !shell.classList.contains('hidden') && shell.contains(e.target)) {
+                        e.preventDefault();
+                    }
+                },
+                true
+            );
+
+            document.addEventListener(
+                'contextmenu',
+                (e) => {
+                    if (!e.target || !e.target.closest) return;
+                    if (adoraAllowNativeTextInteraction(e.target)) return;
+                    const img = e.target.closest('img');
+                    if (!img) return;
+                    e.preventDefault();
+                },
+                true
+            );
+
+            document.addEventListener(
+                'dragstart',
+                (e) => {
+                    if (e.target && e.target.tagName === 'IMG' && !adoraAllowNativeTextInteraction(e.target)) {
+                        e.preventDefault();
+                    }
+                },
+                true
+            );
+        }
+
+        let adoraProductGalleryLongPressBound = false;
+        function initAdoraProductGalleryLongPressSave() {
+            if (adoraProductGalleryLongPressBound) return;
+            adoraProductGalleryLongPressBound = true;
+            const setups = [
+                { id: 'product-gallery', save: () => adoraSaveCurrentProductImage() },
+                { id: 'marketplace-product-gallery', save: () => adoraSaveCurrentMarketplaceProductImage() },
+            ];
+            setups.forEach(({ id, save }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                let timer = null;
+                let sx = 0;
+                let sy = 0;
+                const clear = () => {
+                    if (timer) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }
+                };
+                el.addEventListener(
+                    'touchstart',
+                    (e) => {
+                        clear();
+                        if (!e.touches || e.touches.length !== 1) return;
+                        sx = e.touches[0].clientX;
+                        sy = e.touches[0].clientY;
+                        timer = setTimeout(() => {
+                            timer = null;
+                            save();
+                        }, 680);
+                    },
+                    { passive: true }
+                );
+                el.addEventListener('touchend', clear, { passive: true });
+                el.addEventListener('touchcancel', clear, { passive: true });
+                el.addEventListener(
+                    'touchmove',
+                    (e) => {
+                        if (!timer || !e.touches || !e.touches.length) return;
+                        const dx = Math.abs(e.touches[0].clientX - sx);
+                        const dy = Math.abs(e.touches[0].clientY - sy);
+                        if (dx > 14 || dy > 14) clear();
+                    },
+                    { passive: true }
+                );
+            });
+        }
+
         // Header scroll effect
         window.addEventListener('scroll', () => {
             const header = document.querySelector('.main-header');
@@ -9758,6 +10048,8 @@
             initProductReviewStars();
             initMarketplaceProductReviewStars();
             initAdoraProductImageLightbox();
+            initAdoraContentProtection();
+            initAdoraProductGalleryLongPressSave();
             updateSiteRatingLoginHint();
             updateProductReviewLoginHint();
             updateMarketplaceReviewLoginHint();

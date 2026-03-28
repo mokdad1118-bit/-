@@ -2408,6 +2408,30 @@
             box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06), 0 0 0 2px rgba(168, 85, 247, 0.2);
         }
 
+        /* حماية محتوى التطبيق: منع تحديد النص خارج حقول الإدخال */
+        #app-shell {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #app-shell input,
+        #app-shell textarea,
+        #app-shell select,
+        #app-shell [contenteditable='true'] {
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        }
+        #app-shell img {
+            -webkit-user-drag: none;
+            -webkit-touch-callout: none;
+        }
+        #signup-credentials-modal,
+        #signup-credentials-modal * {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
         /* اقتراحات البحث — صندوق تحت الشريط (مثل تطبيقات التسوق) */
         .adora-search-suggest-anchor {
             position: relative;
@@ -4495,6 +4519,11 @@
         </div>
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[min(52vw,280px)] max-h-[320px]" id="marketplace-product-gallery"></div>
+            <div class="absolute top-0 left-0 right-0 p-3 flex justify-start items-start z-10 pointer-events-none">
+                <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                    <i class="fas fa-download text-gray-800"></i>
+                </button>
+            </div>
         </div>
         <div class="px-5 pt-5 pb-36 space-y-4">
             <div>
@@ -4575,12 +4604,15 @@
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[450px]" id="product-gallery">
                 <div class="snap-center w-full flex-shrink-0 relative min-w-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
-                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-32 h-32 object-contain opacity-90" width="128" height="128" alt="">
+                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-32 h-32 object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
             </div>
             
-            <div class="absolute top-0 left-0 right-0 p-4 flex justify-end items-center z-10">
-                <div class="flex gap-3">
+            <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 pointer-events-none">
+                <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                    <i class="fas fa-download text-gray-800"></i>
+                </button>
+                <div class="flex gap-3 pointer-events-auto">
                     <button type="button" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Share">
                         <i class="fas fa-share-alt text-gray-800"></i>
                     </button>
@@ -5605,7 +5637,7 @@
         <p id="adora-lightbox-hint" class="absolute top-[5.25rem] left-0 right-0 z-10 text-center text-[11px] text-white/75 px-4 pointer-events-none sm:top-[5.5rem]" data-en="Pinch to zoom · double-tap · drag when zoomed · swipe for more photos" data-ar="قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة">قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة</p>
         <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-[5.5rem] pb-28 px-2 relative select-none">
             <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-none max-w-full max-h-full flex items-center justify-center">
-                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(76dvh,560px)] max-w-[min(96vw,420px)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none block" draggable="false" />
+                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(76dvh,560px)] max-w-[min(96vw,420px)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none block adora-no-context-img" draggable="false" />
             </div>
         </div>
         <div id="adora-lightbox-toolbar" class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">
