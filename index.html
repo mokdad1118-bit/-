@@ -4531,7 +4531,7 @@
         </div>
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[min(52vw,280px)] max-h-[320px]" id="marketplace-product-gallery"></div>
-            <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-10 pointer-events-none">
+            <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-[60] pointer-events-none">
                 <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
                     <i class="fas fa-download text-gray-800"></i>
                 </button>
@@ -4658,7 +4658,7 @@
                 </div>
             </div>
             
-            <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 pointer-events-none">
+            <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[60] pointer-events-none">
                 <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
                     <i class="fas fa-download text-gray-800"></i>
                 </button>
@@ -4672,13 +4672,13 @@
                 </div>
             </div>
             
-            <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2" id="gallery-dots">
-                <div class="w-6 h-2 bg-purple-600 rounded-full transition-all cursor-pointer"></div>
-                <div class="w-2 h-2 bg-white/60 rounded-full transition-all cursor-pointer"></div>
-                <div class="w-2 h-2 bg-white/60 rounded-full transition-all cursor-pointer"></div>
+            <div class="absolute bottom-4 left-0 right-0 z-[50] flex justify-center gap-2 pointer-events-none" id="gallery-dots">
+                <div class="w-6 h-2 bg-purple-600 rounded-full transition-all cursor-pointer pointer-events-auto"></div>
+                <div class="w-2 h-2 bg-white/60 rounded-full transition-all cursor-pointer pointer-events-auto"></div>
+                <div class="w-2 h-2 bg-white/60 rounded-full transition-all cursor-pointer pointer-events-auto"></div>
             </div>
             
-            <div id="product-detail-discount-badge" class="absolute bottom-4 left-4 badge-sale text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg hidden">-0%</div>
+            <div id="product-detail-discount-badge" class="absolute bottom-4 left-4 z-[50] badge-sale text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg hidden">-0%</div>
         </div>
 
         <div class="px-5 pt-6 pb-32">
