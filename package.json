@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "npm run build:css",
     "lint": "eslint . --ext .js,.cjs",
     "build:css": "tailwindcss -i ./tailwind.input.css -o ./tailwind.bundle.css --minify",
     "build:netlify": "node scripts/write-adora-config.cjs",

@@ -1,19 +1,26 @@
 # Render Blueprint: https://render.com/docs/blueprint-spec
 # New Blueprint → اربط المستودع؛ عند أول إنشاء سيطلب منك قيمة CORS_ORIGIN.
 # JWT_SECRET يُولَّد تلقائياً (generateValue).
-# إن أنشأت Web Service يدوياً: Build = npm ci، Start = node server.js، Health = /api/health
+# إن أنشأت Web Service يدوياً: Build = npm ci && npm run build، Start = node server.js، Health = /api/health
 # اربط خدمة PostgreSQL من لوحة Render بالـ Web Service ليُحقن DATABASE_URL، أو عيّنه يدوياً كمتغير بيئة.
 # رفع الصور (إلزامي للوحة التحكم): عيّن CLOUDINARY_URL أو الثلاثة CLOUDINARY_CLOUD_NAME + API_KEY + API_SECRET من لوحة Cloudinary.
+#
+# استكشاف أخطاء النشر (Render → Service → Logs):
+# - Build: فشل npm ci → تأكد أن package-lock.json مرفوع ومزامن مع package.json
+# - Runtime: [Adora] Database init failed → عيّن DATABASE_URL (رابط PostgreSQL من Render)
+# - Runtime: خطأ عند التحميل → تحقق من Health Check Path = /api/health
 
 services:
   - type: web
     name: adora-backend
     runtime: node
     plan: free
-    buildCommand: npm ci && npm run build:css
+    buildCommand: npm ci && npm run build
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: "20"
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
