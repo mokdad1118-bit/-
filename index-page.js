@@ -97,6 +97,7 @@
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     injectHomeBanners().catch(() => {});
+                    syncAdoraGlobalBackButton();
                 });
             });
         }
@@ -1320,6 +1321,7 @@
                     history.pushState({ adora: 1, screen: adoraNavStack[0] }, '');
                 } catch (_e) {}
                 showExitAppModal();
+                syncAdoraGlobalBackButton();
                 return;
             }
             const leaving = adoraNavStack.pop();
@@ -1402,6 +1404,7 @@
             }
             persistAdoraSessionState();
             injectHomeBanners().catch(() => {});
+            syncAdoraGlobalBackButton();
         }
 
         /** مزامنة حالة المتصفح مع أعلى المكدس (بدون history.back() التي تخرج عن مسار SPA) */
@@ -1433,9 +1436,62 @@
             persistAdoraSessionState();
         }
 
+        /** يضمن أن أعلى المكدس يطابق الشاشة الحالية قبل الرجوع */
+        function adoraEnsureStackTailMatchesCurrent() {
+            const cs = typeof currentScreen === 'string' ? currentScreen : 'screen-categories';
+            if (!adoraNavStack.length) {
+                adoraNavStack = [cs];
+                return;
+            }
+            if (adoraNavStack[adoraNavStack.length - 1] === cs) return;
+            const idx = adoraNavStack.lastIndexOf(cs);
+            if (idx >= 0) {
+                adoraNavStack.length = idx + 1;
+            } else {
+                adoraNavStack.push(cs);
+            }
+        }
+
+        function syncAdoraGlobalBackButton() {
+            const host = document.getElementById('adora-global-back-host');
+            const btn = document.getElementById('adora-global-back-btn');
+            if (!host || !btn) return;
+            const shell = document.getElementById('app-shell');
+            if (!shell || shell.classList.contains('hidden')) {
+                host.classList.add('hidden');
+                document.body.classList.remove(
+                    'adora-global-back-visible',
+                    'adora-global-back-listing',
+                    'adora-global-back-on-dark'
+                );
+                return;
+            }
+            const onHome =
+                currentScreen === 'screen-categories' &&
+                adoraNavStack.length === 1 &&
+                adoraNavStack[0] === 'screen-categories';
+            const show = !onHome && !!currentScreen;
+            host.classList.toggle('hidden', !show);
+            btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+            document.body.classList.toggle('adora-global-back-visible', show);
+            document.body.classList.toggle('adora-global-back-listing', currentScreen === 'screen-listing');
+            document.body.classList.toggle(
+                'adora-global-back-on-dark',
+                currentScreen === 'screen-vendor-join' || currentScreen === 'screen-app-ad-inquiry'
+            );
+            btn.setAttribute('aria-label', isRTL ? 'رجوع' : 'Back');
+        }
+
         function backFromOrderTracking() {
             const popped = adoraPopIfTopIs('screen-order-tracking');
             if (popped) {
+                if (popped.prev === 'screen-categories') {
+                    navigateTo('screen-profile', { skipHistory: true });
+                    adoraNavStack = ['screen-categories', 'screen-profile'];
+                    adoraSyncHistoryToScreen('screen-profile');
+                    persistAdoraSessionState();
+                    return;
+                }
                 adoraAfterPopNavigate(popped.prev, popped.leaving);
                 return;
             }
@@ -1446,44 +1502,69 @@
         }
         window.backFromOrderTracking = backFromOrderTracking;
 
-        /** زر رجوع موحّد لشاشات العروض / المفضلة / السلة / الدفع / التتبع — خطوة واحدة من المكدس */
-        function adoraPopNavStackOneStep() {
+        /**
+         * رجوع موحّد: خطوة واحدة من المكدس، مع إغلاق معاينة الصورة أولاً؛
+         * من الرئيسية فقط → تنبيه الخروج (لا قفزات عشوائية للرئيسية).
+         */
+        function adoraUnifiedBack() {
             const lb = document.getElementById('adora-image-lightbox');
             if (lb && !lb.classList.contains('hidden')) {
                 closeAdoraImageLightboxIfOpen();
                 return;
             }
-            const top = adoraNavStack.length ? adoraNavStack[adoraNavStack.length - 1] : currentScreen;
-            if (top === 'screen-product') {
+
+            adoraEnsureStackTailMatchesCurrent();
+
+            if (
+                currentScreen === 'screen-categories' &&
+                adoraNavStack.length === 1 &&
+                adoraNavStack[0] === 'screen-categories'
+            ) {
+                showExitAppModal();
+                try {
+                    history.pushState({ adora: 1, screen: 'screen-categories' }, '');
+                } catch (_e) {}
+                syncAdoraGlobalBackButton();
+                return;
+            }
+
+            if (currentScreen === 'screen-product') {
                 backFromProductDetail();
+                syncAdoraGlobalBackButton();
                 return;
             }
-            if (top === 'screen-marketplace-product') {
+
+            if (currentScreen === 'screen-marketplace-product') {
                 backFromMarketplaceProduct();
+                syncAdoraGlobalBackButton();
                 return;
             }
-            if (top === 'screen-marketplace') {
-                backFromMarketplaceBrowse();
-                return;
-            }
-            if (top === 'screen-listing') {
-                goBackFromListing();
-                return;
-            }
-            if (top === 'screen-vendor-join') {
-                backFromVendorJoin();
-                return;
-            }
-            if (top === 'screen-app-ad-inquiry') {
-                backFromAppAdInquiry();
-                return;
-            }
-            if (top === 'screen-order-tracking') {
+
+            if (currentScreen === 'screen-order-tracking') {
                 backFromOrderTracking();
+                syncAdoraGlobalBackButton();
                 return;
             }
+
+            if (currentScreen === 'screen-listing') {
+                if (adoraNavStack.length === 1 && adoraNavStack[0] === 'screen-listing') {
+                    adoraNavStack.unshift('screen-categories');
+                }
+            }
+
             if (adoraNavStack.length > 1) {
-                const leaving = adoraNavStack.pop();
+                const leaving = adoraNavStack[adoraNavStack.length - 1];
+                if (leaving === 'screen-product') {
+                    try {
+                        stopGalleryAutoScroll('product-gallery');
+                    } catch (_e) {}
+                }
+                if (leaving === 'screen-marketplace-product') {
+                    try {
+                        stopGalleryAutoScroll('marketplace-product-gallery');
+                    } catch (_e) {}
+                }
+                adoraNavStack.pop();
                 if (leaving === 'screen-listing') {
                     resetListingFiltersAfterLeave();
                 }
@@ -1493,7 +1574,14 @@
                 persistAdoraSessionState();
                 return;
             }
+
             switchTab('screen-categories', null);
+            syncAdoraGlobalBackButton();
+        }
+        window.adoraUnifiedBack = adoraUnifiedBack;
+
+        function adoraPopNavStackOneStep() {
+            adoraUnifiedBack();
         }
         window.adoraPopNavStackOneStep = adoraPopNavStackOneStep;
 
@@ -1856,6 +1944,7 @@
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     injectHomeBanners().catch(() => {});
+                    syncAdoraGlobalBackButton();
                 });
             });
             if (typeof nextFn === 'function') await nextFn();
@@ -2875,10 +2964,6 @@
             if (searchVoiceBtn) {
                 searchVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي' : 'Voice search');
             }
-            const listingBackBtn = document.getElementById('listing-back-btn');
-            if (listingBackBtn) {
-                listingBackBtn.setAttribute('aria-label', isRTL ? 'رجوع' : 'Back');
-            }
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
@@ -2897,6 +2982,7 @@
                     adoraPtrSetLabel(adoraPtrRefreshBusy ? 'load' : 'pull');
                 }
             } catch (_e) {}
+            syncAdoraGlobalBackButton();
         }
 
         function toggleLanguage() {
@@ -3482,12 +3568,7 @@
         window.openAppAdInquiryModal = openAppAdInquiryPage;
 
         function backFromAppAdInquiry() {
-            const popped = adoraPopIfTopIs('screen-app-ad-inquiry');
-            if (popped) {
-                adoraAfterPopNavigate(popped.prev, popped.leaving);
-            } else {
-                switchTab('screen-categories', null);
-            }
+            adoraUnifiedBack();
         }
         window.backFromAppAdInquiry = backFromAppAdInquiry;
 
@@ -3609,12 +3690,7 @@
         window.openVendorJoinPage = openVendorJoinPage;
 
         function backFromVendorJoin() {
-            const popped = adoraPopIfTopIs('screen-vendor-join');
-            if (popped) {
-                adoraAfterPopNavigate(popped.prev, popped.leaving);
-            } else {
-                switchTab('screen-categories', null);
-            }
+            adoraUnifiedBack();
         }
         window.backFromVendorJoin = backFromVendorJoin;
 
@@ -3696,15 +3772,7 @@
         }
 
         function backFromMarketplaceBrowse() {
-            const popped = adoraPopIfTopIs('screen-marketplace');
-            if (popped) {
-                adoraAfterPopNavigate(popped.prev, popped.leaving);
-            } else {
-                navigateTo('screen-categories', { skipHistory: true });
-                adoraNavStack = ['screen-categories'];
-                adoraSyncHistoryToScreen('screen-categories');
-                persistAdoraSessionState();
-            }
+            adoraUnifiedBack();
         }
 
         function backFromMarketplaceProduct() {
@@ -5926,19 +5994,7 @@
         }
 
         function goBackFromListing() {
-            if (adoraNavStack.length === 1 && adoraNavStack[0] === 'screen-listing') {
-                adoraNavStack.unshift('screen-categories');
-            }
-            const popped = adoraPopIfTopIs('screen-listing');
-            if (popped) {
-                adoraAfterPopNavigate(popped.prev, popped.leaving);
-                return;
-            }
-            resetListingFiltersAfterLeave();
-            adoraNavStack = ['screen-categories'];
-            navigateTo('screen-categories', { skipHistory: true });
-            adoraSyncHistoryToScreen('screen-categories');
-            persistAdoraSessionState();
+            adoraUnifiedBack();
         }
 
         function isAdoraBrandName(name) {

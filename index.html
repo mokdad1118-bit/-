@@ -3354,6 +3354,83 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* زر رجوع عائم موحّد — ثابت فوق المحتوى */
+        #adora-global-back-host {
+            position: fixed;
+            z-index: 55;
+            left: 0;
+            right: 0;
+            top: calc(var(--adora-header-offset, 4rem) + 6px);
+            max-width: 428px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            justify-content: flex-start;
+            padding-inline-start: max(12px, env(safe-area-inset-left, 0px));
+            padding-inline-end: max(12px, env(safe-area-inset-right, 0px));
+            pointer-events: none;
+        }
+        body.adora-global-back-listing #adora-global-back-host {
+            top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+        }
+        #adora-global-back-btn {
+            pointer-events: auto;
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow:
+                0 4px 18px rgba(15, 23, 42, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+            color: #312e81;
+            transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.2s ease;
+            animation: adora-back-pulse 2.75s ease-in-out infinite;
+        }
+        #adora-global-back-btn i {
+            font-size: 1rem;
+        }
+        body.adora-global-back-on-dark #adora-global-back-btn {
+            background: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.32);
+            color: #fff;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+        }
+        #adora-global-back-btn:hover {
+            box-shadow:
+                0 6px 22px rgba(124, 58, 237, 0.18),
+                0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+        }
+        #adora-global-back-btn:active {
+            transform: scale(0.93);
+        }
+        @keyframes adora-back-pulse {
+            0%,
+            100% {
+                box-shadow:
+                    0 4px 18px rgba(15, 23, 42, 0.1),
+                    0 0 0 0 rgba(124, 58, 237, 0);
+            }
+            50% {
+                box-shadow:
+                    0 6px 24px rgba(124, 58, 237, 0.22),
+                    0 0 0 10px rgba(124, 58, 237, 0.05);
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #adora-global-back-btn {
+                animation: none !important;
+            }
+        }
+        body[dir="rtl"] #adora-global-back-host {
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body translate="no" class="notranslate">
@@ -3574,6 +3651,12 @@
             <span class="adora-ptr-spinner" aria-hidden="true"></span>
             <span id="adora-ptr-label" class="adora-ptr-indicator__label"></span>
         </div>
+    </div>
+
+    <div id="adora-global-back-host" class="hidden" aria-hidden="true">
+        <button type="button" id="adora-global-back-btn" onclick="adoraUnifiedBack()" aria-label="Back">
+            <i class="fas fa-arrow-left rtl:rotate-180" aria-hidden="true"></i>
+        </button>
     </div>
 
     <!-- ==================== CATEGORIES PAGE ==================== -->
@@ -4027,10 +4110,7 @@
         <div id="banner-slot-listing_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar adora-screen-toolbar--listing-top px-4 py-3 border-b border-gray-200 relative z-10">
             <div class="flex items-center justify-between mb-2 gap-2">
-                <button type="button" id="listing-back-btn" onclick="goBackFromListing()" class="flex items-center gap-1.5 flex-shrink-0 min-w-0 pl-0.5 pr-2 py-2 rounded-full hover:bg-gray-100 transition text-gray-900" aria-label="Back">
-                    <i class="fas fa-arrow-left text-base rtl:rotate-180"></i>
-                    <span class="text-xs font-bold listing-back-label" data-en="Back" data-ar="رجوع">رجوع</span>
-                </button>
+                <span class="w-10 shrink-0" aria-hidden="true"></span>
                 <h1 id="listing-screen-title" class="text-lg font-bold text-gray-900 text-center flex-1 px-1 min-w-0 truncate" data-en="Products" data-ar="المنتجات">Products</h1>
                 <span class="w-8 sm:w-10 shrink-0" aria-hidden="true"></span>
             </div>
@@ -4109,9 +4189,7 @@
         <div id="banner-slot-offers_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <button type="button" onclick="adoraPopNavStackOneStep()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                    <i class="fas fa-arrow-left text-gray-800"></i>
-                </button>
+                <span class="w-10 shrink-0" aria-hidden="true"></span>
                 <h1 class="text-lg font-bold text-gray-900 text-center flex-1 px-2 truncate" data-en="Our offers" data-ar="عروضنا">عروضنا</h1>
                 <span class="w-10" aria-hidden="true"></span>
             </div>
@@ -4143,9 +4221,7 @@
         <div id="banner-slot-wishlist_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between gap-2">
-                <button type="button" onclick="adoraPopNavStackOneStep()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                    <i class="fas fa-arrow-left text-gray-800"></i>
-                </button>
+                <span class="w-10 shrink-0" aria-hidden="true"></span>
                 <h1 class="text-lg font-bold text-gray-900 text-center flex-1 truncate" data-en="Wishlist" data-ar="المفضلة">المفضلة</h1>
                 <span class="w-10" aria-hidden="true"></span>
             </div>
@@ -4159,9 +4235,7 @@
     <div id="screen-vendor-join" class="screen vendor-join-page-bg text-white">
         <div id="banner-slot-vendor_join_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-3 flex items-center gap-3 border-b border-white/10 bg-black/10 backdrop-blur-md z-20" style="position:sticky;top:var(--adora-header-offset)">
-            <button type="button" onclick="backFromVendorJoin()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition" aria-label="" data-en-aria="Back" data-ar-aria="رجوع">
-                <i class="fas fa-arrow-left text-lg rtl:rotate-180"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
             <h1 class="text-base font-extrabold flex-1 truncate text-center text-white" data-en="Partner with Adora" data-ar="انضم كشركة في أدورا">انضم كشركة في أدورا</h1>
             <span class="w-10 shrink-0" aria-hidden="true"></span>
         </div>
@@ -4250,9 +4324,7 @@
     <div id="screen-app-ad-inquiry" class="screen app-ad-inquiry-page-bg text-white">
         <div id="banner-slot-app_ad_inquiry_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-3 flex items-center gap-3 border-b border-white/10 bg-black/10 backdrop-blur-md z-20" style="position:sticky;top:var(--adora-header-offset)">
-            <button type="button" onclick="backFromAppAdInquiry()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition" aria-label="" data-en-aria="Back" data-ar-aria="رجوع">
-                <i class="fas fa-arrow-left text-lg rtl:rotate-180"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
             <h1 class="text-base font-extrabold flex-1 truncate text-center text-white" data-en="Advertise on the app" data-ar="إعلاناتكم على التطبيق">إعلاناتكم على التطبيق</h1>
             <span class="w-10 shrink-0" aria-hidden="true"></span>
         </div>
@@ -4319,10 +4391,8 @@
     <div id="screen-marketplace" class="screen bg-gray-50">
         <div id="banner-slot-marketplace_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-3 flex items-center gap-3 border-b border-gray-200 bg-white/90 backdrop-blur-sm sticky top-0 z-20">
-            <button type="button" onclick="backFromMarketplaceBrowse()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
-                <i class="fas fa-arrow-left text-gray-800 rtl:rotate-180"></i>
-            </button>
-            <h1 class="adora-glow-title adora-section-heading--toolbar" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h1>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
+            <h1 class="adora-glow-title adora-section-heading--toolbar flex-1 min-w-0 text-center" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h1>
         </div>
         <div id="partner-cta-marketplace-screen" class="hidden px-3 pt-2">
             <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
@@ -4370,9 +4440,7 @@
     <div id="screen-marketplace-product" class="screen bg-white">
         <div id="banner-slot-mp_product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-2 flex items-center justify-between border-b border-gray-100 gap-2">
-            <button type="button" onclick="backFromMarketplaceProduct()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
-                <i class="fas fa-arrow-left text-gray-800 rtl:rotate-180"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
             <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition shrink-0" aria-label="Wishlist">
                 <i class="fas fa-heart text-lg"></i>
             </button>
@@ -4456,11 +4524,6 @@
     <!-- ==================== PRODUCT DETAILS PAGE ==================== -->
     <div id="screen-product" class="screen bg-white">
         <div id="banner-slot-product_top" class="px-4 pt-2 space-y-1"></div>
-        <div class="adora-screen-toolbar px-4 py-2 flex items-center border-b border-gray-100">
-            <button type="button" onclick="backFromProductDetail()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition" aria-label="Back">
-                <i class="fas fa-arrow-left text-gray-800"></i>
-            </button>
-        </div>
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[450px]" id="product-gallery">
                 <div class="snap-center w-full flex-shrink-0 relative min-w-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
@@ -4614,9 +4677,7 @@
         <div id="banner-slot-cart_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-4 flex items-center justify-between border-b border-gray-200">
             <div class="flex items-center gap-3">
-                <button type="button" onclick="adoraPopNavStackOneStep()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                    <i class="fas fa-arrow-left text-gray-800"></i>
-                </button>
+                <span class="w-10 shrink-0" aria-hidden="true"></span>
                 <h1 class="text-xl font-bold text-gray-900" data-en="Shopping Cart" data-ar="سلة التسوق">Shopping Cart</h1>
             </div>
             <span id="cart-count-badge" class="bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">0</span>
@@ -4679,9 +4740,7 @@
     <div id="screen-checkout" class="screen bg-gray-50 hidden">
         <div id="banner-slot-checkout_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-4 flex items-center gap-3 border-b border-gray-200">
-            <button type="button" onclick="adoraPopNavStackOneStep()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                <i class="fas fa-arrow-left text-gray-800"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
             <h1 class="text-xl font-bold text-gray-900" data-en="Checkout" data-ar="إتمام الطلب">إتمام الطلب</h1>
         </div>
         <div class="px-4 py-10 text-center space-y-4 max-w-md mx-auto">
@@ -4866,9 +4925,7 @@
     <div id="screen-order-tracking" class="screen bg-gray-50">
         <div id="banner-slot-order_tracking_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar px-4 py-4 flex items-center gap-3 border-b border-gray-200">
-            <button type="button" onclick="backFromOrderTracking()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
-                <i class="fas fa-arrow-left text-gray-800"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
             <h1 class="text-xl font-bold text-gray-900" data-en="Order Tracking" data-ar="تتبع الطلب">Order Tracking</h1>
         </div>
 
