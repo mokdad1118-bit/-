@@ -1848,15 +1848,44 @@ registerVendorPlatformRoutes(app, {
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 
-function orderStatusNotifyMessageAr(status) {
+/** عنوان إشعار حالة الطلب — يتضمن رقم الطلب ليظهر في Push والقائمة */
+function orderStatusNotifyTitle(orderNo) {
+  const ord = orderNo != null ? String(orderNo).trim() : "";
+  return ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
+}
+
+/** نص إشعار حالة الطلب (عربي + سطر إنجليزي قصير يذكر الرقم) */
+function orderStatusNotifyMessage(orderNo, status) {
+  const ord = orderNo != null ? String(orderNo).trim() : "";
+  const refAr = ord ? `رقم الطلب ${ord}. ` : "";
   const m = {
-    pending_receipt: "تم تحديث حالة طلبك إلى: جاري استلام طلبك",
-    in_progress: "تم تحديث حالة طلبك إلى: جاري تجميع طلبك",
-    fulfilled: "تم تحديث حالة طلبك إلى: تم تجميع طلبك",
-    shipping: "تم تحديث حالة طلبك إلى: جاري الشحن",
-    delivered: "تم تحديث حالة طلبك إلى: تم تسليم الطلب للعميل",
+    pending_receipt: `${refAr}تم تحديث حالة طلبك إلى: جاري استلام طلبك`,
+    in_progress: `${refAr}تم تحديث حالة طلبك إلى: جاري تجميع طلبك`,
+    fulfilled: `${refAr}تم تحديث حالة طلبك إلى: تم تجميع طلبك`,
+    shipping: `${refAr}تم تحديث حالة طلبك إلى: جاري الشحن`,
+    delivered: `${refAr}تم تحديث حالة طلبك إلى: تم تسليم الطلب للعميل`,
   };
-  return m[status] || `تم تحديث حالة طلبك (${status})`;
+  const ar = m[status] || `${refAr}تم تحديث حالة طلبك (${status})`;
+  const refEn = ord ? `Order ${ord}. ` : "";
+  const en = {
+    pending_receipt: `${refEn}Status: pending receipt`,
+    in_progress: `${refEn}Status: in progress`,
+    fulfilled: `${refEn}Status: fulfilled`,
+    shipping: `${refEn}Status: shipping`,
+    delivered: `${refEn}Status: delivered`,
+  };
+  const enLine = en[status] || `${refEn}Status updated`;
+  return `${ar}\n${enLine}`;
+}
+
+function orderReceivedNotifyTitle(orderNo) {
+  const ord = orderNo != null ? String(orderNo).trim() : "";
+  return ord ? `تم استلام الطلب ${ord}` : "تم استلام الطلب";
+}
+
+function orderReceivedNotifyMessage(orderNo) {
+  const ord = orderNo != null ? String(orderNo).trim() : "—";
+  return `تم استلام طلبك في النظام. رقم الطلب: ${ord}. احفظ الرقم للمتابعة؛ ستصلك إشعارات عند تغيير الحالة.\nOrder received. Number: ${ord}. Save it—you will get status updates here.`;
 }
 
 app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
@@ -1982,6 +2011,17 @@ app.post("/api/orders", requireAuth, async (req, res) => {
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [result.id]
     );
+    try {
+      await notifyUserInApp(
+        req.app,
+        req.user.id,
+        orderReceivedNotifyTitle(orderNo),
+        orderReceivedNotifyMessage(orderNo),
+        "/"
+      );
+    } catch (_n) {
+      /* لا نفشل إنشاء الطلب إذا تعذر الإشعار */
+    }
     return res.status(201).json({ order: saved, items });
   } catch (err) {
     return res.status(500).json({ error: "Failed to create order" });
@@ -2052,7 +2092,7 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) =>
       return res.status(400).json({ error: "Invalid status" });
     }
 
-    const order = await get(`SELECT id, user_id FROM orders WHERE id=?`, [id]);
+    const order = await get(`SELECT id, user_id, order_no FROM orders WHERE id=?`, [id]);
     if (!order) return res.status(404).json({ error: "Order not found" });
 
     await run(`UPDATE orders SET status=? WHERE id=?`, [status, id]);
@@ -2060,22 +2100,23 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) =>
 
     const io = req.app.get("io");
     if (order.user_id) {
-      const msg = orderStatusNotifyMessageAr(status);
       try {
-        const ins = await run(
-          `INSERT INTO in_app_notifications (message, title, target_user_id, image_url, link_url) VALUES (?, ?, ?, ?, ?)`,
-          [msg, "تحديث الطلب", order.user_id, null, null]
+        await notifyUserInApp(
+          req.app,
+          order.user_id,
+          orderStatusNotifyTitle(order.order_no),
+          orderStatusNotifyMessage(order.order_no, status),
+          "/"
         );
-        const row = await get(
-          `SELECT id, message, title, target_user_id, image_url, link_url, created_at FROM in_app_notifications WHERE id=?`,
-          [ins.id]
-        );
-        emitInAppNotification(io, row, order.user_id);
       } catch (_e) {
         /* ignore notification failure */
       }
       if (io) {
-        io.to(`user:${order.user_id}`).emit("order:updated", { orderId: id, status });
+        io.to(`user:${order.user_id}`).emit("order:updated", {
+          orderId: id,
+          status,
+          order_no: order.order_no || null,
+        });
       }
     }
     return res.json({ ok: true });

@@ -1019,6 +1019,8 @@
         /** رابط تنزيل التطبيق (APK أو App Store) — ضع رابطاً يبدأ بـ https:// */
         const ADORA_APP_DOWNLOAD_URL = '';
         const translationMap = {
+            checkoutSaveOrderNoHint:
+                'بعد إرسال الطلب سيظهر رقم الطلب — احفظه؛ ستصلك إشعاراً تلقائياً عند الاستلام',
             orderSent: 'تم إرسال الطلب إلى النظام',
             orderDetails: 'تفاصيل الطلب:',
             orderTotal: 'السعر الكلي:',
@@ -4713,6 +4715,12 @@
                 return null;
             }
 
+            showToast(
+                isRTL
+                    ? translationMap.checkoutSaveOrderNoHint
+                    : 'You will get an order number when sent — save it. You will also receive an in-app notification when the order is received.'
+            );
+
             try {
                 // Persist the order in DB first, then update statuses with simulation.
                 shouldPersistOrderStatusUpdates = true;
@@ -4772,7 +4780,16 @@
                 cartItems = cartItems.filter((it) => it.selected === false);
                 persistCart();
 
-                showToast(isRTL ? translationMap.orderSent : 'Order submitted to system');
+                const ordNo = o.order_no != null && String(o.order_no).trim() ? String(o.order_no).trim() : '';
+                showToast(
+                    ordNo
+                        ? isRTL
+                            ? `تم إرسال الطلب. رقم الطلب: ${ordNo} — احفظه`
+                            : `Order sent. Number: ${ordNo} — save it`
+                        : isRTL
+                          ? translationMap.orderSent
+                          : 'Order submitted to system'
+                );
                 setTimeout(() => navigateTo('screen-profile', { rootTab: true }), 1000);
                 return order;
             } catch (e) {
