@@ -1537,6 +1537,15 @@ app.get("/api/products/:id/reviews", async (req, res) => {
     );
     const avg = agg && agg.avg_stars != null ? Number(agg.avg_stars) : null;
     const count = agg && agg.cnt != null ? Number(agg.cnt) : 0;
+    const distRows = await all(
+      `SELECT stars, COUNT(*) AS c FROM product_reviews WHERE product_id=? GROUP BY stars`,
+      [productId]
+    );
+    const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const row of distRows || []) {
+      const s = Number(row.stars);
+      if (s >= 1 && s <= 5) distribution[s] = Number(row.c) || 0;
+    }
     const items = await all(
       `SELECT r.id, r.stars, r.comment, r.created_at, u.name AS user_name
        FROM product_reviews r
@@ -1549,6 +1558,7 @@ app.get("/api/products/:id/reviews", async (req, res) => {
     return res.json({
       average: avg != null && !Number.isNaN(avg) ? Math.round(avg * 10) / 10 : null,
       count,
+      distribution,
       items,
     });
   } catch (err) {

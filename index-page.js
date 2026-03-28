@@ -3075,6 +3075,7 @@
             }
             if (currentScreen === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
                 renderMarketplaceProductDetailUi();
+                loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
             }
             if (currentScreen === 'screen-product' && currentProductDetail && currentProductDetail.id) {
                 loadProductReviewsForDetail(currentProductDetail.id).catch(() => {});
@@ -4451,18 +4452,11 @@
             if (listEl) {
                 listEl.innerHTML = `<p class="text-sm text-gray-500 py-2">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
             }
+            resetMarketplaceRatingSummaryCardLoading();
             try {
                 const data = await apiFetch(`/api/marketplace/products/${Number(marketplaceProductId)}/reviews`, { requireAuth: false });
-                const avg = data.average;
                 const count = Number(data.count || 0);
-                const avgEl = document.getElementById('marketplace-detail-rating-avg');
-                if (avgEl) avgEl.textContent = avg != null ? String(avg) : '—';
-                const disp = document.getElementById('marketplace-detail-stars-display');
-                if (disp) disp.innerHTML = renderFiveStarsDisplayHtml(avg);
-                const cntEl = document.getElementById('marketplace-detail-rating-count-label');
-                if (cntEl) {
-                    cntEl.textContent = isRTL ? `${count} تقييم` : `${count} review${count === 1 ? '' : 's'}`;
-                }
+                updateMarketplaceRatingSummaryCard(data);
                 if (badge) badge.textContent = String(count);
                 const items = Array.isArray(data.items) ? data.items : [];
                 if (listEl) {
@@ -4473,6 +4467,13 @@
                     }
                 }
             } catch (_e) {
+                updateRatingSummaryCard(MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS, {
+                    average: null,
+                    count: 0,
+                    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+                });
+                const countEl = document.getElementById(MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS.count);
+                if (countEl) countEl.textContent = isRTL ? 'تعذر تحميل ملخص التقييم' : 'Could not load rating summary';
                 if (listEl) {
                     listEl.innerHTML = `<p class="text-sm text-red-500 py-2">${isRTL ? 'تعذر تحميل التقييمات' : 'Could not load reviews'}</p>`;
                 }
@@ -7610,6 +7611,115 @@
             return html;
         }
 
+        function renderProductSummaryStarsFromAvg(avg) {
+            const emptyCls = 'far fa-star text-gray-200';
+            const fillCls = 'fas fa-star text-emerald-500';
+            const halfCls = 'fas fa-star-half-alt text-emerald-500';
+            if (avg == null || Number.isNaN(Number(avg))) {
+                return [1, 2, 3, 4, 5].map(() => `<i class="${emptyCls}"></i>`).join('');
+            }
+            const a = Math.min(5, Math.max(0, Number(avg)));
+            const rounded = Math.round(a * 2) / 2;
+            const full = Math.floor(rounded);
+            const hasHalf = rounded - full === 0.5;
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= full) html += `<i class="${fillCls}"></i>`;
+                else if (hasHalf && i === full + 1) html += `<i class="${halfCls}"></i>`;
+                else html += `<i class="${emptyCls}"></i>`;
+            }
+            return html;
+        }
+
+        function formatProductReviewCountSubtitle(count) {
+            const n = Math.max(0, Number(count) || 0);
+            if (n === 0) return isRTL ? 'لا تقييمات بعد' : 'No ratings yet';
+            if (isRTL) {
+                if (n === 1) return 'استناداً إلى تقييم واحد';
+                if (n === 2) return 'استناداً إلى تقييمين';
+                return `استناداً إلى ${n} تقييماً`;
+            }
+            return n === 1 ? 'Based on 1 rating' : `Based on ${n} ratings`;
+        }
+
+        function renderProductRatingDistributionHtml(distribution, totalCount) {
+            const dist = distribution || {};
+            const pick = (k) => Number(dist[k] != null ? dist[k] : dist[String(k)] || 0) || 0;
+            const total = Math.max(0, Number(totalCount) || 0);
+            const barClass = {
+                5: 'bg-emerald-700',
+                4: 'bg-emerald-600',
+                3: 'bg-lime-500',
+                2: 'bg-amber-500',
+                1: 'bg-red-500',
+            };
+            const order = [5, 4, 3, 2, 1];
+            return order
+                .map((star) => {
+                    const n = pick(star);
+                    const pct = total > 0 ? Math.round((n / total) * 100) : 0;
+                    const label = isRTL ? (star === 1 ? '1 نجمة' : `${star} نجوم`) : star === 1 ? '1 star' : `${star} stars`;
+                    return `<div class="flex items-center gap-2 sm:gap-3" role="listitem">
+                        <span class="w-[4.25rem] sm:w-[5.5rem] shrink-0 text-xs font-semibold text-gray-700 text-end">${escapeHtml(label)}</span>
+                        <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden min-w-0">
+                            <div class="h-full rounded-full ${barClass[star]} transition-[width] duration-500 ease-out" style="width:${pct}%"></div>
+                        </div>
+                        <span class="w-9 sm:w-10 shrink-0 text-xs font-bold text-gray-600 tabular-nums text-start">${pct}%</span>
+                    </div>`;
+                })
+                .join('');
+        }
+
+        const ADORA_PRODUCT_RATING_SUMMARY_IDS = {
+            score: 'product-rating-summary-score',
+            stars: 'product-rating-summary-stars',
+            count: 'product-rating-summary-count',
+            dist: 'product-rating-distribution',
+        };
+        const MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS = {
+            score: 'marketplace-rating-summary-score',
+            stars: 'marketplace-rating-summary-stars',
+            count: 'marketplace-rating-summary-count',
+            dist: 'marketplace-rating-distribution',
+        };
+
+        function updateRatingSummaryCard(ids, data) {
+            const scoreEl = document.getElementById(ids.score);
+            const starsEl = document.getElementById(ids.stars);
+            const countEl = document.getElementById(ids.count);
+            const distEl = document.getElementById(ids.dist);
+            const avg = data && data.average != null ? Number(data.average) : null;
+            const cnt = Math.max(0, Number(data && data.count != null ? data.count : 0) || 0);
+            if (scoreEl) {
+                scoreEl.textContent = avg != null && !Number.isNaN(avg) ? avg.toFixed(1) : '—';
+            }
+            if (starsEl) starsEl.innerHTML = renderProductSummaryStarsFromAvg(avg);
+            if (countEl) countEl.textContent = formatProductReviewCountSubtitle(cnt);
+            if (distEl) distEl.innerHTML = renderProductRatingDistributionHtml(data && data.distribution, cnt);
+        }
+
+        function resetRatingSummaryCardLoading(ids) {
+            updateRatingSummaryCard(ids, { average: null, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
+            const countEl = document.getElementById(ids.count);
+            if (countEl) countEl.textContent = isRTL ? 'جاري التحميل…' : 'Loading…';
+        }
+
+        function updateProductRatingSummaryCard(data) {
+            updateRatingSummaryCard(ADORA_PRODUCT_RATING_SUMMARY_IDS, data);
+        }
+
+        function resetProductRatingSummaryCardLoading() {
+            resetRatingSummaryCardLoading(ADORA_PRODUCT_RATING_SUMMARY_IDS);
+        }
+
+        function updateMarketplaceRatingSummaryCard(data) {
+            updateRatingSummaryCard(MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS, data);
+        }
+
+        function resetMarketplaceRatingSummaryCardLoading() {
+            resetRatingSummaryCardLoading(MARKETPLACE_PRODUCT_RATING_SUMMARY_IDS);
+        }
+
         function renderProductReviewCardHtml(r) {
             const rawName = String(r.user_name || '?').trim();
             const name = escapeHtml(rawName || '?');
@@ -7645,18 +7755,11 @@
             if (listEl) {
                 listEl.innerHTML = `<p class="text-sm text-gray-500 py-2">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
             }
+            resetProductRatingSummaryCardLoading();
             try {
                 const data = await apiFetch(`/api/products/${productId}/reviews`, { requireAuth: false });
-                const avg = data.average;
                 const count = Number(data.count || 0);
-                const avgEl = document.getElementById('product-detail-rating-avg');
-                if (avgEl) avgEl.textContent = avg != null ? String(avg) : '—';
-                const disp = document.getElementById('product-detail-stars-display');
-                if (disp) disp.innerHTML = renderFiveStarsDisplayHtml(avg);
-                const cntEl = document.getElementById('product-detail-rating-count-label');
-                if (cntEl) {
-                    cntEl.textContent = isRTL ? `${count} تقييم` : `${count} review${count === 1 ? '' : 's'}`;
-                }
+                updateProductRatingSummaryCard(data);
                 if (badge) badge.textContent = String(count);
                 const items = Array.isArray(data.items) ? data.items : [];
                 if (listEl) {
@@ -7667,6 +7770,13 @@
                     }
                 }
             } catch (_e) {
+                updateRatingSummaryCard(ADORA_PRODUCT_RATING_SUMMARY_IDS, {
+                    average: null,
+                    count: 0,
+                    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+                });
+                const countEl = document.getElementById(ADORA_PRODUCT_RATING_SUMMARY_IDS.count);
+                if (countEl) countEl.textContent = isRTL ? 'تعذر تحميل ملخص التقييم' : 'Could not load rating summary';
                 if (listEl) {
                     listEl.innerHTML = `<p class="text-sm text-red-500 py-2">${isRTL ? 'تعذر تحميل التقييمات' : 'Could not load reviews'}</p>`;
                 }

@@ -601,6 +601,15 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       );
       const avg = agg && agg.avg_stars != null ? Number(agg.avg_stars) : null;
       const count = agg && agg.cnt != null ? Number(agg.cnt) : 0;
+      const distRows = await all(
+        `SELECT stars, COUNT(*) AS c FROM marketplace_product_reviews WHERE marketplace_product_id=? GROUP BY stars`,
+        [productId]
+      );
+      const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const row of distRows || []) {
+        const s = Number(row.stars);
+        if (s >= 1 && s <= 5) distribution[s] = Number(row.c) || 0;
+      }
       const items = await all(
         `SELECT r.id, r.stars, r.comment, r.created_at, u.name AS user_name
          FROM marketplace_product_reviews r
@@ -613,6 +622,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json({
         average: avg != null && !Number.isNaN(avg) ? Math.round(avg * 10) / 10 : null,
         count,
+        distribution,
         items,
       });
     } catch (_e) {
