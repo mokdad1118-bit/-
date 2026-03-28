@@ -2793,8 +2793,11 @@
         function adoraGetDocumentScrollTop() {
             try {
                 let y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+                const mc = document.querySelector('.mobile-container');
+                if (mc) y = Math.max(y, mc.scrollTop || 0);
                 const shell = document.getElementById('app-shell');
                 if (shell && !shell.classList.contains('hidden')) {
+                    y = Math.max(y, shell.scrollTop || 0);
                     const pdpScroll = shell.querySelector(
                         '#screen-product.active .adora-pdp-scroll, #screen-marketplace-product.active .adora-pdp-scroll'
                     );
@@ -3043,6 +3046,10 @@
                         armed = false;
                         return;
                     }
+                    if (t && t.closest && t.closest('.adora-scroll-strip, .mp-vendors-scroll-track')) {
+                        armed = false;
+                        return;
+                    }
                     if (adoraGetDocumentScrollTop() > 8) {
                         armed = false;
                         return;
@@ -3063,6 +3070,11 @@
                     if (!e.touches || !e.touches.length) return;
                     const t = e.target;
                     if (t && t.closest && t.closest('.adora-pdp-scroll')) {
+                        armed = false;
+                        adoraPtrHidePullVisual();
+                        return;
+                    }
+                    if (t && t.closest && t.closest('.adora-scroll-strip, .mp-vendors-scroll-track')) {
                         armed = false;
                         adoraPtrHidePullVisual();
                         return;

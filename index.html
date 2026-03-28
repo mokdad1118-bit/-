@@ -45,6 +45,8 @@
             font-family: 'Noto Sans Arabic', 'Plus Jakarta Sans', sans-serif;
         }
         
+        /* بدون overflow-x هنا: إخفاء الأفقي على body فقط — وإلا تصبح الحاوية جذر تمرير
+           ويبقى window.pageYOffset = 0 فيُفعَّل سحب التحديث ويُعطّل التمرير باللمس */
         .mobile-container {
             max-width: 428px;
             margin: 0 auto;
@@ -52,7 +54,6 @@
             min-height: 100vh;
             position: relative;
             box-shadow: 0 0 60px rgba(0,0,0,0.08);
-            overflow-x: hidden;
         }
         
         /* ==================== SPLASH SCREEN (mobile-first) ==================== */
@@ -2916,7 +2917,6 @@
             min-height: 100dvh;
             background: #fff;
             position: relative;
-            overflow-x: hidden;
             box-shadow: 0 0 80px rgba(15, 23, 42, 0.1);
         }
         #app-shell * {
