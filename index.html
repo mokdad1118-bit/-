@@ -5283,52 +5283,61 @@
 
     <!-- Orders list (from API) -->
     <div id="orders-list-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeOrdersListModal()">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-900" data-en="My orders" data-ar="طلباتي">طلباتي</h2>
-                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeOrdersListModal()" aria-label="Close">
-                    <i class="fas fa-times"></i>
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="My orders" data-ar="طلباتي">طلباتي</h2>
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeOrdersListModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
                 </button>
             </div>
-            <div id="orders-list-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
+            <div id="orders-list-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3"></div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeOrdersListModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
         </div>
     </div>
 
     <div id="vendor-subscription-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeVendorSubscriptionModal()">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-900" data-en="Company subscription requests" data-ar="طلبات اشتراك كشركة">طلبات اشتراك كشركة</h2>
-                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeVendorSubscriptionModal()" aria-label="Close">
-                    <i class="fas fa-times"></i>
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="Company subscription requests" data-ar="طلبات اشتراك كشركة">طلبات اشتراك كشركة</h2>
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeVendorSubscriptionModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
                 </button>
             </div>
-            <div id="vendor-subscription-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
+            <div id="vendor-subscription-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3"></div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeVendorSubscriptionModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
         </div>
     </div>
 
     <div id="app-ad-inquiries-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeAppAdInquiriesModal()">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-900" data-en="App ad requests" data-ar="طلبات الإعلان">طلبات الإعلان</h2>
-                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeAppAdInquiriesModal()" aria-label="Close">
-                    <i class="fas fa-times"></i>
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="App ad requests" data-ar="طلبات الإعلان">طلبات الإعلان</h2>
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeAppAdInquiriesModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
                 </button>
             </div>
-            <div id="app-ad-inquiries-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3"></div>
+            <div id="app-ad-inquiries-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3"></div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeAppAdInquiriesModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
         </div>
     </div>
 
     <!-- In-app messages -->
     <!-- مشاركة المنتج: واتساب / فيسبوك / إنستغرام (نسخ) / نسخ الرابط -->
     <div id="product-share-modal" class="fixed inset-0 z-[88] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeProductShareModal()">
-        <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-[428px] sm:max-w-md shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h3 class="text-lg font-bold text-gray-900" data-en="Share product" data-ar="مشاركة المنتج">مشاركة المنتج</h3>
-                <button type="button" onclick="closeProductShareModal()" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition" aria-label="Close">
-                    <i class="fas fa-times text-gray-600"></i>
+        <div class="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-[428px] sm:max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <h3 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="Share product" data-ar="مشاركة المنتج">مشاركة المنتج</h3>
+                <button type="button" onclick="closeProductShareModal()" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition shrink-0" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
                 </button>
             </div>
-            <div class="p-4 space-y-2 pb-safe">
+            <div class="p-4 space-y-2 pb-safe overflow-y-auto flex-1 min-h-0">
                 <button type="button" onclick="shareProductWhatsApp()" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 active:scale-[0.98] transition text-left">
                     <span class="w-12 h-12 rounded-xl bg-[#25D366] text-white flex items-center justify-center text-xl"><i class="fab fa-whatsapp"></i></span>
                     <span class="flex-1 font-semibold text-gray-900" data-en="WhatsApp" data-ar="واتساب">واتساب</span>
@@ -5353,18 +5362,24 @@
                     <i class="fas fa-copy text-gray-400"></i>
                 </button>
             </div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeProductShareModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
         </div>
     </div>
 
     <div id="app-broadcasts-modal" class="fixed inset-0 z-[83] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeAppBroadcastsModal()">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-                <h2 class="text-lg font-bold text-gray-900" data-en="Notifications" data-ar="الإشعارات">الإشعارات</h2>
-                <button type="button" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" onclick="closeAppBroadcastsModal()" aria-label="Close">
-                    <i class="fas fa-times"></i>
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
+                <h2 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="Notifications" data-ar="الإشعارات">الإشعارات</h2>
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeAppBroadcastsModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
                 </button>
             </div>
-            <div id="app-broadcasts-modal-body" class="overflow-y-auto max-h-[calc(88vh-64px)] p-4 space-y-3 text-sm"></div>
+            <div id="app-broadcasts-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3 text-sm"></div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeAppBroadcastsModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
         </div>
     </div>
 
@@ -5435,14 +5450,19 @@
 
     <!-- نوافذ عامة خارج عمود الموبايل (fixed تظهر دائماً فوق التطبيق) -->
     <div id="signup-credentials-modal" class="fixed inset-0 z-[10050] hidden bg-black/55 flex items-center justify-center p-4" onclick="if(event.target===this) closeSignupCredentialsModal()">
-        <div class="bg-white rounded-3xl p-5 max-w-md w-full shadow-2xl border border-violet-100" onclick="event.stopPropagation()">
-            <div class="text-center mb-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-violet-100 overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex justify-end px-4 pt-4">
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition" onclick="closeSignupCredentialsModal(true)" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
+                </button>
+            </div>
+            <div class="text-center mb-4 px-5 -mt-1">
                 <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600 text-2xl mb-2">✅</span>
                 <h3 class="text-lg font-bold text-gray-900" data-en="Account created successfully" data-ar="تم إنشاء حسابك بنجاح">تم إنشاء حسابك بنجاح</h3>
                 <p class="text-sm text-gray-600 mt-2 leading-relaxed" data-en="Please save your username and password for future logins." data-ar="يرجى حفظ اسم المستخدم وكلمة السر الخاصة بك لاستخدامها عند تسجيل الدخول لاحقاً.">يرجى حفظ اسم المستخدم وكلمة السر الخاصة بك لاستخدامها عند تسجيل الدخول لاحقاً.</p>
                 <p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3 mt-3 text-start" data-en="We recommend taking a screenshot of these details so you don't lose them." data-ar="ننصح بأخذ لقطة شاشة (Screenshot) لهذه البيانات لضمان عدم فقدانها.">ننصح بأخذ لقطة شاشة (Screenshot) لهذه البيانات لضمان عدم فقدانها.</p>
             </div>
-            <div class="space-y-2 rounded-2xl bg-gray-50 border border-gray-200 p-4 mb-4">
+            <div class="space-y-2 rounded-2xl bg-gray-50 border border-gray-200 p-4 mb-4 mx-5">
                 <div>
                     <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider" data-en="Email (login)" data-ar="البريد الإلكتروني">البريد الإلكتروني</p>
                     <p id="signup-cred-phone" class="font-mono font-bold text-gray-900 text-lg break-all"></p>
@@ -5452,9 +5472,11 @@
                     <p id="signup-cred-password" class="font-mono font-bold text-violet-700 text-lg break-all"></p>
                 </div>
             </div>
+            <div class="px-5 pb-5">
             <button type="button" onclick="closeSignupCredentialsModal(true)" class="w-full py-3.5 rounded-2xl bg-purple-600 text-white font-bold shadow-lg">
                 <span data-en="I saved my details" data-ar="تم حفظ البيانات">تم حفظ البيانات</span>
             </button>
+            </div>
         </div>
     </div>
 
@@ -5503,23 +5525,35 @@
 
     <!-- معاينة صورة المنتج بملء الشاشة — تكبير/تصغير (عجلة، إصبعين، أزرار، نقرتان) -->
     <div id="customer-feedback-banner-modal" class="fixed inset-0 z-[20040] hidden flex items-center justify-center p-4 bg-black/55" onclick="if(event.target===this) closeCustomerFeedbackBannerModal()">
-        <div class="bg-white rounded-3xl p-5 max-w-md w-full shadow-2xl" onclick="event.stopPropagation()">
-            <h3 class="text-lg font-bold text-gray-900 mb-1" data-en="Your note" data-ar="ملاحظتك">ملاحظتك</h3>
-            <p class="text-xs text-gray-500 mb-3" data-en="This message is sent to the Adora team." data-ar="تُرسل هذه الملاحظة لفريق أدورا.">تُرسل هذه الملاحظة لفريق أدورا.</p>
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-start gap-3 px-5 pt-5 pb-3 border-b border-gray-100">
+                <div class="min-w-0 flex-1">
+                    <h3 class="text-lg font-bold text-gray-900" data-en="Your note" data-ar="ملاحظتك">ملاحظتك</h3>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed" data-en="This message is sent to the Adora team." data-ar="تُرسل هذه الملاحظة لفريق أدورا.">تُرسل هذه الملاحظة لفريق أدورا.</p>
+                </div>
+                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeCustomerFeedbackBannerModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-gray-700"></i>
+                </button>
+            </div>
+            <div class="p-5 pt-4">
             <input type="hidden" id="customer-feedback-banner-id" value="" />
             <textarea id="customer-feedback-banner-text" rows="4" maxlength="4000" class="w-full p-3 rounded-xl border border-gray-200 text-sm" data-en-ph="Write your note…" data-ar-ph="اكتب ملاحظتك…"></textarea>
             <div class="flex gap-2 mt-4">
                 <button type="button" onclick="closeCustomerFeedbackBannerModal()" class="flex-1 py-3 rounded-xl border border-gray-200 font-bold text-gray-700" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
                 <button type="button" onclick="submitCustomerFeedbackBannerNote()" class="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold" data-en="Send" data-ar="إرسال">إرسال</button>
             </div>
+            </div>
         </div>
     </div>
 
     <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black/92" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة">
-        <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-[30] w-12 h-12 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur-md border border-white/35 shadow-lg shadow-black/40 hover:bg-black/70 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-            <i class="fas fa-times text-xl" aria-hidden="true"></i>
-        </button>
-        <p id="adora-lightbox-hint" class="absolute top-14 left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none" data-en="Pinch or scroll to zoom · double-tap · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير</p>
+        <div class="absolute top-0 left-0 right-0 z-[35] flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 bg-gradient-to-b from-black/75 to-transparent pointer-events-none rtl:flex-row-reverse">
+            <button type="button" id="adora-image-lightbox-close" class="pointer-events-auto w-12 h-12 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-md border-2 border-white/40 shadow-lg hover:bg-white/25 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                <i class="fas fa-times text-xl" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="adora-image-lightbox-close-text" class="pointer-events-auto px-4 py-2.5 rounded-full bg-white/15 text-white text-sm font-bold backdrop-blur-md border border-white/35 hover:bg-white/25 active:scale-95 transition" onclick="window.closeAdoraImageLightbox && window.closeAdoraImageLightbox()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+        </div>
+        <p id="adora-lightbox-hint" class="absolute top-[4.5rem] left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none sm:top-20" data-en="Pinch or scroll to zoom · double-tap · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير</p>
         <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-16 pb-24 px-2">
             <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-manipulation">
                 <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(78dvh,100%)] max-w-[min(96vw,100%)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />

@@ -2455,6 +2455,19 @@
                             })
                             .join('');
                 }
+                try {
+                    body.querySelectorAll('img').forEach((img) => {
+                        img.classList.add('cursor-pointer', 'rounded-xl');
+                        img.addEventListener('click', (ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            const s = img.getAttribute('src');
+                            if (s && typeof window.openAdoraImageLightbox === 'function') {
+                                window.openAdoraImageLightbox(s);
+                            }
+                        });
+                    });
+                } catch (_imgE) {}
                 const unreadRows = (Array.isArray(list) ? list : []).filter((x) => !x.read);
                 await Promise.all(
                     unreadRows.map((m) => {
@@ -9183,6 +9196,18 @@
             const shell = document.getElementById('app-shell');
             if (!shell) return;
             shell.addEventListener('click', (e) => {
+                const banImg = e.target.closest('img[data-adora-banner-img]');
+                if (banImg && shell.contains(banImg) && banImg.closest('.adora-banner-slider-viewport')) {
+                    const slide = banImg.closest('.adora-banner-slide');
+                    if (slide && slide.querySelector('button[onclick*="openCustomerFeedbackBannerModal"]')) return;
+                    const s = banImg.getAttribute('src');
+                    if (s && typeof window.openAdoraImageLightbox === 'function') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.openAdoraImageLightbox(s);
+                    }
+                    return;
+                }
                 const mpV = e.target.closest('.mp-vendor-strip-card[data-mp-vendor-id], .mp-top-vendor-card[data-mp-vendor-id]');
                 if (mpV && shell.contains(mpV)) {
                     e.preventDefault();
@@ -9383,7 +9408,7 @@
             overlay.addEventListener('click', (e) => {
                 if (overlay.classList.contains('hidden')) return;
                 const t = e.target;
-                if (t.closest('#adora-image-lightbox-close')) return;
+                if (t.closest('#adora-image-lightbox-close') || t.closest('#adora-image-lightbox-close-text')) return;
                 if (t.closest('#adora-lightbox-toolbar')) return;
                 if (t.closest('#adora-lightbox-panzoom')) return;
                 closeAdoraImageLightbox();
