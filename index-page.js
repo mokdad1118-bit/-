@@ -5990,6 +5990,21 @@
             });
         }
 
+        /** بانر placement home_top: افتراضياً يمرّر مع الصفحة؛ التثبيت مع البحث يُفعّل من لوحة التحكم فقط */
+        function applyHomeTopBannerStickyPlacement(sticky) {
+            const slot = document.getElementById('banner-slot-home_top');
+            const wrap = document.querySelector('#screen-categories .partner-cta-sticky-search-wrap');
+            const root = document.getElementById('home-reorder-root');
+            if (!slot || !wrap || !root) return;
+            const on = sticky === true || sticky === 1;
+            slot.classList.toggle('adora-home-top-banners--sticky-below-search', on);
+            if (on) {
+                wrap.appendChild(slot);
+            } else {
+                wrap.parentNode.insertBefore(slot, root);
+            }
+        }
+
         /** قسم «الأكثر مبيعاً» بالرئيسية: يحترم إظهار الصفحة الرئيسية + خيار منصة البائعين */
         function refreshBestsellersSectionCombinedVisibility() {
             const v = mergeHomeSectionsVisibility(cachedHomeSectionsVisibility);
@@ -6226,12 +6241,14 @@
                 cachedHomeSectionsOrder = data.home_sections_order;
                 applyHomeSectionOrder(data.home_sections_order);
                 applyHomeSectionsVisibility(data.home_sections_visibility);
+                applyHomeTopBannerStickyPlacement(data.home_top_banners_sticky);
                 refreshBestsellersSectionCombinedVisibility();
             } catch (_e) {
                 cachedHomeSectionsVisibility = null;
                 cachedHomeSectionsOrder = null;
                 applyHomeSectionOrder(null);
                 applyHomeSectionsVisibility(null);
+                applyHomeTopBannerStickyPlacement(false);
                 refreshBestsellersSectionCombinedVisibility();
             }
         }

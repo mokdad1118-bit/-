@@ -208,7 +208,7 @@ const HOME_SECTION_LABELS = {
   bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
 
-/** ترتيب الكتل داخل #home-reorder-root (البانر العلوي ثابت فوق الحاوية) */
+/** ترتيب الكتل داخل #home-reorder-root (بانر home_top خارج الحاوية؛ التثبيت مع البحث اختياري من لوحة التحكم) */
 const HOME_SECTION_ORDER_KEYS = [
   "comprehensive_market",
   "main_categories",
@@ -2531,6 +2531,7 @@ app.get("/api/contact", async (_req, res) => {
     const home_subcategory_slides = safeJsonParse(row?.home_subcategory_slides_json, null);
     const home_sections_visibility = mergeHomeSectionsVisibility(safeJsonParse(row?.home_sections_visibility_json, null));
     const home_sections_order = mergeHomeSectionsOrder(safeJsonParse(row?.home_sections_order_json, null));
+    const home_top_banners_sticky = Number(row?.home_top_banners_sticky) === 1;
     return res.json({
       ...row,
       phones: safeJsonParse(row.phones_json, []),
@@ -2538,6 +2539,7 @@ app.get("/api/contact", async (_req, res) => {
       home_subcategory_slides: home_subcategory_slides && typeof home_subcategory_slides === "object" ? home_subcategory_slides : null,
       home_sections_visibility,
       home_sections_order,
+      home_top_banners_sticky,
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load contact" });
@@ -2549,7 +2551,7 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     const body = req.body || {};
     const { address, phones = [], whatsapp_phone = "" } = body;
     const cur = await get(
-      `SELECT id, home_main_section_images_json, home_subcategory_slides_json, home_sections_visibility_json, home_sections_order_json FROM contact_info ORDER BY id LIMIT 1`
+      `SELECT id, home_main_section_images_json, home_subcategory_slides_json, home_sections_visibility_json, home_sections_order_json, home_top_banners_sticky FROM contact_info ORDER BY id LIMIT 1`
     );
     let homeJson = cur?.home_main_section_images_json ?? null;
     if (body.home_main_section_images !== undefined && body.home_main_section_images !== null && typeof body.home_main_section_images === "object") {
@@ -2572,9 +2574,13 @@ app.put("/api/contact", requireAuth, requireAdmin, async (req, res) => {
     if (body.home_sections_order !== undefined && body.home_sections_order !== null && Array.isArray(body.home_sections_order)) {
       orderJson = JSON.stringify(mergeHomeSectionsOrder(body.home_sections_order));
     }
+    let homeTopSticky = cur?.home_top_banners_sticky != null ? (Number(cur.home_top_banners_sticky) === 1 ? 1 : 0) : 0;
+    if (body.home_top_banners_sticky !== undefined && body.home_top_banners_sticky !== null) {
+      homeTopSticky = body.home_top_banners_sticky === true || body.home_top_banners_sticky === 1 || body.home_top_banners_sticky === "1" ? 1 : 0;
+    }
     await run(
-      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=?, home_sections_visibility_json=?, home_sections_order_json=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
-      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson, visJson, orderJson]
+      `UPDATE contact_info SET address=?, phones_json=?, whatsapp_phone=?, home_main_section_images_json=?, home_subcategory_slides_json=?, home_sections_visibility_json=?, home_sections_order_json=?, home_top_banners_sticky=? WHERE id=(SELECT id FROM contact_info ORDER BY id LIMIT 1)`,
+      [address, JSON.stringify(phones), whatsapp_phone, homeJson, slidesJson, visJson, orderJson, homeTopSticky]
     );
     return res.json({ ok: true });
   } catch (err) {

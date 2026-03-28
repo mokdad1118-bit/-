@@ -4238,6 +4238,10 @@ async function loadHomeLayoutTab() {
       ul.setAttribute("data-order-labels", JSON.stringify(meta.order_sections));
     }
     setHomeSectionsVisibilityToggles(data.home_sections_visibility);
+    const stickyCb = document.getElementById("home-top-banners-sticky");
+    if (stickyCb) {
+      stickyCb.checked = data.home_top_banners_sticky === true || data.home_top_banners_sticky === 1;
+    }
     const ord = Array.isArray(data.home_sections_order) && data.home_sections_order.length ? data.home_sections_order : homeSectionOrderKeysRuntime;
     renderHomeSectionsOrderList(ord);
   } catch (e) {
@@ -4265,6 +4269,7 @@ async function saveHomeLayout() {
         : { men: "", women: "", kids: "" },
     home_sections_visibility: collectHomeSectionsVisibilityFromForm(),
     home_sections_order: collectHomeSectionsOrderFromList(),
+    home_top_banners_sticky: document.getElementById("home-top-banners-sticky")?.checked === true,
   };
   if (cur.home_subcategory_slides != null && typeof cur.home_subcategory_slides === "object") {
     body.home_subcategory_slides = cur.home_subcategory_slides;

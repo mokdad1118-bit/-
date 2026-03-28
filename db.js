@@ -335,6 +335,7 @@ async function initDb() {
   await migrateContactHomeSubcategorySlides();
   await migrateContactHomeSectionsVisibility();
   await migrateContactHomeSectionsOrder();
+  await migrateContactHomeTopBannersSticky();
   await migrateProductsNewCollectionColumn();
   await migrateListPriceSemanticsOnce();
   await migrateVendorPlatformV1();
@@ -426,6 +427,10 @@ async function migrateContactHomeSectionsVisibility() {
 
 async function migrateContactHomeSectionsOrder() {
   await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_sections_order_json TEXT`);
+}
+
+async function migrateContactHomeTopBannersSticky() {
+  await run(`ALTER TABLE contact_info ADD COLUMN IF NOT EXISTS home_top_banners_sticky INTEGER NOT NULL DEFAULT 0`);
 }
 
 async function migrateProductsNewCollectionColumn() {
