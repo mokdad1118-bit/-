@@ -1308,11 +1308,10 @@
         }
 
         function onAdoraPopState() {
-            try {
-                if (typeof window.closeAdoraImageLightbox === 'function') window.closeAdoraImageLightbox();
-                else closeAdoraImageLightboxIfOpen();
-            } catch (_e) {
-                closeAdoraImageLightboxIfOpen();
+            const lb = document.getElementById('adora-image-lightbox');
+            if (lb && !lb.classList.contains('hidden')) {
+                closeAdoraImageLightboxIfOpen({ fromPopstate: true });
+                return;
             }
             if (adoraNavStack.length <= 1) {
                 try {
@@ -8314,8 +8313,9 @@
             if (!anyOpen) document.body.style.overflow = '';
         }
 
-        /** إغلاق معاينة الصورة المكبّرة (DOM فقط) — يُستدعى من navigateTo وغيره قبل اكتمال init الـ lightbox */
-        function closeAdoraImageLightboxIfOpen() {
+        /** إغلاق معاينة الصورة المكبّرة — من popstate لا يُعدّل history (سبق أن نزال الإدخال) */
+        function closeAdoraImageLightboxIfOpen(opts) {
+            const fromPopstate = opts && opts.fromPopstate === true;
             try {
                 const overlay = document.getElementById('adora-image-lightbox');
                 if (!overlay || overlay.classList.contains('hidden')) return;
@@ -8332,6 +8332,16 @@
                 const panzoom = document.getElementById('adora-lightbox-panzoom');
                 if (panzoom && !window.__adoraLightboxPanzoom) {
                     panzoom.style.transform = 'translate(0px, 0px) scale(1)';
+                }
+                if (window.__adoraLightboxHistoryPushed && !fromPopstate) {
+                    window.__adoraLightboxHistoryPushed = false;
+                    try {
+                        const top = adoraNavStack[adoraNavStack.length - 1] || 'screen-categories';
+                        const url = window.location.pathname + window.location.search + window.location.hash;
+                        history.replaceState({ adora: 1, screen: top }, '', url);
+                    } catch (_e2) {}
+                } else if (fromPopstate) {
+                    window.__adoraLightboxHistoryPushed = false;
                 }
                 restoreBodyScrollIfIdle();
             } catch (_e) {}
@@ -8771,38 +8781,107 @@
             const btnOut = document.getElementById('adora-lightbox-zoom-out');
             const btnReset = document.getElementById('adora-lightbox-zoom-reset');
             if (!overlay || !viewport || !panzoomEl || !imgEl) return;
-            const PanzoomCtor = typeof window !== 'undefined' ? window.Panzoom : null;
-            if (typeof PanzoomCtor !== 'function') {
-                return;
+
+            let panzoomBindingsDone = false;
+
+            /** Panzoom يحتاج أبعاد الـ viewport الحقيقية؛ الـ overlay كان hidden فيقاس 0 عند التحميل */
+            function ensureAdoraLightboxPanzoom() {
+                if (window.__adoraLightboxPanzoom) return window.__adoraLightboxPanzoom;
+                const PanzoomCtor = typeof window !== 'undefined' ? window.Panzoom : null;
+                if (typeof PanzoomCtor !== 'function') return null;
+                const pz = PanzoomCtor(panzoomEl, {
+                    canvas: true,
+                    contain: 'inside',
+                    maxScale: 5,
+                    minScale: 1,
+                    startScale: 1,
+                    startX: 0,
+                    startY: 0,
+                    panOnlyWhenZoomed: true,
+                    roundPixels: true,
+                    cursor: 'grab',
+                    animate: true,
+                    duration: 220,
+                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                    overflow: 'hidden',
+                    step: 0.35,
+                });
+                window.__adoraLightboxPanzoom = pz;
+                return pz;
             }
 
-            const pz = PanzoomCtor(panzoomEl, {
-                canvas: true,
-                contain: 'inside',
-                maxScale: 5,
-                minScale: 1,
-                startScale: 1,
-                startX: 0,
-                startY: 0,
-                panOnlyWhenZoomed: true,
-                roundPixels: true,
-                cursor: 'grab',
-                animate: true,
-                duration: 220,
-                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-                overflow: 'hidden',
-                step: 0.35,
-            });
-            window.__adoraLightboxPanzoom = pz;
+            function bindPanzoomUiOnce(pz) {
+                if (panzoomBindingsDone || !pz) return;
+                panzoomBindingsDone = true;
 
-            viewport.addEventListener(
-                'wheel',
-                (e) => {
-                    if (overlay.classList.contains('hidden')) return;
-                    pz.zoomWithWheel(e);
-                },
-                { passive: false }
-            );
+                viewport.addEventListener(
+                    'wheel',
+                    (e) => {
+                        if (overlay.classList.contains('hidden')) return;
+                        pz.zoomWithWheel(e);
+                    },
+                    { passive: false }
+                );
+
+                btnIn?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pz.zoomIn({ animate: true });
+                });
+                btnOut?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pz.zoomOut({ animate: true });
+                    window.setTimeout(() => {
+                        try {
+                            if (pz.getScale() <= 1.03) pz.reset({ animate: false });
+                        } catch (_e) {}
+                    }, 260);
+                });
+                btnReset?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    pz.reset({ animate: true });
+                });
+
+                function doubleTapZoom(clientX, clientY, originalEvent) {
+                    const pt = { clientX, clientY };
+                    if (pz.getScale() > 1.06) {
+                        pz.reset({ animate: true });
+                    } else {
+                        const next = Math.min(5, Math.max(2.2, pz.getScale() * 2.35));
+                        pz.zoomToPoint(next, pt, { animate: true }, originalEvent);
+                    }
+                }
+
+                panzoomEl.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    doubleTapZoom(e.clientX, e.clientY, e);
+                });
+
+                let lastTouchEnd = 0;
+                let lastTapX = 0;
+                let lastTapY = 0;
+                panzoomEl.addEventListener(
+                    'touchend',
+                    (e) => {
+                        if (overlay.classList.contains('hidden')) return;
+                        if (e.changedTouches.length !== 1) return;
+                        const touch = e.changedTouches[0];
+                        const now = Date.now();
+                        const dt = lastTouchEnd ? now - lastTouchEnd : 9999;
+                        const moved = Math.hypot(touch.clientX - lastTapX, touch.clientY - lastTapY);
+                        if (dt < 300 && dt > 0 && moved < 28) {
+                            e.preventDefault();
+                            doubleTapZoom(touch.clientX, touch.clientY, e);
+                            lastTouchEnd = 0;
+                            return;
+                        }
+                        lastTouchEnd = now;
+                        lastTapX = touch.clientX;
+                        lastTapY = touch.clientY;
+                    },
+                    { passive: false }
+                );
+            }
 
             function closeAdoraImageLightbox() {
                 closeAdoraImageLightboxIfOpen();
@@ -8812,22 +8891,43 @@
                 const s = src && String(src).trim();
                 if (!s) return;
                 try {
-                    pz.reset({ animate: false });
-                } catch (_e) {}
-                imgEl.src = s;
+                    const url = window.location.pathname + window.location.search + window.location.hash;
+                    history.pushState({ adora: 1, imageLightbox: true }, '', url);
+                    window.__adoraLightboxHistoryPushed = true;
+                } catch (_e) {
+                    window.__adoraLightboxHistoryPushed = false;
+                }
                 overlay.classList.remove('hidden');
                 overlay.removeAttribute('aria-hidden');
                 document.body.style.overflow = 'hidden';
-                const onLoad = () => {
-                    imgEl.removeEventListener('load', onLoad);
-                    try {
-                        pz.reset({ animate: false });
-                    } catch (_e) {}
+
+                const run = () => {
+                    const pz = ensureAdoraLightboxPanzoom();
+                    bindPanzoomUiOnce(pz);
+                    if (pz) {
+                        try {
+                            pz.reset({ animate: false });
+                        } catch (_e) {}
+                    }
+                    imgEl.src = s;
+                    const onLoad = () => {
+                        imgEl.removeEventListener('load', onLoad);
+                        const inst = window.__adoraLightboxPanzoom;
+                        if (inst) {
+                            try {
+                                inst.reset({ animate: false });
+                            } catch (_e2) {}
+                        }
+                    };
+                    imgEl.addEventListener('load', onLoad);
+                    if (imgEl.complete && imgEl.naturalWidth > 0) {
+                        queueMicrotask(onLoad);
+                    }
                 };
-                imgEl.addEventListener('load', onLoad);
-                if (imgEl.complete && imgEl.naturalWidth > 0) {
-                    queueMicrotask(onLoad);
-                }
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(run);
+                });
             }
 
             window.closeAdoraImageLightbox = closeAdoraImageLightbox;
@@ -8838,24 +8938,6 @@
                 closeAdoraImageLightbox();
             });
 
-            btnIn?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                pz.zoomIn({ animate: true });
-            });
-            btnOut?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                pz.zoomOut({ animate: true });
-                window.setTimeout(() => {
-                    try {
-                        if (pz.getScale() <= 1.03) pz.reset({ animate: false });
-                    } catch (_e) {}
-                }, 260);
-            });
-            btnReset?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                pz.reset({ animate: true });
-            });
-
             overlay.addEventListener('click', (e) => {
                 if (overlay.classList.contains('hidden')) return;
                 const t = e.target;
@@ -8864,47 +8946,6 @@
                 if (t.closest('#adora-lightbox-panzoom')) return;
                 closeAdoraImageLightbox();
             });
-
-            function doubleTapZoom(clientX, clientY, originalEvent) {
-                const pt = { clientX, clientY };
-                if (pz.getScale() > 1.06) {
-                    pz.reset({ animate: true });
-                } else {
-                    const next = Math.min(5, Math.max(2.2, pz.getScale() * 2.35));
-                    pz.zoomToPoint(next, pt, { animate: true }, originalEvent);
-                }
-            }
-
-            panzoomEl.addEventListener('dblclick', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                doubleTapZoom(e.clientX, e.clientY, e);
-            });
-
-            let lastTouchEnd = 0;
-            let lastTapX = 0;
-            let lastTapY = 0;
-            panzoomEl.addEventListener(
-                'touchend',
-                (e) => {
-                    if (overlay.classList.contains('hidden')) return;
-                    if (e.changedTouches.length !== 1) return;
-                    const touch = e.changedTouches[0];
-                    const now = Date.now();
-                    const dt = lastTouchEnd ? now - lastTouchEnd : 9999;
-                    const moved = Math.hypot(touch.clientX - lastTapX, touch.clientY - lastTapY);
-                    if (dt < 300 && dt > 0 && moved < 28) {
-                        e.preventDefault();
-                        doubleTapZoom(touch.clientX, touch.clientY, e);
-                        lastTouchEnd = 0;
-                        return;
-                    }
-                    lastTouchEnd = now;
-                    lastTapX = touch.clientX;
-                    lastTapY = touch.clientY;
-                },
-                { passive: false }
-            );
 
             ['product-gallery', 'marketplace-product-gallery'].forEach((id) => {
                 const host = document.getElementById(id);
