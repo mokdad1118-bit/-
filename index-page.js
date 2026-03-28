@@ -1393,7 +1393,9 @@
             try {
                 document.body.classList.toggle('adora-screen-listing-active', screenId === 'screen-listing');
             } catch (_e) {}
-            window.scrollTo(0, 0);
+            if (!opts.preserveScroll) {
+                window.scrollTo(0, 0);
+            }
             setActiveNavForScreen(screenId);
             if (typeof onScreenEnter === 'function') {
                 onScreenEnter(screenId);
@@ -2525,6 +2527,290 @@
             }
         }
 
+        function adoraGetDocumentScrollTop() {
+            try {
+                return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            } catch (_e) {
+                return 0;
+            }
+        }
+
+        function adoraPtrOverlayBlocking() {
+            const ids = [
+                'auth-gate-screen',
+                'auth-modal',
+                'session-resume-overlay',
+                'exit-app-modal',
+                'filter-modal',
+                'order-options-modal',
+                'orders-list-modal',
+                'profile-edit-modal',
+                'contact-info-modal',
+                'signup-credentials-modal',
+                'notification-prompt-modal',
+                'language-prompt-modal',
+                'download-prompt-modal',
+                'app-broadcasts-modal',
+                'product-share-modal',
+                'vendor-subscription-modal',
+                'app-ad-inquiries-modal',
+                'adora-image-lightbox',
+                'home-subcat-overlay',
+            ];
+            for (let i = 0; i < ids.length; i++) {
+                const el = document.getElementById(ids[i]);
+                if (el && !el.classList.contains('hidden')) return true;
+            }
+            const bd = document.getElementById('side-drawer-backdrop');
+            if (bd && bd.classList.contains('open')) return true;
+            return false;
+        }
+
+        function adoraPtrShouldIgnore() {
+            const shell = document.getElementById('app-shell');
+            if (!shell || shell.classList.contains('hidden')) return true;
+            const splash = document.getElementById('splash-screen');
+            if (splash && splash.style.display !== 'none') return true;
+            if (adoraPtrOverlayBlocking()) return true;
+            return false;
+        }
+
+        function adoraPtrSetLabel(phase) {
+            const label = document.getElementById('adora-ptr-label');
+            if (!label) return;
+            const rtl = typeof isRTL !== 'undefined' ? isRTL : true;
+            if (phase === 'load') {
+                label.textContent = rtl ? 'جاري التحديث...' : 'Refreshing...';
+            } else if (phase === 'release') {
+                label.textContent = rtl ? 'اترك للتحديث' : 'Release to refresh';
+            } else {
+                label.textContent = rtl ? 'اسحب للتحديث...' : 'Pull to refresh...';
+            }
+        }
+
+        function adoraPtrApplyPullVisual(pullPx, phaseHint) {
+            const root = document.getElementById('adora-ptr-indicator');
+            const chip = root && root.querySelector('.adora-ptr-indicator__chip');
+            if (!root || !chip) return;
+            const p = Math.max(0, Math.min(Number(pullPx) || 0, 120));
+            const y = Math.min(p * 0.35, 36) - 20;
+            chip.style.setProperty('--adora-ptr-chip-y', `${y}px`);
+            if (p < 4) {
+                root.classList.remove('adora-ptr-indicator--visible');
+                root.setAttribute('aria-hidden', 'true');
+                return;
+            }
+            root.classList.add('adora-ptr-indicator--visible');
+            root.setAttribute('aria-hidden', 'false');
+            const threshold = 72;
+            if (phaseHint === 'load') {
+                adoraPtrSetLabel('load');
+            } else {
+                adoraPtrSetLabel(p >= threshold ? 'release' : 'pull');
+            }
+        }
+
+        function adoraPtrHidePullVisual() {
+            const root = document.getElementById('adora-ptr-indicator');
+            const chip = root && root.querySelector('.adora-ptr-indicator__chip');
+            if (chip) chip.style.setProperty('--adora-ptr-chip-y', '-20px');
+            if (root) {
+                root.classList.remove('adora-ptr-indicator--visible');
+                root.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        async function refreshAdoraCurrentScreenForPull() {
+            const sid = typeof currentScreen === 'string' ? currentScreen : 'screen-categories';
+            if (sid === 'screen-listing') {
+                await loadListingPageProducts();
+                syncPartnerCtaDom();
+                syncAppAdCtaDom();
+                return;
+            }
+            if (sid === 'screen-offers') {
+                await loadOffersPageProducts();
+                syncPartnerCtaDom();
+                syncAppAdCtaDom();
+                return;
+            }
+            if (sid === 'screen-wishlist') {
+                await loadWishlistPageProducts();
+                return;
+            }
+            if (sid === 'screen-cart') {
+                renderCartUI();
+                return;
+            }
+            if (sid === 'screen-profile') {
+                await refreshProfileAndOrders();
+                return;
+            }
+            if (sid === 'screen-categories') {
+                syncSearchInputsFromQuery();
+                await Promise.all([
+                    injectHomeBanners(),
+                    loadHomeFeaturedGrid(),
+                    loadHomeNewCollectionGrid(),
+                    loadHomeBestsellers(),
+                    refreshAdoraHomeSubcategoryCounts(),
+                    loadMarketplaceHomeEntrance(),
+                    loadPartnerCtaConfig(),
+                    loadMarketplaceHomeHighlights(),
+                ]);
+                bindVendorJoinPageFormOnce();
+                bindAppAdPageFormOnce();
+                return;
+            }
+            if (sid === 'screen-marketplace') {
+                await initMarketplaceBrowseScreen();
+                syncPartnerCtaDom();
+                syncAppAdCtaDom();
+                return;
+            }
+            if (sid === 'screen-vendor-join') {
+                syncVendorJoinHeroFromConfig();
+                syncVendorJoinTermsFromConfig();
+                bindVendorJoinPageFormOnce();
+                return;
+            }
+            if (sid === 'screen-app-ad-inquiry') {
+                syncAppAdInquiryPageHeroFromConfig();
+                syncAppAdInquiryTermsFromConfig();
+                bindAppAdPageFormOnce();
+                return;
+            }
+            if (sid === 'screen-marketplace-product' && currentMarketplaceProductDetail && currentMarketplaceProductDetail.id) {
+                await openMarketplaceProductDetail(Number(currentMarketplaceProductDetail.id), { skipNavigate: true });
+                await loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
+                return;
+            }
+            if (sid === 'screen-product' && currentProductDetail && currentProductDetail.id) {
+                await openProductDetail(Number(currentProductDetail.id), { skipNavigate: true });
+                await loadProductReviewsForDetail(currentProductDetail.id).catch(() => {});
+                return;
+            }
+            if (sid === 'screen-order-tracking' && latestOrderDbId) {
+                try {
+                    const tracking = await apiFetch(`/api/orders/${latestOrderDbId}/tracking`, { requireAuth: true });
+                    if (tracking?.history?.length) {
+                        latestOrderStatus = normalizeOrderStatus(tracking.history[tracking.history.length - 1].status);
+                    } else if (tracking?.order?.status) {
+                        latestOrderStatus = normalizeOrderStatus(tracking.order.status);
+                    }
+                    if (tracking?.order?.order_no) latestOrderId = tracking.order.order_no;
+                    if (tracking?.order?.created_at) latestOrderCreatedAt = tracking.order.created_at;
+                    latestTrackingOrder = tracking?.order || null;
+                    latestTrackingItems = Array.isArray(tracking?.items) ? tracking.items : [];
+                    updateOrderTrackingUI();
+                } catch (_e) {}
+                return;
+            }
+            if (sid === 'screen-checkout') {
+                await refreshCheckoutOrderPreviewNo().catch(() => {});
+                renderCheckoutSummary();
+                return;
+            }
+            injectHomeBanners().catch(() => {});
+            refreshSideMenuHeader().catch(() => {});
+        }
+
+        let adoraPtrRefreshBusy = false;
+
+        async function runAdoraPullRefresh() {
+            if (adoraPtrRefreshBusy) return;
+            adoraPtrRefreshBusy = true;
+            const savedY = adoraGetDocumentScrollTop();
+            const root = document.getElementById('adora-ptr-indicator');
+            adoraPtrApplyPullVisual(100, 'load');
+            if (root) {
+                root.classList.add('adora-ptr-indicator--visible');
+                root.setAttribute('aria-hidden', 'false');
+            }
+            try {
+                await refreshAdoraCurrentScreenForPull();
+            } catch (_e) {}
+            adoraPtrHidePullVisual();
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    try {
+                        window.scrollTo(0, savedY);
+                    } catch (_e2) {}
+                    adoraPtrRefreshBusy = false;
+                });
+            });
+        }
+
+        function initAdoraPullToRefresh() {
+            const THRESHOLD = 72;
+            let startY = 0;
+            let startX = 0;
+            let armed = false;
+            let maxPull = 0;
+
+            document.addEventListener(
+                'touchstart',
+                (e) => {
+                    if (adoraPtrRefreshBusy || adoraPtrShouldIgnore()) {
+                        armed = false;
+                        return;
+                    }
+                    if (adoraGetDocumentScrollTop() > 8) {
+                        armed = false;
+                        return;
+                    }
+                    if (!e.touches || !e.touches.length) return;
+                    armed = true;
+                    startY = e.touches[0].clientY;
+                    startX = e.touches[0].clientX;
+                    maxPull = 0;
+                },
+                { passive: true }
+            );
+
+            document.addEventListener(
+                'touchmove',
+                (e) => {
+                    if (!armed || adoraPtrRefreshBusy || adoraPtrShouldIgnore()) return;
+                    if (!e.touches || !e.touches.length) return;
+                    const y = e.touches[0].clientY;
+                    const x = e.touches[0].clientX;
+                    const dy = y - startY;
+                    const dx = Math.abs(x - startX);
+                    const st = adoraGetDocumentScrollTop();
+                    if (st > 8) {
+                        armed = false;
+                        adoraPtrHidePullVisual();
+                        return;
+                    }
+                    if (dy <= 0) {
+                        adoraPtrHidePullVisual();
+                        return;
+                    }
+                    if (dx > dy + 12) return;
+                    maxPull = Math.max(maxPull, dy);
+                    e.preventDefault();
+                    adoraPtrApplyPullVisual(dy, 'pull');
+                },
+                { passive: false }
+            );
+
+            const endPtrTouch = () => {
+                if (!armed) return;
+                const shouldRun = maxPull >= THRESHOLD && adoraGetDocumentScrollTop() <= 12 && !adoraPtrShouldIgnore();
+                armed = false;
+                if (shouldRun && !adoraPtrRefreshBusy) {
+                    void runAdoraPullRefresh();
+                } else {
+                    adoraPtrHidePullVisual();
+                }
+                maxPull = 0;
+            };
+
+            document.addEventListener('touchend', endPtrTouch, { passive: true });
+            document.addEventListener('touchcancel', endPtrTouch, { passive: true });
+        }
+
         // Language Toggle
         function applyAppLanguage() {
             const dir = isRTL ? 'rtl' : 'ltr';
@@ -2605,6 +2891,12 @@
                 syncAppAdInquiryPageHeroFromConfig();
             }
             restartAdoraAnimatedSearchTimer();
+            try {
+                const pr = document.getElementById('adora-ptr-indicator');
+                if (pr && pr.classList.contains('adora-ptr-indicator--visible')) {
+                    adoraPtrSetLabel(adoraPtrRefreshBusy ? 'load' : 'pull');
+                }
+            } catch (_e) {}
         }
 
         function toggleLanguage() {
@@ -3778,13 +4070,18 @@
             }
         }
 
-        async function openMarketplaceProductDetail(id) {
+        async function openMarketplaceProductDetail(id, opts = {}) {
+            const skipNavigate = opts.skipNavigate === true;
             try {
                 const p = await apiFetch(`/api/marketplace/products/${Number(id)}`, { requireAuth: false });
                 currentMarketplaceProductDetail = p;
                 marketplaceDetailQty = 1;
                 renderMarketplaceProductDetailUi();
-                navigateTo('screen-marketplace-product');
+                if (!skipNavigate) {
+                    navigateTo('screen-marketplace-product');
+                } else {
+                    persistAdoraSessionState();
+                }
             } catch (_e) {
                 showToast(isRTL ? 'تعذر فتح المنتج' : 'Could not open product');
             }
@@ -9098,6 +9395,7 @@
                 if (ov && !ov.classList.contains('hidden')) closeHomeCategoryPanel();
             });
             initAdoraAnimatedSearch();
+            initAdoraPullToRefresh();
             const searchInput = document.getElementById('search-input');
             if (searchInput) {
                 searchInput.addEventListener('keydown', (e) => {

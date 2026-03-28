@@ -29,11 +29,16 @@
             -webkit-tap-highlight-color: transparent;
             box-sizing: border-box;
         }
+
+        html {
+            overscroll-behavior-y: contain;
+        }
         
         body {
             font-family: 'Plus Jakarta Sans', 'Noto Sans Arabic', sans-serif;
             background-color: #f8f9fa;
             overflow-x: hidden;
+            overscroll-behavior-y: contain;
         }
         
         body[dir="rtl"] {
@@ -3290,6 +3295,64 @@
                 transform: none !important;
                 filter: none !important;
             }
+            .adora-ptr-spinner {
+                animation: none !important;
+                border-top-color: #7c3aed !important;
+            }
+        }
+
+        /* Pull-to-refresh (SPA): مؤشر تحت الهيدر الثابت */
+        .adora-ptr-indicator {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: calc(var(--adora-header-offset, 4rem) + 4px);
+            z-index: 45;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.22s ease, visibility 0.22s ease;
+        }
+        .adora-ptr-indicator.adora-ptr-indicator--visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .adora-ptr-indicator__chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.97);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+            border: 1px solid rgba(124, 58, 237, 0.14);
+            transform: translateY(var(--adora-ptr-chip-y, -18px));
+            transition: transform 0.14s ease-out;
+            max-width: calc(100vw - 2rem);
+        }
+        .adora-ptr-spinner {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 2.5px solid rgba(124, 58, 237, 0.2);
+            border-top-color: #7c3aed;
+            animation: adora-ptr-spin 0.72s linear infinite;
+        }
+        @keyframes adora-ptr-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .adora-ptr-indicator__label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #4c1d95;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -3505,6 +3568,13 @@
 
     <!-- Spacer for fixed header (+ safe area) -->
     <div class="adora-header-spacer" aria-hidden="true"></div>
+
+    <div id="adora-ptr-indicator" class="adora-ptr-indicator" aria-live="polite" aria-atomic="true" aria-hidden="true">
+        <div class="adora-ptr-indicator__chip">
+            <span class="adora-ptr-spinner" aria-hidden="true"></span>
+            <span id="adora-ptr-label" class="adora-ptr-indicator__label"></span>
+        </div>
+    </div>
 
     <!-- ==================== CATEGORIES PAGE ==================== -->
     <div id="screen-categories" class="screen active bg-gray-50 pb-32">
