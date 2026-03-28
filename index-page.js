@@ -1132,6 +1132,7 @@
         const ADORA_SESSION_STACK_KEY = 'adora_nav_stack_v1';
         const ADORA_SESSION_LISTING_KEY = 'adora_listing_ctx_v1';
         const ADORA_SESSION_PRODUCT_KEY = 'adora_last_product_id_v1';
+        const ADORA_SESSION_MP_PRODUCT_KEY = 'adora_last_mp_product_id_v1';
 
         const ADORA_VALID_RESTORE_SCREENS = new Set([
             'screen-categories',
@@ -1205,6 +1206,17 @@
                     }
                 } else {
                     sessionStorage.removeItem(ADORA_SESSION_PRODUCT_KEY);
+                }
+                if (currentScreen === 'screen-marketplace-product') {
+                    const mid = currentMarketplaceProductDetail && currentMarketplaceProductDetail.id;
+                    if (mid) {
+                        sessionStorage.setItem(ADORA_SESSION_MP_PRODUCT_KEY, String(mid));
+                    } else {
+                        const pmp = sessionStorage.getItem(ADORA_SESSION_MP_PRODUCT_KEY);
+                        if (!pmp) sessionStorage.removeItem(ADORA_SESSION_MP_PRODUCT_KEY);
+                    }
+                } else {
+                    sessionStorage.removeItem(ADORA_SESSION_MP_PRODUCT_KEY);
                 }
             } catch (_e) {}
         }
@@ -7437,6 +7449,11 @@
                         const back = adoraNavStack.length >= 2 ? adoraNavStack[adoraNavStack.length - 2] : 'screen-categories';
                         productDetailBackScreen = back;
                         await openProductDetail(Number(pid), { skipNavigate: true });
+                    }
+                } else if (top === 'screen-marketplace-product') {
+                    const mid = sessionStorage.getItem(ADORA_SESSION_MP_PRODUCT_KEY);
+                    if (mid && /^\d+$/.test(mid)) {
+                        await openMarketplaceProductDetail(Number(mid), { skipNavigate: true });
                     }
                 }
             } catch (_e) {}

@@ -2088,10 +2088,6 @@
             box-shadow: 0 6px 22px rgba(79, 70, 229, 0.14);
         }
 
-        /* ترتيب تفاصيل المنتج — نون: مسافات ناعمة */
-        .adora-noon-detail-stack .adora-noon-desc-block {
-            margin-top: 0.75rem;
-        }
         .adora-noon-desc-block .adora-noon-desc-label {
             color: #6b7280;
             font-weight: 600;
@@ -4884,6 +4880,9 @@
                         <i class="fas fa-download text-sm"></i>
                     </button>
                 </div>
+                <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
+                    <img id="marketplace-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
+                </div>
             </div>
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
                 <div class="flex justify-center gap-1.5 hidden pointer-events-auto" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
@@ -4897,14 +4896,7 @@
             <div id="marketplace-detail-vendor" class="mt-2 min-h-[1.25rem] flex flex-wrap items-center gap-1 text-sm text-indigo-600/95">—</div>
             <p id="marketplace-detail-section" class="text-xs text-gray-500 mt-1 leading-snug">—</p>
 
-            <div id="marketplace-desc-block" class="adora-noon-desc-block pb-1">
-                <p class="adora-noon-desc-label text-xs uppercase tracking-wide mb-1.5" data-en="Description" data-ar="الوصف">الوصف</p>
-                <p id="marketplace-desc-preview" class="text-sm text-gray-600 leading-relaxed line-clamp-4 whitespace-pre-wrap"></p>
-                <div id="marketplace-desc-full" class="hidden text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
-                <button type="button" id="marketplace-desc-toggle" class="mt-2 text-indigo-500 text-sm font-bold hidden hover:text-indigo-600 transition-colors" onclick="toggleMarketplaceDescExpanded()" data-en-more="Show more" data-ar-more="عرض المزيد" data-en-less="Show less" data-ar-less="عرض أقل">عرض المزيد</button>
-            </div>
-
-            <div id="marketplace-detail-rating-row" class="hidden mt-3 text-sm" aria-live="polite">
+            <div id="marketplace-detail-rating-row" class="hidden mt-2 text-sm" aria-live="polite">
                 <div class="adora-noon-rating-pill">
                     <span id="marketplace-detail-rating-stars" class="flex gap-0.5 dir-ltr" dir="ltr" aria-hidden="true"></span>
                     <span class="inline-flex items-baseline gap-1 tabular-nums">
@@ -4941,6 +4933,13 @@
                     </div>
                     <div id="marketplace-color-options" class="flex gap-3 flex-wrap"></div>
                 </div>
+            </div>
+
+            <div id="marketplace-desc-block" class="adora-noon-desc-block pb-1 mt-5">
+                <p class="adora-noon-desc-label text-xs uppercase tracking-wide mb-1.5" data-en="Description" data-ar="الوصف">الوصف</p>
+                <p id="marketplace-desc-preview" class="text-sm text-gray-600 leading-relaxed line-clamp-4 whitespace-pre-wrap"></p>
+                <div id="marketplace-desc-full" class="hidden text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
+                <button type="button" id="marketplace-desc-toggle" class="mt-2 text-indigo-500 text-sm font-bold hidden hover:text-indigo-600 transition-colors" onclick="toggleMarketplaceDescExpanded()" data-en-more="Show more" data-ar-more="عرض المزيد" data-en-less="Show less" data-ar-less="عرض أقل">عرض المزيد</button>
             </div>
 
             <div id="marketplace-rating-summary-card" class="adora-rating-summary-card hidden" aria-hidden="true">
@@ -5051,14 +5050,7 @@
             <h1 id="product-detail-title" class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug tracking-tight line-clamp-5">Premium Wool Blend Overcoat</h1>
             <p id="product-detail-meta" class="text-sm font-semibold text-indigo-600/95 mt-2 leading-snug hidden"></p>
 
-            <div id="product-desc-block" class="adora-noon-desc-block pb-1">
-                <p class="adora-noon-desc-label text-xs uppercase tracking-wide mb-1.5" data-en="Description" data-ar="الوصف">الوصف</p>
-                <p id="product-desc-preview" class="text-sm text-gray-600 leading-relaxed line-clamp-4 whitespace-pre-wrap"></p>
-                <div id="product-desc-full" class="hidden text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
-                <button type="button" id="product-desc-toggle" class="mt-2 text-indigo-500 text-sm font-bold hidden hover:text-indigo-600 transition-colors" onclick="toggleProductDescExpanded()" data-en-more="Show more" data-ar-more="عرض المزيد" data-en-less="Show less" data-ar-less="عرض أقل">عرض المزيد</button>
-            </div>
-
-            <div id="product-detail-rating-row" class="hidden mt-3 text-sm" aria-live="polite">
+            <div id="product-detail-rating-row" class="hidden mt-2 text-sm" aria-live="polite">
                 <div class="adora-noon-rating-pill">
                     <span id="product-detail-rating-stars" class="flex gap-0.5 dir-ltr" dir="ltr" aria-hidden="true"></span>
                     <span class="inline-flex items-baseline gap-1 tabular-nums">
@@ -5099,6 +5091,13 @@
             </div>
             </div>
 
+            <div id="product-desc-block" class="adora-noon-desc-block pb-1 mt-5">
+                <p class="adora-noon-desc-label text-xs uppercase tracking-wide mb-1.5" data-en="Description" data-ar="الوصف">الوصف</p>
+                <p id="product-desc-preview" class="text-sm text-gray-600 leading-relaxed line-clamp-4 whitespace-pre-wrap"></p>
+                <div id="product-desc-full" class="hidden text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></div>
+                <button type="button" id="product-desc-toggle" class="mt-2 text-indigo-500 text-sm font-bold hidden hover:text-indigo-600 transition-colors" onclick="toggleProductDescExpanded()" data-en-more="Show more" data-ar-more="عرض المزيد" data-en-less="Show less" data-ar-less="عرض أقل">عرض المزيد</button>
+            </div>
+
             <div id="product-rating-summary-card" class="adora-rating-summary-card hidden" aria-hidden="true">
                 <div class="flex flex-col sm:flex-row sm:items-stretch">
                     <div class="flex-1 px-4 py-5 sm:px-5 sm:py-6 flex flex-col items-center sm:items-start text-center sm:text-start">
@@ -5118,7 +5117,7 @@
             </div>
 
             <div id="product-reviews-section" class="border-t border-gray-100 mt-6 mb-6">
-                <button onclick="toggleAccordion('reviews')" class="w-full py-4 flex justify-between items-center">
+                <button type="button" onclick="toggleAccordion('reviews')" class="w-full py-4 flex justify-between items-center text-start">
                     <div class="flex items-center gap-2">
                         <span class="font-semibold text-gray-900" data-en="Reviews" data-ar="التقييمات">Reviews</span>
                         <span id="product-reviews-count-badge" class="product-reviews-badge adora-reviews-count-badge text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
