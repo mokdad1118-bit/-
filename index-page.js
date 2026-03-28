@@ -6027,14 +6027,25 @@
             });
         }
 
-        /** بانر placement home_top: افتراضياً داخل #home-reorder-root (بعد السوق الشامل)؛ التثبيت مع شريط البحث من لوحة التحكم */
+        /** بانر home_top + أزرار الإعلان/الشراكة تحت البحث: مع التثبيت داخل الشريط اللاصق؛ بدونه تمرّ مع التمرير */
         function applyHomeTopBannerStickyPlacement(sticky) {
             const slot = document.getElementById('banner-slot-home_top');
             const wrap = document.querySelector('#screen-categories .partner-cta-sticky-search-wrap');
             const root = document.getElementById('home-reorder-root');
+            const ctaGroup = document.getElementById('home-under-search-cta-group');
             if (!slot || !wrap || !root) return;
             const on = normalizeHomeTopBannersSticky(sticky);
             slot.classList.toggle('adora-home-top-banners--sticky-below-search', on);
+            if (ctaGroup) {
+                ctaGroup.classList.toggle('home-under-search-cta-group--detached', !on);
+                if (on) {
+                    const sc = wrap.querySelector('.search-container');
+                    if (sc) sc.insertAdjacentElement('afterend', ctaGroup);
+                    else wrap.insertBefore(ctaGroup, wrap.firstChild);
+                } else if (wrap.parentNode) {
+                    wrap.parentNode.insertBefore(ctaGroup, root);
+                }
+            }
             if (on) {
                 wrap.appendChild(slot);
             } else {

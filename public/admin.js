@@ -4240,7 +4240,8 @@ async function loadHomeLayoutTab() {
     setHomeSectionsVisibilityToggles(data.home_sections_visibility);
     const stickyCb = document.getElementById("home-top-banners-sticky");
     if (stickyCb) {
-      stickyCb.checked = data.home_top_banners_sticky === true || data.home_top_banners_sticky === 1;
+      stickyCb.checked =
+        data.home_top_banners_sticky === true || data.home_top_banners_sticky === 1 || data.home_top_banners_sticky === '1';
     }
     const ord = Array.isArray(data.home_sections_order) && data.home_sections_order.length ? data.home_sections_order : homeSectionOrderKeysRuntime;
     renderHomeSectionsOrderList(ord);
