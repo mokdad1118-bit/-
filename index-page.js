@@ -4433,14 +4433,15 @@
                 currentMarketplaceProductDetail = p;
                 marketplaceDetailQty = 1;
                 renderMarketplaceProductDetailUi();
-                setMpPdpBusy(false, loadGen);
                 if (skipNavigate) {
                     persistAdoraSessionState();
                 }
                 scheduleMpPdpReviews(loadGen, p.id);
-            } catch (_e) {
+            } catch (err) {
                 if (loadGen !== adoraMpPdpLoadGen) return;
-                setMpPdpBusy(false, loadGen);
+                try {
+                    console.error('[Adora] openMarketplaceProductDetail', id, err);
+                } catch (_log) {}
                 showToast(isRTL ? 'تعذر فتح المنتج' : 'Could not open product');
                 if (!skipNavigate) {
                     const popped = adoraPopIfTopIs('screen-marketplace-product');
@@ -4452,6 +4453,10 @@
                         adoraSyncHistoryToScreen('screen-marketplace');
                         persistAdoraSessionState();
                     }
+                }
+            } finally {
+                if (loadGen === adoraMpPdpLoadGen) {
+                    setMpPdpBusy(false, loadGen);
                 }
             }
         }
@@ -4536,8 +4541,8 @@
                 }
                 const gal = document.getElementById('marketplace-product-gallery');
                 if (gal) {
-                    const imgs =
-                        Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+                    const list = normalizePdpImageList(p.images);
+                    const imgs = list.length ? list : [adoraPlaceholderImageUrl()];
                     adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(imgs), 0);
                     syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
                 }
@@ -4597,11 +4602,13 @@
                 stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
             }
             const gal = document.getElementById('marketplace-product-gallery');
-            const baseImgs =
-                Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+            const baseList = normalizePdpImageList(p.images);
+            const baseForMerge = baseList.length ? baseList : [adoraPlaceholderImageUrl()];
             const extraRaw = row && row.image ? String(row.image).trim() : '';
             const extraAbs = extraRaw ? absoluteMediaUrl(extraRaw) : '';
-            const merged = extraAbs && !baseImgs.includes(extraAbs) ? [extraAbs, ...baseImgs] : baseImgs;
+            const baseAbsSet = new Set(baseForMerge.map((u) => absoluteMediaUrl(u)));
+            const merged =
+                extraAbs && !baseAbsSet.has(extraAbs) ? [extraRaw, ...baseForMerge] : baseForMerge;
             if (gal) {
                 adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(merged), 0);
                 syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
@@ -5671,20 +5678,58 @@
             return adoraPlaceholderImageUrl();
         }
 
+        /** تطبيع مصفوفة روابط الصور (نص، JSON، أو عناصر {url}) لتفادي أخطاء DOM/المعرض */
+        function normalizePdpImageList(raw) {
+            const out = [];
+            const pushVal = (v) => {
+                if (v == null) return;
+                if (typeof v === 'string') {
+                    const t = v.trim();
+                    if (t) out.push(t);
+                    return;
+                }
+                if (typeof v === 'object') {
+                    const u = v.url != null ? String(v.url) : v.src != null ? String(v.src) : '';
+                    const t = u.trim();
+                    if (t) out.push(t);
+                }
+            };
+            if (Array.isArray(raw)) {
+                raw.forEach(pushVal);
+                return out;
+            }
+            if (typeof raw === 'string') {
+                const t = raw.trim();
+                if (!t) return [];
+                if ((t.startsWith('[') && t.endsWith(']')) || (t.startsWith('{') && t.endsWith('}'))) {
+                    try {
+                        return normalizePdpImageList(JSON.parse(t));
+                    } catch (_e) {
+                        return [t];
+                    }
+                }
+                return [t];
+            }
+            return [];
+        }
+
         /** ضغط عرض لروابط Cloudinary في معرض المنتج (أخف على الشبكة والذاكرة) */
         function pdpCloudinaryOptimizeUrl(url, maxW) {
             const s = String(url || '').trim();
             if (!s) return s;
             if (!/^https?:\/\//i.test(s)) return s;
-            if (!/res\.cloudinary\.com\/.+\/image\/upload\//i.test(s)) return s;
+            if (!/res\.cloudinary\.com\/[^/?#\s]+\/image\/upload\//i.test(s)) return s;
             if (/\/image\/upload\/c_/i.test(s)) return s;
             const w = Math.min(1600, Math.max(320, Number(maxW) || 800));
             return s.replace(/\/image\/upload\//i, `/image/upload/c_limit,w_${w},q_auto,f_auto/`);
         }
 
+        const ADORA_PDP_GALLERY_MAX_SLIDES = 48;
+
         function adoraBuildPdpGallerySlidesHtml(imageUrls) {
-            const raw = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : [];
-            const urls = raw.length ? raw.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+            const raw = normalizePdpImageList(imageUrls);
+            const capped = raw.length > ADORA_PDP_GALLERY_MAX_SLIDES ? raw.slice(0, ADORA_PDP_GALLERY_MAX_SLIDES) : raw;
+            const urls = capped.length ? capped.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
             return urls
                 .map((src, i) => {
                     const opt = pdpCloudinaryOptimizeUrl(src, i === 0 ? 960 : 720);
@@ -7591,14 +7636,15 @@
                 if (loadGen !== adoraCatalogPdpLoadGen) return;
                 currentProductDetail = p;
                 fillProductDetailScreen(p);
-                setCatalogPdpBusy(false, loadGen);
                 if (skipNavigate) {
                     persistAdoraSessionState();
                 }
                 scheduleCatalogPdpSecondaryContent(loadGen, p.id);
-            } catch (e) {
+            } catch (err) {
                 if (loadGen !== adoraCatalogPdpLoadGen) return;
-                setCatalogPdpBusy(false, loadGen);
+                try {
+                    console.error('[Adora] openProductDetail', id, err);
+                } catch (_log) {}
                 showToast(isRTL ? 'تعذر تحميل المنتج' : 'Failed to load product');
                 if (!skipNavigate) {
                     const popped = adoraPopIfTopIs('screen-product');
@@ -7610,8 +7656,15 @@
                         persistAdoraSessionState();
                     }
                 }
+            } finally {
+                if (loadGen === adoraCatalogPdpLoadGen) {
+                    setCatalogPdpBusy(false, loadGen);
+                }
             }
         }
+
+        window.openProductDetail = openProductDetail;
+        window.openMarketplaceProductDetail = openMarketplaceProductDetail;
 
         async function restoreAdoraSessionRoute() {
             const token = getStoredJwtToken();
@@ -7667,7 +7720,8 @@
             const saleP = productSaleUnitPrice(p);
             const gal = document.getElementById('product-gallery');
             if (gal) {
-                const imgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
+                const imgsNorm = normalizePdpImageList(p.images);
+                const imgs = imgsNorm.length ? imgsNorm : [adoraPlaceholderImageUrl()];
                 adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(imgs), 0);
                 syncProductGalleryDotsFromGallery();
             }
@@ -7948,7 +8002,8 @@
             const addP = document.getElementById('product-detail-add-price');
             if (addP) addP.textContent = ` — ${formatSyp(saleU)}`;
             const gal = document.getElementById('product-gallery');
-            const baseImgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
+            const baseList = normalizePdpImageList(p.images);
+            const baseImgs = baseList.length ? baseList : [adoraPlaceholderImageUrl()];
             const extra = row && row.image ? String(row.image).trim() : '';
             const merged = extra && !baseImgs.includes(extra) ? [extra, ...baseImgs] : baseImgs;
             if (gal) {
