@@ -2084,16 +2084,25 @@
             margin: 0;
             word-break: break-word;
         }
-        /* PDP — نفس سلوك الموبايل على كل عرض شاشة */
+        /* PDP — عمود مرن: لازم ارتفاع محدد للحاوي حتى يعمل overflow-y على .adora-pdp-scroll
+           (بدون height يكبر الأب مع المحتوى فيختفي التمرير الداخلي ويبقى overflow:hidden يقفل الصفحة) */
         #screen-product.adora-pdp-screen.active,
         #screen-marketplace-product.adora-pdp-screen.active {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow: hidden;
             box-sizing: border-box;
+            overflow: hidden;
+            min-height: 0;
+            height: calc(100vh - var(--adora-header-offset));
+            max-height: calc(100vh - var(--adora-header-offset));
             padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+        }
+        @supports (height: 100dvh) {
+            #screen-product.adora-pdp-screen.active,
+            #screen-marketplace-product.adora-pdp-screen.active {
+                height: calc(100dvh - var(--adora-header-offset));
+                max-height: calc(100dvh - var(--adora-header-offset));
+            }
         }
         #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
         #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
