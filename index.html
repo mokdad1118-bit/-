@@ -5559,17 +5559,18 @@
         </div>
     </div>
 
-    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black/92" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة">
-        <div class="absolute top-0 left-0 right-0 z-[35] flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 bg-gradient-to-b from-black/75 to-transparent pointer-events-none rtl:flex-row-reverse">
-            <button type="button" id="adora-image-lightbox-close" class="pointer-events-auto w-12 h-12 rounded-full bg-white/15 text-white flex items-center justify-center backdrop-blur-md border-2 border-white/40 shadow-lg hover:bg-white/25 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-                <i class="fas fa-times text-xl" aria-hidden="true"></i>
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-black" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة">
+        <div class="absolute top-0 left-0 right-0 z-[35] flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black via-black/90 to-transparent pointer-events-none rtl:flex-row-reverse">
+            <button type="button" id="adora-image-lightbox-close" class="pointer-events-auto w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center backdrop-blur-md border-2 border-white/50 shadow-lg hover:bg-white/30 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                <i class="fas fa-times text-2xl" aria-hidden="true"></i>
             </button>
-            <button type="button" id="adora-image-lightbox-close-text" class="pointer-events-auto px-4 py-2.5 rounded-full bg-white/15 text-white text-sm font-bold backdrop-blur-md border border-white/35 hover:bg-white/25 active:scale-95 transition" onclick="window.closeAdoraImageLightbox && window.closeAdoraImageLightbox()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            <span id="adora-lightbox-counter" class="pointer-events-auto hidden min-w-[3.5rem] text-center text-sm font-bold text-white/90 tabular-nums px-2 py-1 rounded-full bg-white/10 border border-white/25"></span>
+            <button type="button" id="adora-image-lightbox-close-text" class="pointer-events-auto px-4 py-2.5 rounded-full bg-white/20 text-white text-sm font-bold backdrop-blur-md border border-white/45 hover:bg-white/30 active:scale-95 transition" onclick="window.closeAdoraImageLightbox && window.closeAdoraImageLightbox()" data-en="Close" data-ar="إغلاق">إغلاق</button>
         </div>
-        <p id="adora-lightbox-hint" class="absolute top-[4.5rem] left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none sm:top-20" data-en="Pinch or scroll to zoom · double-tap · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير</p>
-        <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-16 pb-24 px-2">
-            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-manipulation">
-                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(78dvh,100%)] max-w-[min(96vw,100%)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
+        <p id="adora-lightbox-hint" class="absolute top-[5.25rem] left-0 right-0 z-10 text-center text-[11px] text-white/75 px-4 pointer-events-none sm:top-[5.5rem]" data-en="Pinch to zoom · double-tap · drag when zoomed · swipe for more photos" data-ar="قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة">قرّب بإصبعين · نقرتان للتكبير/التصغير · اسحب للتصفح بعد التكبير · اسحب يمين/يسار لتغيير الصورة</p>
+        <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-[5.5rem] pb-28 px-2 relative select-none">
+            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-none max-w-full max-h-full flex items-center justify-center">
+                <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(76dvh,560px)] max-w-[min(96vw,420px)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none block" draggable="false" />
             </div>
         </div>
         <div id="adora-lightbox-toolbar" class="absolute bottom-4 left-0 right-0 z-20 flex flex-wrap items-center justify-center gap-2 px-3">
