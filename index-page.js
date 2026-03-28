@@ -1473,33 +1473,29 @@
         }
 
         function syncAdoraGlobalBackButton() {
-            const host = document.getElementById('adora-global-back-host');
-            const btn = document.getElementById('adora-global-back-btn');
-            if (!host || !btn) return;
+            const headerBtn = document.getElementById('main-header-back-btn');
+            const listingBtn = document.getElementById('listing-toolbar-back-btn');
             const shell = document.getElementById('app-shell');
+            const onListing = currentScreen === 'screen-listing';
             if (!shell || shell.classList.contains('hidden')) {
-                host.classList.add('hidden');
-                document.body.classList.remove(
-                    'adora-global-back-visible',
-                    'adora-global-back-listing',
-                    'adora-global-back-on-dark'
-                );
+                headerBtn?.classList.add('hidden');
+                listingBtn?.classList.add('hidden');
+                listingBtn?.setAttribute('aria-hidden', 'true');
                 return;
             }
-            const onHome =
-                currentScreen === 'screen-categories' &&
-                adoraNavStack.length === 1 &&
-                adoraNavStack[0] === 'screen-categories';
-            const show = !onHome && !!currentScreen;
-            host.classList.toggle('hidden', !show);
-            btn.setAttribute('aria-hidden', show ? 'false' : 'true');
-            document.body.classList.toggle('adora-global-back-visible', show);
-            document.body.classList.toggle('adora-global-back-listing', currentScreen === 'screen-listing');
-            document.body.classList.toggle(
-                'adora-global-back-on-dark',
-                currentScreen === 'screen-vendor-join' || currentScreen === 'screen-app-ad-inquiry'
-            );
-            btn.setAttribute('aria-label', isRTL ? 'رجوع' : 'Back');
+            const label = isRTL ? 'رجوع' : 'Back';
+            if (onListing) {
+                headerBtn?.classList.add('hidden');
+                listingBtn?.classList.remove('hidden');
+                listingBtn?.setAttribute('aria-hidden', 'false');
+                listingBtn?.setAttribute('aria-label', label);
+            } else {
+                listingBtn?.classList.add('hidden');
+                listingBtn?.setAttribute('aria-hidden', 'true');
+                headerBtn?.classList.remove('hidden');
+                headerBtn?.setAttribute('aria-hidden', 'false');
+                headerBtn?.setAttribute('aria-label', label);
+            }
         }
 
         function backFromOrderTracking() {
@@ -2976,7 +2972,8 @@
             document.documentElement.setAttribute('dir', dir);
             document.documentElement.setAttribute('lang', lang);
             document.body.setAttribute('dir', dir);
-            document.getElementById('lang-text').textContent = isRTL ? 'AR' : 'EN';
+            const langTextEl = document.getElementById('lang-text');
+            if (langTextEl) langTextEl.textContent = isRTL ? 'AR' : 'EN';
             
             document.querySelectorAll('[data-en]').forEach((el) => {
                 const hasIconChild = el.querySelector && el.querySelector('i, svg, img');
@@ -8934,7 +8931,7 @@
                 guestActions?.classList.remove('hidden');
                 userBadge?.classList.add('hidden');
                 logoutBtn?.classList.add('hidden');
-                document.getElementById('side-menu-notif-row')?.classList.add('hidden');
+                document.getElementById('side-menu-notif-block')?.classList.add('hidden');
                 document.getElementById('side-menu-notifications-btn')?.classList.add('hidden');
                 document.getElementById('side-menu-vendor-sub-btn')?.classList.add('hidden');
                 return;
@@ -8942,7 +8939,7 @@
             guestActions?.classList.add('hidden');
             userBadge?.classList.remove('hidden');
             logoutBtn?.classList.remove('hidden');
-            document.getElementById('side-menu-notif-row')?.classList.remove('hidden');
+            document.getElementById('side-menu-notif-block')?.classList.remove('hidden');
             document.getElementById('side-menu-notifications-btn')?.classList.remove('hidden');
             try {
                 const data = await apiFetch('/api/profile', { requireAuth: true });

@@ -1456,7 +1456,26 @@
         body[dir="ltr"] .lang-indicator {
             transform: translateX(28px);
         }
-        
+
+        /* زر اللغة المدمج في القائمة الجانبية (أصغر) */
+        .lang-toggle--menu {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        .lang-toggle--menu .lang-indicator {
+            width: 22px;
+            height: 22px;
+            top: 3px;
+        }
+        body[dir="rtl"] .lang-toggle--menu .lang-indicator {
+            transform: translateX(0);
+        }
+        body[dir="ltr"] .lang-toggle--menu .lang-indicator {
+            transform: translateX(24px);
+        }
+
         .size-btn {
             transition: all 0.2s ease;
             position: relative;
@@ -3429,26 +3448,8 @@
             text-overflow: ellipsis;
         }
 
-        /* زر رجوع عائم موحّد — ثابت فوق المحتوى */
-        #adora-global-back-host {
-            position: fixed;
-            z-index: 55;
-            left: 0;
-            right: 0;
-            top: calc(var(--adora-header-offset, 4rem) + 6px);
-            max-width: 428px;
-            margin-left: auto;
-            margin-right: auto;
-            display: flex;
-            justify-content: flex-start;
-            padding-inline-start: max(12px, env(safe-area-inset-left, 0px));
-            padding-inline-end: max(12px, env(safe-area-inset-right, 0px));
-            pointer-events: none;
-        }
-        body.adora-global-back-listing #adora-global-back-host {
-            top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
-        }
-        #adora-global-back-btn {
+        /* زر رجوع موحّد: الهيدر الرئيسي + شريط قائمة المنتجات */
+        .adora-unified-back-btn {
             pointer-events: auto;
             width: 2.75rem;
             height: 2.75rem;
@@ -3467,21 +3468,16 @@
             transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.2s ease;
             animation: adora-back-pulse 2.75s ease-in-out infinite;
         }
-        #adora-global-back-btn i {
+        .adora-unified-back-btn i {
             font-size: 1rem;
         }
-        body.adora-global-back-on-dark #adora-global-back-btn {
-            background: rgba(255, 255, 255, 0.16);
-            border-color: rgba(255, 255, 255, 0.32);
-            color: #fff;
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12) inset;
-        }
-        #adora-global-back-btn:hover {
+        .adora-unified-back-btn:hover {
             box-shadow:
-                0 6px 22px rgba(124, 58, 237, 0.18),
-                0 0 0 1px rgba(255, 255, 255, 0.75) inset;
+                0 8px 26px rgba(124, 58, 237, 0.26),
+                0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+                0 0 18px rgba(124, 58, 237, 0.15);
         }
-        #adora-global-back-btn:active {
+        .adora-unified-back-btn:active {
             transform: scale(0.93);
         }
         @keyframes adora-back-pulse {
@@ -3489,21 +3485,20 @@
             100% {
                 box-shadow:
                     0 4px 18px rgba(15, 23, 42, 0.1),
-                    0 0 0 0 rgba(124, 58, 237, 0);
+                    0 0 0 0 rgba(124, 58, 237, 0),
+                    0 0 12px rgba(124, 58, 237, 0.08);
             }
             50% {
                 box-shadow:
-                    0 6px 24px rgba(124, 58, 237, 0.22),
-                    0 0 0 10px rgba(124, 58, 237, 0.05);
+                    0 8px 28px rgba(124, 58, 237, 0.3),
+                    0 0 0 14px rgba(124, 58, 237, 0.08),
+                    0 0 26px rgba(124, 58, 237, 0.22);
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            #adora-global-back-btn {
+            .adora-unified-back-btn {
                 animation: none !important;
             }
-        }
-        body[dir="rtl"] #adora-global-back-host {
-            justify-content: flex-end;
         }
     </style>
 </head>
@@ -3710,9 +3705,8 @@
                 <span class="text-[10px] text-gray-400 -mt-1 font-medium tracking-widest" data-en="Adora" data-ar="أدورا">Adora</span>
             </div>
             
-            <button onclick="toggleLanguage()" class="lang-toggle w-[60px] h-8 flex items-center justify-between px-1">
-                <div class="lang-indicator left-0.5"></div>
-                <span class="text-[10px] font-bold text-gray-600 z-10 w-full text-center" id="lang-text">EN</span>
+            <button type="button" id="main-header-back-btn" onclick="adoraUnifiedBack()" class="adora-unified-back-btn shrink-0" aria-label="Back">
+                <i class="fas fa-arrow-left rtl:rotate-180" aria-hidden="true"></i>
             </button>
         </div>
     </header>
@@ -3725,12 +3719,6 @@
             <span class="adora-ptr-spinner" aria-hidden="true"></span>
             <span id="adora-ptr-label" class="adora-ptr-indicator__label"></span>
         </div>
-    </div>
-
-    <div id="adora-global-back-host" class="hidden" aria-hidden="true">
-        <button type="button" id="adora-global-back-btn" onclick="adoraUnifiedBack()" aria-label="Back">
-            <i class="fas fa-arrow-left rtl:rotate-180" aria-hidden="true"></i>
-        </button>
     </div>
 
     <!-- ==================== CATEGORIES PAGE ==================== -->
@@ -4184,7 +4172,9 @@
         <div id="banner-slot-listing_top" class="px-4 pt-2 space-y-1"></div>
         <div class="adora-screen-toolbar adora-screen-toolbar--listing-top px-4 py-3 border-b border-gray-200 relative z-10">
             <div class="flex items-center justify-between mb-2 gap-2">
-                <span class="w-10 shrink-0" aria-hidden="true"></span>
+                <button type="button" id="listing-toolbar-back-btn" onclick="adoraUnifiedBack()" class="adora-unified-back-btn hidden shrink-0" aria-label="Back" aria-hidden="true">
+                    <i class="fas fa-arrow-left rtl:rotate-180" aria-hidden="true"></i>
+                </button>
                 <h1 id="listing-screen-title" class="text-lg font-bold text-gray-900 text-center flex-1 px-1 min-w-0 truncate" data-en="Products" data-ar="المنتجات">Products</h1>
                 <span class="w-8 sm:w-10 shrink-0" aria-hidden="true"></span>
             </div>
@@ -5406,12 +5396,23 @@
                 <span id="side-menu-notif-badge" class="hidden min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">0</span>
                 <i class="side-menu-chevron fas fa-chevron-left text-gray-300 text-sm"></i>
             </button>
-            <div id="side-menu-notif-row" class="side-menu-item hidden cursor-default hover:bg-transparent">
-                <span class="side-menu-icon bg-orange-100 text-orange-700"><i class="fas fa-bell"></i></span>
-                <span class="flex-1 text-start" data-en="Notifications" data-ar="تفعيل الإشعارات">تفعيل الإشعارات</span>
-                <button type="button" id="side-menu-notif-toggle" role="switch" aria-checked="false" onclick="event.stopPropagation(); toggleNotificationsFromMenu();" class="relative w-12 h-7 rounded-full bg-gray-200 transition-colors shrink-0">
-                    <span class="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform"></span>
-                </button>
+            <div id="side-menu-notif-lang-row" class="side-menu-item cursor-default hover:bg-transparent">
+                <div class="flex w-full flex-wrap items-center justify-between gap-3">
+                    <div id="side-menu-notif-block" class="hidden min-w-0 flex flex-1 items-center gap-3">
+                        <span class="side-menu-icon bg-orange-100 text-orange-700 shrink-0"><i class="fas fa-bell"></i></span>
+                        <span class="flex-1 text-start text-sm" data-en="Enable notifications" data-ar="تفعيل الإشعارات">تفعيل الإشعارات</span>
+                        <button type="button" id="side-menu-notif-toggle" role="switch" aria-checked="false" onclick="event.stopPropagation(); toggleNotificationsFromMenu();" class="relative w-12 h-7 rounded-full bg-gray-200 transition-colors shrink-0">
+                            <span class="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform"></span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 ms-auto">
+                        <span class="text-xs font-bold text-gray-600 whitespace-nowrap" data-en="Language" data-ar="اللغة">اللغة</span>
+                        <button type="button" onclick="event.stopPropagation(); toggleLanguage();" class="lang-toggle lang-toggle--menu flex items-center justify-between px-1" aria-label="Language">
+                            <div class="lang-indicator left-0.5"></div>
+                            <span class="text-[10px] font-bold text-gray-600 z-10 w-full text-center" id="lang-text">EN</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             <button type="button" id="side-menu-logout-btn" class="side-menu-item danger hidden" onclick="logoutFromSideMenu()">
                 <span class="side-menu-icon bg-red-100 text-red-600"><i class="fas fa-sign-out-alt"></i></span>
