@@ -1057,7 +1057,7 @@
             stopGalleryAutoScroll(galleryDomId);
             const el = document.getElementById(galleryDomId);
             if (!el) return;
-            const children = [...el.children];
+            const children = [...el.children].filter((c) => !c.classList.contains('adora-gallery-top-actions'));
             if (children.length <= 1) return;
             let idx = 0;
             adoraGalleryAutoScrollTimers[galleryDomId] = setInterval(() => {
@@ -1070,6 +1070,17 @@
                     } catch (_e2) {}
                 }
             }, intervalMs);
+        }
+
+        /** يستبدل شرائح المعرض مع الإبقاء على شريط الأزرار العلوي داخل نفس الحاوية */
+        function adoraReplaceGallerySlidesKeepingToolbar(gal, slidesHtml, autoScrollIntervalMs) {
+            if (!gal) return;
+            const gid = gal.id;
+            if (gid) stopGalleryAutoScroll(gid);
+            const tb = gal.querySelector('.adora-gallery-top-actions');
+            gal.innerHTML = slidesHtml;
+            if (tb) gal.insertBefore(tb, gal.firstChild);
+            if (gid && autoScrollIntervalMs) startGalleryAutoScroll(gid, autoScrollIntervalMs);
         }
         const searchHistoryKey = 'adora_search_history';
         let searchHistory = [];
@@ -4419,16 +4430,15 @@
                 }
                 const gal = document.getElementById('marketplace-product-gallery');
                 if (gal) {
-                    stopGalleryAutoScroll('marketplace-product-gallery');
                     const imgs =
                         Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
-                    gal.innerHTML = imgs
+                    const slides = imgs
                         .map(
                             (src) =>
                                 `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                         )
                         .join('');
-                    startGalleryAutoScroll('marketplace-product-gallery', 4200);
+                    adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
                 }
                 const stockN = legacyMarketplaceStockForPick(
                     p,
@@ -4478,14 +4488,13 @@
             const extraAbs = extraRaw ? absoluteMediaUrl(extraRaw) : '';
             const merged = extraAbs && !baseImgs.includes(extraAbs) ? [extraAbs, ...baseImgs] : baseImgs;
             if (gal) {
-                stopGalleryAutoScroll('marketplace-product-gallery');
-                gal.innerHTML = merged
+                const slides = merged
                     .map(
                         (src) =>
                             `<div class="snap-center w-full min-w-full h-full relative flex-shrink-0"><img src="${escapeHtml(src)}" class="w-full h-full object-cover" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                     )
                     .join('');
-                startGalleryAutoScroll('marketplace-product-gallery', 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
             }
             renderMarketplaceDynamicVariantOptions(p);
             if (st > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, st));
@@ -7407,15 +7416,14 @@
             const saleP = productSaleUnitPrice(p);
             const gal = document.getElementById('product-gallery');
             if (gal) {
-                stopGalleryAutoScroll('product-gallery');
                 const imgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
-                gal.innerHTML = imgs
+                const slides = imgs
                     .map(
                         (url) =>
                             `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt="" draggable="false"></div>`
                     )
                     .join('');
-                startGalleryAutoScroll('product-gallery', 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
             }
             const tEl = document.getElementById('product-detail-title');
             if (tEl) tEl.textContent = title;
@@ -7673,14 +7681,13 @@
             const extra = row && row.image ? String(row.image).trim() : '';
             const merged = extra && !baseImgs.includes(extra) ? [extra, ...baseImgs] : baseImgs;
             if (gal) {
-                stopGalleryAutoScroll('product-gallery');
-                gal.innerHTML = merged
+                const slides = merged
                     .map(
                         (url) =>
-                            `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt=""></div>`
+                            `<div class="snap-center w-full flex-shrink-0 relative min-w-full"><img src="${escapeHtml(url)}" class="w-full h-full object-cover" alt="" draggable="false"></div>`
                     )
                     .join('');
-                startGalleryAutoScroll('product-gallery', 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
             }
             renderProductDynamicOptions(p);
         }
@@ -9951,6 +9958,7 @@
                     'touchstart',
                     (e) => {
                         clear();
+                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
                         if (!e.touches || e.touches.length !== 1) return;
                         sx = e.touches[0].clientX;
                         sy = e.touches[0].clientY;
@@ -10379,6 +10387,7 @@
                 const host = document.getElementById(id);
                 if (!host) return;
                 host.addEventListener('click', (e) => {
+                    if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
                     const im = e.target && e.target.closest && e.target.closest('img');
                     if (!im || !host.contains(im)) return;
                     const s = im.getAttribute('src');

@@ -4530,18 +4530,19 @@
             <span class="w-10 shrink-0" aria-hidden="true"></span>
         </div>
         <div class="relative bg-gray-50">
-            <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[min(52vw,280px)] max-h-[320px]" id="marketplace-product-gallery"></div>
-            <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-[60] pointer-events-none">
-                <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
-                    <i class="fas fa-download text-gray-800"></i>
-                </button>
-                <div class="flex gap-3 pointer-events-auto">
-                    <button type="button" id="marketplace-share-product-btn" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
-                        <i class="fas fa-share-alt text-gray-800"></i>
+            <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[min(52vw,280px)] max-h-[320px] relative" id="marketplace-product-gallery">
+                <div class="adora-gallery-top-actions absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-[60] pointer-events-auto">
+                    <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                        <i class="fas fa-download text-gray-800"></i>
                     </button>
-                    <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Wishlist">
-                        <i class="fas fa-heart text-gray-800"></i>
-                    </button>
+                    <div class="flex gap-3">
+                        <button type="button" id="marketplace-share-product-btn" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
+                            <i class="fas fa-share-alt text-gray-800"></i>
+                        </button>
+                        <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Wishlist">
+                            <i class="fas fa-heart text-gray-800"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4652,23 +4653,22 @@
     <div id="screen-product" class="screen bg-white">
         <div id="banner-slot-product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="relative bg-gray-50">
-            <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[450px]" id="product-gallery">
+            <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[450px] relative" id="product-gallery">
+                <div class="adora-gallery-top-actions absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[60] pointer-events-auto">
+                    <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                        <i class="fas fa-download text-gray-800"></i>
+                    </button>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Share">
+                            <i class="fas fa-share-alt text-gray-800"></i>
+                        </button>
+                        <button type="button" id="product-wishlist-btn" onclick="toggleWishlist(this)" class="wishlist-btn w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Wishlist">
+                            <i class="fas fa-heart text-gray-800"></i>
+                        </button>
+                    </div>
+                </div>
                 <div class="snap-center w-full flex-shrink-0 relative min-w-full bg-gradient-to-br from-violet-100 to-purple-50 flex items-center justify-center">
                     <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-32 h-32 object-contain opacity-90" width="128" height="128" alt="" draggable="false">
-                </div>
-            </div>
-            
-            <div class="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-[60] pointer-events-none">
-                <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
-                    <i class="fas fa-download text-gray-800"></i>
-                </button>
-                <div class="flex gap-3 pointer-events-auto">
-                    <button type="button" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Share">
-                        <i class="fas fa-share-alt text-gray-800"></i>
-                    </button>
-                    <button type="button" id="product-wishlist-btn" onclick="toggleWishlist(this)" class="wishlist-btn w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Wishlist">
-                        <i class="fas fa-heart text-gray-800"></i>
-                    </button>
                 </div>
             </div>
             
