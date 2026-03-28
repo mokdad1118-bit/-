@@ -2055,6 +2055,67 @@
             height: auto;
             object-fit: contain;
             object-position: center;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* عنوان المنتج — أقرب لنون/أمازون (وزن وسط، تتبّع ضيق، سطرَان–أربعة أسطر) */
+        .adora-pdp-title {
+            font-size: 1.0625rem;
+            line-height: 1.38;
+            font-weight: 700;
+            letter-spacing: -0.028em;
+            color: #111827;
+            margin: 0;
+            word-break: break-word;
+        }
+        @media (min-width: 640px) {
+            .adora-pdp-title {
+                font-size: 1.375rem;
+                line-height: 1.32;
+                letter-spacing: -0.02em;
+            }
+        }
+
+        /* سطح المكتب: الحاويات شفافة في التخطيط */
+        @media (min-width: 640px) {
+            .adora-pdp-top,
+            .adora-pdp-scroll {
+                display: contents;
+            }
+        }
+
+        /* موبايل: المعرض ثابت فوق، التفاصيل والتقييمات تمرّر داخل العمود فقط */
+        @media (max-width: 639px) {
+            #screen-product.adora-pdp-screen.active,
+            #screen-marketplace-product.adora-pdp-screen.active {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+                min-height: 100dvh;
+                overflow: hidden;
+                box-sizing: border-box;
+                padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+            }
+            #screen-product.adora-pdp-screen.active .adora-pdp-top,
+            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-top {
+                flex-shrink: 0;
+            }
+            #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
+            #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
+                position: relative;
+                top: auto;
+            }
+            #screen-product.adora-pdp-screen.active .adora-pdp-scroll,
+            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll {
+                flex: 1 1 0;
+                min-height: 0;
+                overflow-x: hidden;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+            }
         }
         /* موبايل — معرض أوضح (قريب من نون) + مساحة فوق الشريط السفلي + أزرار كمية أسهل للمس */
         @media (max-width: 639px) {
@@ -4919,7 +4980,8 @@
     </div>
 
     <!-- ==================== COMPREHENSIVE MARKET (product) — نفس أسلوب صفحة منتج أدورا ==================== -->
-    <div id="screen-marketplace-product" class="screen bg-gray-100">
+    <div id="screen-marketplace-product" class="screen bg-gray-100 adora-pdp-screen">
+        <div class="adora-pdp-top">
         <div id="banner-slot-mp_product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="relative product-noon-gallery-host">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar relative w-full product-noon-gallery" id="marketplace-product-gallery">
@@ -4946,9 +5008,11 @@
             </div>
             <div id="marketplace-gallery-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
+        </div>
 
+        <div class="adora-pdp-scroll">
         <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-5 pb-36">
-            <h1 id="marketplace-detail-title" class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug tracking-tight line-clamp-5">—</h1>
+            <h1 id="marketplace-detail-title" class="adora-pdp-title line-clamp-4">—</h1>
             <div id="marketplace-detail-vendor" class="mt-2 min-h-[1.25rem] flex flex-wrap items-center gap-1 text-sm text-indigo-600/95">—</div>
             <p id="marketplace-detail-section" class="text-xs text-gray-500 mt-1 leading-snug">—</p>
 
@@ -5047,6 +5111,7 @@
                 <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
             </button>
         </div>
+        </div>
 
         <div class="sticky-bottom">
             <div class="product-detail-sticky-noon">
@@ -5072,7 +5137,8 @@
     </div>
 
     <!-- ==================== PRODUCT DETAILS PAGE ==================== -->
-    <div id="screen-product" class="screen bg-gray-100">
+    <div id="screen-product" class="screen bg-gray-100 adora-pdp-screen">
+        <div class="adora-pdp-top">
         <div id="banner-slot-product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="relative product-noon-gallery-host">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar relative w-full product-noon-gallery" id="product-gallery">
@@ -5101,9 +5167,11 @@
 
             <div id="product-detail-discount-badge" class="absolute bottom-10 start-3 z-[50] badge-sale text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md hidden">-0%</div>
         </div>
+        </div>
 
+        <div class="adora-pdp-scroll">
         <div class="relative z-[1] -mt-3 bg-white product-noon-sheet adora-pr-theme-0 adora-noon-detail-stack px-4 pt-5 pb-36">
-            <h1 id="product-detail-title" class="text-xl sm:text-2xl font-extrabold text-gray-900 leading-snug tracking-tight line-clamp-5">Premium Wool Blend Overcoat</h1>
+            <h1 id="product-detail-title" class="adora-pdp-title line-clamp-4">Premium Wool Blend Overcoat</h1>
             <p id="product-detail-meta" class="text-sm font-semibold text-indigo-600/95 mt-2 leading-snug hidden"></p>
 
             <div id="product-detail-rating-row" class="hidden mt-2 text-sm" aria-live="polite">
@@ -5212,6 +5280,7 @@
                 <i class="fas fa-paper-plane text-sm"></i>
                 <span data-en="Send review" data-ar="إرسال التقييم">إرسال التقييم</span>
             </button>
+        </div>
         </div>
 
         <div class="sticky-bottom">

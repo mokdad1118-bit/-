@@ -1429,6 +1429,13 @@
             } catch (_e) {}
             if (!opts.preserveScroll) {
                 window.scrollTo(0, 0);
+                if (screenId === 'screen-product' || screenId === 'screen-marketplace-product') {
+                    try {
+                        const pdp = document.getElementById(screenId);
+                        const scr = pdp && pdp.querySelector('.adora-pdp-scroll');
+                        if (scr) scr.scrollTop = 0;
+                    } catch (_ePdp) {}
+                }
             }
             setActiveNavForScreen(screenId);
             if (typeof onScreenEnter === 'function') {
@@ -10487,8 +10494,10 @@
                 destroyLbPanzoom();
                 const PanzoomCtor = typeof window !== 'undefined' ? window.Panzoom : null;
                 if (typeof PanzoomCtor !== 'function') return null;
+                const useCanvas =
+                    typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches;
                 const pz = PanzoomCtor(panzoomEl, {
-                    canvas: true,
+                    canvas: useCanvas,
                     contain: 'inside',
                     maxScale: 5,
                     minScale: 1,
@@ -10510,23 +10519,12 @@
             function resetContainAfterPaint(pz) {
                 if (!pz) return;
                 try {
-                    pz.reset({ animate: false });
                     requestAnimationFrame(() => {
                         try {
                             pz.reset({ animate: false });
                         } catch (_e) {}
-                        requestAnimationFrame(() => {
-                            try {
-                                pz.reset({ animate: false });
-                            } catch (_e2) {}
-                        });
                     });
-                    window.setTimeout(() => {
-                        try {
-                            pz.reset({ animate: false });
-                        } catch (_e3) {}
-                    }, 80);
-                } catch (_e) {}
+                } catch (_e2) {}
             }
 
             function updateLbCounter() {
@@ -10785,11 +10783,19 @@
                 const token = lbLoadToken;
                 const s = lbUrls[lbIndex];
 
-                try {
-                    const url = window.location.pathname + window.location.search + window.location.hash;
-                    history.pushState({ adora: 1, imageLightbox: true }, '', url);
-                    window.__adoraLightboxHistoryPushed = true;
-                } catch (_e) {
+                const lbUseHistory =
+                    typeof window.matchMedia === 'function' &&
+                    window.matchMedia('(min-width: 640px)').matches &&
+                    window.matchMedia('(pointer: fine)').matches;
+                if (lbUseHistory) {
+                    try {
+                        const url = window.location.pathname + window.location.search + window.location.hash;
+                        history.pushState({ adora: 1, imageLightbox: true }, '', url);
+                        window.__adoraLightboxHistoryPushed = true;
+                    } catch (_e) {
+                        window.__adoraLightboxHistoryPushed = false;
+                    }
+                } else {
                     window.__adoraLightboxHistoryPushed = false;
                 }
                 overlay.classList.remove('hidden');
@@ -10851,23 +10857,76 @@
                 return out;
             }
 
+            function openGalleryLightboxFromImg(host, im) {
+                if (!host || !im || !host.contains(im)) return;
+                const s = im.getAttribute('src');
+                if (!s || String(s).includes('adora-icon.svg')) return;
+                const urls = collectGallerySrcs(host);
+                const idx = urls.indexOf(String(s).trim());
+                if (urls.length > 1 && idx >= 0) {
+                    openAdoraImageLightbox(s, { urls, index: idx });
+                } else {
+                    openAdoraImageLightbox(s);
+                }
+            }
+
             ['product-gallery', 'marketplace-product-gallery'].forEach((id) => {
                 const host = document.getElementById(id);
                 if (!host) return;
-                host.addEventListener('click', (e) => {
-                    if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
-                    const im = e.target && e.target.closest && e.target.closest('img');
-                    if (!im || !host.contains(im)) return;
-                    const s = im.getAttribute('src');
-                    if (!s) return;
-                    const urls = collectGallerySrcs(host);
-                    const idx = urls.indexOf(s.trim());
-                    if (urls.length > 1 && idx >= 0) {
-                        openAdoraImageLightbox(s, { urls, index: idx });
-                    } else {
-                        openAdoraImageLightbox(s);
-                    }
-                });
+                let ignoreClickUntil = 0;
+                let touchStart = null;
+                host.addEventListener(
+                    'touchstart',
+                    (e) => {
+                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
+                        const im = e.target && e.target.closest && e.target.closest('img');
+                        if (!im || !host.contains(im) || !e.touches || e.touches.length !== 1) {
+                            touchStart = null;
+                            return;
+                        }
+                        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+                    },
+                    { passive: true }
+                );
+                host.addEventListener(
+                    'touchend',
+                    (e) => {
+                        if (!touchStart) return;
+                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) {
+                            touchStart = null;
+                            return;
+                        }
+                        const im = e.target && e.target.closest && e.target.closest('img');
+                        if (!im || !host.contains(im) || e.changedTouches.length !== 1) {
+                            touchStart = null;
+                            return;
+                        }
+                        const t = e.changedTouches[0];
+                        const dist = Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y);
+                        const dt = Date.now() - touchStart.t;
+                        touchStart = null;
+                        if (dist > 22 || dt > 500) return;
+                        e.preventDefault();
+                        ignoreClickUntil = Date.now() + 480;
+                        openGalleryLightboxFromImg(host, im);
+                    },
+                    { passive: false }
+                );
+                host.addEventListener(
+                    'click',
+                    (e) => {
+                        if (Date.now() < ignoreClickUntil) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                        if (e.target && e.target.closest && e.target.closest('.adora-gallery-top-actions')) return;
+                        const im = e.target && e.target.closest && e.target.closest('img');
+                        if (!im || !host.contains(im)) return;
+                        openGalleryLightboxFromImg(host, im);
+                    },
+                    true
+                );
             });
         }
 
