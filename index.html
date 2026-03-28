@@ -1841,6 +1841,8 @@
             overflow-y: hidden;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x;
             padding-bottom: 8px;
             scrollbar-width: thin;
             scrollbar-color: #a78bfa rgba(124, 58, 237, 0.12);
@@ -4694,7 +4696,7 @@
 
             <p id="marketplace-detail-stock" class="mt-4 text-sm font-semibold text-gray-700">—</p>
 
-            <div id="marketplace-dynamic-variant-root" class="hidden mt-6 space-y-6"></div>
+            <div id="marketplace-dynamic-variant-root" class="hidden mt-6 space-y-5"></div>
 
             <div id="marketplace-legacy-variant-sections" class="hidden mt-6 space-y-6">
                 <div>
