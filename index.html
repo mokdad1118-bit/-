@@ -5392,9 +5392,9 @@
         <button type="button" id="adora-image-lightbox-close" class="absolute top-3 left-3 rtl:left-auto rtl:right-3 z-[30] w-12 h-12 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur-md border border-white/35 shadow-lg shadow-black/40 hover:bg-black/70 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
             <i class="fas fa-times text-xl" aria-hidden="true"></i>
         </button>
-        <p id="adora-lightbox-hint" class="absolute top-14 left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none" data-en="Pinch or scroll to zoom · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · اسحب عند التكبير</p>
+        <p id="adora-lightbox-hint" class="absolute top-14 left-0 right-0 z-10 text-center text-[11px] text-white/70 px-4 pointer-events-none" data-en="Pinch or scroll to zoom · double-tap · drag when zoomed" data-ar="قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير">قرّب بإصبعين أو بالتمرير · نقرتان للتكبير · اسحب عند التكبير</p>
         <div id="adora-lightbox-viewport" class="flex-1 flex items-center justify-center overflow-hidden touch-none min-h-0 w-full pt-16 pb-24 px-2">
-            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center cursor-grab active:cursor-grabbing" style="transform: translate(0px, 0px) scale(1)">
+            <div id="adora-lightbox-panzoom" class="will-change-transform origin-center touch-manipulation">
                 <img id="adora-image-lightbox-img" src="" alt="" class="max-h-[min(78dvh,100%)] max-w-[min(96vw,100%)] w-auto h-auto object-contain rounded-lg shadow-2xl select-none pointer-events-none" draggable="false" />
             </div>
         </div>
@@ -5405,6 +5405,7 @@
         </div>
     </div>
 
+    <script src="/node_modules/@panzoom/panzoom/dist/panzoom.min.js"></script>
     <script src="/index-page.js"></script>
 </body>
 </html>
