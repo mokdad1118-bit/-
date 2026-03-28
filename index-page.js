@@ -2452,7 +2452,7 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<p class="text-center text-gray-500 py-6">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
+            body.innerHTML = `<div class="px-2 py-2">${adoraSkeletonModalRowsHtml(5)}</div>`;
             try {
                 let list = [];
                 let offlineBanner = '';
@@ -2570,6 +2570,76 @@
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#39;');
+        }
+
+        /** Skeleton لشبكة منتجات عمودين (قائمة، مفضلة، عروض، سوق) */
+        function adoraSkeletonProductGridHtml(cellCount) {
+            const n = Math.min(12, Math.max(6, Number(cellCount) || 8));
+            let html = '';
+            for (let i = 0; i < n; i++) {
+                html += `<div class="rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm animate-pulse" aria-hidden="true">
+                    <div class="aspect-[4/5] bg-gray-200/85 w-full"></div>
+                    <div class="p-2 space-y-2">
+                        <div class="h-2.5 bg-gray-200 rounded w-[92%]"></div>
+                        <div class="h-2.5 bg-gray-200 rounded w-[58%]"></div>
+                        <div class="h-4 bg-gray-200 rounded w-[44%] mt-1"></div>
+                    </div>
+                </div>`;
+            }
+            return html;
+        }
+
+        /** Skeleton لشريط منتجات أفقي (الرئيسية) */
+        function adoraSkeletonHomeStripHtml(cellCount) {
+            const n = Math.min(8, Math.max(4, Number(cellCount) || 6));
+            let html = '';
+            for (let i = 0; i < n; i++) {
+                html += `<div class="flex-shrink-0 w-[9.25rem] rounded-2xl overflow-hidden bg-white/60 border border-gray-100/80 animate-pulse" aria-hidden="true">
+                    <div class="h-[7.25rem] bg-gray-200/80 w-full"></div>
+                    <div class="p-2 space-y-1.5"><div class="h-2 bg-gray-200 rounded"></div><div class="h-2 bg-gray-200 rounded w-[55%]"></div></div>
+                </div>`;
+            }
+            return `<div class="flex gap-2 overflow-x-auto no-scrollbar py-2 px-1">${html}</div>`;
+        }
+
+        /** Skeleton لقوائم داخل النوافذ المنبثقة */
+        function adoraSkeletonModalRowsHtml(rows) {
+            const n = Math.min(8, Math.max(3, Number(rows) || 5));
+            let html = '';
+            for (let i = 0; i < n; i++) {
+                html += `<div class="h-12 bg-gray-200/80 rounded-xl animate-pulse mb-2" aria-hidden="true"></div>`;
+            }
+            return html;
+        }
+
+        /**
+         * إدراج أجزاء HTML على دفعات عبر requestAnimationFrame لتقليل تجميد الواجهة.
+         * @param {HTMLElement|null} container
+         * @param {string[]} fragments كل عنصر = HTML كامل لبطاقة/عنصر
+         */
+        function adoraInsertAdjacentHtmlChunked(container, fragments, chunkSize, onDone) {
+            if (!container) {
+                if (typeof onDone === 'function') onDone();
+                return;
+            }
+            const parts = Array.isArray(fragments) ? fragments.filter((x) => x != null && String(x).length) : [];
+            if (!parts.length) {
+                container.innerHTML = '';
+                if (typeof onDone === 'function') onDone();
+                return;
+            }
+            container.innerHTML = '';
+            const ch = Math.max(1, Math.min(20, Number(chunkSize) || 10));
+            let idx = 0;
+            function step() {
+                const end = Math.min(idx + ch, parts.length);
+                let batch = '';
+                for (; idx < end; idx++) batch += parts[idx];
+                container.insertAdjacentHTML('beforeend', batch);
+                if (idx < parts.length) requestAnimationFrame(step);
+                else if (typeof onDone === 'function') requestAnimationFrame(() => onDone());
+            }
+            requestAnimationFrame(step);
         }
 
         function formatOrderDate(dateStr) {
@@ -3376,7 +3446,7 @@
                 }</p>`;
                 return;
             }
-            grid.innerHTML = `<p class="col-span-2 text-center text-gray-400 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            grid.innerHTML = adoraSkeletonProductGridHtml(8);
             try {
                 const results = await Promise.all(
                     entries.map((e) =>
@@ -3402,7 +3472,7 @@
                     }</p>`;
                     return;
                 }
-                grid.innerHTML = parts.join('');
+                adoraInsertAdjacentHtmlChunked(grid, parts, 6);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             }
@@ -4227,7 +4297,7 @@
                 params.set('section_id', String(marketplaceBrowseSectionId));
             }
             params.set('sort', 'newest');
-            grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            grid.innerHTML = adoraSkeletonProductGridHtml(8);
             try {
                 const products = await apiFetch(`/api/marketplace/products?${params.toString()}`, { requireAuth: false });
                 const arr = Array.isArray(products) ? products : [];
@@ -4249,36 +4319,35 @@
                     return;
                 }
                 const loc = isRTL ? 'ar' : 'en';
-                grid.innerHTML = arr
-                    .map((p) => {
-                        const mid = Number(p.id);
-                        const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
-                        const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
-                        const vendorHtml = vendor ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(String(vendor).trim())}</p>` : '';
-                        const imgs = Array.isArray(p.images) ? p.images : [];
-                        const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
-                        const offer = Number(p.is_offer) === 1;
-                        const sponsored = Number(p.is_search_sponsored) === 1;
-                        let promoLeft = '';
-                        if (sponsored) {
-                            promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full z-[2]">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
-                        }
-                        const disc = Number(p.discount_percent || 0);
-                        const finalP = p.final_price != null ? Number(p.final_price) : Number(p.price || 0);
-                        const listP = Number(p.price || 0);
-                        const saleP = disc > 0 && disc < 100 ? finalP : listP;
-                        const featBadge =
-                            Number(p.is_mp_featured) === 1
-                                ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
-                                : '';
-                        const inWish = isWishlistEntry('mp', mid);
-                        const canCart = Number(p.stock || 0) > 0;
-                        const wishActive = inWish ? ' active' : '';
-                        const addDis = canCart ? '' : ' disabled';
-                        const offerTop = sponsored ? 'top-10' : 'top-2';
-                        const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
-                        const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                        return `<div class="adora-pcard active:scale-[0.99] transition-transform">
+                const mpPieces = arr.map((p) => {
+                    const mid = Number(p.id);
+                    const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+                    const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
+                    const vendorHtml = vendor ? `<p class="adora-pcard__vendor" dir="auto">${escapeHtml(String(vendor).trim())}</p>` : '';
+                    const imgs = Array.isArray(p.images) ? p.images : [];
+                    const img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
+                    const offer = Number(p.is_offer) === 1;
+                    const sponsored = Number(p.is_search_sponsored) === 1;
+                    let promoLeft = '';
+                    if (sponsored) {
+                        promoLeft = `<span class="absolute top-2 left-2 rtl:left-auto rtl:right-2 text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full z-[2]">${isRTL ? 'ممول' : 'Sponsored'}</span>`;
+                    }
+                    const disc = Number(p.discount_percent || 0);
+                    const finalP = p.final_price != null ? Number(p.final_price) : Number(p.price || 0);
+                    const listP = Number(p.price || 0);
+                    const saleP = disc > 0 && disc < 100 ? finalP : listP;
+                    const featBadge =
+                        Number(p.is_mp_featured) === 1
+                            ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                            : '';
+                    const inWish = isWishlistEntry('mp', mid);
+                    const canCart = Number(p.stock || 0) > 0;
+                    const wishActive = inWish ? ' active' : '';
+                    const addDis = canCart ? '' : ' disabled';
+                    const offerTop = sponsored ? 'top-10' : 'top-2';
+                    const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
+                    const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+                    return `<div class="adora-pcard adora-pcv active:scale-[0.99] transition-transform">
                             <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                             <div class="adora-pcard__top">
                             <div class="adora-pcard__media">
@@ -4300,8 +4369,8 @@
                             </div>
                             </div>
                         </div>`;
-                    })
-                    .join('');
+                });
+                adoraInsertAdjacentHtmlChunked(grid, mpPieces, 8);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-10 text-sm">${escapeHtml(e.message || (isRTL ? 'تعذر التحميل' : 'Failed to load'))}</p>`;
             }
@@ -5351,7 +5420,8 @@
                 }</p>`;
                 return;
             }
-            grid.innerHTML = products.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+            const pieces = products.map((p) => renderProductCardHtml(p, { compact: true }));
+            adoraInsertAdjacentHtmlChunked(grid, pieces, 10);
         }
 
         function resetFilters() {
@@ -6627,7 +6697,7 @@
             const startedWithTextSearch = !!(listingSearchQuery && String(listingSearchQuery).trim());
             const lsi = document.getElementById('listing-search-input');
             if (lsi && document.activeElement !== lsi) lsi.value = listingSearchQuery || '';
-            grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-8">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
+            grid.innerHTML = adoraSkeletonProductGridHtml(8);
             const titleEl = document.getElementById('listing-screen-title');
             try {
                 const params = new URLSearchParams();
@@ -7487,7 +7557,7 @@
             const addDis = canCart ? '' : ' disabled';
             const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
             const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-            return `<div class="adora-pcard product-card${stripMod}${cardExtra}">
+            return `<div class="adora-pcard adora-pcv product-card${stripMod}${cardExtra}">
                 <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                 <div class="adora-pcard__top">
                 <div class="adora-pcard__media">
@@ -7548,7 +7618,7 @@
             const addDis = canCart ? '' : ' disabled';
             const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
             const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-            return `<div class="adora-pcard adora-pcard--strip product-card home-compact-product-card">
+            return `<div class="adora-pcard adora-pcv adora-pcard--strip product-card home-compact-product-card">
                 <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                 <div class="adora-pcard__top">
                 <div class="adora-pcard__media">
@@ -7599,7 +7669,7 @@
         async function loadOffersPageProducts() {
             const grid = document.getElementById('offers-products-grid');
             if (!grid) return;
-            grid.innerHTML = `<p class="col-span-2 text-center text-gray-400 py-10 text-sm">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            grid.innerHTML = adoraSkeletonProductGridHtml(8);
             try {
                 const rows = await apiFetch('/api/offers', { requireAuth: false });
                 const list = Array.isArray(rows) ? rows.filter(offerRowIsActive) : [];
@@ -7607,23 +7677,22 @@
                     grid.innerHTML = `<p class="col-span-2 text-center text-gray-500 py-10 text-sm leading-relaxed px-2">${isRTL ? 'لا توجد عروض نشطة حالياً.' : 'No active offers right now.'}</p>`;
                     return;
                 }
-                grid.innerHTML = list
-                    .map((row) => {
-                        const offerDisc = Number(row.discount_percent || 0);
-                        const prodDisc = Number(row.discount || 0);
-                        const disc = offerDisc > 0 ? offerDisc : prodDisc;
-                        const cardProduct = {
-                            id: row.product_id,
-                            name_ar: row.name_ar,
-                            name_en: row.name_en,
-                            price: row.price,
-                            discount: disc,
-                            images: row.images,
-                            brand: row.brand,
-                        };
-                        return renderProductCardHtml(cardProduct, { compact: true });
-                    })
-                    .join('');
+                const offerPieces = list.map((row) => {
+                    const offerDisc = Number(row.discount_percent || 0);
+                    const prodDisc = Number(row.discount || 0);
+                    const disc = offerDisc > 0 ? offerDisc : prodDisc;
+                    const cardProduct = {
+                        id: row.product_id,
+                        name_ar: row.name_ar,
+                        name_en: row.name_en,
+                        price: row.price,
+                        discount: disc,
+                        images: row.images,
+                        brand: row.brand,
+                    };
+                    return renderProductCardHtml(cardProduct, { compact: true });
+                });
+                adoraInsertAdjacentHtmlChunked(grid, offerPieces, 10);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             }
@@ -9010,6 +9079,8 @@
         async function loadHomeFeaturedGrid() {
             const grid = document.getElementById('home-featured-grid');
             if (!grid) return;
+            grid.className = 'home-product-strip';
+            grid.innerHTML = adoraSkeletonHomeStripHtml(6);
             try {
                 await ensureMpAppHomePlacements();
                 const products = await apiFetch('/api/products?featured=1&adora_only=1', { requireAuth: false });
@@ -9033,6 +9104,8 @@
         async function loadHomeNewCollectionGrid() {
             const grid = document.getElementById('home-new-collection-grid');
             if (!grid) return;
+            grid.className = 'home-product-strip';
+            grid.innerHTML = adoraSkeletonHomeStripHtml(6);
             try {
                 await ensureMpAppHomePlacements();
                 const products = await apiFetch('/api/products?new_collection=1', { requireAuth: false });
@@ -9089,7 +9162,7 @@
                     const addClk = canCart ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${id},event)"` : `onclick="event.stopPropagation()"`;
                     const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
                     const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem]">
+                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0 w-[6.5rem]">
                         <div class="adora-pcard adora-pcard--mini product-card">
                         <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${id});}">
                         <div class="adora-pcard__top">
@@ -9128,7 +9201,7 @@
                     const addClk = canCart ? `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"` : `onclick="event.stopPropagation()"`;
                     const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
                     const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                    pieces.push(`<div class="home-bestseller-card flex-shrink-0 w-[6.5rem]">
+                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0 w-[6.5rem]">
                         <div class="adora-pcard adora-pcard--mini product-card">
                         <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                         <div class="adora-pcard__top">
@@ -9745,7 +9818,7 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            body.innerHTML = `<div class="py-2">${adoraSkeletonModalRowsHtml(5)}</div>`;
             try {
                 const rows = await apiFetch('/api/me/vendor-subscription-requests', { requireAuth: true });
                 renderVendorSubscriptionModalBody(body, rows);
@@ -9820,7 +9893,7 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<p class="text-sm text-gray-500 text-center py-6">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            body.innerHTML = `<div class="py-2">${adoraSkeletonModalRowsHtml(5)}</div>`;
             try {
                 const rows = await apiFetch('/api/me/app-ad-inquiries', { requireAuth: true });
                 renderAppAdInquiriesModalBody(body, rows);
@@ -10034,14 +10107,14 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<p class="text-center text-gray-500 py-8">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
+            body.innerHTML = `<div class="py-2 space-y-3">${adoraSkeletonModalRowsHtml(6)}</div>`;
             try {
                 const orders = await apiFetch('/api/orders', { requireAuth: true });
                 if (!Array.isArray(orders) || orders.length === 0) {
                     body.innerHTML = `<p class="text-center text-gray-500 py-8">${isRTL ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>`;
                     return;
                 }
-                body.innerHTML = orders.map((o) => {
+                const orderPieces = orders.map((o) => {
                     const dateLabel = formatOrderDate(o.created_at);
                     const statusLabel = getOrderStatusLabel(o.status);
                     return `<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -10061,7 +10134,8 @@
                             ${isRTL ? 'عرض المخطط الزمني' : 'Timeline details'}
                         </button>
                     </div>`;
-                }).join('');
+                });
+                adoraInsertAdjacentHtmlChunked(body, orderPieces, 4);
             } catch (e) {
                 body.innerHTML = `<p class="text-center text-red-600 py-8">${escapeHtml(e.message)}</p>`;
             }
@@ -10072,7 +10146,7 @@
             if (!box) return;
             if (box.classList.contains('hidden')) {
                 box.classList.remove('hidden');
-                box.innerHTML = `<p class="text-xs text-gray-500">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
+                box.innerHTML = `<div class="space-y-2 py-1">${adoraSkeletonModalRowsHtml(3)}</div>`;
                 try {
                     const t = await apiFetch(`/api/orders/${orderId}/tracking`, { requireAuth: true });
                     const hist = t.history || [];
@@ -10233,7 +10307,7 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<p class="text-gray-500">${isRTL ? 'جاري التحميل...' : 'Loading...'}</p>`;
+            body.innerHTML = `<div class="py-2">${adoraSkeletonModalRowsHtml(4)}</div>`;
             try {
                 const data = await apiFetch('/api/contact', { requireAuth: false });
                 const phones = data.phones || [];

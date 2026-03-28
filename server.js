@@ -2632,7 +2632,14 @@ app.use((req, res, next) => {
 });
 
 ensureLocalUploadsDir();
-app.use("/uploads", express.static(ADORA_LOCAL_UPLOADS_DIR));
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.set("Cache-Control", "public, max-age=86400");
+    next();
+  },
+  express.static(ADORA_LOCAL_UPLOADS_DIR)
+);
 
 /** عند فتح التطبيق من رابط Render مباشرة: لا تخزّن sw.js بقوة حتى يتحدّث الـ worker */
 app.get("/sw.js", (req, res) => {

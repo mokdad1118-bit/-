@@ -1,6 +1,20 @@
 /* PWA + Web Push: تثبيت التطبيق وإشعارات النظام عند وصول Push من السيرفر */
+const ADORA_IMAGE_CACHE = "adora-images-v2";
+
 self.addEventListener("install", (_e) => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((k) => k.startsWith("adora-images-") && k !== ADORA_IMAGE_CACHE)
+          .map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
+  );
+});
 
 self.addEventListener("push", (event) => {
   let data = { title: "Adora", body: "", url: "/", icon: "/icons/adora-icon.svg" };
@@ -52,10 +66,47 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-/* اعتراض طلبات نفس أصل الموقع فقط — لا نمرّر طلبات الـ API (نطاق آخر) عبر الـ SW لتفادي أخطاء fetch */
+function adoraIsCacheableImageRequest(url, request) {
+  if (request.method !== "GET") return false;
+  const path = url.pathname.toLowerCase();
+  const dest = request.destination;
+  const looksLikeImage =
+    dest === "image" ||
+    path.startsWith("/uploads/") ||
+    /\.(jpg|jpeg|png|webp|gif|svg|avif|ico)(\?|$)/.test(path);
+  if (!looksLikeImage) return false;
+  if (url.origin === self.location.origin) return true;
+  if (/\.cloudinary\.com$/i.test(url.hostname)) return true;
+  return false;
+}
+
+async function adoraCacheFirstImage(request) {
+  const cache = await caches.open(ADORA_IMAGE_CACHE);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  try {
+    const response = await fetch(request);
+    if (response.ok || response.type === "opaque") {
+      try {
+        await cache.put(request, response.clone());
+      } catch (_e) {
+        /* تجاهل إن كان الحجم أو السياسة تمنع التخزين */
+      }
+    }
+    return response;
+  } catch (_e) {
+    return hit || new Response("", { status: 504, statusText: "Offline" });
+  }
+}
+
+/* اعتراض طلبات نفس أصل الموقع؛ تخزين مؤقت للصور (نفس الأصل + Cloudinary) لتقليل الإنترنت وتسريع إعادة العرض */
 self.addEventListener("fetch", (event) => {
   try {
     const url = new URL(event.request.url);
+    if (adoraIsCacheableImageRequest(url, event.request)) {
+      event.respondWith(adoraCacheFirstImage(event.request));
+      return;
+    }
     if (url.origin === self.location.origin) {
       event.respondWith(fetch(event.request));
     }

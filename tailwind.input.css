@@ -19,3 +19,21 @@
         max-height: min(72vh, 640px);
     }
 }
+
+/* أداء التمرير العام — تقليل تسلسل التمرير للخلفية، بطاقات خارج الشاشة */
+@layer utilities {
+    #app-shell {
+        overscroll-behavior-y: contain;
+    }
+
+    .adora-pcv {
+        content-visibility: auto;
+        contain-intrinsic-size: 200px 280px;
+    }
+
+    .adora-pdp-scroll,
+    .adora-screen-listing-scroll {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+    }
+}
