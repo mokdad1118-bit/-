@@ -4535,7 +4535,7 @@
         function renderMarketplaceDynamicVariantOptions(p) {
             const root = document.getElementById('marketplace-dynamic-variant-root');
             if (!root) return;
-            const defs = productOptionDefinitions(p);
+            const defs = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
             if (!defs.length) {
                 root.innerHTML = '';
                 root.classList.add('hidden');
@@ -4555,15 +4555,15 @@
                             const lab = isRTL ? v.label_ar || v.label_en : v.label_en || v.label_ar;
                             return `<button type="button" role="radio" aria-checked="${on}" class="px-3 py-2 rounded-xl border-2 text-sm font-semibold transition ${
                                 on
-                                    ? 'border-purple-600 bg-purple-50 text-purple-800'
+                                    ? 'border-indigo-400 bg-indigo-50/95 text-indigo-900 shadow-sm'
                                     : dis
                                       ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                                      : 'border-gray-200 text-gray-800 hover:border-purple-300'
+                                      : 'border-gray-200/90 text-gray-800 hover:border-indigo-200 hover:bg-indigo-50/40'
                             }" data-mpdv-opt="${escapeHtml(d.id)}" data-mpdv-val="${escapeHtml(v.id)}" ${dis ? 'disabled' : ''}>${escapeHtml(lab)}</button>`;
                         })
                         .join('');
                     return `<div class="space-y-2">
-                        <h3 class="text-sm font-bold text-gray-900">${escapeHtml(title)}</h3>
+                        <h3 class="text-sm font-bold text-gray-800">${escapeHtml(title)}</h3>
                         <div class="flex flex-wrap gap-2">${chips}</div>
                     </div>`;
                 })
@@ -4574,7 +4574,7 @@
                     const oid = btn.getAttribute('data-mpdv-opt');
                     const vid = btn.getAttribute('data-mpdv-val');
                     marketplaceDetailVariantPick[oid] = vid;
-                    const defs2 = productOptionDefinitions(p);
+                    const defs2 = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
                     const idx = defs2.findIndex((x) => x.id === oid);
                     for (let j = idx + 1; j < defs2.length; j++) {
                         const nx = defs2[j];
@@ -7550,6 +7550,19 @@
             return Array.isArray(o) && o.length ? o : [];
         }
 
+        /** عرض المقاس/المقاسات قبل اللون في الواجهة (أدورا + السوق) */
+        function sortProductOptionDefinitionsForDisplay(defs) {
+            const arr = Array.isArray(defs) ? [...defs] : [];
+            const rank = (d) => {
+                const n = `${d && d.name_en ? d.name_en : ''} ${d && d.name_ar ? d.name_ar : ''}`.toLowerCase();
+                if (/size|مقاس|measure|length|width|طول|عرض|المقاس/i.test(n)) return 0;
+                if (/color|colour|لون|اللون/i.test(n)) return 2;
+                return 1;
+            };
+            arr.sort((a, b) => rank(a) - rank(b));
+            return arr;
+        }
+
         function productUsesDynamicOptions(p) {
             return productOptionDefinitions(p).length > 0;
         }
@@ -7597,7 +7610,7 @@
         }
 
         function defaultVariantPickDynamic(p) {
-            const defs = productOptionDefinitions(p);
+            const defs = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
             const pick = {};
             for (const d of defs) {
                 const avail = valuesAvailableForOptionDynamic(p, d.id, pick);
@@ -7615,7 +7628,7 @@
         }
 
         function formatVariantLabelFromPick(p, pick) {
-            const defs = productOptionDefinitions(p);
+            const defs = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
             const parts = [];
             for (const d of defs) {
                 const vid = pick[d.id];
@@ -7629,7 +7642,7 @@
         function renderProductDynamicOptions(p) {
             const root = document.getElementById('product-dynamic-variant-root');
             if (!root) return;
-            const defs = productOptionDefinitions(p);
+            const defs = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
             if (!defs.length) {
                 root.innerHTML = '';
                 return;
@@ -7647,15 +7660,15 @@
                             const lab = isRTL ? v.label_ar || v.label_en : v.label_en || v.label_ar;
                             return `<button type="button" role="radio" aria-checked="${on}" class="px-3 py-2 rounded-xl border-2 text-sm font-semibold transition ${
                                 on
-                                    ? 'border-purple-600 bg-purple-50 text-purple-800'
+                                    ? 'border-indigo-400 bg-indigo-50/95 text-indigo-900 shadow-sm'
                                     : dis
                                       ? 'border-gray-100 text-gray-300 cursor-not-allowed'
-                                      : 'border-gray-200 text-gray-800 hover:border-purple-300'
+                                      : 'border-gray-200/90 text-gray-800 hover:border-indigo-200 hover:bg-indigo-50/40'
                             }" data-pv-opt="${escapeHtml(d.id)}" data-pv-val="${escapeHtml(v.id)}" ${dis ? 'disabled' : ''}>${escapeHtml(lab)}</button>`;
                         })
                         .join('');
                     return `<div class="space-y-2">
-                        <h3 class="font-semibold text-gray-900">${escapeHtml(title)}</h3>
+                        <h3 class="text-sm font-bold text-gray-800">${escapeHtml(title)}</h3>
                         <div class="flex flex-wrap gap-2">${chips}</div>
                     </div>`;
                 })
@@ -7666,7 +7679,7 @@
                     const oid = btn.getAttribute('data-pv-opt');
                     const vid = btn.getAttribute('data-pv-val');
                     productDetailVariantPick[oid] = vid;
-                    const defs2 = productOptionDefinitions(p);
+                    const defs2 = sortProductOptionDefinitionsForDisplay(productOptionDefinitions(p));
                     let idx = defs2.findIndex((x) => x.id === oid);
                     for (let j = idx + 1; j < defs2.length; j++) {
                         const nx = defs2[j];
@@ -7904,7 +7917,17 @@
             row.classList.remove('hidden');
             starsEl.innerHTML = renderProductInlineStarsFromAvg(avg);
             scoreEl.textContent = avg != null && !Number.isNaN(avg) ? avg.toFixed(1) : '—';
-            countBtn.textContent = isRTL ? `(${cnt} تقييم)` : `(${cnt} ${cnt === 1 ? 'rating' : 'ratings'})`;
+            countBtn.textContent = isRTL
+                ? cnt === 0
+                    ? ''
+                    : cnt === 1
+                      ? '(تقييم واحد)'
+                      : `(${cnt} تقييمات)`
+                : cnt === 0
+                  ? ''
+                  : cnt === 1
+                    ? '(1 rating)'
+                    : `(${cnt} ratings)`;
         }
 
         function updateMarketplaceDetailInlineRating(data) {
@@ -7922,7 +7945,17 @@
             row.classList.remove('hidden');
             starsEl.innerHTML = renderProductInlineStarsFromAvg(avg);
             scoreEl.textContent = avg != null && !Number.isNaN(avg) ? avg.toFixed(1) : '—';
-            countBtn.textContent = isRTL ? `(${cnt} تقييم)` : `(${cnt} ${cnt === 1 ? 'rating' : 'ratings'})`;
+            countBtn.textContent = isRTL
+                ? cnt === 0
+                    ? ''
+                    : cnt === 1
+                      ? '(تقييم واحد)'
+                      : `(${cnt} تقييمات)`
+                : cnt === 0
+                  ? ''
+                  : cnt === 1
+                    ? '(1 rating)'
+                    : `(${cnt} ratings)`;
         }
 
         const adoraHorizontalGalleryDotsBound = new Set();
