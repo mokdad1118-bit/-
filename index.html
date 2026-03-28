@@ -2132,25 +2132,7 @@
                 max-height: calc(100dvh - var(--adora-header-offset));
             }
         }
-        #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
-        #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            z-index: 0;
-            width: 100%;
-        }
-        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
-        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
-            margin-top: -2.75rem;
-            z-index: 2;
-            box-shadow: 0 -14px 48px rgba(15, 23, 42, 0.1);
-        }
-        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > #product-review-panel,
-        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > #marketplace-review-panel {
-            position: relative;
-            z-index: 2;
-        }
+        /* تمرير PDP: الصورة تبقى لاصقة أعلى منطقة التمرير والورقة البيضاء تمرّ فوقها */
         #screen-product.adora-pdp-screen.active .adora-pdp-scroll,
         #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll {
             flex: 1 1 0;
@@ -2160,6 +2142,35 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
             touch-action: pan-x pan-y pinch-zoom;
+            isolation: isolate;
+        }
+        #screen-product.adora-pdp-screen.active .adora-pdp-top,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-top {
+            position: relative;
+            z-index: 0;
+        }
+        #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
+        #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 0;
+            width: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
+            margin-top: -2.75rem;
+            position: relative;
+            z-index: 4;
+            background-color: #ffffff;
+            box-shadow: 0 -20px 52px rgba(15, 23, 42, 0.14);
+        }
+        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > #product-review-panel,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > #marketplace-review-panel {
+            position: relative;
+            z-index: 4;
         }
         #product-gallery.product-noon-gallery,
         #marketplace-product-gallery.product-noon-gallery {
@@ -2222,6 +2233,7 @@
             #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
             #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
                 margin-top: -0.75rem;
+                z-index: 4;
                 box-shadow: 0 -12px 44px rgba(79, 70, 229, 0.07);
             }
         }
