@@ -570,6 +570,11 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* شرائط أفقية: السماح بالتمرير العمودي للصفحة عند بدء السحب فوق البطاقات/الشرائح (لا يُلغي النقر) */
+        #app-shell .overflow-x-auto.no-scrollbar {
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+
         /* تمرير أفقي — شريط واضح وحديث (WebKit + Firefox) */
         .adora-scroll-strip {
             overflow-x: auto;
@@ -578,6 +583,7 @@
             scroll-behavior: smooth;
             scroll-snap-type: x proximity;
             overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y pinch-zoom;
             scrollbar-width: thin;
             scrollbar-color: rgba(124, 58, 237, 0.55) rgba(15, 23, 42, 0.06);
             margin-inline: -0.25rem;
@@ -706,6 +712,8 @@
             box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.04);
             overflow: hidden;
             transition: box-shadow 0.25s ease, transform 0.2s ease;
+            /* السماح بتمرير الصفحة عمودياً عند بدء السحب فوق البطاقة (لا يمنع النقر/الأزرار) */
+            touch-action: pan-x pan-y pinch-zoom;
         }
         .adora-pcard:hover {
             box-shadow: 0 10px 32px rgba(124, 58, 237, 0.1), 0 2px 8px rgba(15, 23, 42, 0.06);
@@ -743,7 +751,7 @@
             object-position: center;
             display: block;
             transition: transform 0.45s ease;
-            touch-action: manipulation;
+            touch-action: pan-x pan-y pinch-zoom;
             -webkit-user-drag: none;
         }
         .adora-pcard--strip .adora-pcard__media {
@@ -1846,7 +1854,7 @@
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-x: contain;
-            touch-action: pan-x;
+            touch-action: pan-x pan-y pinch-zoom;
             padding-bottom: 8px;
             scrollbar-width: thin;
             scrollbar-color: #a78bfa rgba(124, 58, 237, 0.12);
@@ -1897,6 +1905,7 @@
             font: inherit;
             color: inherit;
             text-align: inherit;
+            touch-action: pan-x pan-y pinch-zoom;
         }
 
         #marketplace-vendors-strip-wrap .mp-vendor-chip:active {
@@ -2031,11 +2040,12 @@
             -webkit-overflow-scrolling: touch;
             scroll-snap-type: x mandatory;
             overscroll-behavior-x: contain;
-            touch-action: pan-x;
+            touch-action: pan-x pan-y pinch-zoom;
             scroll-behavior: smooth;
         }
-        #product-gallery .adora-gallery-top-actions--noon,
-        #marketplace-product-gallery .adora-gallery-top-actions--noon {
+        /* أزرار فوق المعرض — خارج مسار التمرير الأفقي لتبقى ثابتة عند تبديل الصور */
+        #screen-product .product-noon-gallery-host > .adora-gallery-top-actions--noon,
+        #screen-marketplace-product .product-noon-gallery-host > .adora-gallery-top-actions--noon {
             direction: rtl;
         }
         @media (prefers-reduced-motion: reduce) {
@@ -2059,7 +2069,7 @@
             height: auto;
             object-fit: contain;
             object-position: center;
-            touch-action: manipulation;
+            touch-action: pan-x pan-y pinch-zoom;
             -webkit-user-select: none;
             user-select: none;
         }
@@ -2187,26 +2197,26 @@
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
         }
         .adora-gallery-top-actions--noon .adora-noon-fab {
-            width: 2.625rem;
-            height: 2.625rem;
+            width: 2.5rem;
+            height: 2.5rem;
             border-radius: 9999px;
-            background: rgba(255, 255, 255, 0.93);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(99, 102, 241, 0.14);
-            box-shadow: 0 4px 18px rgba(79, 70, 229, 0.1);
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(14px) saturate(1.2);
+            -webkit-backdrop-filter: blur(14px) saturate(1.2);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65);
             color: #4338ca;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
         .adora-gallery-top-actions--noon .adora-noon-fab:active {
             transform: scale(0.94);
         }
         .adora-gallery-top-actions--noon .adora-noon-fab:hover {
-            background: rgba(255, 255, 255, 0.98);
-            box-shadow: 0 6px 22px rgba(79, 70, 229, 0.14);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12);
         }
 
         .adora-noon-desc-block .adora-noon-desc-label {
@@ -2489,6 +2499,7 @@
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y pinch-zoom;
             scrollbar-width: thin;
             scrollbar-color: rgba(124, 58, 237, 0.5) rgba(15, 23, 42, 0.07);
         }
@@ -3317,6 +3328,10 @@
             display: flex;
             gap: 16px;
             overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y pinch-zoom;
             padding-bottom: 8px;
             scroll-snap-type: x mandatory;
         }
@@ -5003,22 +5018,22 @@
         <div id="banner-slot-mp_product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="relative product-noon-gallery-host">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar relative w-full product-noon-gallery adora-pdp-gallery-scroll" id="marketplace-product-gallery">
-                <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-[60] pointer-events-none">
-                    <div class="flex gap-2 pointer-events-auto">
-                        <button type="button" id="marketplace-share-product-btn" onclick="openProductShareModal()" class="adora-noon-fab" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
-                            <i class="fas fa-share-alt text-sm"></i>
-                        </button>
-                        <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="adora-noon-fab wishlist-btn" aria-label="Wishlist">
-                            <i class="fas fa-heart text-sm"></i>
-                        </button>
-                    </div>
-                    <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="adora-noon-fab pointer-events-auto" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
-                        <i class="fas fa-download text-sm"></i>
-                    </button>
-                </div>
                 <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
                     <img id="marketplace-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
+            </div>
+            <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute inset-x-0 top-0 z-[60] flex justify-between items-start pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-1 pointer-events-none">
+                <div class="flex gap-2 pointer-events-auto">
+                    <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="adora-noon-fab wishlist-btn" data-en-aria="Wishlist" data-ar-aria="المفضلة" aria-label="Wishlist">
+                        <i class="fas fa-heart text-sm"></i>
+                    </button>
+                    <button type="button" id="marketplace-share-product-btn" onclick="openProductShareModal()" class="adora-noon-fab" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
+                        <i class="fas fa-share-alt text-sm"></i>
+                    </button>
+                </div>
+                <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="adora-noon-fab pointer-events-auto" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                    <i class="fas fa-download text-sm"></i>
+                </button>
             </div>
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
                 <div class="flex justify-center gap-1.5 hidden pointer-events-auto" id="marketplace-gallery-dots" role="tablist" aria-label="Product images"></div>
@@ -5174,22 +5189,22 @@
         <div id="banner-slot-product_top" class="px-4 pt-2 space-y-1"></div>
         <div class="relative product-noon-gallery-host">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar relative w-full product-noon-gallery adora-pdp-gallery-scroll" id="product-gallery">
-                <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-[60] pointer-events-none">
-                    <div class="flex gap-2 pointer-events-auto">
-                        <button type="button" onclick="openProductShareModal()" class="adora-noon-fab" aria-label="Share">
-                            <i class="fas fa-share-alt text-sm"></i>
-                        </button>
-                        <button type="button" id="product-wishlist-btn" onclick="toggleWishlist(this)" class="adora-noon-fab wishlist-btn" aria-label="Wishlist">
-                            <i class="fas fa-heart text-sm"></i>
-                        </button>
-                    </div>
-                    <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="adora-noon-fab pointer-events-auto" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
-                        <i class="fas fa-download text-sm"></i>
-                    </button>
-                </div>
                 <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
                     <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
+            </div>
+            <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute inset-x-0 top-0 z-[60] flex justify-between items-start pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-1 pointer-events-none">
+                <div class="flex gap-2 pointer-events-auto">
+                    <button type="button" id="product-wishlist-btn" onclick="toggleWishlist(this)" class="adora-noon-fab wishlist-btn" data-en-aria="Wishlist" data-ar-aria="المفضلة" aria-label="Wishlist">
+                        <i class="fas fa-heart text-sm"></i>
+                    </button>
+                    <button type="button" onclick="openProductShareModal()" class="adora-noon-fab" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
+                        <i class="fas fa-share-alt text-sm"></i>
+                    </button>
+                </div>
+                <button type="button" id="product-save-img-btn" onclick="adoraSaveCurrentProductImage()" class="adora-noon-fab pointer-events-auto" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
+                    <i class="fas fa-download text-sm"></i>
+                </button>
             </div>
 
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
@@ -6223,7 +6238,7 @@
         </div>
     </div>
 
-    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-neutral-950 transition-opacity duration-200 ease-out" role="dialog" aria-modal="true" aria-hidden="true" aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة" style="will-change: transform, opacity;">
+    <div id="adora-image-lightbox" class="fixed inset-0 z-[20050] hidden flex flex-col bg-neutral-950 transition-opacity duration-200 ease-out" role="dialog" aria-modal="true" aria-hidden="true" inert aria-label="" data-en-aria="Image preview" data-ar-aria="معاينة الصورة" style="will-change: transform, opacity;">
         <div class="absolute top-0 left-0 right-0 z-[35] flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black via-black/90 to-transparent pointer-events-none rtl:flex-row-reverse">
             <button type="button" id="adora-image-lightbox-close" class="pointer-events-auto w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center backdrop-blur-md border-2 border-white/50 shadow-lg hover:bg-white/30 active:scale-95 transition" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
                 <i class="fas fa-times text-2xl" aria-hidden="true"></i>

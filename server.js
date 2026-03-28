@@ -2675,6 +2675,10 @@ initDb()
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: socketIoCors(),
+    /* أطول عند إيقاظ Render البارد أو شبكات بطيئة — يقلّل إغلاق الـ handshake مبكراً */
+    connectTimeout: 90000,
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
   io.use((socket, next) => {

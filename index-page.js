@@ -1072,14 +1072,12 @@
             }, intervalMs);
         }
 
-        /** يستبدل شرائح المعرض مع الإبقاء على شريط الأزرار العلوي داخل نفس الحاوية */
+        /** يستبدل شرائح المعرض فقط؛ أزرار المفضلة/المشاركة/الحفظ ثابتة خارج مسار التمرير (.product-noon-gallery-host) */
         function adoraReplaceGallerySlidesKeepingToolbar(gal, slidesHtml, autoScrollIntervalMs) {
             if (!gal) return;
             const gid = gal.id;
             if (gid) stopGalleryAutoScroll(gid);
-            const tb = gal.querySelector('.adora-gallery-top-actions');
             gal.innerHTML = slidesHtml;
-            if (tb) gal.insertBefore(tb, gal.firstChild);
             requestAnimationFrame(() => {
                 try {
                     gal.scrollLeft = 0;
@@ -2208,7 +2206,18 @@
             if (!token) return;
             if (appSocket && appSocket.connected) return;
             disconnectAppSocket();
-            appSocket = io(getApiOrigin(), { auth: { token }, transports: ['websocket', 'polling'] });
+            /* polling أولاً يقلّل أخطاء «WebSocket closed before established» على الوكلاء وبارد تشغيل Render، ثم ترقية لـ websocket */
+            appSocket = io(getApiOrigin(), {
+                auth: { token },
+                transports: ['polling', 'websocket'],
+                upgrade: true,
+                rememberUpgrade: true,
+                timeout: 60000,
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1500,
+                reconnectionDelayMax: 30000,
+            });
             appSocket.on('notification:new', (payload) => {
                 syncAppBroadcastBadge().catch(() => {});
                 if (payload && payload.message) {
@@ -9948,6 +9957,10 @@
                 const overlay = document.getElementById('adora-image-lightbox');
                 if (!overlay || overlay.classList.contains('hidden')) return;
                 try {
+                    const ae = document.activeElement;
+                    if (ae && overlay.contains(ae)) ae.blur();
+                } catch (_eBlur) {}
+                try {
                     window.__adoraLightboxPanzoom?.destroy?.();
                 } catch (_e) {}
                 window.__adoraLightboxPanzoom = null;
@@ -9958,6 +9971,9 @@
                 document.getElementById('adora-lightbox-counter')?.classList.add('hidden');
                 overlay.classList.add('hidden');
                 overlay.setAttribute('aria-hidden', 'true');
+                try {
+                    overlay.setAttribute('inert', '');
+                } catch (_eInert) {}
                 try {
                     overlay.style.transform = '';
                     overlay.style.opacity = '';
@@ -11103,8 +11119,9 @@
                 } else {
                     window.__adoraLightboxHistoryPushed = false;
                 }
+                overlay.removeAttribute('inert');
                 overlay.classList.remove('hidden');
-                overlay.removeAttribute('aria-hidden');
+                overlay.setAttribute('aria-hidden', 'false');
                 document.body.style.overflow = 'hidden';
 
                 destroyLbPanzoom();

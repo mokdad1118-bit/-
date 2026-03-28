@@ -7,7 +7,8 @@
     .adora-pdp-gallery-scroll {
         overscroll-behavior-x: contain;
         -webkit-overflow-scrolling: touch;
-        touch-action: pan-x pinch-zoom;
+        /* pan-y يسمح بتمرير الصفحة/العمود عند بدء السحب فوق المعرض؛ pan-x يبقى لسلايد الصور */
+        touch-action: pan-x pan-y pinch-zoom;
     }
 
     .adora-pdp-gallery-slide {
