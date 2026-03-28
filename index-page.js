@@ -1425,8 +1425,10 @@
                 console.warn('[navigateTo] Missing screen:', screenId);
                 return;
             }
-            target.style.display = 'block';
-            setTimeout(() => target.classList.add('active'), 10);
+            /* مهم: لا تستخدم display:block مضمّناً — يتفوق على CSS ويلغي display:flex لصفحات المنتج
+               فيتعطل تقييد ارتفاع .adora-pdp-scroll ويختفي التمرير العمودي بالكامل */
+            target.style.removeProperty('display');
+            target.classList.add('active');
 
             currentScreen = screenId;
             try {
