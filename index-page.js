@@ -1080,7 +1080,9 @@
             const tb = gal.querySelector('.adora-gallery-top-actions');
             gal.innerHTML = slidesHtml;
             if (tb) gal.insertBefore(tb, gal.firstChild);
-            if (gid && autoScrollIntervalMs) startGalleryAutoScroll(gid, autoScrollIntervalMs);
+            if (gid && autoScrollIntervalMs && Number(autoScrollIntervalMs) > 0) {
+                startGalleryAutoScroll(gid, autoScrollIntervalMs);
+            }
         }
         const searchHistoryKey = 'adora_search_history';
         let searchHistory = [];
@@ -2676,10 +2678,6 @@
                 syncPartnerCtaDom();
                 syncAppAdCtaDom();
             }
-            if (screenId === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
-                renderMarketplaceProductDetailUi();
-                loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
-            }
             if (screenId === 'screen-order-tracking') {
                 if (latestOrderDbId) {
                     apiFetch(`/api/orders/${latestOrderDbId}/tracking`, { requireAuth: true })
@@ -2863,12 +2861,10 @@
             }
             if (sid === 'screen-marketplace-product' && currentMarketplaceProductDetail && currentMarketplaceProductDetail.id) {
                 await openMarketplaceProductDetail(Number(currentMarketplaceProductDetail.id), { skipNavigate: true });
-                await loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
                 return;
             }
             if (sid === 'screen-product' && currentProductDetail && currentProductDetail.id) {
                 await openProductDetail(Number(currentProductDetail.id), { skipNavigate: true });
-                await loadProductReviewsForDetail(currentProductDetail.id).catch(() => {});
                 return;
             }
             if (sid === 'screen-order-tracking' && latestOrderDbId) {
@@ -3147,10 +3143,36 @@
             }
             if (currentScreen === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
                 renderMarketplaceProductDetailUi();
-                loadMarketplaceProductReviewsForDetail(currentMarketplaceProductDetail.id).catch(() => {});
+                const mpId = currentMarketplaceProductDetail.id;
+                const runMpRev = () => {
+                    if (
+                        currentScreen !== 'screen-marketplace-product' ||
+                        !currentMarketplaceProductDetail ||
+                        Number(currentMarketplaceProductDetail.id) !== Number(mpId)
+                    ) {
+                        return;
+                    }
+                    loadMarketplaceProductReviewsForDetail(mpId).catch(() => {});
+                };
+                if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(runMpRev, { timeout: 1200 });
+                } else {
+                    setTimeout(runMpRev, 0);
+                }
             }
             if (currentScreen === 'screen-product' && currentProductDetail && currentProductDetail.id) {
-                loadProductReviewsForDetail(currentProductDetail.id).catch(() => {});
+                const pid = currentProductDetail.id;
+                const runCatRev = () => {
+                    if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(pid)) {
+                        return;
+                    }
+                    loadProductReviewsForDetail(pid).catch(() => {});
+                };
+                if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(runCatRev, { timeout: 1200 });
+                } else {
+                    setTimeout(runCatRev, 0);
+                }
             }
             updateProfileWishlistUi();
         }
@@ -4400,18 +4422,37 @@
 
         async function openMarketplaceProductDetail(id, opts = {}) {
             const skipNavigate = opts.skipNavigate === true;
+            const loadGen = ++adoraMpPdpLoadGen;
+            if (!skipNavigate) {
+                navigateTo('screen-marketplace-product');
+            }
+            setMpPdpBusy(true);
             try {
                 const p = await apiFetch(`/api/marketplace/products/${Number(id)}`, { requireAuth: false });
+                if (loadGen !== adoraMpPdpLoadGen) return;
                 currentMarketplaceProductDetail = p;
                 marketplaceDetailQty = 1;
                 renderMarketplaceProductDetailUi();
-                if (!skipNavigate) {
-                    navigateTo('screen-marketplace-product');
-                } else {
+                setMpPdpBusy(false, loadGen);
+                if (skipNavigate) {
                     persistAdoraSessionState();
                 }
+                scheduleMpPdpReviews(loadGen, p.id);
             } catch (_e) {
+                if (loadGen !== adoraMpPdpLoadGen) return;
+                setMpPdpBusy(false, loadGen);
                 showToast(isRTL ? 'تعذر فتح المنتج' : 'Could not open product');
+                if (!skipNavigate) {
+                    const popped = adoraPopIfTopIs('screen-marketplace-product');
+                    if (popped) {
+                        adoraAfterPopNavigate(popped.prev, popped.leaving);
+                    } else {
+                        navigateTo('screen-marketplace', { skipHistory: true });
+                        adoraNavStack = ['screen-categories', 'screen-marketplace'];
+                        adoraSyncHistoryToScreen('screen-marketplace');
+                        persistAdoraSessionState();
+                    }
+                }
             }
         }
 
@@ -4497,13 +4538,7 @@
                 if (gal) {
                     const imgs =
                         Array.isArray(p.images) && p.images.length ? p.images.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
-                    const slides = imgs
-                        .map(
-                            (src) =>
-                                `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="w-full max-w-full h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
-                        )
-                        .join('');
-                    adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
+                    adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(imgs), 0);
                     syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
                 }
                 const stockN = legacyMarketplaceStockForPick(
@@ -4568,13 +4603,7 @@
             const extraAbs = extraRaw ? absoluteMediaUrl(extraRaw) : '';
             const merged = extraAbs && !baseImgs.includes(extraAbs) ? [extraAbs, ...baseImgs] : baseImgs;
             if (gal) {
-                const slides = merged
-                    .map(
-                        (src) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="w-full max-w-full h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
-                    )
-                    .join('');
-                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(merged), 0);
                 syncHorizontalGalleryDots('marketplace-product-gallery', 'marketplace-gallery-dots', 'marketplace-gallery-fraction');
             }
             renderMarketplaceDynamicVariantOptions(p);
@@ -4671,6 +4700,7 @@
         }
 
         async function loadMarketplaceProductReviewsForDetail(marketplaceProductId) {
+            const mpId = Number(marketplaceProductId);
             setMarketplaceReviewStarCount(0);
             marketplaceReviewSelected = 0;
             const ta = document.getElementById('marketplace-review-comment');
@@ -4684,7 +4714,14 @@
             }
             resetMarketplaceRatingSummaryCardLoading();
             try {
-                const data = await apiFetch(`/api/marketplace/products/${Number(marketplaceProductId)}/reviews`, { requireAuth: false });
+                const data = await apiFetch(`/api/marketplace/products/${mpId}/reviews`, { requireAuth: false });
+                if (
+                    currentScreen !== 'screen-marketplace-product' ||
+                    !currentMarketplaceProductDetail ||
+                    Number(currentMarketplaceProductDetail.id) !== mpId
+                ) {
+                    return;
+                }
                 const count = Number(data.count || 0);
                 updateMarketplaceRatingSummaryCard(data);
                 updateMarketplaceDetailInlineRating(data);
@@ -5634,6 +5671,92 @@
             return adoraPlaceholderImageUrl();
         }
 
+        /** ضغط عرض لروابط Cloudinary في معرض المنتج (أخف على الشبكة والذاكرة) */
+        function pdpCloudinaryOptimizeUrl(url, maxW) {
+            const s = String(url || '').trim();
+            if (!s) return s;
+            if (!/^https?:\/\//i.test(s)) return s;
+            if (!/res\.cloudinary\.com\/.+\/image\/upload\//i.test(s)) return s;
+            if (/\/image\/upload\/c_/i.test(s)) return s;
+            const w = Math.min(1600, Math.max(320, Number(maxW) || 800));
+            return s.replace(/\/image\/upload\//i, `/image/upload/c_limit,w_${w},q_auto,f_auto/`);
+        }
+
+        function adoraBuildPdpGallerySlidesHtml(imageUrls) {
+            const raw = Array.isArray(imageUrls) && imageUrls.length ? imageUrls : [];
+            const urls = raw.length ? raw.map((u) => absoluteMediaUrl(u)) : [adoraPlaceholderImageUrl()];
+            return urls
+                .map((src, i) => {
+                    const opt = pdpCloudinaryOptimizeUrl(src, i === 0 ? 960 : 720);
+                    const esc = escapeHtml(opt);
+                    const lazy = i === 0 ? 'eager' : 'lazy';
+                    const fp = i === 0 ? ' fetchpriority="high"' : '';
+                    return `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${esc}" class="w-full max-w-full h-auto object-contain" alt="" loading="${lazy}" decoding="async"${fp} referrerpolicy="no-referrer" draggable="false"></div>`;
+                })
+                .join('');
+        }
+
+        let adoraCatalogPdpLoadGen = 0;
+        let adoraMpPdpLoadGen = 0;
+
+        function setCatalogPdpBusy(show, forGen) {
+            const el = document.getElementById('catalog-pdp-loading');
+            const screen = document.getElementById('screen-product');
+            if (!el || !screen) return;
+            if (!show && forGen != null && forGen !== adoraCatalogPdpLoadGen) return;
+            el.classList.toggle('hidden', !show);
+            el.setAttribute('aria-hidden', show ? 'false' : 'true');
+            try {
+                screen.setAttribute('aria-busy', show ? 'true' : 'false');
+            } catch (_e) {}
+        }
+
+        function setMpPdpBusy(show, forGen) {
+            const el = document.getElementById('mp-pdp-loading');
+            const screen = document.getElementById('screen-marketplace-product');
+            if (!el || !screen) return;
+            if (!show && forGen != null && forGen !== adoraMpPdpLoadGen) return;
+            el.classList.toggle('hidden', !show);
+            el.setAttribute('aria-hidden', show ? 'false' : 'true');
+            try {
+                screen.setAttribute('aria-busy', show ? 'true' : 'false');
+            } catch (_e) {}
+        }
+
+        function scheduleCatalogPdpSecondaryContent(loadGen, productId) {
+            const runReviews = () => {
+                if (loadGen !== adoraCatalogPdpLoadGen) return;
+                if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) return;
+                loadProductReviewsForDetail(productId).catch(() => {});
+            };
+            const runRelated = () => {
+                if (loadGen !== adoraCatalogPdpLoadGen) return;
+                if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) return;
+                loadProductRelatedForDetail(productId).catch(() => {});
+            };
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => runReviews(), { timeout: 1800 });
+                requestIdleCallback(() => setTimeout(runRelated, 80), { timeout: 2400 });
+            } else {
+                setTimeout(runReviews, 16);
+                setTimeout(runRelated, 120);
+            }
+        }
+
+        function scheduleMpPdpReviews(loadGen, mpId) {
+            const run = () => {
+                if (loadGen !== adoraMpPdpLoadGen) return;
+                if (currentScreen !== 'screen-marketplace-product' || !currentMarketplaceProductDetail) return;
+                if (Number(currentMarketplaceProductDetail.id) !== Number(mpId)) return;
+                loadMarketplaceProductReviewsForDetail(mpId).catch(() => {});
+            };
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => run(), { timeout: 1800 });
+            } else {
+                setTimeout(run, 16);
+            }
+        }
+
         const DEFAULT_HOME_SECTIONS_VISIBILITY = {
             banners: true,
             comprehensive_market: true,
@@ -6431,6 +6554,9 @@
             section.classList.add('hidden');
             try {
                 const rows = await apiFetch(`/api/products/${productId}/related?limit=12`, { requireAuth: false });
+                if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) {
+                    return;
+                }
                 const list = Array.isArray(rows) ? rows : [];
                 if (!list.length) return;
                 section.classList.remove('hidden');
@@ -7455,17 +7581,35 @@
             if (!skipNavigate) {
                 productDetailBackScreen = currentScreen || 'screen-listing';
             }
+            const loadGen = ++adoraCatalogPdpLoadGen;
+            if (!skipNavigate) {
+                navigateTo('screen-product');
+            }
+            setCatalogPdpBusy(true);
             try {
                 const p = await apiFetch(`/api/products/${id}`, { requireAuth: false });
+                if (loadGen !== adoraCatalogPdpLoadGen) return;
                 currentProductDetail = p;
                 fillProductDetailScreen(p);
-                if (!skipNavigate) {
-                    navigateTo('screen-product');
-                } else {
+                setCatalogPdpBusy(false, loadGen);
+                if (skipNavigate) {
                     persistAdoraSessionState();
                 }
+                scheduleCatalogPdpSecondaryContent(loadGen, p.id);
             } catch (e) {
+                if (loadGen !== adoraCatalogPdpLoadGen) return;
+                setCatalogPdpBusy(false, loadGen);
                 showToast(isRTL ? 'تعذر تحميل المنتج' : 'Failed to load product');
+                if (!skipNavigate) {
+                    const popped = adoraPopIfTopIs('screen-product');
+                    if (popped) {
+                        adoraAfterPopNavigate(popped.prev, popped.leaving);
+                    } else {
+                        navigateTo(productDetailBackScreen || 'screen-listing', { skipHistory: true });
+                        adoraSyncHistoryToScreen(productDetailBackScreen || 'screen-listing');
+                        persistAdoraSessionState();
+                    }
+                }
             }
         }
 
@@ -7524,13 +7668,7 @@
             const gal = document.getElementById('product-gallery');
             if (gal) {
                 const imgs = p.images && p.images.length ? p.images : [adoraPlaceholderImageUrl()];
-                const slides = imgs
-                    .map(
-                        (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="w-full max-w-full h-auto object-contain" alt="" draggable="false"></div>`
-                    )
-                    .join('');
-                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(imgs), 0);
                 syncProductGalleryDotsFromGallery();
             }
             const tEl = document.getElementById('product-detail-title');
@@ -7616,9 +7754,7 @@
             }
             syncProductDetailStockUi();
 
-            loadProductReviewsForDetail(p.id).catch(() => {});
             updateWishlistButtonForProduct(p.id);
-            loadProductRelatedForDetail(p.id).catch(() => {});
         }
 
         function productOptionDefinitions(p) {
@@ -7816,13 +7952,7 @@
             const extra = row && row.image ? String(row.image).trim() : '';
             const merged = extra && !baseImgs.includes(extra) ? [extra, ...baseImgs] : baseImgs;
             if (gal) {
-                const slides = merged
-                    .map(
-                        (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="w-full max-w-full h-auto object-contain" alt="" draggable="false"></div>`
-                    )
-                    .join('');
-                adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
+                adoraReplaceGallerySlidesKeepingToolbar(gal, adoraBuildPdpGallerySlidesHtml(merged), 0);
                 syncProductGalleryDotsFromGallery();
             }
             renderProductDynamicOptions(p);
@@ -8371,6 +8501,9 @@
             resetProductRatingSummaryCardLoading();
             try {
                 const data = await apiFetch(`/api/products/${productId}/reviews`, { requireAuth: false });
+                if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) {
+                    return;
+                }
                 const count = Number(data.count || 0);
                 updateProductRatingSummaryCard(data);
                 updateProductDetailInlineRating(data);
