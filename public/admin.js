@@ -1997,8 +1997,8 @@ function classifyAppBannerKind(b) {
 function bannerKindLabelHtml(kind, ar) {
   if (kind === "customer_note") {
     return ar
-      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap" title="ملاحظات زبائن — يفتح نموذج إرسال"><i class="fas fa-message text-[9px] opacity-80"></i>ملاحظات الزبائن</span>`
-      : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap" title="Customer notes — opens submit form"><i class="fas fa-message text-[9px] opacity-80"></i>Customer notes</span>`;
+      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap" title="ملاحظات زبائن — يفتح نموذج إرسال"><i class="fas fa-message text-[9px] opacity-80"></i>ملاحظات الزبائن</span>`
+      : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap" title="Customer notes — opens submit form"><i class="fas fa-message text-[9px] opacity-80"></i>Customer notes</span>`;
   }
   if (kind === "vendor_join") {
     return ar

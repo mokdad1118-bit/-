@@ -8139,15 +8139,15 @@
                         const ch = allCustomerNote ? 'text-xs' : 'text-sm';
                         const titSz = allCustomerNote ? 'text-xs' : 'text-sm';
                         const bodySz = allCustomerNote ? 'text-[10px]' : 'text-xs';
-                        return `<div class="adora-banner-slide relative flex shrink-0 items-center justify-center overflow-hidden snap-start snap-always px-2" style="height:${sliderH}px">
-<button type="button" class="partner-cta-pill flex w-full max-w-lg items-center ${gap} py-2 ${feedbackPillMin}" onclick="openCustomerFeedbackBannerModal(${bid})">
-  <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right ${ch} opacity-90 rtl:rotate-180"></i></span>
-  <span class="flex ${iconBox} shrink-0 items-center justify-center bg-white/15 backdrop-blur-sm"><i class="fas fa-message ${iconI}" aria-hidden="true"></i></span>
+                        return `<div class="adora-banner-slide relative flex shrink-0 items-center justify-center overflow-hidden snap-start snap-always bg-slate-50 px-2" style="height:${sliderH}px">
+<button type="button" class="partner-cta-pill partner-cta-pill--customer-note flex w-full max-w-lg items-center ${gap} py-2 ${feedbackPillMin}" onclick="openCustomerFeedbackBannerModal(${bid})">
+  <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead text-slate-500" aria-hidden="true"><i class="fas fa-chevron-right ${ch} opacity-90 rtl:rotate-180"></i></span>
+  <span class="flex ${iconBox} shrink-0 items-center justify-center bg-slate-200/90 text-slate-600"><i class="fas fa-message ${iconI}" aria-hidden="true"></i></span>
   <span class="min-w-0 flex-1 text-start">
-    ${title ? `<span class="block ${titSz} font-extrabold leading-tight">${escapeHtml(title)}</span>` : ''}
-    ${bodyTxt ? `<span class="mt-0.5 block ${bodySz} font-medium leading-snug text-white/85">${escapeHtml(bodyTxt)}</span>` : ''}
+    ${title ? `<span class="block ${titSz} font-extrabold leading-tight text-slate-800">${escapeHtml(title)}</span>` : ''}
+    ${bodyTxt ? `<span class="mt-0.5 block ${bodySz} font-medium leading-snug text-slate-500">${escapeHtml(bodyTxt)}</span>` : ''}
   </span>
-  <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left ${ch} opacity-90 rtl:rotate-180"></i></span>
+  <span class="adora-cta-pill-chevron text-slate-500" aria-hidden="true"><i class="fas fa-chevron-left ${ch} opacity-90 rtl:rotate-180"></i></span>
 </button>
 </div>`;
                     }

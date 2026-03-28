@@ -1004,6 +1004,13 @@
             border-radius: 0.875rem;
             font-size: 0.8125rem;
         }
+        /* ملاحظات الزبائن: نفس منظومة لون النص (رمادي/سليت) بدرجات أفتح للثانوي */
+        .partner-cta-pill--customer-note {
+            background: linear-gradient(118deg, #f8fafc 0%, #f1f5f9 48%, #e8eef5 100%);
+            color: #475569;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
         @keyframes adora-cta-chevron-nudge {
             0%, 100% { transform: translateX(0); }
             50% { transform: translateX(-6px); }
@@ -5532,21 +5539,21 @@
     <!-- معاينة صورة المنتج بملء الشاشة — تكبير/تصغير (عجلة، إصبعين، أزرار، نقرتان) -->
     <div id="customer-feedback-banner-modal" class="fixed inset-0 z-[20040] hidden flex items-center justify-center p-4 bg-black/55" onclick="if(event.target===this) closeCustomerFeedbackBannerModal()">
         <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-start gap-3 px-5 pt-5 pb-3 border-b border-gray-100">
+            <div class="flex justify-between items-start gap-3 px-5 pt-5 pb-3 border-b border-slate-200/80">
                 <div class="min-w-0 flex-1">
-                    <h3 class="text-lg font-bold text-gray-900" data-en="Your note" data-ar="ملاحظتك">ملاحظتك</h3>
-                    <p class="text-xs text-gray-500 mt-1 leading-relaxed" data-en="This message is sent to the Adora team." data-ar="تُرسل هذه الملاحظة لفريق أدورا.">تُرسل هذه الملاحظة لفريق أدورا.</p>
+                    <h3 class="text-lg font-bold text-slate-800" data-en="Your note" data-ar="ملاحظتك">ملاحظتك</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed" data-en="This message is sent to the Adora team." data-ar="تُرسل هذه الملاحظة لفريق أدورا.">تُرسل هذه الملاحظة لفريق أدورا.</p>
                 </div>
-                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeCustomerFeedbackBannerModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-                    <i class="fas fa-times text-lg text-gray-700"></i>
+                <button type="button" class="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center shrink-0 hover:bg-slate-200 active:scale-95 transition" onclick="closeCustomerFeedbackBannerModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-lg text-slate-600"></i>
                 </button>
             </div>
             <div class="p-5 pt-4">
             <input type="hidden" id="customer-feedback-banner-id" value="" />
-            <textarea id="customer-feedback-banner-text" rows="4" maxlength="4000" class="w-full p-3 rounded-xl border border-gray-200 text-sm" data-en-ph="Write your note…" data-ar-ph="اكتب ملاحظتك…"></textarea>
+            <textarea id="customer-feedback-banner-text" rows="4" maxlength="4000" class="w-full p-3 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400" data-en-ph="Write your note…" data-ar-ph="اكتب ملاحظتك…"></textarea>
             <div class="flex gap-2 mt-4">
-                <button type="button" onclick="closeCustomerFeedbackBannerModal()" class="flex-1 py-3 rounded-xl border border-gray-200 font-bold text-gray-700" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
-                <button type="button" onclick="submitCustomerFeedbackBannerNote()" class="flex-1 py-3 rounded-xl bg-purple-600 text-white font-bold" data-en="Send" data-ar="إرسال">إرسال</button>
+                <button type="button" onclick="closeCustomerFeedbackBannerModal()" class="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 bg-slate-50 hover:bg-slate-100" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
+                <button type="button" onclick="submitCustomerFeedbackBannerNote()" class="flex-1 py-3 rounded-xl bg-slate-600 hover:bg-slate-700 text-white font-bold" data-en="Send" data-ar="إرسال">إرسال</button>
             </div>
             </div>
         </div>
