@@ -2218,11 +2218,13 @@
             appSocket = io(socketUrl, {
                 auth: { token },
                 ...transportOpts,
+                withCredentials: true,
                 timeout: 60000,
                 reconnection: true,
                 reconnectionAttempts: Infinity,
                 reconnectionDelay: 1500,
                 reconnectionDelayMax: 30000,
+                randomizationFactor: 0.5,
             });
             appSocket.on('notification:new', (payload) => {
                 syncAppBroadcastBadge().catch(() => {});

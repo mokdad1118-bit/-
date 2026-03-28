@@ -2652,20 +2652,54 @@ app.get("/sw.js", (req, res) => {
 
 app.use(express.static(path.join(__dirname)));
 
+/** CORS لـ Socket.IO — يُحاذي منطق Express؛ origin: * بدون credentials يسبب فشلاً مع بعض عملاء polling خلف بروكسي */
 function socketIoCors() {
   const raw = process.env.SOCKET_CORS_ORIGIN || process.env.CORS_ORIGIN;
+  const methods = ["GET", "POST", "OPTIONS"];
   if (!raw || !String(raw).trim()) {
-    return { origin: "*", methods: ["GET", "POST"] };
+    return { origin: true, credentials: true, methods, allowedHeaders: ["Content-Type"] };
   }
   const list = parseCorsOriginEnv(raw);
   if (!list.length) {
-    return { origin: "*", methods: ["GET", "POST"] };
+    return { origin: true, credentials: true, methods, allowedHeaders: ["Content-Type"] };
   }
-  return { origin: list.length === 1 ? list[0] : list, methods: ["GET", "POST"] };
+  return {
+    origin: list.length === 1 ? list[0] : list,
+    credentials: true,
+    methods,
+    allowedHeaders: ["Content-Type"],
+  };
+}
+
+/** عند أكثر من نسخة خادم (Render Instance Count > 1) يجب Redis وإلا polling يعيد 400 «Session ID unknown» */
+async function attachSocketIoRedisAdapterIfConfigured(io) {
+  const url = String(process.env.REDIS_URL || process.env.SOCKET_IO_REDIS_URL || "").trim();
+  if (!url) return;
+  try {
+    const { createClient } = require("redis");
+    const { createAdapter } = require("@socket.io/redis-adapter");
+    const pubClient = createClient({ url });
+    const subClient = pubClient.duplicate();
+    const onRedisErr = (label) => (err) => {
+      if (err) {
+        // eslint-disable-next-line no-console
+        console.error(`[Adora] Redis (${label}):`, err.message || err);
+      }
+    };
+    pubClient.on("error", onRedisErr("pub"));
+    subClient.on("error", onRedisErr("sub"));
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    // eslint-disable-next-line no-console
+    console.log("[Adora] Socket.IO: Redis adapter enabled (multi-instance safe)");
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[Adora] Socket.IO: Redis adapter not used:", e.message || e);
+  }
 }
 
 initDb()
-  .then(() => {
+  .then(async () => {
   if (isProd && (!process.env.JWT_SECRET || process.env.JWT_SECRET === "adora-dev-secret")) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -2680,6 +2714,8 @@ initDb()
     pingTimeout: 60000,
     pingInterval: 25000,
   });
+
+  await attachSocketIoRedisAdapterIfConfigured(io);
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
