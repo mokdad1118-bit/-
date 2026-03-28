@@ -1586,7 +1586,10 @@
         window.adoraPopNavStackOneStep = adoraPopNavStackOneStep;
 
         function switchTab(screenId, btn) {
-            if (screenId === 'screen-listing') {
+            const dockTabIds = ['screen-categories', 'screen-listing', 'screen-offers', 'screen-cart', 'screen-profile'];
+            const isSameDockTab = dockTabIds.includes(screenId) && currentScreen === screenId;
+
+            if (screenId === 'screen-listing' && !isSameDockTab) {
                 listingBrandName = null;
                 listingBrandMainCategory = null;
                 activeBrandKey = null;
@@ -1597,6 +1600,38 @@
                 const st = document.getElementById('brand-status');
                 if (st) st.textContent = isRTL ? st.getAttribute('data-ar') : st.getAttribute('data-en');
             }
+
+            /* نفس تبويب الشريط السفلي: تحديث البيانات دون إعادة انتقال الشاشة (يبقى التمرير كما هو) */
+            if (isSameDockTab) {
+                const y = adoraGetDocumentScrollTop();
+                try {
+                    if (typeof window.closeAdoraImageLightbox === 'function') window.closeAdoraImageLightbox();
+                    else closeAdoraImageLightboxIfOpen();
+                } catch (_e) {
+                    closeAdoraImageLightboxIfOpen();
+                }
+                onScreenEnter(screenId);
+                try {
+                    injectHomeBanners().catch(() => {});
+                } catch (_e) {}
+                persistAdoraSessionState();
+                syncAdoraGlobalBackButton();
+                const restoreScroll = () => {
+                    try {
+                        window.scrollTo(0, y);
+                    } catch (_e) {}
+                };
+                requestAnimationFrame(() => {
+                    restoreScroll();
+                    requestAnimationFrame(restoreScroll);
+                });
+                setTimeout(restoreScroll, 50);
+                setTimeout(restoreScroll, 200);
+                setTimeout(restoreScroll, 600);
+                setTimeout(restoreScroll, 1200);
+                return;
+            }
+
             navigateTo(screenId, { rootTab: true });
         }
 
