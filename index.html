@@ -36,7 +36,7 @@
         
         body {
             font-family: 'Plus Jakarta Sans', 'Noto Sans Arabic', sans-serif;
-            background-color: #f8f9fa;
+            background-color: #e5e7eb;
             overflow-x: hidden;
             overscroll-behavior-y: contain;
         }
@@ -1560,13 +1560,15 @@
             bottom: 0;
             left: 0;
             right: 0;
+            width: min(100vw, 428px);
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(0,0,0,0.05);
             padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
             box-shadow: 0 -4px 30px rgba(0,0,0,0.05);
             max-width: 428px;
-            margin: 0 auto;
+            margin-left: auto;
+            margin-right: auto;
             z-index: 50;
         }
         
@@ -2020,17 +2022,6 @@
         .product-noon-gallery-host {
             background: linear-gradient(180deg, #f3f4f6 0%, #f9fafb 100%);
         }
-        /* سطح المكتب: المعرض يلتصق بأعلى نافذة التمرير تحت الهيدر */
-        @media (min-width: 640px) {
-            #screen-product .product-noon-gallery-host,
-            #screen-marketplace-product .product-noon-gallery-host {
-                position: -webkit-sticky;
-                position: sticky;
-                top: var(--adora-header-offset);
-                z-index: 1;
-                width: 100%;
-            }
-        }
         /* تمرير أفقي موحّد (LTR) حتى يعمل السلايدر بشكل صحيح في الواجهة العربية */
         #product-gallery.product-noon-gallery,
         #marketplace-product-gallery.product-noon-gallery {
@@ -2086,134 +2077,108 @@
             margin: 0;
             word-break: break-word;
         }
-        @media (min-width: 640px) {
-            .adora-pdp-title {
-                font-size: 1.375rem;
-                line-height: 1.32;
-                letter-spacing: -0.02em;
-            }
+        /* PDP — نفس سلوك الموبايل على كل عرض شاشة */
+        #screen-product.adora-pdp-screen.active,
+        #screen-marketplace-product.adora-pdp-screen.active {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
         }
-
-        /* سطح المكتب: الحاويات شفافة في التخطيط */
-        @media (min-width: 640px) {
-            .adora-pdp-top,
-            .adora-pdp-scroll {
-                display: contents;
-            }
+        #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
+        #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 0;
+            width: 100%;
         }
-
-        /* موبايل: المعرض ثابت فوق، التفاصيل والتقييمات تمرّر داخل العمود فقط */
-        @media (max-width: 639px) {
-            #screen-product.adora-pdp-screen.active,
-            #screen-marketplace-product.adora-pdp-screen.active {
-                display: flex;
-                flex-direction: column;
-                min-height: 100vh;
-                min-height: 100dvh;
-                overflow: hidden;
-                box-sizing: border-box;
-                padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-            }
-            /* موبايل: المعرض sticky داخل العمود — الورقة البيضاء تمر فوق الصورة (سلوك تطبيقات التسوق) */
-            #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
-            #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
-                position: -webkit-sticky;
-                position: sticky;
-                top: 0;
-                z-index: 0;
-                width: 100%;
-            }
-            #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
-            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
-                margin-top: -2.75rem;
-                z-index: 2;
-                box-shadow: 0 -14px 48px rgba(15, 23, 42, 0.1);
-            }
-            #screen-product.adora-pdp-screen.active .adora-pdp-scroll > #product-review-panel,
-            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > #marketplace-review-panel {
-                position: relative;
-                z-index: 2;
-            }
-            #screen-product.adora-pdp-screen.active .adora-pdp-scroll,
-            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll {
-                flex: 1 1 0;
-                min-height: 0;
-                overflow-x: hidden;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior-y: contain;
-                touch-action: pan-x pan-y pinch-zoom;
-            }
+        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
+            margin-top: -2.75rem;
+            z-index: 2;
+            box-shadow: 0 -14px 48px rgba(15, 23, 42, 0.1);
         }
-        /* موبايل — معرض أوضح (قريب من نون) + مساحة فوق الشريط السفلي + أزرار كمية أسهل للمس */
-        @media (max-width: 639px) {
+        #screen-product.adora-pdp-screen.active .adora-pdp-scroll > #product-review-panel,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > #marketplace-review-panel {
+            position: relative;
+            z-index: 2;
+        }
+        #screen-product.adora-pdp-screen.active .adora-pdp-scroll,
+        #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll {
+            flex: 1 1 0;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        #product-gallery.product-noon-gallery,
+        #marketplace-product-gallery.product-noon-gallery {
+            min-height: min(40vh, 320px);
+            height: min(46vh, 400px);
+            max-height: 400px;
+        }
+        #product-gallery.product-noon-gallery .product-gallery-slide,
+        #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
+            min-height: min(40vh, 320px);
+            height: min(46vh, 400px);
+        }
+        #product-gallery.product-noon-gallery .product-gallery-slide img,
+        #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
+            max-height: min(44vh, 380px);
+        }
+        #screen-product .product-noon-sheet,
+        #screen-marketplace-product .product-noon-sheet {
+            padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+        }
+        #screen-product #product-review-panel,
+        #screen-marketplace-product #marketplace-review-panel {
+            padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px));
+        }
+        #screen-product .sticky-bottom,
+        #screen-marketplace-product .sticky-bottom {
+            max-width: 100%;
+            padding-left: max(1rem, env(safe-area-inset-left, 0px));
+            padding-right: max(1rem, env(safe-area-inset-right, 0px));
+        }
+        #screen-product .product-detail-sticky-noon .product-noon-qty button[type='button'],
+        #screen-marketplace-product .product-detail-sticky-noon .product-noon-qty button[type='button'] {
+            width: 2.75rem;
+            height: 2.75rem;
+            font-size: 0.8rem;
+        }
+        @supports (height: 100dvh) {
             #product-gallery.product-noon-gallery,
             #marketplace-product-gallery.product-noon-gallery {
-                min-height: min(40vh, 320px);
-                height: min(46vh, 400px);
-                max-height: 400px;
+                min-height: min(40dvh, 320px);
+                height: min(46dvh, 400px);
             }
             #product-gallery.product-noon-gallery .product-gallery-slide,
             #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
-                min-height: min(40vh, 320px);
-                height: min(46vh, 400px);
+                min-height: min(40dvh, 320px);
+                height: min(46dvh, 400px);
             }
             #product-gallery.product-noon-gallery .product-gallery-slide img,
             #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
-                max-height: min(44vh, 380px);
-            }
-            #screen-product .product-noon-sheet,
-            #screen-marketplace-product .product-noon-sheet {
-                padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
-            }
-            #screen-product #product-review-panel,
-            #screen-marketplace-product #marketplace-review-panel {
-                padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px));
-            }
-            #screen-product .sticky-bottom,
-            #screen-marketplace-product .sticky-bottom {
-                max-width: 100%;
-                padding-left: max(1rem, env(safe-area-inset-left, 0px));
-                padding-right: max(1rem, env(safe-area-inset-right, 0px));
-            }
-            #screen-product .product-detail-sticky-noon .product-noon-qty button[type='button'],
-            #screen-marketplace-product .product-detail-sticky-noon .product-noon-qty button[type='button'] {
-                width: 2.75rem;
-                height: 2.75rem;
-                font-size: 0.8rem;
-            }
-        }
-        @supports (height: 100dvh) {
-            @media (max-width: 639px) {
-                #product-gallery.product-noon-gallery,
-                #marketplace-product-gallery.product-noon-gallery {
-                    min-height: min(40dvh, 320px);
-                    height: min(46dvh, 400px);
-                }
-                #product-gallery.product-noon-gallery .product-gallery-slide,
-                #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
-                    min-height: min(40dvh, 320px);
-                    height: min(46dvh, 400px);
-                }
-                #product-gallery.product-noon-gallery .product-gallery-slide img,
-                #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
-                    max-height: min(44dvh, 380px);
-                }
+                max-height: min(44dvh, 380px);
             }
         }
         @media (prefers-reduced-motion: reduce) {
-            @media (max-width: 639px) {
-                #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
-                #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
-                    position: relative;
-                    top: auto;
-                    z-index: auto;
-                }
-                #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
-                #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
-                    margin-top: -0.75rem;
-                    box-shadow: 0 -12px 44px rgba(79, 70, 229, 0.07);
-                }
+            #screen-product.adora-pdp-screen.active .product-noon-gallery-host,
+            #screen-marketplace-product.adora-pdp-screen.active .product-noon-gallery-host {
+                position: relative;
+                top: auto;
+                z-index: auto;
+            }
+            #screen-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet,
+            #screen-marketplace-product.adora-pdp-screen.active .adora-pdp-scroll > .product-noon-sheet {
+                margin-top: -0.75rem;
+                box-shadow: 0 -12px 44px rgba(79, 70, 229, 0.07);
             }
         }
         .adora-gallery-fraction {
@@ -2943,6 +2908,16 @@
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
+            max-width: 428px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background: #fff;
+            position: relative;
+            overflow-x: hidden;
+            box-shadow: 0 0 80px rgba(15, 23, 42, 0.1);
         }
         #app-shell * {
             -webkit-touch-callout: none;

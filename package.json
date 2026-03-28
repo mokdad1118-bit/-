@@ -5,9 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "npm run build:css",
+    "build": "npm run build:css && npm run build:css:admin",
     "lint": "eslint . --ext .js,.cjs",
     "build:css": "tailwindcss -i ./tailwind.input.css -o ./tailwind.bundle.css --minify",
+    "build:css:admin": "tailwindcss -i ./tailwind.input.css -o ./tailwind.admin.bundle.css --minify -c ./tailwind.admin.config.js",
     "build:netlify": "node scripts/write-adora-config.cjs",
     "migrate:sqlite-to-pg": "node scripts/migrate-sqlite-to-pg.cjs"
   },
