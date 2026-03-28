@@ -2414,6 +2414,9 @@
             user-select: none;
             -webkit-touch-callout: none;
         }
+        #app-shell * {
+            -webkit-touch-callout: none;
+        }
         #app-shell input,
         #app-shell textarea,
         #app-shell select,
@@ -2424,6 +2427,17 @@
         }
         #app-shell img {
             -webkit-user-drag: none;
+            -webkit-touch-callout: none;
+        }
+        #splash-screen {
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #adora-image-lightbox,
+        #adora-image-lightbox * {
+            -webkit-user-select: none;
+            user-select: none;
             -webkit-touch-callout: none;
         }
         #signup-credentials-modal,
@@ -4511,18 +4525,24 @@
     <!-- ==================== COMPREHENSIVE MARKET (product) ==================== -->
     <div id="screen-marketplace-product" class="screen bg-white">
         <div id="banner-slot-mp_product_top" class="px-4 pt-2 space-y-1"></div>
-        <div class="adora-screen-toolbar px-4 py-2 flex items-center justify-between border-b border-gray-100 gap-2">
+        <div class="adora-screen-toolbar px-4 py-2 flex items-center justify-between border-b border-gray-100 gap-2 min-h-[2.75rem]">
             <span class="w-10 shrink-0" aria-hidden="true"></span>
-            <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition shrink-0" aria-label="Wishlist">
-                <i class="fas fa-heart text-lg"></i>
-            </button>
+            <span class="w-10 shrink-0" aria-hidden="true"></span>
         </div>
         <div class="relative bg-gray-50">
             <div class="overflow-x-auto flex snap-x snap-mandatory no-scrollbar h-[min(52vw,280px)] max-h-[320px]" id="marketplace-product-gallery"></div>
-            <div class="absolute top-0 left-0 right-0 p-3 flex justify-start items-start z-10 pointer-events-none">
+            <div class="absolute top-0 left-0 right-0 p-3 flex justify-between items-start z-10 pointer-events-none">
                 <button type="button" id="marketplace-save-img-btn" onclick="adoraSaveCurrentMarketplaceProductImage()" class="pointer-events-auto w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Save image with watermark" data-ar-aria="حفظ الصورة مع علامة Adora" aria-label="Save image">
                     <i class="fas fa-download text-gray-800"></i>
                 </button>
+                <div class="flex gap-3 pointer-events-auto">
+                    <button type="button" id="marketplace-share-product-btn" onclick="openProductShareModal()" class="w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" data-en-aria="Share product" data-ar-aria="مشاركة المنتج" aria-label="Share">
+                        <i class="fas fa-share-alt text-gray-800"></i>
+                    </button>
+                    <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="wishlist-btn w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition" aria-label="Wishlist">
+                        <i class="fas fa-heart text-gray-800"></i>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="px-5 pt-5 pb-36 space-y-4">
@@ -4557,7 +4577,22 @@
                     <button type="button" onclick="document.getElementById('marketplace-review-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })" class="text-purple-600 text-sm font-bold hover:text-purple-700 transition-colors" data-en="Rate this product" data-ar="قيّم هذا المنتج">قيّم هذا المنتج</button>
                 </div>
             </div>
-            <div id="marketplace-dynamic-variant-root" class="space-y-3 hidden"></div>
+            <div id="marketplace-legacy-variant-sections" class="hidden space-y-6">
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-gray-900" data-en="Select Color" data-ar="اختر اللون">اختر اللون</h3>
+                        <span class="text-sm text-gray-500" id="marketplace-selected-color">—</span>
+                    </div>
+                    <div id="marketplace-color-options" class="flex gap-4 flex-wrap"></div>
+                </div>
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-gray-900" data-en="Select Size" data-ar="اختر المقاس">اختر المقاس</h3>
+                    </div>
+                    <div id="marketplace-size-options" class="flex gap-3 flex-wrap"></div>
+                </div>
+            </div>
+            <div id="marketplace-dynamic-variant-root" class="hidden mb-6 space-y-6"></div>
             <p id="marketplace-detail-stock" class="text-sm text-gray-600">—</p>
             <div class="border-t border-gray-100 pt-4">
                 <h3 class="font-semibold text-gray-900 mb-2" data-en="Description" data-ar="الوصف">الوصف</h3>

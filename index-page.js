@@ -160,7 +160,10 @@
                 const hasDeep =
                     (() => {
                         try {
-                            return !!sessionStorage.getItem('adora_deeplink_product');
+                            return (
+                                !!sessionStorage.getItem('adora_deeplink_product') ||
+                                !!sessionStorage.getItem('adora_deeplink_mp_product')
+                            );
                         } catch (_e) {
                             return false;
                         }
@@ -169,6 +172,7 @@
                     await restoreAdoraSessionRoute();
                 }
                 consumeProductDeepLink();
+                consumeMarketplaceDeepLink();
             } catch {
                 clearStoredJwtToken();
                 resumeOverlay?.classList.add('hidden');
@@ -539,6 +543,7 @@
             }
             await runPostAuthOnboarding();
             consumeProductDeepLink();
+            consumeMarketplaceDeepLink();
         }
 
         async function confirmNotificationPrompt() {
@@ -797,6 +802,9 @@
                         return `mp_${mpid}__vo:${keys.map((k) => `${k}=${vo[k]}`).join('|')}`;
                     }
                 }
+                const sz = String(item.size || '').trim();
+                const cl = String(item.color || '').trim();
+                if (sz || cl) return `mp_${mpid}__${sz}__${cl}`;
                 return `mp_${mpid}`;
             }
             const id = item.productId ?? item.id;
@@ -1106,6 +1114,7 @@
         let marketplaceBrowseVendorsCache = [];
         let marketplaceDetailQty = 1;
         let marketplaceDetailVariantPick = {};
+        let marketplaceDetailSelectedColorIndex = 0;
         let marketplaceReviewSelected = 0;
         let currentMarketplaceProductDetail = null;
 
@@ -2009,6 +2018,7 @@
                     }
                     await runPostAuthOnboarding();
                     consumeProductDeepLink();
+                    consumeMarketplaceDeepLink();
                 });
             } catch (e) {
                 openAuthModal('login', isRTL ? `فشل تسجيل الدخول: ${e.message}` : `Login failed: ${e.message}`);
@@ -3021,7 +3031,7 @@
                 const a = isRTL ? mpInp.getAttribute('data-ar-aria') : mpInp.getAttribute('data-en-aria');
                 if (a) mpInp.setAttribute('aria-label', a);
             }
-            ['product-save-img-btn', 'marketplace-save-img-btn'].forEach((id) => {
+            ['product-save-img-btn', 'marketplace-save-img-btn', 'marketplace-share-product-btn'].forEach((id) => {
                 const btn = document.getElementById(id);
                 if (!btn) return;
                 const a = isRTL ? btn.getAttribute('data-ar-aria') : btn.getAttribute('data-en-aria');
@@ -4208,6 +4218,124 @@
             }
         }
 
+        function legacyMarketplaceStockForPick(p, size, color) {
+            if (!p) return 0;
+            const inv = Array.isArray(p.inventory) ? p.inventory : [];
+            const szRaw = String(size || '').trim();
+            const sz = szRaw === '—' ? '' : szRaw;
+            const cl = String(color || '').trim();
+            if (!inv.length) return Number(p.stock || 0);
+            const row = inv.find((r) => {
+                if (r.options && typeof r.options === 'object' && Object.keys(r.options).length) return false;
+                const rs = String(r.size || '').trim().toLowerCase();
+                const rc = String(r.color || '').trim().toLowerCase();
+                const szMatch = !sz || rs === sz.toLowerCase();
+                const clMatch = !cl || rc === cl.toLowerCase();
+                return szMatch && clMatch;
+            });
+            return row ? Number(row.stock || 0) : 0;
+        }
+
+        function getSelectedMarketplaceDetailColor() {
+            const p = currentMarketplaceProductDetail;
+            const colors = p && Array.isArray(p.colors) ? p.colors : [];
+            if (!colors.length) return '';
+            const c = colors[marketplaceDetailSelectedColorIndex];
+            return c != null ? String(c).trim() : '';
+        }
+
+        function getSelectedMarketplaceDetailSize() {
+            const btn = document.querySelector('#marketplace-size-options .size-btn.selected:not(.disabled)');
+            return btn ? String(btn.getAttribute('data-size') || '').trim() : '';
+        }
+
+        function selectMarketplaceDetailColorIdx(idx) {
+            const p = currentMarketplaceProductDetail;
+            const colors = p && Array.isArray(p.colors) ? p.colors.map((c) => String(c)) : [];
+            const n = Number(idx);
+            if (!Number.isFinite(n) || n < 0 || n >= colors.length) return;
+            marketplaceDetailSelectedColorIndex = n;
+            document.querySelectorAll('#marketplace-color-options .color-btn').forEach((b) => {
+                const i = Number(b.getAttribute('data-mp-color-idx'));
+                b.classList.toggle('selected', i === marketplaceDetailSelectedColorIndex);
+            });
+            const sc = document.getElementById('marketplace-selected-color');
+            if (sc) sc.textContent = colors[n] || '—';
+            rebuildMarketplaceDetailSizes(p);
+            const stEl = document.getElementById('marketplace-detail-stock');
+            if (stEl && p && !productUsesDynamicOptions(p)) {
+                const st = legacyMarketplaceStockForPick(p, getSelectedMarketplaceDetailSize(), getSelectedMarketplaceDetailColor());
+                stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
+                if (st > 0 && marketplaceDetailQty > st) marketplaceDetailQty = st;
+                const qd = document.getElementById('marketplace-qty-display');
+                if (qd) qd.textContent = String(marketplaceDetailQty);
+            }
+        }
+
+        function selectMarketplaceDetailSize(btn) {
+            if (!btn || btn.classList.contains('disabled')) return;
+            document.querySelectorAll('#marketplace-size-options .size-btn').forEach((b) => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            const p = currentMarketplaceProductDetail;
+            if (!p || productUsesDynamicOptions(p)) return;
+            const cap = legacyMarketplaceStockForPick(p, getSelectedMarketplaceDetailSize(), getSelectedMarketplaceDetailColor());
+            if (cap > 0 && marketplaceDetailQty > cap) marketplaceDetailQty = cap;
+            const qd = document.getElementById('marketplace-qty-display');
+            if (qd) qd.textContent = String(marketplaceDetailQty);
+        }
+
+        function rebuildMarketplaceDetailSizes(p) {
+            const szWrap = document.getElementById('marketplace-size-options');
+            if (!szWrap || !p) return;
+            const color = getSelectedMarketplaceDetailColor();
+            const sizes = Array.isArray(p.sizes) && p.sizes.length ? p.sizes.map((s) => String(s)) : ['—'];
+            let firstSel = null;
+            szWrap.innerHTML = sizes
+                .map((s) => {
+                    const ok = s === '—' ? Number(p.stock || 0) > 0 : variantHasStock(p, s, color);
+                    const sel = ok && firstSel == null;
+                    if (sel) firstSel = s;
+                    const safe = escapeHtml(s);
+                    return `<button type="button" class="size-btn ${sel ? 'selected' : ''} w-14 h-14 rounded-2xl border-2 font-semibold text-sm ${
+                        ok ? 'border-gray-200 text-gray-800 hover:border-purple-400' : 'disabled border-gray-100 text-gray-400'
+                    }" data-size="${safe}" ${ok ? '' : 'disabled'}>${safe}</button>`;
+                })
+                .join('');
+            szWrap.querySelectorAll('.size-btn').forEach((b) => {
+                b.addEventListener('click', () => selectMarketplaceDetailSize(b));
+            });
+        }
+
+        function fillMarketplaceLegacyVariantUi(p) {
+            if (!p) return;
+            marketplaceDetailSelectedColorIndex = 0;
+            const colWrap = document.getElementById('marketplace-color-options');
+            const colors = Array.isArray(p.colors) && p.colors.length ? p.colors.map((c) => String(c)) : [];
+            if (colWrap) {
+                if (!colors.length) {
+                    colWrap.innerHTML = `<span class="text-sm text-gray-500">${isRTL ? 'لون واحد' : 'Standard'}</span>`;
+                    const sc = document.getElementById('marketplace-selected-color');
+                    if (sc) sc.textContent = '—';
+                } else {
+                    colWrap.innerHTML = colors
+                        .map((c, i) => {
+                            const lab = escapeHtml(String(c).slice(0, 6));
+                            return `<button type="button" class="color-btn ${i === 0 ? 'selected' : ''} w-10 h-10 min-w-[2.5rem] rounded-full border-2 border-gray-200 shadow-sm text-[9px] font-bold text-gray-700 flex items-center justify-center px-1" data-mp-color-idx="${i}">${lab}</button>`;
+                        })
+                        .join('');
+                    colWrap.querySelectorAll('.color-btn').forEach((b) => {
+                        b.addEventListener('click', () => {
+                            const i = Number(b.getAttribute('data-mp-color-idx'));
+                            selectMarketplaceDetailColorIdx(i);
+                        });
+                    });
+                    const sc = document.getElementById('marketplace-selected-color');
+                    if (sc) sc.textContent = colors[0];
+                }
+            }
+            rebuildMarketplaceDetailSizes(p);
+        }
+
         async function openMarketplaceProductDetail(id, opts = {}) {
             const skipNavigate = opts.skipNavigate === true;
             try {
@@ -4255,6 +4383,9 @@
                 dynRoot.innerHTML = '';
                 dynRoot.classList.add('hidden');
             }
+            const leg = document.getElementById('marketplace-legacy-variant-sections');
+            if (leg) leg.classList.toggle('hidden', isDyn);
+            if (!isDyn) fillMarketplaceLegacyVariantUi(p);
             if (tEl) tEl.textContent = title || '—';
             if (vEl) {
                 if (vendor) vEl.innerHTML = formatVendorBrandPill(vendor);
@@ -4279,7 +4410,11 @@
                     discBadge.textContent = showD ? (isRTL ? `-${discPct}%` : `-${discPct}%`) : '';
                 }
                 if (stEl) {
-                    const st = Number(p.stock != null ? p.stock : 0);
+                    const st = legacyMarketplaceStockForPick(
+                        p,
+                        getSelectedMarketplaceDetailSize(),
+                        getSelectedMarketplaceDetailColor()
+                    );
                     stEl.textContent = st > 0 ? (isRTL ? `متوفر: ${st}` : `In stock: ${st}`) : isRTL ? 'غير متوفر' : 'Out of stock';
                 }
                 const gal = document.getElementById('marketplace-product-gallery');
@@ -4295,7 +4430,11 @@
                         .join('');
                     startGalleryAutoScroll('marketplace-product-gallery', 4200);
                 }
-                const stockN = Number(p.stock != null ? p.stock : 0);
+                const stockN = legacyMarketplaceStockForPick(
+                    p,
+                    getSelectedMarketplaceDetailSize(),
+                    getSelectedMarketplaceDetailColor()
+                );
                 if (stockN > 0) marketplaceDetailQty = Math.min(Math.max(1, marketplaceDetailQty), Math.min(99, stockN));
                 else marketplaceDetailQty = 1;
                 const qd = document.getElementById('marketplace-qty-display');
@@ -4385,8 +4524,10 @@
                             }" data-mpdv-opt="${escapeHtml(d.id)}" data-mpdv-val="${escapeHtml(v.id)}" ${dis ? 'disabled' : ''}>${escapeHtml(lab)}</button>`;
                         })
                         .join('');
-                    return `<div class="space-y-2">
-                        <h3 class="font-semibold text-gray-900">${escapeHtml(title)}</h3>
+                    return `<div class="mb-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-semibold text-gray-900">${escapeHtml(title)}</h3>
+                        </div>
                         <div class="flex flex-wrap gap-2">${chips}</div>
                     </div>`;
                 })
@@ -4519,10 +4660,16 @@
             if (marketplaceDetailQty < 1) marketplaceDetailQty = 1;
             if (marketplaceDetailQty > 99) marketplaceDetailQty = 99;
             if (p) {
-                let cap = Number(p.stock) || 0;
+                let cap = 0;
                 if (productUsesDynamicOptions(p)) {
                     const row = findInventoryRowDynamic(p, marketplaceDetailVariantPick);
                     cap = row ? Number(row.stock) || 0 : 0;
+                } else {
+                    cap = legacyMarketplaceStockForPick(
+                        p,
+                        getSelectedMarketplaceDetailSize(),
+                        getSelectedMarketplaceDetailColor()
+                    );
                 }
                 if (cap > 0) marketplaceDetailQty = Math.min(marketplaceDetailQty, cap);
             }
@@ -4542,6 +4689,8 @@
             let listUnit = Number(p.price || 0);
             let variantOptions = null;
             let variantLabel = '';
+            let lineSize = '';
+            let lineColor = '';
             const imgs = Array.isArray(p.images) ? p.images : [];
             let img0 = imgs.length ? absoluteMediaUrl(imgs[0]) : adoraPlaceholderImageUrl();
             if (productUsesDynamicOptions(p)) {
@@ -4555,10 +4704,18 @@
                 variantLabel = formatVariantLabelFromPick(p, pick);
                 const ri = row.image && String(row.image).trim();
                 if (ri) img0 = absoluteMediaUrl(ri);
+            } else {
+                lineColor = getSelectedMarketplaceDetailColor();
+                const szPick = getSelectedMarketplaceDetailSize();
+                if (!variantHasStock(p, szPick === '—' ? '' : szPick, lineColor)) {
+                    showToast(isRTL ? 'غير متوفر بهذا المقاس/اللون' : 'Not available for this size/color');
+                    return false;
+                }
+                lineSize = szPick === '—' ? '' : szPick;
             }
             const stock = productUsesDynamicOptions(p)
                 ? Number(findInventoryRowDynamic(p, pick)?.stock || 0)
-                : Number(p.stock != null ? p.stock : 0);
+                : legacyMarketplaceStockForPick(p, getSelectedMarketplaceDetailSize(), getSelectedMarketplaceDetailColor());
             if (stock < q) {
                 showToast(isRTL ? 'الكمية غير متوفرة' : 'Not enough stock');
                 return false;
@@ -4574,8 +4731,8 @@
                 discountPct: discPct,
                 image: img0,
                 brand: vendorLabel,
-                size: '',
-                color: '',
+                size: lineSize,
+                color: lineColor,
                 variantOptions,
                 variantLabel,
                 selected: true,
@@ -4598,6 +4755,8 @@
                 existing.brand = vendorLabel;
                 existing.variantOptions = variantOptions;
                 existing.variantLabel = variantLabel;
+                existing.size = line.size;
+                existing.color = line.color;
             } else {
                 cartItems.push(line);
             }
@@ -7653,18 +7812,26 @@
                 2: 'bg-amber-500',
                 1: 'bg-red-500',
             };
+            const pctTextClass = {
+                5: 'text-emerald-800',
+                4: 'text-emerald-700',
+                3: 'text-lime-700',
+                2: 'text-amber-700',
+                1: 'text-red-600',
+            };
             const order = [5, 4, 3, 2, 1];
             return order
                 .map((star) => {
                     const n = pick(star);
                     const pct = total > 0 ? Math.round((n / total) * 100) : 0;
                     const label = isRTL ? (star === 1 ? '1 نجمة' : `${star} نجوم`) : star === 1 ? '1 star' : `${star} stars`;
+                    const lc = pctTextClass[star];
                     return `<div class="flex items-center gap-2 sm:gap-3" role="listitem">
-                        <span class="w-[4.25rem] sm:w-[5.5rem] shrink-0 text-xs font-semibold text-gray-700 text-end">${escapeHtml(label)}</span>
+                        <span class="w-[4.25rem] sm:w-[5.5rem] shrink-0 text-xs font-semibold ${lc} text-end">${escapeHtml(label)}</span>
                         <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden min-w-0">
                             <div class="h-full rounded-full ${barClass[star]} transition-[width] duration-500 ease-out" style="width:${pct}%"></div>
                         </div>
-                        <span class="w-9 sm:w-10 shrink-0 text-xs font-bold text-gray-600 tabular-nums text-start">${pct}%</span>
+                        <span class="w-9 sm:w-10 shrink-0 text-xs font-extrabold ${lc} tabular-nums text-start">${pct}%</span>
                     </div>`;
                 })
                 .join('');
@@ -7868,6 +8035,10 @@
                 if (p && /^\d+$/.test(String(p).trim())) {
                     sessionStorage.setItem('adora_deeplink_product', String(p).trim());
                 }
+                const mp = u.searchParams.get('mp');
+                if (mp && /^\d+$/.test(String(mp).trim())) {
+                    sessionStorage.setItem('adora_deeplink_mp_product', String(mp).trim());
+                }
             } catch (_e) {}
         }
 
@@ -7877,6 +8048,20 @@
                 if (!u.searchParams.has('p') && !u.searchParams.has('product')) return;
                 u.searchParams.delete('p');
                 u.searchParams.delete('product');
+                const q = u.searchParams.toString();
+                history.replaceState(
+                    { adora: 1, screen: currentScreen },
+                    '',
+                    u.pathname + (q ? `?${q}` : '') + u.hash
+                );
+            } catch (_e) {}
+        }
+
+        function stripMpQueryFromUrl() {
+            try {
+                const u = new URL(window.location.href);
+                if (!u.searchParams.has('mp')) return;
+                u.searchParams.delete('mp');
                 const q = u.searchParams.toString();
                 history.replaceState(
                     { adora: 1, screen: currentScreen },
@@ -7899,12 +8084,39 @@
             } catch (_e) {}
         }
 
+        function consumeMarketplaceDeepLink() {
+            try {
+                const raw = sessionStorage.getItem('adora_deeplink_mp_product');
+                if (!raw || !/^\d+$/.test(raw)) return;
+                const id = Number(raw);
+                sessionStorage.removeItem('adora_deeplink_mp_product');
+                stripMpQueryFromUrl();
+                setTimeout(() => {
+                    openMarketplaceProductDetail(id).catch(() => {});
+                }, 400);
+            } catch (_e) {}
+        }
+
         function getProductShareUrl() {
+            if (currentScreen === 'screen-marketplace-product' && currentMarketplaceProductDetail && currentMarketplaceProductDetail.id) {
+                const mid = currentMarketplaceProductDetail.id;
+                try {
+                    const u = new URL(window.location.href);
+                    u.searchParams.set('mp', String(mid));
+                    u.searchParams.delete('p');
+                    u.searchParams.delete('product');
+                    u.hash = '';
+                    return u.toString();
+                } catch (_e) {
+                    return `${window.location.origin}${window.location.pathname}?mp=${encodeURIComponent(String(mid))}`;
+                }
+            }
             const id = currentProductDetail?.id;
             if (!id) return String(window.location.href || '').split('#')[0];
             try {
                 const u = new URL(window.location.href);
                 u.searchParams.set('p', String(id));
+                u.searchParams.delete('mp');
                 u.hash = '';
                 return u.toString();
             } catch (_e) {
@@ -7913,6 +8125,11 @@
         }
 
         function getProductShareMessage() {
+            if (currentScreen === 'screen-marketplace-product' && currentMarketplaceProductDetail) {
+                const p = currentMarketplaceProductDetail;
+                const title = isRTL ? (p.name_ar || p.name_en || '') : (p.name_en || p.name_ar || '');
+                return String(title).trim();
+            }
             const p = currentProductDetail;
             if (!p) return '';
             const title = isRTL ? (p.name_ar || p.name_en || '') : (p.name_en || p.name_ar || '');
@@ -7943,7 +8160,12 @@
         }
 
         function openProductShareModal() {
-            if (!currentProductDetail || !currentProductDetail.id) {
+            if (currentScreen === 'screen-marketplace-product') {
+                if (!currentMarketplaceProductDetail || !currentMarketplaceProductDetail.id) {
+                    showToast(isRTL ? 'افتح منتجاً أولاً' : 'Open a product first');
+                    return;
+                }
+            } else if (!currentProductDetail || !currentProductDetail.id) {
                 showToast(isRTL ? 'افتح منتجاً أولاً' : 'Open a product first');
                 return;
             }
@@ -9424,7 +9646,12 @@
         function adoraAllowNativeTextInteraction(target) {
             if (!target || !target.closest) return false;
             if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;
-            if (target.closest('#auth-modal, #auth-gate-screen, #signup-credentials-modal')) return true;
+            if (
+                target.closest(
+                    '#auth-modal, #auth-gate-screen, #signup-credentials-modal, #product-share-modal, #contact-info-modal'
+                )
+            )
+                return true;
             return false;
         }
 
@@ -9610,12 +9837,35 @@
             if (adoraContentProtectionBound) return;
             adoraContentProtectionBound = true;
 
+            const shellContainsNode = (node) => {
+                const shell = document.getElementById('app-shell');
+                if (!shell || shell.classList.contains('hidden') || !node) return false;
+                try {
+                    return shell.contains(node);
+                } catch (_e) {
+                    return false;
+                }
+            };
+
             const blockClipboardUnlessAllowed = (e) => {
                 if (adoraAllowNativeTextInteraction(e.target)) return;
                 const shell = document.getElementById('app-shell');
                 if (shell && !shell.classList.contains('hidden') && shell.contains(e.target)) {
                     e.preventDefault();
+                    e.stopPropagation();
+                    return;
                 }
+                try {
+                    const sel = document.getSelection();
+                    if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+                        const a = sel.anchorNode;
+                        const el = a && a.nodeType === 1 ? a : a && a.parentElement;
+                        if (a && shellContainsNode(a) && el && !adoraAllowNativeTextInteraction(el)) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    }
+                } catch (_e2) {}
             };
             document.addEventListener('copy', blockClipboardUnlessAllowed, true);
             document.addEventListener('cut', blockClipboardUnlessAllowed, true);
@@ -9638,9 +9888,15 @@
                 (e) => {
                     if (!e.target || !e.target.closest) return;
                     if (adoraAllowNativeTextInteraction(e.target)) return;
-                    const img = e.target.closest('img');
-                    if (!img) return;
-                    e.preventDefault();
+                    const shell = document.getElementById('app-shell');
+                    if (shell && !shell.classList.contains('hidden') && shell.contains(e.target)) {
+                        e.preventDefault();
+                        return;
+                    }
+                    const lb = document.getElementById('adora-image-lightbox');
+                    if (lb && !lb.classList.contains('hidden') && lb.contains(e.target)) {
+                        e.preventDefault();
+                    }
                 },
                 true
             );
@@ -9649,6 +9905,21 @@
                 'dragstart',
                 (e) => {
                     if (e.target && e.target.tagName === 'IMG' && !adoraAllowNativeTextInteraction(e.target)) {
+                        e.preventDefault();
+                    }
+                },
+                true
+            );
+
+            document.addEventListener(
+                'keydown',
+                (e) => {
+                    const ae = document.activeElement;
+                    if (adoraAllowNativeTextInteraction(ae)) return;
+                    const shell = document.getElementById('app-shell');
+                    if (!shell || shell.classList.contains('hidden') || !ae || !shell.contains(ae)) return;
+                    const k = e.key && String(e.key).toLowerCase();
+                    if ((e.ctrlKey || e.metaKey) && (k === 'c' || k === 'x' || k === 'a')) {
                         e.preventDefault();
                     }
                 },
