@@ -4460,7 +4460,7 @@
                     const slides = imgs
                         .map(
                             (src) =>
-                                `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
+                                `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="w-full max-w-full h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                         )
                         .join('');
                     adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
@@ -4531,7 +4531,7 @@
                 const slides = merged
                     .map(
                         (src) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(src)}" class="w-full max-w-full h-auto object-contain" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
@@ -7487,7 +7487,7 @@
                 const slides = imgs
                     .map(
                         (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="w-full max-w-full h-auto object-contain" alt="" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);
@@ -7779,7 +7779,7 @@
                 const slides = merged
                     .map(
                         (url) =>
-                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="max-w-full w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain" alt="" draggable="false"></div>`
+                            `<div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent"><img src="${escapeHtml(url)}" class="w-full max-w-full h-auto object-contain" alt="" draggable="false"></div>`
                     )
                     .join('');
                 adoraReplaceGallerySlidesKeepingToolbar(gal, slides, 4200);

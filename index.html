@@ -2056,6 +2056,62 @@
             object-fit: contain;
             object-position: center;
         }
+        /* موبايل — معرض أوضح (قريب من نون) + مساحة فوق الشريط السفلي + أزرار كمية أسهل للمس */
+        @media (max-width: 639px) {
+            #product-gallery.product-noon-gallery,
+            #marketplace-product-gallery.product-noon-gallery {
+                min-height: min(40vh, 320px);
+                height: min(46vh, 400px);
+                max-height: 400px;
+            }
+            #product-gallery.product-noon-gallery .product-gallery-slide,
+            #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
+                min-height: min(40vh, 320px);
+                height: min(46vh, 400px);
+            }
+            #product-gallery.product-noon-gallery .product-gallery-slide img,
+            #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
+                max-height: min(44vh, 380px);
+            }
+            #screen-product .product-noon-sheet,
+            #screen-marketplace-product .product-noon-sheet {
+                padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+            }
+            #screen-product #product-review-panel,
+            #screen-marketplace-product #marketplace-review-panel {
+                padding-bottom: calc(12rem + env(safe-area-inset-bottom, 0px));
+            }
+            #screen-product .sticky-bottom,
+            #screen-marketplace-product .sticky-bottom {
+                max-width: 100%;
+                padding-left: max(1rem, env(safe-area-inset-left, 0px));
+                padding-right: max(1rem, env(safe-area-inset-right, 0px));
+            }
+            #screen-product .product-detail-sticky-noon .product-noon-qty button[type='button'],
+            #screen-marketplace-product .product-detail-sticky-noon .product-noon-qty button[type='button'] {
+                width: 2.75rem;
+                height: 2.75rem;
+                font-size: 0.8rem;
+            }
+        }
+        @supports (height: 100dvh) {
+            @media (max-width: 639px) {
+                #product-gallery.product-noon-gallery,
+                #marketplace-product-gallery.product-noon-gallery {
+                    min-height: min(40dvh, 320px);
+                    height: min(46dvh, 400px);
+                }
+                #product-gallery.product-noon-gallery .product-gallery-slide,
+                #marketplace-product-gallery.product-noon-gallery .product-gallery-slide {
+                    min-height: min(40dvh, 320px);
+                    height: min(46dvh, 400px);
+                }
+                #product-gallery.product-noon-gallery .product-gallery-slide img,
+                #marketplace-product-gallery.product-noon-gallery .product-gallery-slide img {
+                    max-height: min(44dvh, 380px);
+                }
+            }
+        }
         .adora-gallery-fraction {
             direction: ltr;
             unicode-bidi: isolate;
@@ -4881,7 +4937,7 @@
                     </button>
                 </div>
                 <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
-                    <img id="marketplace-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
+                    <img id="marketplace-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
             </div>
             <div class="absolute bottom-2 left-0 right-0 z-[50] flex flex-col items-center gap-1 pointer-events-none px-4">
@@ -5034,7 +5090,7 @@
                     </button>
                 </div>
                 <div class="snap-center product-gallery-slide w-full flex-shrink-0 min-w-full flex items-center justify-center bg-transparent">
-                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full max-h-[min(40vh,320px)] h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
+                    <img id="product-gallery-fallback-img" src="icons/adora-icon.svg" class="w-full max-w-full h-auto object-contain opacity-90" width="128" height="128" alt="" draggable="false">
                 </div>
             </div>
 
