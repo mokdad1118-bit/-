@@ -455,6 +455,7 @@ const VP_PARTNER_CTA_PLACEMENT_KEYS = [
   "home_above_marketplace",
   "marketplace_screen",
   "offers_screen",
+  "featured_hub_screen",
   "listing_screen",
 ];
 
@@ -467,6 +468,7 @@ const VP_APP_AD_PLACEMENT_KEYS = [
   "profile_screen",
   "marketplace_screen",
   "offers_screen",
+  "featured_hub_screen",
   "listing_screen",
 ];
 
@@ -2518,6 +2520,8 @@ function readProductForm() {
   const is_flash_sale = document.getElementById("product-is-flash-sale").checked ? 1 : 0;
   const is_new_collection = document.getElementById("product-is-new-collection")?.checked ? 1 : 0;
   const flash_sale_end_time = document.getElementById("product-flash-end").value.trim() || null;
+  const featured_hub_enabled = document.getElementById("product-featured-hub-enabled")?.checked ? 1 : 0;
+  const featured_hub_section = (document.getElementById("product-featured-hub-section")?.value || "").trim() || null;
 
   return {
     productId,
@@ -2538,6 +2542,8 @@ function readProductForm() {
       is_flash_sale,
       is_new_collection,
       flash_sale_end_time: is_flash_sale ? flash_sale_end_time : null,
+      featured_hub_enabled,
+      featured_hub_section: featured_hub_enabled ? featured_hub_section : null,
       sizes,
       colors,
       inventory,
@@ -2582,6 +2588,13 @@ function resetProductForm() {
   const nc = document.getElementById("product-is-new-collection");
   if (nc) nc.checked = false;
   document.getElementById("product-flash-end").value = "";
+  const fhe = document.getElementById("product-featured-hub-enabled");
+  if (fhe) fhe.checked = false;
+  const fhs = document.getElementById("product-featured-hub-section");
+  if (fhs) {
+    fhs.value = "clothes";
+    fhs.disabled = true;
+  }
   syncProductBrandStrip();
 }
 
@@ -2626,6 +2639,14 @@ function fillProductFormFromProduct(product) {
   const ncEl = document.getElementById("product-is-new-collection");
   if (ncEl) ncEl.checked = !!product.is_new_collection;
   document.getElementById("product-flash-end").value = product.flash_sale_end_time ?? "";
+  const fhe = document.getElementById("product-featured-hub-enabled");
+  if (fhe) fhe.checked = !!product.featured_hub_enabled;
+  const fhs = document.getElementById("product-featured-hub-section");
+  if (fhs) {
+    const sec = String(product.featured_hub_section || "clothes").trim() || "clothes";
+    fhs.value = sec;
+    fhs.disabled = !product.featured_hub_enabled;
+  }
   syncProductBrandStrip();
 }
 
@@ -2754,11 +2775,25 @@ function renderProductsTable() {
   const tbody = document.getElementById("products-tbody");
   const ar = getAdminLang() === "ar";
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="12" class="py-6 text-center text-gray-500">${
       products.length && f ? (ar ? "لا نتائج تطابق البحث." : "No matches for this search.") : ar ? "لا منتجات بعد." : "No products yet."
     }</td></tr>`;
     return;
   }
+  const hubSecLabel = (sec) => {
+    const m = {
+      clothes: ar ? "ملابس" : "Clothes",
+      electronics: ar ? "إلكترونيات" : "Electronics",
+      phones: ar ? "موبايلات" : "Phones",
+      shoes: ar ? "أحذية" : "Shoes",
+      accessories: ar ? "إكسسوارات" : "Accessories",
+      bedding: ar ? "فرش" : "Bedding",
+      medical: ar ? "طبية" : "Medical",
+      used: ar ? "مستعمل" : "Used",
+    };
+    const k = String(sec || "").trim().toLowerCase();
+    return m[k] || sec || "—";
+  };
   tbody.innerHTML = list
     .map((p) => {
       const stockN = Number(p.stock);
@@ -2780,6 +2815,7 @@ function renderProductsTable() {
           <td class="py-2">${Number(p.price).toLocaleString()} ل.س</td>
           <td class="py-2">${stockDisp}${invNote}</td>
           <td class="py-2">${p.is_featured ? adminT("yes") : adminT("no")}</td>
+          <td class="py-2 text-xs">${p.featured_hub_enabled ? hubSecLabel(p.featured_hub_section) : "—"}</td>
           <td class="py-2">${p.is_flash_sale ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">${p.is_new_collection ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">
@@ -4411,6 +4447,15 @@ async function bootstrapAuthed() {
     fillSubcategoryOptionsForCategory(document.getElementById("product-category").value, "");
   });
   initProductPlacementRadios();
+  {
+    const fhe = document.getElementById("product-featured-hub-enabled");
+    const fhs = document.getElementById("product-featured-hub-section");
+    const syncFh = () => {
+      if (fhs) fhs.disabled = !(fhe && fhe.checked);
+    };
+    fhe?.addEventListener("change", syncFh);
+    syncFh();
+  }
 
   document.getElementById("btn-refresh-brands").addEventListener("click", loadBrands);
 

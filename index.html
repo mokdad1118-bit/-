@@ -2121,6 +2121,11 @@
             line-height: 1.35;
             padding-top: 0.1rem;
         }
+        .adora-featured-hub-tile--active {
+            border-color: rgba(139, 92, 246, 0.65) !important;
+            background: linear-gradient(145deg, rgba(237, 233, 254, 0.98), rgba(224, 231, 255, 0.92)) !important;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+        }
         /* PDP — عمود مرن: لازم ارتفاع محدد للحاوي حتى يعمل overflow-y على .adora-pdp-scroll
            (بدون height يكبر الأب مع المحتوى فيختفي التمرير الداخلي ويبقى overflow:hidden يقفل الصفحة) */
         #screen-product.adora-pdp-screen.active,
@@ -4809,6 +4814,85 @@
         </div>
     </div>
 
+    <!-- ==================== مميز — أقسام ثابتة + منتجات من لوحة التحكم ==================== -->
+    <div id="screen-featured-hub" class="screen adora-featured-hub-screen bg-gradient-to-b from-violet-50 via-indigo-50/90 to-slate-50 min-h-full">
+        <div id="banner-slot-featured_hub_top" class="px-4 pt-2 space-y-1"></div>
+        <div class="adora-screen-toolbar px-4 py-3 border-b border-violet-100/80 bg-white/60 backdrop-blur-sm">
+            <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="w-8 shrink-0" aria-hidden="true"></span>
+                <h1 class="text-lg font-extrabold text-center flex-1 px-1 min-w-0 truncate bg-gradient-to-r from-violet-700 via-indigo-600 to-violet-600 bg-clip-text text-transparent" data-en="Featured" data-ar="مميز">مميز</h1>
+                <span class="w-8 shrink-0" aria-hidden="true"></span>
+            </div>
+            <p class="text-[11px] text-violet-800/80 text-center leading-relaxed mb-3" data-en="Curated picks by section — choose a tile, then search or browse." data-ar="منتجات مختارة حسب القسم — اختر مربعاً ثم ابحث أو تصفّح.">منتجات مختارة حسب القسم — اختر مربعاً ثم ابحث أو تصفّح.</p>
+            <div class="adora-search-suggest-anchor relative mb-3 z-[35] adora-search-typography">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-violet-300 text-sm pointer-events-none rtl:left-auto rtl:right-3 z-[3]"></i>
+                <div class="adora-search-faux-ph adora-search-faux-ph--toolbar adora-search-faux-ph--featured-hub" data-adora-animated-ph aria-hidden="true">
+                    <span class="adora-search-faux-prefix" data-en="Search in " data-ar="بحث في ">بحث في </span>
+                    <span class="adora-search-faux-rot"><span class="adora-search-faux-rot-text">مميز</span></span>
+                </div>
+                <input type="search" id="featured-hub-search-input" enterkeyhint="search" autocomplete="off"
+                    class="relative z-[1] w-full bg-white/90 text-violet-950 rounded-2xl py-2.5 pl-10 pr-3 rtl:pl-3 rtl:pr-10 text-[0.9375rem] font-semibold focus:outline-none focus:ring-2 focus:ring-violet-400/40 border border-violet-100 shadow-sm"
+                    placeholder=""
+                    data-en-placeholder="" data-ar-placeholder=""
+                    oninput="scheduleFeaturedHubSearchDebounced()" onkeydown="featuredHubSearchOnEnter(event)" />
+            </div>
+            <div id="partner-cta-featured-hub-screen" class="hidden mb-2">
+                <button type="button" class="partner-cta-pill partner-cta-pill--compact flex w-full items-center gap-2" onclick="openVendorJoinPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180"></i></span>
+                    <i class="fas fa-briefcase text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="partner-cta-featured-hub-title"></span>
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
+                </button>
+            </div>
+            <div id="app-ad-cta-featured-hub-screen" class="hidden mb-2">
+                <button type="button" class="app-ad-cta-pill app-ad-cta-pill--compact flex w-full items-center gap-2" onclick="openAppAdInquiryPage()">
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-xs opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
+                    <i class="fas fa-bullhorn text-sm shrink-0"></i>
+                    <span class="min-w-0 flex-1 truncate text-start font-bold" id="app-ad-cta-featured-hub-title"></span>
+                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--sm" aria-hidden="true"><i class="fas fa-chevron-left text-xs opacity-90 rtl:rotate-180"></i></span>
+                </button>
+            </div>
+            <p id="featured-hub-section-label" class="text-xs font-bold text-violet-900/90 text-center mb-2 min-h-[1.25rem]" data-en="Choose a section above" data-ar="اختر قسماً من المربعات أدناه">اختر قسماً من المربعات أدناه</p>
+            <div class="grid grid-cols-4 gap-2">
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="clothes" onclick="selectFeaturedHubSection('clothes')">
+                    <i class="fas fa-tshirt text-violet-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Clothes" data-ar="ملابس">ملابس</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="electronics" onclick="selectFeaturedHubSection('electronics')">
+                    <i class="fas fa-laptop text-indigo-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Electronics" data-ar="إلكترونيات">إلكترونيات</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="phones" onclick="selectFeaturedHubSection('phones')">
+                    <i class="fas fa-mobile-alt text-violet-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Phones" data-ar="موبايلات">موبايلات</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="shoes" onclick="selectFeaturedHubSection('shoes')">
+                    <i class="fas fa-shoe-prints text-indigo-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Shoes" data-ar="أحذية">أحذية</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="accessories" onclick="selectFeaturedHubSection('accessories')">
+                    <i class="fas fa-gem text-violet-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Accessories" data-ar="إكسسوارات">إكسسوارات</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="bedding" onclick="selectFeaturedHubSection('bedding')">
+                    <i class="fas fa-bed text-indigo-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Bedding" data-ar="فرش">فرش</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="medical" onclick="selectFeaturedHubSection('medical')">
+                    <i class="fas fa-heartbeat text-violet-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Medical" data-ar="طبية">طبية</span>
+                </button>
+                <button type="button" class="adora-featured-hub-tile flex flex-col items-center justify-center gap-1 rounded-2xl p-2.5 min-h-[4.25rem] bg-white/85 border border-violet-100 shadow-sm active:scale-[0.97] transition text-center" data-featured-hub-section="used" onclick="selectFeaturedHubSection('used')">
+                    <i class="fas fa-recycle text-indigo-500 text-sm"></i>
+                    <span class="text-[9px] font-extrabold text-violet-900 leading-tight" data-en="Used" data-ar="مستعمل">مستعمل</span>
+                </button>
+            </div>
+        </div>
+        <div id="featured-hub-products-grid" class="p-2 grid grid-cols-2 gap-2 pb-24 min-h-[40vh]">
+            <p class="col-span-2 text-center text-violet-700/80 py-10 text-sm leading-relaxed px-3" data-en="Pick a category tile to see products." data-ar="اختر أحد الأقسام لعرض المنتجات.">اختر أحد الأقسام لعرض المنتجات.</p>
+        </div>
+    </div>
+
     <!-- ==================== OUR OFFERS ==================== -->
     <div id="screen-offers" class="screen bg-gray-50">
         <div id="banner-slot-offers_top" class="px-4 pt-2 space-y-1"></div>
@@ -5752,6 +5836,10 @@
                     <button type="button" onclick="switchTab('screen-listing', this)" class="nav-item flex flex-col items-center gap-0.5 min-w-0 flex-1 py-0.5 text-gray-400 transition" data-screen="screen-listing">
                         <span class="adora-dock-icon-wrap"><i class="fas fa-th-large text-base"></i></span>
                         <span class="text-[9px] font-bold leading-tight truncate max-w-full px-0.5" data-en="Shop" data-ar="تسوق">Shop</span>
+                    </button>
+                    <button type="button" onclick="switchTab('screen-featured-hub', this)" class="nav-item flex flex-col items-center gap-0.5 min-w-0 flex-1 py-0.5 text-gray-400 transition" data-screen="screen-featured-hub">
+                        <span class="adora-dock-icon-wrap"><i class="fas fa-star text-base"></i></span>
+                        <span class="text-[9px] font-bold leading-tight truncate max-w-full px-0.5" data-en="Featured" data-ar="مميز">مميز</span>
                     </button>
                     <button type="button" onclick="switchTab('screen-offers', this)" class="nav-item flex flex-col items-center gap-0.5 min-w-0 flex-1 py-0.5 text-gray-400 transition" data-screen="screen-offers">
                         <span class="adora-dock-icon-wrap"><i class="fas fa-tags text-base"></i></span>

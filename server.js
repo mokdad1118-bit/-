@@ -327,8 +327,29 @@ function normalizeBannerPlacementValue(pl) {
     vendorjointop: "vendor_join_top",
     appadinquirytop: "app_ad_inquiry_top",
     categoriestop: "categories_top",
+    featuredhubtop: "featured_hub_top",
   };
   return aliases[s] || s;
+}
+
+/** أقسام شاشة «مميز» الثابتة في التطبيق */
+const FEATURED_HUB_SECTIONS = new Set([
+  "clothes",
+  "electronics",
+  "phones",
+  "shoes",
+  "accessories",
+  "bedding",
+  "medical",
+  "used",
+]);
+
+function normalizeFeaturedHubSection(raw) {
+  const s = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return FEATURED_HUB_SECTIONS.has(s) ? s : null;
 }
 
 /** الرقم التالي بصيغة ORD-00001 — متسلسل من قاعدة البيانات */
@@ -1258,6 +1279,15 @@ app.get("/api/products", async (req, res) => {
     if (featured === "1") where.push("is_featured=1");
     if (flash === "1") where.push("is_flash_sale=1");
     if (new_collection === "1") where.push("is_new_collection=1");
+    const fh = String(req.query.featured_hub || "").trim();
+    if (fh === "1" || fh === "true") {
+      where.push("featured_hub_enabled=1");
+      const fsec = normalizeFeaturedHubSection(req.query.featured_hub_section);
+      if (fsec) {
+        where.push("featured_hub_section=?");
+        params.push(fsec);
+      }
+    }
     const qtrim = q != null ? String(q).trim() : "";
     if (qtrim) {
       const variants = arabicSearchQueryVariants(qtrim);
@@ -1330,6 +1360,17 @@ app.get("/api/search/suggestions", async (req, res) => {
     const variants = arabicSearchQueryVariants(qtrim);
     if (!variants.length) return res.json([]);
     const maxTotal = Math.min(20, Math.max(4, Number(req.query.limit) || 10));
+    const hubOn = String(req.query.featured_hub || "").trim();
+    const hubSec = normalizeFeaturedHubSection(req.query.featured_hub_section);
+    let hubSql = "";
+    const hubParams = [];
+    if (hubOn === "1" || hubOn === "true") {
+      hubSql += " AND p.featured_hub_enabled = 1";
+      if (hubSec) {
+        hubSql += " AND p.featured_hub_section = ?";
+        hubParams.push(hubSec);
+      }
+    }
 
     const buildProductClauses = () => {
       const clauses = [];
@@ -1400,10 +1441,10 @@ app.get("/api/search/suggestions", async (req, res) => {
       const sql = `SELECT p.id, p.name_ar, p.name_en, p.brand,
         (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.id ASC LIMIT 1) AS thumb
         FROM products p
-        WHERE ${where}
+        WHERE (${where})${hubSql}
         ORDER BY p.id DESC
         LIMIT ?`;
-      const rows = await all(sql, [...params, lim]);
+      const rows = await all(sql, [...params, ...hubParams, lim]);
       for (const r of rows) {
         const o = mapAdoraRow(r);
         if (o) items.push(o);
@@ -1616,17 +1657,28 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       is_flash_sale = 0,
       is_new_collection = 0,
       flash_sale_end_time = null,
+      featured_hub_enabled = 0,
+      featured_hub_section: featuredHubSectionBody = null,
     } = req.body;
     if (!name_ar || !name_en || !description || !category) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+    const fhEn = featured_hub_enabled ? 1 : 0;
+    let fhSec = null;
+    if (fhEn) {
+      fhSec = normalizeFeaturedHubSection(featuredHubSectionBody);
+      if (!fhSec) {
+        return res.status(400).json({ error: "featured_hub_section required when featured hub is enabled" });
+      }
     }
     const invArr = Array.isArray(inventory) ? inventory : [];
     const optArr = Array.isArray(product_options) ? product_options : [];
     const result = await run(
       `INSERT INTO products (
         name_ar, name_en, description, price, discount, category, subcategory, brand,
-        sizes_json, colors_json, stock, inventory_json, product_options_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sizes_json, colors_json, stock, inventory_json, product_options_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time,
+        featured_hub_enabled, featured_hub_section
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_ar,
         name_en,
@@ -1646,6 +1698,8 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
         is_flash_sale ? 1 : 0,
         is_new_collection ? 1 : 0,
         flash_sale_end_time,
+        fhEn,
+        fhSec,
       ]
     );
     for (const imageUrl of images) {
@@ -1680,13 +1734,24 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       is_flash_sale = 0,
       is_new_collection = 0,
       flash_sale_end_time = null,
+      featured_hub_enabled = 0,
+      featured_hub_section: featuredHubSectionPut = null,
     } = req.body;
+    const fhEnPut = featured_hub_enabled ? 1 : 0;
+    let fhSecPut = null;
+    if (fhEnPut) {
+      fhSecPut = normalizeFeaturedHubSection(featuredHubSectionPut);
+      if (!fhSecPut) {
+        return res.status(400).json({ error: "featured_hub_section required when featured hub is enabled" });
+      }
+    }
     const invArr = Array.isArray(inventory) ? inventory : [];
     const optArr = Array.isArray(product_options) ? product_options : [];
     await run(
       `UPDATE products SET
         name_ar=?, name_en=?, description=?, price=?, discount=?, category=?, subcategory=?, brand=?,
-        sizes_json=?, colors_json=?, stock=?, inventory_json=?, product_options_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?
+        sizes_json=?, colors_json=?, stock=?, inventory_json=?, product_options_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?,
+        featured_hub_enabled=?, featured_hub_section=?
        WHERE id=?`,
       [
         name_ar,
@@ -1707,6 +1772,8 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
         is_flash_sale ? 1 : 0,
         is_new_collection ? 1 : 0,
         flash_sale_end_time,
+        fhEnPut,
+        fhSecPut,
         id,
       ]
     );

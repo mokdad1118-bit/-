@@ -346,6 +346,7 @@ async function initDb() {
   await migrateMarketplaceHomePlacementsV1();
   await migrateAppAdBannerV1();
   await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
+  await migrateProductsFeaturedHubV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -815,6 +816,15 @@ async function migrateMarketplaceHomePlacementsV1() {
 }
 
 /** بانر ملاحظات الزبائن + هاتف التسجيل + شرائح متعددة لبنري الانضمام/الإعلان */
+/** قائمة «مميز» في التطبيق — أقسام ثابتة يختارها المشرف لكل منتج */
+async function migrateProductsFeaturedHubV1() {
+  await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS featured_hub_enabled INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS featured_hub_section TEXT`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_products_featured_hub ON products (featured_hub_enabled, featured_hub_section) WHERE featured_hub_enabled = 1`
+  );
+}
+
 async function migrateAdoraFeedbackBannersSignupPhoneSlidesV1() {
   await run(`ALTER TABLE app_banners ADD COLUMN IF NOT EXISTS banner_kind TEXT NOT NULL DEFAULT 'standard'`);
   await run(`

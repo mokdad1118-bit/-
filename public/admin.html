@@ -269,6 +269,32 @@
                   </div>
                 </div>
 
+                <div class="md:col-span-2 rounded-2xl border border-violet-100 bg-violet-50/50 p-4 space-y-3">
+                  <p class="text-sm font-bold text-gray-900">
+                    <span data-en="«Featured» hub in app (مميز)" data-ar="قائمة «مميز» في التطبيق">قائمة «مميز» في التطبيق</span>
+                  </p>
+                  <p class="text-xs text-gray-600 leading-relaxed">
+                    <span data-en="If enabled, the product appears only in the Featured tab under the section you choose (admin-controlled)." data-ar="عند التفعيل يظهر المنتج في تبويب «مميز» ضمن القسم الذي تختاره فقط.">عند التفعيل يظهر المنتج في تبويب «مميز» ضمن القسم الذي تختاره فقط.</span>
+                  </p>
+                  <label class="flex items-start gap-2 cursor-pointer">
+                    <input id="product-featured-hub-enabled" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
+                    <span class="text-sm font-semibold leading-snug" data-en="Show in Featured (مميز) hub" data-ar="إظهار في قائمة مميز">إظهار في قائمة مميز</span>
+                  </label>
+                  <div>
+                    <label class="text-sm font-semibold" for="product-featured-hub-section"><span data-en="Section inside Featured" data-ar="القسم داخل مميز">القسم داخل مميز</span></label>
+                    <select id="product-featured-hub-section" class="mt-1 w-full max-w-md p-3 rounded-xl border border-gray-200 bg-white text-sm">
+                      <option value="clothes" data-en="Clothes" data-ar="ملابس">ملابس</option>
+                      <option value="electronics" data-en="Electronics" data-ar="إلكترونيات">إلكترونيات</option>
+                      <option value="phones" data-en="Phones" data-ar="موبايلات">موبايلات</option>
+                      <option value="shoes" data-en="Shoes" data-ar="أحذية">أحذية</option>
+                      <option value="accessories" data-en="Accessories" data-ar="إكسسوارات">إكسسوارات</option>
+                      <option value="bedding" data-en="Bedding" data-ar="فرش">فرش</option>
+                      <option value="medical" data-en="Medical" data-ar="طبية">طبية</option>
+                      <option value="used" data-en="Used" data-ar="مستعمل">مستعمل</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div class="md:col-span-2">
                   <label class="text-sm font-semibold"><span data-en="Flash sale end (ISO)" data-ar="نهاية التخفيض السريع (ISO)">نهاية التخفيض السريع (ISO)</span></label>
                   <input id="product-flash-end" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="2026-03-25T12:00:00.000Z" data-ar-ph="2026-03-25T12:00:00.000Z" placeholder="2026-03-25T12:00:00.000Z" />
@@ -304,6 +330,7 @@
                       <th class="py-2" data-en="Price" data-ar="السعر">السعر</th>
                       <th class="py-2" data-en="Stock" data-ar="المخزون">المخزون</th>
                       <th class="py-2" data-en="Featured" data-ar="مميز">مميز</th>
+                      <th class="py-2" data-en="Featured hub" data-ar="مميز (قائمة)">مميز (قائمة)</th>
                       <th class="py-2" data-en="Flash" data-ar="سريع">سريع</th>
                       <th class="py-2" data-en="New" data-ar="جديد">جديد</th>
                       <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
@@ -1288,6 +1315,7 @@
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-home_above_marketplace" class="rounded" /><span>فوق بلوك السوق بالرئيسية</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-featured_hub_screen" class="rounded" /><span>شاشة مميز</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
                   </div>
                   <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل الدعوة» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
@@ -1322,6 +1350,7 @@
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-profile_screen" class="rounded" /><span>شاشة الملف الشخصي (حسابي)</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-marketplace_screen" class="rounded" /><span>شاشة السوق الشامل</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-offers_screen" class="rounded" /><span>شاشة العروض</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-featured_hub_screen" class="rounded" /><span>شاشة مميز</span></label>
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="vp-aad-pl-listing_screen" class="rounded" /><span>قائمة منتجات شركة / مول</span></label>
                   </div>
                   <p class="text-[11px] text-gray-500 leading-relaxed">عطّل «تفعيل بنر الإعلانات» أعلاه لإخفاء كل المواضع دفعة واحدة.</p>
@@ -1391,6 +1420,7 @@
                     <optgroup label="قوائم وتفاصيل">
                       <option value="listing_top">listing_top — قائمة المنتجات</option>
                       <option value="offers_top">offers_top — شاشة العروض</option>
+                      <option value="featured_hub_top">featured_hub_top — شاشة مميز</option>
                       <option value="wishlist_top">wishlist_top — المفضلة</option>
                       <option value="marketplace_top">marketplace_top — السوق الشامل</option>
                       <option value="mp_product_top">mp_product_top — منتج السوق</option>

@@ -1115,6 +1115,9 @@
         /** خريطة optionId → valueId للمنتجات ذات المواصفات الديناميكية */
         let productDetailVariantPick = {};
         let listingSearchDebounceTimer = null;
+        /** تبويب «مميز» — قسم الشبكة النشط + بحث ضمن المنتجات المفعّلة من لوحة التحكم */
+        let featuredHubSection = null;
+        let featuredHubSearchDebounceTimer = null;
         let productDetailBackScreen = 'screen-categories';
         let siteRatingSelected = 0;
         let productReviewSelected = 0;
@@ -1142,6 +1145,7 @@
         const ADORA_VALID_RESTORE_SCREENS = new Set([
             'screen-categories',
             'screen-listing',
+            'screen-featured-hub',
             'screen-offers',
             'screen-wishlist',
             'screen-vendor-join',
@@ -1227,7 +1231,14 @@
         }
 
         function setActiveNavForScreen(screenId) {
-            const keys = ['screen-categories', 'screen-listing', 'screen-offers', 'screen-cart', 'screen-profile'];
+            const keys = [
+                'screen-categories',
+                'screen-listing',
+                'screen-featured-hub',
+                'screen-offers',
+                'screen-cart',
+                'screen-profile',
+            ];
             if (!keys.includes(screenId)) return;
             document.querySelectorAll('.nav-item').forEach((item) => {
                 item.classList.remove('active', 'text-purple-600');
@@ -1628,7 +1639,14 @@
         window.adoraPopNavStackOneStep = adoraPopNavStackOneStep;
 
         function switchTab(screenId, btn) {
-            const dockTabIds = ['screen-categories', 'screen-listing', 'screen-offers', 'screen-cart', 'screen-profile'];
+            const dockTabIds = [
+                'screen-categories',
+                'screen-listing',
+                'screen-featured-hub',
+                'screen-offers',
+                'screen-cart',
+                'screen-profile',
+            ];
             const isSameDockTab = dockTabIds.includes(screenId) && currentScreen === screenId;
 
             if (screenId === 'screen-listing' && !isSameDockTab) {
@@ -2730,6 +2748,10 @@
             if (screenId === 'screen-offers') {
                 loadOffersPageProducts();
             }
+            if (screenId === 'screen-featured-hub') {
+                syncFeaturedHubCategoryTilesUi();
+                loadFeaturedHubProducts().catch(() => {});
+            }
             if (screenId === 'screen-wishlist') {
                 loadWishlistPageProducts();
             }
@@ -2770,7 +2792,7 @@
                 syncAppAdInquiryTermsFromConfig();
                 bindAppAdPageFormOnce();
             }
-            if (screenId === 'screen-offers' || screenId === 'screen-listing') {
+            if (screenId === 'screen-offers' || screenId === 'screen-listing' || screenId === 'screen-featured-hub') {
                 syncPartnerCtaDom();
                 syncAppAdCtaDom();
             }
@@ -2908,6 +2930,12 @@
             }
             if (sid === 'screen-offers') {
                 await loadOffersPageProducts();
+                syncPartnerCtaDom();
+                syncAppAdCtaDom();
+                return;
+            }
+            if (sid === 'screen-featured-hub') {
+                await loadFeaturedHubProducts();
                 syncPartnerCtaDom();
                 syncAppAdCtaDom();
                 return;
@@ -3243,6 +3271,10 @@
             if (currentScreen === 'screen-offers') {
                 loadOffersPageProducts().catch(() => {});
             }
+            if (currentScreen === 'screen-featured-hub') {
+                syncFeaturedHubCategoryTilesUi();
+                loadFeaturedHubProducts().catch(() => {});
+            }
             if (currentScreen === 'screen-wishlist') {
                 loadWishlistPageProducts().catch(() => {});
             }
@@ -3571,6 +3603,7 @@
             toggle('partner-cta-home-above-marketplace', master && partnerCtaPlacementOn('home_above_marketplace'));
             toggle('partner-cta-marketplace-screen', master && partnerCtaPlacementOn('marketplace_screen'));
             toggle('partner-cta-offers-screen', master && partnerCtaPlacementOn('offers_screen'));
+            toggle('partner-cta-featured-hub-screen', master && partnerCtaPlacementOn('featured_hub_screen'));
             toggle('partner-cta-listing-screen', master && partnerCtaPlacementOn('listing_screen'));
 
             let slideIdx = 0;
@@ -3604,6 +3637,8 @@
                 if (mEl) mEl.textContent = compact;
                 const oEl = document.getElementById('partner-cta-offers-title');
                 if (oEl) oEl.textContent = compact;
+                const fhEl = document.getElementById('partner-cta-featured-hub-title');
+                if (fhEl) fhEl.textContent = compact;
                 const lEl = document.getElementById('partner-cta-listing-title');
                 if (lEl) lEl.textContent = compact;
             };
@@ -3654,6 +3689,7 @@
             toggle('app-ad-cta-home-above-marketplace', master && appAdCtaPlacementOn('home_above_marketplace'));
             toggle('app-ad-cta-marketplace-screen', master && appAdCtaPlacementOn('marketplace_screen'));
             toggle('app-ad-cta-offers-screen', master && appAdCtaPlacementOn('offers_screen'));
+            toggle('app-ad-cta-featured-hub-screen', master && appAdCtaPlacementOn('featured_hub_screen'));
             toggle('app-ad-cta-listing-screen', master && appAdCtaPlacementOn('listing_screen'));
             toggle('app-ad-side-menu', master && appAdCtaPlacementOn('side_menu_account'));
             toggle('app-ad-cta-profile-screen', master && appAdCtaPlacementOn('profile_screen'));
@@ -3695,7 +3731,14 @@
                 setSubVis(s4, sub);
 
                 const compact = sub ? `${lineTitle} — ${sub}` : lineTitle;
-                [['app-ad-cta-listing-title'], ['app-ad-cta-offers-title'], ['app-ad-cta-marketplace-title'], ['app-ad-side-menu-title'], ['app-ad-cta-profile-title']].forEach(([id]) => {
+                [
+                    ['app-ad-cta-listing-title'],
+                    ['app-ad-cta-offers-title'],
+                    ['app-ad-cta-featured-hub-title'],
+                    ['app-ad-cta-marketplace-title'],
+                    ['app-ad-side-menu-title'],
+                    ['app-ad-cta-profile-title'],
+                ].forEach(([id]) => {
                     const el = document.getElementById(id);
                     if (el) el.textContent = compact;
                 });
@@ -7202,7 +7245,9 @@
             const wrap = fauxEl.parentElement;
             if (!wrap) return null;
             return (
-                wrap.querySelector('#search-input, #listing-search-input, #marketplace-search-input') ||
+                wrap.querySelector(
+                    '#search-input, #listing-search-input, #featured-hub-search-input, #marketplace-search-input'
+                ) ||
                 wrap.querySelector('input[type="search"], input[type="text"]')
             );
         }
@@ -7241,7 +7286,7 @@
 
         function getAdoraSearchSuggestScope(inputId) {
             if (inputId === 'marketplace-search-input') return 'marketplace';
-            if (inputId === 'listing-search-input') return 'products';
+            if (inputId === 'listing-search-input' || inputId === 'featured-hub-search-input') return 'products';
             return 'all';
         }
 
@@ -7361,6 +7406,9 @@
                     listingSearchQuery = q;
                     input.value = q;
                     loadListingPageProducts().catch(() => {});
+                } else if (input.id === 'featured-hub-search-input') {
+                    input.value = q;
+                    loadFeaturedHubProducts().catch(() => {});
                 } else if (input.id === 'marketplace-search-input') {
                     input.value = q;
                     refreshMarketplaceProductList().catch(() => {});
@@ -7451,10 +7499,14 @@
                     return;
                 }
                 try {
-                    const rows = await apiFetch(
-                        `/api/search/suggestions?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope || 'all')}`,
-                        { requireAuth: false }
-                    );
+                    let sugUrl = `/api/search/suggestions?q=${encodeURIComponent(q)}&scope=${encodeURIComponent(scope || 'all')}`;
+                    if (input && input.id === 'featured-hub-search-input') {
+                        sugUrl += '&featured_hub=1';
+                        if (featuredHubSection) {
+                            sugUrl += `&featured_hub_section=${encodeURIComponent(featuredHubSection)}`;
+                        }
+                    }
+                    const rows = await apiFetch(sugUrl, { requireAuth: false });
                     const list = normalizeAdoraSearchSuggestionRows(rows);
                     showAdoraSearchSuggestionsUnder(input, list);
                 } catch (_e) {
@@ -7575,6 +7627,7 @@
                 };
                 bind('search-input');
                 bind('listing-search-input');
+                bind('featured-hub-search-input');
                 bind('marketplace-search-input');
             }
             restartAdoraAnimatedSearchTimer();
@@ -7826,6 +7879,90 @@
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
             }
         }
+
+        const FEATURED_HUB_SECTION_LABELS = {
+            clothes: { ar: 'ملابس', en: 'Clothes' },
+            electronics: { ar: 'إلكترونيات', en: 'Electronics' },
+            phones: { ar: 'موبايلات', en: 'Phones' },
+            shoes: { ar: 'أحذية', en: 'Shoes' },
+            accessories: { ar: 'إكسسوارات', en: 'Accessories' },
+            bedding: { ar: 'فرش', en: 'Bedding' },
+            medical: { ar: 'طبية', en: 'Medical' },
+            used: { ar: 'مستعمل', en: 'Used' },
+        };
+
+        function syncFeaturedHubCategoryTilesUi() {
+            document.querySelectorAll('#screen-featured-hub [data-featured-hub-section]').forEach((btn) => {
+                const k = btn.getAttribute('data-featured-hub-section') || '';
+                btn.classList.toggle('adora-featured-hub-tile--active', !!featuredHubSection && k === featuredHubSection);
+            });
+            const lab = document.getElementById('featured-hub-section-label');
+            if (!lab) return;
+            if (!featuredHubSection) {
+                lab.textContent = isRTL ? 'اختر قسماً من المربعات أدناه' : 'Pick a section tile below';
+                return;
+            }
+            const L = FEATURED_HUB_SECTION_LABELS[featuredHubSection];
+            lab.textContent = L ? (isRTL ? L.ar : L.en) : featuredHubSection;
+        }
+
+        function selectFeaturedHubSection(sectionKey) {
+            const k = String(sectionKey || '').trim().toLowerCase();
+            if (!FEATURED_HUB_SECTION_LABELS[k]) return;
+            featuredHubSection = k;
+            syncFeaturedHubCategoryTilesUi();
+            loadFeaturedHubProducts().catch(() => {});
+        }
+        window.selectFeaturedHubSection = selectFeaturedHubSection;
+
+        function scheduleFeaturedHubSearchDebounced() {
+            clearTimeout(featuredHubSearchDebounceTimer);
+            featuredHubSearchDebounceTimer = setTimeout(() => {
+                loadFeaturedHubProducts().catch(() => {});
+            }, 380);
+        }
+        window.scheduleFeaturedHubSearchDebounced = scheduleFeaturedHubSearchDebounced;
+
+        function featuredHubSearchOnEnter(ev) {
+            if (ev.key !== 'Enter') return;
+            ev.preventDefault();
+            clearTimeout(featuredHubSearchDebounceTimer);
+            loadFeaturedHubProducts().catch(() => {});
+        }
+        window.featuredHubSearchOnEnter = featuredHubSearchOnEnter;
+
+        async function loadFeaturedHubProducts() {
+            const grid = document.getElementById('featured-hub-products-grid');
+            if (!grid) return;
+            if (!featuredHubSection) {
+                grid.innerHTML = `<p class="col-span-2 text-center text-violet-700/80 py-10 text-sm leading-relaxed px-3">${
+                    isRTL ? 'اختر أحد الأقسام لعرض المنتجات.' : 'Pick a category tile to see products.'
+                }</p>`;
+                return;
+            }
+            grid.innerHTML = adoraSkeletonProductGridHtml(8);
+            const inp = document.getElementById('featured-hub-search-input');
+            const q = inp ? String(inp.value || '').trim() : '';
+            try {
+                const qs = new URLSearchParams();
+                qs.set('featured_hub', '1');
+                qs.set('featured_hub_section', featuredHubSection);
+                if (q) qs.set('q', q);
+                const rows = await apiFetch(`/api/products?${qs.toString()}`, { requireAuth: false });
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) {
+                    grid.innerHTML = `<p class="col-span-2 text-center text-violet-700/80 py-10 text-sm leading-relaxed px-3">${
+                        isRTL ? 'لا توجد منتجات تطابق البحث أو القسم.' : 'No products match this section or search.'
+                    }</p>`;
+                    return;
+                }
+                const pieces = list.map((p) => renderProductCardHtml(p, { compact: true }));
+                adoraInsertAdjacentHtmlChunked(grid, pieces, 10);
+            } catch (e) {
+                grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;
+            }
+        }
+        window.loadFeaturedHubProducts = loadFeaturedHubProducts;
 
         async function openProductDetail(id, opts = {}) {
             const skipNavigate = opts.skipNavigate === true;
@@ -9587,6 +9724,7 @@
                 vendorjointop: 'vendor_join_top',
                 appadinquirytop: 'app_ad_inquiry_top',
                 categoriestop: 'categories_top',
+                featuredhubtop: 'featured_hub_top',
             };
             return aliases[s] || s;
         }

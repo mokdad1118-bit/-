@@ -87,6 +87,7 @@ const PARTNER_CTA_PLACEMENT_KEYS = [
   "home_above_marketplace",
   "marketplace_screen",
   "offers_screen",
+  "featured_hub_screen",
   "listing_screen",
 ];
 
@@ -121,6 +122,7 @@ const APP_AD_PLACEMENT_KEYS = [
   "profile_screen",
   "marketplace_screen",
   "offers_screen",
+  "featured_hub_screen",
   "listing_screen",
 ];
 
