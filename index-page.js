@@ -7894,12 +7894,14 @@
         function syncFeaturedHubCategoryTilesUi() {
             document.querySelectorAll('#screen-featured-hub [data-featured-hub-section]').forEach((btn) => {
                 const k = btn.getAttribute('data-featured-hub-section') || '';
-                btn.classList.toggle('adora-featured-hub-tile--active', !!featuredHubSection && k === featuredHubSection);
+                const on = !!featuredHubSection && k === featuredHubSection;
+                btn.classList.toggle('adora-featured-hub-tile--active', on);
+                btn.setAttribute('aria-selected', on ? 'true' : 'false');
             });
             const lab = document.getElementById('featured-hub-section-label');
             if (!lab) return;
             if (!featuredHubSection) {
-                lab.textContent = isRTL ? 'اختر قسماً من المربعات أدناه' : 'Pick a section tile below';
+                lab.textContent = isRTL ? 'اختر القسم' : 'Choose a category';
                 return;
             }
             const L = FEATURED_HUB_SECTION_LABELS[featuredHubSection];
