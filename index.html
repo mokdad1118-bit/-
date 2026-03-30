@@ -2250,7 +2250,7 @@
         }
         #screen-product .product-noon-sheet,
         #screen-marketplace-product .product-noon-sheet {
-            padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+            padding-bottom: calc(11.25rem + env(safe-area-inset-bottom, 0px));
             border-radius: 1.35rem;
             box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
             margin-left: max(0.5rem, env(safe-area-inset-left, 0px));
@@ -2266,11 +2266,12 @@
             padding-left: max(1rem, env(safe-area-inset-left, 0px));
             padding-right: max(1rem, env(safe-area-inset-right, 0px));
         }
-        #screen-product .product-detail-sticky-noon .product-noon-qty button[type='button'],
-        #screen-marketplace-product .product-detail-sticky-noon .product-noon-qty button[type='button'] {
-            width: 2.75rem;
-            height: 2.75rem;
-            font-size: 0.8rem;
+        #screen-product .sticky-bottom.adora-pdp-sticky-buy,
+        #screen-marketplace-product .sticky-bottom.adora-pdp-sticky-buy {
+            padding-top: 10px;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+            padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+            padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
         }
         @supports (height: 100dvh) {
             #product-gallery.product-noon-gallery,
@@ -2522,38 +2523,96 @@
 
         .product-detail-sticky-noon {
             display: flex;
+            flex-direction: column;
             align-items: stretch;
-            gap: 0.5rem;
+            gap: 8px;
+            width: 100%;
         }
-        .product-detail-sticky-noon .product-noon-qty {
+        .product-detail-sticky-noon .product-noon-qty--bar {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 44px;
+            height: 44px;
+            max-height: 48px;
+            padding: 0 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 102, 223, 0.2);
+            background: linear-gradient(180deg, #fbfcff 0%, #f1f5f9 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.95),
+                0 1px 3px rgba(15, 23, 42, 0.05);
+        }
+        .product-detail-sticky-noon .product-noon-qty-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+        .product-detail-sticky-noon .product-noon-qty-stepper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .product-detail-sticky-noon .product-noon-qty--bar button[type='button'] {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: #fff;
+            color: #475569;
+            font-size: 0.7rem;
+            transition: background 0.15s ease, transform 0.12s ease;
+        }
+        .product-detail-sticky-noon .product-noon-qty--bar button[type='button']:hover {
+            background: #f8fafc;
+        }
+        .product-detail-sticky-noon .product-noon-qty--bar .product-noon-qty-value {
+            min-width: 1.75rem;
+            text-align: center;
+            font-weight: 900;
+            font-size: 0.9375rem;
+            color: #0f172a;
+            font-variant-numeric: tabular-nums;
+        }
+        .product-detail-sticky-noon .product-noon-actions {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 8px;
+            width: 100%;
+        }
+        .product-detail-sticky-noon .product-noon-buy,
+        .product-detail-sticky-noon .product-noon-cart {
+            flex: 1 1 0;
+            min-width: 0;
+            min-height: 52px;
+            max-height: 60px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.8125rem;
+            line-height: 1.15;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 3rem;
-            padding: 0.35rem 0.25rem;
-            border-radius: 0.875rem;
-            border: 1px solid rgba(199, 210, 254, 0.85);
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.06);
-        }
-        .product-detail-sticky-noon .product-noon-qty span:first-of-type {
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: #6b7280;
-            line-height: 1;
+            gap: 2px;
+            padding: 6px 8px;
+            box-sizing: border-box;
         }
         .product-detail-sticky-noon .product-noon-buy {
-            flex: 1;
-            min-width: 0;
-            border-radius: 0.875rem;
-            font-weight: 800;
-            font-size: 0.8125rem;
             border: 1.5px solid #3866df;
             color: #3866df;
             background: #ffffff;
-            padding: 0.65rem 0.5rem;
-            line-height: 1.2;
             transition: background 0.2s ease, border-color 0.2s ease;
         }
         .product-detail-sticky-noon .product-noon-buy:hover {
@@ -2561,44 +2620,29 @@
             border-color: #2d56c4;
         }
         .product-detail-sticky-noon .product-noon-cart {
-            flex: 1;
-            min-width: 0;
-            border-radius: 0.875rem;
-            font-weight: 800;
-            font-size: 0.8125rem;
             border: none;
             color: #fff;
             background: #3866df;
-            padding: 0.65rem 0.5rem;
-            line-height: 1.2;
             box-shadow: 0 6px 18px rgba(56, 102, 223, 0.35);
             transition: filter 0.2s ease, transform 0.15s ease;
         }
         .product-detail-sticky-noon .product-noon-cart:hover {
             filter: brightness(1.05);
         }
-        .product-detail-sticky-noon .product-noon-qty {
-            border-color: rgba(56, 102, 223, 0.22);
-            background: #f8fafc;
+        .product-detail-sticky-noon .product-noon-cart .product-noon-cart-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
         }
-        /* RTL: كمية يمين ← شراء ← عربة يسار | LTR: عربة يسار ← شراء ← كمية يمين */
-        [dir='ltr'] .product-detail-sticky-noon .product-noon-cart {
-            order: 1;
-        }
-        [dir='ltr'] .product-detail-sticky-noon .product-noon-buy {
-            order: 2;
-        }
-        [dir='ltr'] .product-detail-sticky-noon .product-noon-qty {
-            order: 3;
-        }
-        [dir='rtl'] .product-detail-sticky-noon .product-noon-qty {
-            order: 1;
-        }
-        [dir='rtl'] .product-detail-sticky-noon .product-noon-buy {
-            order: 2;
-        }
-        [dir='rtl'] .product-detail-sticky-noon .product-noon-cart {
-            order: 3;
+        .product-detail-sticky-noon .product-noon-cart .product-noon-cart-price {
+            font-size: 0.625rem;
+            font-weight: 800;
+            opacity: 0.95;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -5371,25 +5415,27 @@
         </div>
         </div>
 
-        <div class="sticky-bottom">
+        <div class="sticky-bottom adora-pdp-sticky-buy">
             <div class="product-detail-sticky-noon">
-                <div class="product-noon-qty">
-                    <span data-en="Qty" data-ar="الكمية">الكمية</span>
-                    <div class="flex items-center gap-0.5 mt-1">
-                        <button type="button" onclick="updateMarketplaceDetailQty(-1)" class="w-7 h-7 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 active:scale-95 transition text-xs" aria-label="-">
+                <div class="product-noon-qty product-noon-qty--bar">
+                    <span class="product-noon-qty-label" data-en="Qty" data-ar="الكمية">الكمية</span>
+                    <div class="product-noon-qty-stepper">
+                        <button type="button" onclick="updateMarketplaceDetailQty(-1)" class="active:scale-95 transition-transform" aria-label="-">
                             <i class="fas fa-minus"></i>
                         </button>
-                        <span id="marketplace-qty-display" class="min-w-[1.35rem] text-center font-extrabold text-gray-900 text-sm tabular-nums">1</span>
-                        <button type="button" onclick="updateMarketplaceDetailQty(1)" class="w-7 h-7 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 active:scale-95 transition text-xs" aria-label="+">
+                        <span id="marketplace-qty-display" class="product-noon-qty-value">1</span>
+                        <button type="button" onclick="updateMarketplaceDetailQty(1)" class="active:scale-95 transition-transform" aria-label="+">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
-                <button type="button" onclick="buyMarketplaceNow()" class="product-noon-buy active:scale-[0.98] transition-transform" data-en="Buy now" data-ar="اشترِ الآن">اشترِ الآن</button>
-                <button type="button" onclick="addMarketplaceProductToCart()" class="product-noon-cart active:scale-[0.98] transition-transform flex flex-col items-center justify-center gap-0.5">
-                    <span class="flex items-center gap-1.5"><i class="fas fa-shopping-bag text-sm"></i><span data-en="Add to cart" data-ar="أضف إلى العربة">أضف إلى العربة</span></span>
-                    <span id="marketplace-detail-add-price" class="text-[10px] font-bold opacity-95 truncate max-w-full leading-tight">—</span>
-                </button>
+                <div class="product-noon-actions">
+                    <button type="button" onclick="addMarketplaceProductToCart()" class="product-noon-cart active:scale-[0.98] transition-transform">
+                        <span class="product-noon-cart-row"><i class="fas fa-shopping-bag text-sm"></i><span data-en="Add to cart" data-ar="أضف إلى السلة">أضف إلى السلة</span></span>
+                        <span id="marketplace-detail-add-price" class="product-noon-cart-price">—</span>
+                    </button>
+                    <button type="button" onclick="buyMarketplaceNow()" class="product-noon-buy active:scale-[0.98] transition-transform" data-en="Buy now" data-ar="اشترِ الآن">اشترِ الآن</button>
+                </div>
             </div>
         </div>
     </div>
@@ -5569,25 +5615,27 @@
         </div>
         </div>
 
-        <div class="sticky-bottom">
+        <div class="sticky-bottom adora-pdp-sticky-buy">
             <div class="product-detail-sticky-noon">
-                <div class="product-noon-qty">
-                    <span data-en="Qty" data-ar="الكمية">الكمية</span>
-                    <div class="flex items-center gap-0.5 mt-1">
-                        <button type="button" onclick="updateQty(-1)" class="w-7 h-7 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 active:scale-95 transition text-xs" aria-label="-">
+                <div class="product-noon-qty product-noon-qty--bar">
+                    <span class="product-noon-qty-label" data-en="Qty" data-ar="الكمية">الكمية</span>
+                    <div class="product-noon-qty-stepper">
+                        <button type="button" onclick="updateQty(-1)" class="active:scale-95 transition-transform" aria-label="-">
                             <i class="fas fa-minus"></i>
                         </button>
-                        <span id="qty-display" class="min-w-[1.35rem] text-center font-extrabold text-gray-900 text-sm tabular-nums">1</span>
-                        <button type="button" onclick="updateQty(1)" class="w-7 h-7 flex items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 active:scale-95 transition text-xs" aria-label="+">
+                        <span id="qty-display" class="product-noon-qty-value">1</span>
+                        <button type="button" onclick="updateQty(1)" class="active:scale-95 transition-transform" aria-label="+">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
-                <button type="button" onclick="buyNow()" class="product-noon-buy active:scale-[0.98] transition-transform" data-en="Buy now" data-ar="اشترِ الآن">اشترِ الآن</button>
-                <button type="button" onclick="addToCart()" class="product-noon-cart active:scale-[0.98] transition-transform flex flex-col items-center justify-center gap-0.5">
-                    <span class="flex items-center gap-1.5"><i class="fas fa-shopping-bag text-sm"></i><span data-en="Add to cart" data-ar="أضف إلى العربة">أضف إلى العربة</span></span>
-                    <span id="product-detail-add-price" class="text-[10px] font-bold opacity-95 truncate max-w-full leading-tight"> — 189,900 ل.س</span>
-                </button>
+                <div class="product-noon-actions">
+                    <button type="button" onclick="addToCart()" class="product-noon-cart active:scale-[0.98] transition-transform">
+                        <span class="product-noon-cart-row"><i class="fas fa-shopping-bag text-sm"></i><span data-en="Add to cart" data-ar="أضف إلى السلة">أضف إلى السلة</span></span>
+                        <span id="product-detail-add-price" class="product-noon-cart-price"> — 189,900 ل.س</span>
+                    </button>
+                    <button type="button" onclick="buyNow()" class="product-noon-buy active:scale-[0.98] transition-transform" data-en="Buy now" data-ar="اشترِ الآن">اشترِ الآن</button>
+                </div>
             </div>
         </div>
     </div>
