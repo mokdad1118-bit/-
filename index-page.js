@@ -772,7 +772,7 @@
             return Number(p?.price ?? 0);
         }
         function productDiscountPct(p) {
-            const d = Number(p?.discount ?? 0);
+            const d = Number(p?.discount ?? p?.discount_percent ?? 0);
             return d > 0 && d < 100 ? d : 0;
         }
         function productSaleUnitPrice(p) {
@@ -4375,12 +4375,26 @@
             params.set('sort', 'newest');
             grid.innerHTML = adoraSkeletonProductGridHtml(8);
             try {
+                const narrow =
+                    (marketplaceBrowseVendorId != null && Number.isFinite(marketplaceBrowseVendorId)) ||
+                    (marketplaceBrowseSectionId != null && Number.isFinite(marketplaceBrowseSectionId));
                 const products = await apiFetch(`/api/marketplace/products?${params.toString()}`, { requireAuth: false });
                 const arr = Array.isArray(products) ? products : [];
-                if (!arr.length) {
-                    const narrow =
-                        (marketplaceBrowseVendorId != null && Number.isFinite(marketplaceBrowseVendorId)) ||
-                        (marketplaceBrowseSectionId != null && Number.isFinite(marketplaceBrowseSectionId));
+                let catList = [];
+                if (!narrow && q) {
+                    try {
+                        const cq = new URLSearchParams();
+                        cq.set('q', q);
+                        cq.set('in_marketplace_tab', '1');
+                        cq.set('merge_marketplace', '0');
+                        const cr = await apiFetch(`/api/products?${cq.toString()}`, { requireAuth: false });
+                        catList = Array.isArray(cr) ? cr : [];
+                    } catch (_e) {
+                        catList = [];
+                    }
+                }
+                const combined = arr.length + catList.length;
+                if (!combined) {
                     let emptyMsg;
                     if (q) {
                         emptyMsg = isRTL ? 'لا نتائج.' : 'No results.';
@@ -4446,7 +4460,8 @@
                             </div>
                         </div>`;
                 });
-                adoraInsertAdjacentHtmlChunked(grid, mpPieces, 8);
+                const catPieces = catList.map((p) => renderProductCardHtml(p, { compact: true }));
+                adoraInsertAdjacentHtmlChunked(grid, [...mpPieces, ...catPieces], 8);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-10 text-sm">${escapeHtml(e.message || (isRTL ? 'تعذر التحميل' : 'Failed to load'))}</p>`;
             }
@@ -5478,6 +5493,9 @@
                     const avg = p.review_avg != null ? Number(p.review_avg) : null;
                     if (avg == null || Number.isNaN(avg) || avg < minR) return false;
                 }
+                if (p.adora_listing_kind === 'marketplace') {
+                    return true;
+                }
                 if (selectedSizes.length) {
                     const sz = Array.isArray(p.sizes) ? p.sizes : [];
                     const ok = sz.some((s) =>
@@ -5503,7 +5521,11 @@
                 }</p>`;
                 return;
             }
-            const pieces = products.map((p) => renderProductCardHtml(p, { compact: true }));
+            const pieces = products.map((p) =>
+                p.adora_listing_kind === 'marketplace'
+                    ? renderMpProductCardHomeCompact(p)
+                    : renderProductCardHtml(p, { compact: true })
+            );
             adoraInsertAdjacentHtmlChunked(grid, pieces, 10);
         }
 
@@ -7863,6 +7885,23 @@
                     const offerDisc = Number(row.discount_percent || 0);
                     const prodDisc = Number(row.discount || 0);
                     const disc = offerDisc > 0 ? offerDisc : prodDisc;
+                    const mid = row.marketplace_product_id != null ? Number(row.marketplace_product_id) : NaN;
+                    if (Number.isFinite(mid) && mid > 0) {
+                        const mpCard = {
+                            id: mid,
+                            name_ar: row.name_ar,
+                            name_en: row.name_en,
+                            price: row.price,
+                            discount_percent: disc,
+                            images: Array.isArray(row.images) ? row.images : [],
+                            vendor_name_ar: row.brand,
+                            vendor_name_en: row.brand,
+                            stock: row.stock,
+                            review_avg: row.review_avg,
+                            review_count: row.review_count,
+                        };
+                        return renderMpProductCardHomeCompact(mpCard);
+                    }
                     const cardProduct = {
                         id: row.product_id,
                         name_ar: row.name_ar,
@@ -7950,15 +7989,33 @@
                 qs.set('featured_hub', '1');
                 qs.set('featured_hub_section', featuredHubSection);
                 if (q) qs.set('q', q);
-                const rows = await apiFetch(`/api/products?${qs.toString()}`, { requireAuth: false });
-                const list = Array.isArray(rows) ? rows : [];
+                const [rowsCat, rowsMp] = await Promise.all([
+                    apiFetch(`/api/products?${qs.toString()}`, { requireAuth: false }),
+                    apiFetch(
+                        `/api/marketplace/products?${(() => {
+                            const m = new URLSearchParams();
+                            m.set('featured_hub', '1');
+                            m.set('featured_hub_section', featuredHubSection);
+                            if (q) m.set('q', q);
+                            return m.toString();
+                        })()}`,
+                        { requireAuth: false }
+                    ),
+                ]);
+                const listCat = Array.isArray(rowsCat) ? rowsCat : [];
+                const listMp = (Array.isArray(rowsMp) ? rowsMp : []).map((p) => ({ ...p, adora_listing_kind: 'marketplace' }));
+                const list = [...listCat, ...listMp];
                 if (!list.length) {
                     grid.innerHTML = `<p class="col-span-2 text-center text-violet-700/80 py-10 text-sm leading-relaxed px-3">${
                         isRTL ? 'لا توجد منتجات تطابق البحث أو القسم.' : 'No products match this section or search.'
                     }</p>`;
                     return;
                 }
-                const pieces = list.map((p) => renderProductCardHtml(p, { compact: true }));
+                const pieces = list.map((p) =>
+                    p.adora_listing_kind === 'marketplace'
+                        ? renderMpProductCardHomeCompact(p)
+                        : renderProductCardHtml(p, { compact: true })
+                );
                 adoraInsertAdjacentHtmlChunked(grid, pieces, 10);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-8 text-sm">${escapeHtml(e.message)}</p>`;

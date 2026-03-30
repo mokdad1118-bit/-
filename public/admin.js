@@ -1386,6 +1386,18 @@ function mpFillProductForm(p) {
   document.getElementById("mp-p-sort").value = p ? String(p.sort_order ?? 0) : "0";
   document.getElementById("mp-p-offer").checked = p && Number(p.is_offer) === 1;
   document.getElementById("mp-p-featured").checked = p && Number(p.is_mp_featured) === 1;
+  const mpFh = document.getElementById("mp-p-featured-hub");
+  if (mpFh) mpFh.checked = p && Number(p.featured_hub_enabled) === 1;
+  const mpFhs = document.getElementById("mp-p-featured-hub-section");
+  if (mpFhs) {
+    const sec = String(p?.featured_hub_section || "clothes").trim() || "clothes";
+    mpFhs.value = sec;
+    mpFhs.disabled = !p || Number(p.featured_hub_enabled) !== 1;
+  }
+  const mpSo = document.getElementById("mp-p-show-offers");
+  if (mpSo) mpSo.checked = p && Number(p.show_in_offers_tab) === 1;
+  const mpSm = document.getElementById("mp-p-show-marketplace");
+  if (mpSm) mpSm.checked = !p || Number(p.show_in_marketplace_tab) !== 0;
   document.getElementById("mp-p-active").checked = !p || Number(p.is_active) !== 0;
   const f = document.getElementById("mp-p-images-file");
   if (f) f.value = "";
@@ -1478,6 +1490,18 @@ async function mpHomePlacementSaveSlotItems(slot, items) {
   await loadMpHomePlacementsAdmin();
 }
 
+async function loadMpJoinTermsFromVp() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const s = await api("/api/admin/vendor-platform/settings", { token });
+    const ta = document.getElementById("mp-join-terms-ar");
+    const te = document.getElementById("mp-join-terms-en");
+    if (ta) ta.value = s.vendor_join_terms_ar != null ? String(s.vendor_join_terms_ar) : "";
+    if (te) te.value = s.vendor_join_terms_en != null ? String(s.vendor_join_terms_en) : "";
+  } catch (_e) {}
+}
+
 function bindMarketplaceAdminListeners() {
   if (adminMpListenersBound) return;
   adminMpListenersBound = true;
@@ -1488,8 +1512,75 @@ function bindMarketplaceAdminListeners() {
       if (sub) {
         setMpSubtab(sub);
         if (sub === "homeplacements") loadMpHomePlacementsAdmin().catch(() => {});
+        if (sub === "join_terms") loadMpJoinTermsFromVp().catch(() => {});
       }
     });
+  });
+
+  document.getElementById("btn-mp-join-terms-save")?.addEventListener("click", async () => {
+    const token = getToken();
+    if (!token) return;
+    const ar = document.getElementById("mp-join-terms-ar")?.value ?? "";
+    const en = document.getElementById("mp-join-terms-en")?.value ?? "";
+    try {
+      await api("/api/admin/vendor-platform/settings", {
+        method: "PUT",
+        token,
+        body: { vendor_join_terms_ar: ar, vendor_join_terms_en: en },
+      });
+      const vpa = document.getElementById("vp-join-terms-ar");
+      const vpe = document.getElementById("vp-join-terms-en");
+      if (vpa) vpa.value = ar;
+      if (vpe) vpe.value = en;
+      alert(getAdminLang() === "ar" ? "تم حفظ الشروط." : "Terms saved.");
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  });
+
+  document.getElementById("mp-p-featured-hub")?.addEventListener("change", () => {
+    const on = !!document.getElementById("mp-p-featured-hub")?.checked;
+    const sel = document.getElementById("mp-p-featured-hub-section");
+    if (sel) sel.disabled = !on;
+  });
+
+  document.getElementById("mpv-preset-size-color")?.addEventListener("click", () => {
+    const ar = getAdminLang() === "ar";
+    if (
+      !confirm(
+        ar ? "إضافة مجموعتي مقاس ولون مع صف مخزون واحد؟ (يستبدل المجموعات الحالية إن وُجدت)" : "Add Size & Color groups with one stock row? This replaces current groups."
+      )
+    ) {
+      return;
+    }
+    const gSize = {
+      id: pvGenId("opt"),
+      name_en: "Size",
+      name_ar: "المقاس",
+      values: [
+        { id: pvGenId("v"), label_en: "S", label_ar: "S" },
+        { id: pvGenId("v"), label_en: "M", label_ar: "M" },
+        { id: pvGenId("v"), label_en: "L", label_ar: "L" },
+      ],
+    };
+    const gColor = {
+      id: pvGenId("opt"),
+      name_en: "Color",
+      name_ar: "اللون",
+      values: [
+        { id: pvGenId("v"), label_en: "Black", label_ar: "أسود" },
+        { id: pvGenId("v"), label_en: "White", label_ar: "أبيض" },
+      ],
+    };
+    const variants = [
+      {
+        options: { [gSize.id]: gSize.values[0].id, [gColor.id]: gColor.values[0].id },
+        price: "",
+        stock: 0,
+        image: "",
+      },
+    ];
+    pvRenderBuilder([gSize, gColor], variants, "mpv-builder-root");
   });
 
   document.getElementById("btn-mp-refresh-sections")?.addEventListener("click", () => loadMpSections().catch(() => {}));
@@ -1870,6 +1961,10 @@ function bindMarketplaceAdminListeners() {
       inventory,
       is_offer: document.getElementById("mp-p-offer").checked ? 1 : 0,
       is_mp_featured: document.getElementById("mp-p-featured").checked ? 1 : 0,
+      featured_hub_enabled: document.getElementById("mp-p-featured-hub")?.checked ? 1 : 0,
+      featured_hub_section: (document.getElementById("mp-p-featured-hub-section")?.value || "").trim() || null,
+      show_in_offers_tab: document.getElementById("mp-p-show-offers")?.checked ? 1 : 0,
+      show_in_marketplace_tab: document.getElementById("mp-p-show-marketplace")?.checked ? 1 : 0,
       sort_order: Number(document.getElementById("mp-p-sort").value || 0),
       is_active: document.getElementById("mp-p-active").checked ? 1 : 0,
       discount_percent: Number(document.getElementById("mp-p-discount")?.value || 0),
@@ -2522,6 +2617,8 @@ function readProductForm() {
   const flash_sale_end_time = document.getElementById("product-flash-end").value.trim() || null;
   const featured_hub_enabled = document.getElementById("product-featured-hub-enabled")?.checked ? 1 : 0;
   const featured_hub_section = (document.getElementById("product-featured-hub-section")?.value || "").trim() || null;
+  const show_in_offers_tab = document.getElementById("product-show-in-offers")?.checked ? 1 : 0;
+  const show_in_marketplace_tab = document.getElementById("product-show-in-marketplace")?.checked ? 1 : 0;
 
   return {
     productId,
@@ -2544,6 +2641,8 @@ function readProductForm() {
       flash_sale_end_time: is_flash_sale ? flash_sale_end_time : null,
       featured_hub_enabled,
       featured_hub_section: featured_hub_enabled ? featured_hub_section : null,
+      show_in_offers_tab,
+      show_in_marketplace_tab,
       sizes,
       colors,
       inventory,
@@ -2595,6 +2694,10 @@ function resetProductForm() {
     fhs.value = "clothes";
     fhs.disabled = true;
   }
+  const pso = document.getElementById("product-show-in-offers");
+  if (pso) pso.checked = false;
+  const psm = document.getElementById("product-show-in-marketplace");
+  if (psm) psm.checked = false;
   syncProductBrandStrip();
 }
 
@@ -2647,6 +2750,10 @@ function fillProductFormFromProduct(product) {
     fhs.value = sec;
     fhs.disabled = !product.featured_hub_enabled;
   }
+  const pso = document.getElementById("product-show-in-offers");
+  if (pso) pso.checked = Number(product.show_in_offers_tab) === 1;
+  const psm = document.getElementById("product-show-in-marketplace");
+  if (psm) psm.checked = Number(product.show_in_marketplace_tab) === 1;
   syncProductBrandStrip();
 }
 
@@ -2775,7 +2882,7 @@ function renderProductsTable() {
   const tbody = document.getElementById("products-tbody");
   const ar = getAdminLang() === "ar";
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="12" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="14" class="py-6 text-center text-gray-500">${
       products.length && f ? (ar ? "لا نتائج تطابق البحث." : "No matches for this search.") : ar ? "لا منتجات بعد." : "No products yet."
     }</td></tr>`;
     return;
@@ -2816,6 +2923,8 @@ function renderProductsTable() {
           <td class="py-2">${stockDisp}${invNote}</td>
           <td class="py-2">${p.is_featured ? adminT("yes") : adminT("no")}</td>
           <td class="py-2 text-xs">${p.featured_hub_enabled ? hubSecLabel(p.featured_hub_section) : "—"}</td>
+          <td class="py-2 text-xs">${Number(p.show_in_offers_tab) === 1 ? adminT("yes") : adminT("no")}</td>
+          <td class="py-2 text-xs">${Number(p.show_in_marketplace_tab) === 1 ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">${p.is_flash_sale ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">${p.is_new_collection ? adminT("yes") : adminT("no")}</td>
           <td class="py-2">
@@ -3261,7 +3370,7 @@ async function loadOffers() {
   const token = getToken();
   let offers = [];
   try {
-    offers = await api("/api/offers", { token });
+    offers = await api("/api/offers?offers_table_only=1", { token });
   } catch (e) {
     console.error(e);
   }

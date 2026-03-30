@@ -347,6 +347,7 @@ async function initDb() {
   await migrateAppAdBannerV1();
   await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
   await migrateProductsFeaturedHubV1();
+  await migrateOffersMarketplaceVisibilityV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -822,6 +823,21 @@ async function migrateProductsFeaturedHubV1() {
   await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS featured_hub_section TEXT`);
   await run(
     `CREATE INDEX IF NOT EXISTS idx_products_featured_hub ON products (featured_hub_enabled, featured_hub_section) WHERE featured_hub_enabled = 1`
+  );
+}
+
+/** عروضنا + تبويب السوق (كتالوج وسوق شامل) + محور مميز لمنتجات السوق */
+async function migrateOffersMarketplaceVisibilityV1() {
+  await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS show_in_offers_tab INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE products ADD COLUMN IF NOT EXISTS show_in_marketplace_tab INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_offers_tab INTEGER NOT NULL DEFAULT 0`);
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_marketplace_tab INTEGER NOT NULL DEFAULT 1`
+  );
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS featured_hub_enabled INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS featured_hub_section TEXT`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_mp_featured_hub ON marketplace_products (featured_hub_enabled, featured_hub_section) WHERE featured_hub_enabled = 1`
   );
 }
 

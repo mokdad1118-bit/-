@@ -2,7 +2,7 @@
  * السوق الشامل — أقسام، مولات/شركات، منتجات (عامة + لوحة تحكم)
  */
 const { get, all, run } = require("./db");
-const { arabicSearchQueryVariants, sqlLikePrefixParam } = require("./search-utils");
+const { arabicSearchQueryVariants, sqlLikePrefixParam, sqlLikeContainsParam } = require("./search-utils");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 
 function safeJsonParse(raw, fallback) {
@@ -92,9 +92,28 @@ function normalizeMpHomeSlot(slot) {
   return MP_HOME_SLOTS.has(s) ? s : null;
 }
 
+const MP_FEATURED_HUB_SECTIONS = new Set([
+  "clothes",
+  "electronics",
+  "phones",
+  "shoes",
+  "accessories",
+  "bedding",
+  "medical",
+  "used",
+]);
+
+function normalizeMpFeaturedHubSection(raw) {
+  const s = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return MP_FEATURED_HUB_SECTIONS.has(s) ? s : null;
+}
+
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
-      mp.department_id, mp.is_mp_featured,
+      mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en`;
@@ -369,6 +388,34 @@ async function buildMarketplaceEntranceResponse(s) {
   };
 }
 
+/** دمج نتائج بحث السوق الشامل مع قائمة الكتالوج عند البحث النصي */
+async function fetchMarketplaceProductsForListingSearchMerge(variants) {
+  if (!variants || !variants.length) return [];
+  const parts = [];
+  const params = [];
+  for (const v of variants) {
+    const like = sqlLikePrefixParam(v);
+    const likeSub = sqlLikeContainsParam(v);
+    parts.push(
+      `(mp.name_ar ILIKE ? OR mp.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?)`
+    );
+    params.push(like, like, like, like, likeSub, likeSub);
+  }
+  const sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
+     ${MP_FROM}
+     ${MP_REVIEW_JOIN_SQL}
+     WHERE mp.is_active = 1 AND COALESCE(mp.show_in_marketplace_tab, 1) = 1
+     AND (${parts.join(" OR ")})
+     ORDER BY mp.id DESC
+     LIMIT 120`;
+  const rows = await all(sql, params);
+  return rows.map((r) => {
+    const m = mapProductRow(r);
+    m.adora_listing_kind = "marketplace";
+    return m;
+  });
+}
+
 function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
   app.get("/api/marketplace/entrance", async (_req, res) => {
     try {
@@ -496,9 +543,19 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                  LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  ${MP_REVIEW_JOIN_SQL}
                  ${promoJoin}
-                 WHERE mp.is_active = 1`;
+                 WHERE mp.is_active = 1 AND COALESCE(mp.show_in_marketplace_tab, 1) = 1`;
       const params = [];
       if (promoSlot) params.push(promoSlot);
+
+      const fh = String(req.query.featured_hub || "").trim();
+      if (fh === "1" || fh === "true") {
+        sql += ` AND COALESCE(mp.featured_hub_enabled,0) = 1`;
+        const fsec = normalizeMpFeaturedHubSection(req.query.featured_hub_section);
+        if (fsec) {
+          sql += ` AND mp.featured_hub_section = ?`;
+          params.push(fsec);
+        }
+      }
 
       const narrowBrowse =
         (vendorId != null && Number.isFinite(vendorId)) || (sectionId != null && Number.isFinite(sectionId));
@@ -531,13 +588,15 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           const parts = [];
           for (const v of variants) {
             const like = sqlLikePrefixParam(v);
+            const likeSub = sqlLikeContainsParam(v);
             parts.push(`(
           mp.name_ar ILIKE ? OR mp.name_en ILIKE ?
           OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?
           OR ms.name_ar ILIKE ? OR ms.name_en ILIKE ?
           OR mvd.name_ar ILIKE ? OR mvd.name_en ILIKE ?
+          OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?
         )`);
-            params.push(like, like, like, like, like, like, like, like);
+            params.push(like, like, like, like, like, like, like, like, likeSub, likeSub);
           }
           sql += ` AND (${parts.join(" OR ")})`;
         }
@@ -1142,6 +1201,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const sort_order = Number.isFinite(Number(b.sort_order)) ? Number(b.sort_order) : 999;
       const is_active = Number(b.is_active) === 0 ? 0 : 1;
       const is_mp_featured = Number(b.is_mp_featured) === 1 ? 1 : 0;
+      const featured_hub_enabled = Number(b.featured_hub_enabled) === 1 ? 1 : 0;
+      let featured_hub_section = normalizeMpFeaturedHubSection(b.featured_hub_section);
+      if (featured_hub_enabled && !featured_hub_section) {
+        return res.status(400).json({ error: "featured_hub_section required when featured hub is enabled" });
+      }
+      if (!featured_hub_enabled) featured_hub_section = null;
+      const show_in_offers_tab = Number(b.show_in_offers_tab) === 1 ? 1 : 0;
+      const show_in_marketplace_tab = Number(b.show_in_marketplace_tab) === 0 ? 0 : 1;
       const settings = await getVendorPlatformSettings();
       const dup = await findMarketplaceProductDuplicate(
         vendor_id,
@@ -1160,8 +1227,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (!depRes.ok) return res.status(400).json({ error: depRes.error });
       const department_id = depRes.department_id;
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1182,6 +1249,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           sku || null,
           barcodeNorm || null,
           is_mp_featured,
+          featured_hub_enabled,
+          featured_hub_section,
+          show_in_offers_tab,
+          show_in_marketplace_tab,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -1239,6 +1310,26 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const sort_order = b.sort_order != null ? Number(b.sort_order) : cur.sort_order;
       const is_active = b.is_active != null ? (Number(b.is_active) === 0 ? 0 : 1) : cur.is_active;
       const is_mp_featured = b.is_mp_featured != null ? (Number(b.is_mp_featured) === 1 ? 1 : 0) : cur.is_mp_featured ?? 0;
+      let featured_hub_enabled =
+        b.featured_hub_enabled != null ? (Number(b.featured_hub_enabled) === 1 ? 1 : 0) : Number(cur.featured_hub_enabled) === 1 ? 1 : 0;
+      let featured_hub_section =
+        b.featured_hub_section !== undefined
+          ? normalizeMpFeaturedHubSection(b.featured_hub_section)
+          : normalizeMpFeaturedHubSection(cur.featured_hub_section);
+      if (featured_hub_enabled && !featured_hub_section) {
+        return res.status(400).json({ error: "featured_hub_section required when featured hub is enabled" });
+      }
+      if (!featured_hub_enabled) featured_hub_section = null;
+      const show_in_offers_tab =
+        b.show_in_offers_tab != null ? (Number(b.show_in_offers_tab) === 1 ? 1 : 0) : Number(cur.show_in_offers_tab) === 1 ? 1 : 0;
+      const show_in_marketplace_tab =
+        b.show_in_marketplace_tab != null
+          ? Number(b.show_in_marketplace_tab) === 0
+            ? 0
+            : 1
+          : cur.show_in_marketplace_tab != null && Number(cur.show_in_marketplace_tab) === 0
+            ? 0
+            : 1;
       const discount_percent =
         b.discount_percent !== undefined
           ? clampDiscountPercent(b.discount_percent)
@@ -1270,7 +1361,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
       await run(
         `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
-         price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=? WHERE id=?`,
+         price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=?,
+         featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=? WHERE id=?`,
         [
           section_id,
           vendor_id,
@@ -1291,6 +1383,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           sku || null,
           barcode || null,
           is_mp_featured,
+          featured_hub_enabled,
+          featured_hub_section,
+          show_in_offers_tab,
+          show_in_marketplace_tab,
           id,
         ]
       );
@@ -1444,4 +1540,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
   });
 }
 
-module.exports = { registerMarketplaceRoutes };
+module.exports = {
+  registerMarketplaceRoutes,
+  fetchMarketplaceProductsForListingSearchMerge,
+  mapProductRow,
+};

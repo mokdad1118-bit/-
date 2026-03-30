@@ -6,12 +6,16 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const { all, get, run, initDb, getDatabaseOverview } = require("./db");
-const { arabicSearchQueryVariants, sqlLikePrefixParam } = require("./search-utils");
+const { arabicSearchQueryVariants, sqlLikePrefixParam, sqlLikeContainsParam } = require("./search-utils");
 const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth } = require("./auth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
-const { registerMarketplaceRoutes } = require("./marketplace-routes");
+const {
+  registerMarketplaceRoutes,
+  fetchMarketplaceProductsForListingSearchMerge,
+  mapProductRow: mapMarketplaceProductRow,
+} = require("./marketplace-routes");
 const { registerVendorPlatformRoutes } = require("./vendor-platform-routes");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
@@ -39,7 +43,7 @@ function verifyEmailOtp(code, storedHash) {
   return crypto.timingSafeEqual(a, b);
 }
 
-/** للتشخيص: مستخدم مؤهل لاستلام بث Push (إشعارات مفعّلة وليس في فترة كتم) */
+/** Ù„Ù„ØªØ´Ø®ÙŠØµ: Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø¤Ù‡Ù„ Ù„Ø§Ø³ØªÙ„Ø§Ù… Ø¨Ø« Push (Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ù…ÙØ¹Ù‘Ù„Ø© ÙˆÙ„ÙŠØ³ ÙÙŠ ÙØªØ±Ø© ÙƒØªÙ…) */
 function sqlPushUserEligible() {
   return `(COALESCE(u.notifications_enabled, 0) = 1 AND (u.notifications_snoozed_until IS NULL OR TRIM(COALESCE(u.notifications_snoozed_until::text, '')) = '' OR (u.notifications_snoozed_until)::timestamptz <= NOW()))`;
 }
@@ -51,7 +55,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProd = NODE_ENV === "production";
 
-/** رابط إشعار: https كامل أو مسار داخل التطبيق يبدأ بـ / */
+/** Ø±Ø§Ø¨Ø· Ø¥Ø´Ø¹Ø§Ø±: https ÙƒØ§Ù…Ù„ Ø£Ùˆ Ù…Ø³Ø§Ø± Ø¯Ø§Ø®Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ ÙŠØ¨Ø¯Ø£ Ø¨Ù€ / */
 function normalizeNotificationLink(raw) {
   if (raw == null) return null;
   const s = String(raw).trim();
@@ -68,7 +72,7 @@ if (isProd) {
   app.set("trust proxy", 1);
 }
 
-/** CORS يتطلب أصلاً كاملاً مثل https://example.com — إن وُضع example.com فقط نضيف https:// */
+/** CORS ÙŠØªØ·Ù„Ø¨ Ø£ØµÙ„Ø§Ù‹ ÙƒØ§Ù…Ù„Ø§Ù‹ Ù…Ø«Ù„ https://example.com â€” Ø¥Ù† ÙˆÙØ¶Ø¹ example.com ÙÙ‚Ø· Ù†Ø¶ÙŠÙ https:// */
 function normalizeCorsOriginEntry(entry) {
   let s = String(entry ?? "").trim();
   if (!s) return "";
@@ -164,7 +168,7 @@ if (isCloudinaryConfigured()) {
   ensureLocalUploadsDir();
   // eslint-disable-next-line no-console
   console.warn(
-    "[Adora] Cloudinary is not configured — uploads save to public/uploads (served at /uploads/). Use CLOUDINARY_* in production for persistent CDN URLs."
+    "[Adora] Cloudinary is not configured â€” uploads save to public/uploads (served at /uploads/). Use CLOUDINARY_* in production for persistent CDN URLs."
   );
 }
 
@@ -194,21 +198,21 @@ const DEFAULT_HOME_SECTIONS_VISIBILITY = {
   bestsellers: true,
 };
 
-/** Labels for admin UI + `/api/admin/home-sections/keys` — keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
+/** Labels for admin UI + `/api/admin/home-sections/keys` â€” keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
 const HOME_SECTION_LABELS = {
-  banners: { ar: "البانرات الترويجية (كل المواضع)", en: "Promo banners (all slots)" },
-  comprehensive_market: { ar: "السوق الشامل (مولات وشركات…)", en: "Comprehensive market (malls & companies)" },
-  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories (Men / Women / Kids)" },
-  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies available in the app" },
-  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
-  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
-  curated: { ar: "اختيارات أنيقة (العنوان والوصف)", en: "Curated picks (header & intro)" },
-  home_featured: { ar: "منتجات مميزة (الشريط الأفقي)", en: "Featured products (horizontal strip)" },
-  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection / promo strip" },
-  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
+  banners: { ar: "Ø§Ù„Ø¨Ø§Ù†Ø±Ø§Øª Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ© (ÙƒÙ„ Ø§Ù„Ù…ÙˆØ§Ø¶Ø¹)", en: "Promo banners (all slots)" },
+  comprehensive_market: { ar: "Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„ (Ù…ÙˆÙ„Ø§Øª ÙˆØ´Ø±ÙƒØ§Øªâ€¦)", en: "Comprehensive market (malls & companies)" },
+  main_categories: { ar: "Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (Ø±Ø¬Ø§Ù„ÙŠ / Ù†Ø³Ø§Ø¦ÙŠ / ÙˆÙ„Ø§Ø¯ÙŠ)", en: "Main categories (Men / Women / Kids)" },
+  brands: { ar: "Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚", en: "Companies available in the app" },
+  top_brands: { ar: "Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Featured brands" },
+  flash_sale: { ar: "Ø¹Ø±ÙˆØ¶ Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Limited-time offers" },
+  curated: { ar: "Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø£Ù†ÙŠÙ‚Ø© (Ø§Ù„Ø¹Ù†ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØµÙ)", en: "Curated picks (header & intro)" },
+  home_featured: { ar: "Ù…Ù†ØªØ¬Ø§Øª Ù…Ù…ÙŠØ²Ø© (Ø§Ù„Ø´Ø±ÙŠØ· Ø§Ù„Ø£ÙÙ‚ÙŠ)", en: "Featured products (horizontal strip)" },
+  promo_collection: { ar: "ÙˆØµÙ„ Ø­Ø¯ÙŠØ«Ø§Ù‹ / Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ©", en: "New collection / promo strip" },
+  bestsellers: { ar: "Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Bestsellers" },
 };
 
-/** ترتيب الكتل داخل #home-reorder-root (بانر أعلى الرئيسية هنا افتراضياً؛ التثبيت مع شريط البحث اختياري من لوحة التحكم) */
+/** ØªØ±ØªÙŠØ¨ Ø§Ù„ÙƒØªÙ„ Ø¯Ø§Ø®Ù„ #home-reorder-root (Ø¨Ø§Ù†Ø± Ø£Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ù‡Ù†Ø§ Ø§ÙØªØ±Ø§Ø¶ÙŠØ§Ù‹Ø› Ø§Ù„ØªØ«Ø¨ÙŠØª Ù…Ø¹ Ø´Ø±ÙŠØ· Ø§Ù„Ø¨Ø­Ø« Ø§Ø®ØªÙŠØ§Ø±ÙŠ Ù…Ù† Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…) */
 const HOME_SECTION_ORDER_KEYS = [
   "comprehensive_market",
   "banner_home_top",
@@ -229,22 +233,22 @@ const HOME_SECTION_ORDER_KEYS = [
 ];
 
 const HOME_SECTION_ORDER_LABELS = {
-  comprehensive_market: { ar: "السوق الشامل", en: "Comprehensive market" },
-  banner_home_top: { ar: "بانر أعلى الرئيسية (تحت السوق الشامل)", en: "Top home banner (below market block)" },
-  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories" },
-  home_subcat_overlay: { ar: "لوحة الفئات الفرعية (منبثقة)", en: "Subcategory bottom sheet (fixed overlay)" },
-  banner_below_categories: { ar: "بانر تحت الأقسام الرئيسية", en: "Banner below main categories" },
-  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies in the app" },
-  banner_below_brands: { ar: "بانر تحت صف الشركات", en: "Banner below companies row" },
-  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
-  banner_below_top_brands: { ar: "بانر تحت العلامات المميزة", en: "Banner below featured brands" },
-  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
-  banner_below_flash: { ar: "بانر تحت العروض المحدودة", en: "Banner below flash offers" },
-  curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
-  banner_below_curated: { ar: "بانر تحت الاختيارات الأنيقة", en: "Banner below curated" },
-  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection strip" },
-  banner_below_trending: { ar: "بانر قبل الأكثر مبيعاً", en: "Banner before bestsellers" },
-  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
+  comprehensive_market: { ar: "Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„", en: "Comprehensive market" },
+  banner_home_top: { ar: "Ø¨Ø§Ù†Ø± Ø£Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (ØªØ­Øª Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„)", en: "Top home banner (below market block)" },
+  main_categories: { ar: "Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (Ø±Ø¬Ø§Ù„ÙŠ / Ù†Ø³Ø§Ø¦ÙŠ / ÙˆÙ„Ø§Ø¯ÙŠ)", en: "Main categories" },
+  home_subcat_overlay: { ar: "Ù„ÙˆØ­Ø© Ø§Ù„ÙØ¦Ø§Øª Ø§Ù„ÙØ±Ø¹ÙŠØ© (Ù…Ù†Ø¨Ø«Ù‚Ø©)", en: "Subcategory bottom sheet (fixed overlay)" },
+  banner_below_categories: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©", en: "Banner below main categories" },
+  brands: { ar: "Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚", en: "Companies in the app" },
+  banner_below_brands: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª ØµÙ Ø§Ù„Ø´Ø±ÙƒØ§Øª", en: "Banner below companies row" },
+  top_brands: { ar: "Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Featured brands" },
+  banner_below_top_brands: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Banner below featured brands" },
+  flash_sale: { ar: "Ø¹Ø±ÙˆØ¶ Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Limited-time offers" },
+  banner_below_flash: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø§Ù„Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Banner below flash offers" },
+  curated: { ar: "Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø£Ù†ÙŠÙ‚Ø©", en: "Curated picks" },
+  banner_below_curated: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø§Ù„Ø£Ù†ÙŠÙ‚Ø©", en: "Banner below curated" },
+  promo_collection: { ar: "ÙˆØµÙ„ Ø­Ø¯ÙŠØ«Ø§Ù‹ / Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ©", en: "New collection strip" },
+  banner_below_trending: { ar: "Ø¨Ø§Ù†Ø± Ù‚Ø¨Ù„ Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Banner before bestsellers" },
+  bestsellers: { ar: "Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Bestsellers" },
 };
 
 function mergeHomeSectionsOrder(raw) {
@@ -297,7 +301,7 @@ function firstMarketplaceImageFromImagesJson(raw) {
   return s || null;
 }
 
-/** يطابق placement مع عناصر banner-slot-* في الواجهة */
+/** ÙŠØ·Ø§Ø¨Ù‚ placement Ù…Ø¹ Ø¹Ù†Ø§ØµØ± banner-slot-* ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© */
 function normalizeBannerPlacementValue(pl) {
   let s = String(pl ?? "")
     .trim()
@@ -332,7 +336,7 @@ function normalizeBannerPlacementValue(pl) {
   return aliases[s] || s;
 }
 
-/** أقسام شاشة «مميز» الثابتة في التطبيق */
+/** Ø£Ù‚Ø³Ø§Ù… Ø´Ø§Ø´Ø© Â«Ù…Ù…ÙŠØ²Â» Ø§Ù„Ø«Ø§Ø¨ØªØ© ÙÙŠ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ */
 const FEATURED_HUB_SECTIONS = new Set([
   "clothes",
   "electronics",
@@ -352,7 +356,7 @@ function normalizeFeaturedHubSection(raw) {
   return FEATURED_HUB_SECTIONS.has(s) ? s : null;
 }
 
-/** الرقم التالي بصيغة ORD-00001 — متسلسل من قاعدة البيانات */
+/** Ø§Ù„Ø±Ù‚Ù… Ø§Ù„ØªØ§Ù„ÙŠ Ø¨ØµÙŠØºØ© ORD-00001 â€” Ù…ØªØ³Ù„Ø³Ù„ Ù…Ù† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª */
 async function allocateNextOrderNo() {
   const row = await get(
     `SELECT COALESCE(MAX(CAST(SUBSTRING(order_no FROM 5) AS INTEGER)), 0) AS n
@@ -363,12 +367,12 @@ async function allocateNextOrderNo() {
   return `ORD-${String(next).padStart(5, "0")}`;
 }
 
-/** منتجات أدورا: بدون علامة أو علامة أدورا (للأقسام الرئيسية على الرئيسية) */
+/** Ù…Ù†ØªØ¬Ø§Øª Ø£Ø¯ÙˆØ±Ø§: Ø¨Ø¯ÙˆÙ† Ø¹Ù„Ø§Ù…Ø© Ø£Ùˆ Ø¹Ù„Ø§Ù…Ø© Ø£Ø¯ÙˆØ±Ø§ (Ù„Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©) */
 function sqlAdoraBrandPredicate() {
-  return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'أدورا')`;
+  return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'Ø£Ø¯ÙˆØ±Ø§')`;
 }
 
-/** مطابقة صف مخزون ديناميكي بخريطة options (نفس منطق decrementProductStock) */
+/** Ù…Ø·Ø§Ø¨Ù‚Ø© ØµÙ Ù…Ø®Ø²ÙˆÙ† Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ Ø¨Ø®Ø±ÙŠØ·Ø© options (Ù†ÙØ³ Ù…Ù†Ø·Ù‚ decrementProductStock) */
 function findDynamicInventoryRowIndex(inv, vOpts) {
   if (!Array.isArray(inv)) return -1;
   if (!vOpts || typeof vOpts !== "object" || Array.isArray(vOpts) || !Object.keys(vOpts).length) return -1;
@@ -473,7 +477,7 @@ function normalizeSignupPhoneDigits(raw) {
   return d.length >= 8 ? d : null;
 }
 
-/** إرسال رمز التحقق للبريد — إنشاء حساب فقط بعد /api/auth/signup/verify */
+/** Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ù„Ù„Ø¨Ø±ÙŠØ¯ â€” Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨ ÙÙ‚Ø· Ø¨Ø¹Ø¯ /api/auth/signup/verify */
 app.post("/api/auth/signup/send-code", async (req, res) => {
   try {
     if (!isEmailTransportConfigured()) {
@@ -696,14 +700,14 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.post("/api/auth/logout", (req, res) => res.json({ ok: true }));
 
-/** فحص صحة للنشر (موازن، Docker، مراقبة) */
+/** ÙØ­Øµ ØµØ­Ø© Ù„Ù„Ù†Ø´Ø± (Ù…ÙˆØ§Ø²Ù†ØŒ DockerØŒ Ù…Ø±Ø§Ù‚Ø¨Ø©) */
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     service: "adora",
     env: NODE_ENV,
     uptime: Math.round(process.uptime()),
-    /** استخدم نفس أصل هذا الطلب (Render) وليس Netlify */
+    /** Ø§Ø³ØªØ®Ø¯Ù… Ù†ÙØ³ Ø£ØµÙ„ Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨ (Render) ÙˆÙ„ÙŠØ³ Netlify */
     endpoints: {
       publicStats: "/api/public/stats",
       publicStatsAlt: "/api/stats",
@@ -712,7 +716,7 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-/** إعدادات عامة للواجهة (بدون مصادقة) — رابط تنزيل التطبيق من متغير البيئة */
+/** Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¹Ø§Ù…Ø© Ù„Ù„ÙˆØ§Ø¬Ù‡Ø© (Ø¨Ø¯ÙˆÙ† Ù…ØµØ§Ø¯Ù‚Ø©) â€” Ø±Ø§Ø¨Ø· ØªÙ†Ø²ÙŠÙ„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù…Ù† Ù…ØªØºÙŠØ± Ø§Ù„Ø¨ÙŠØ¦Ø© */
 app.get("/api/public-config", (_req, res) => {
   res.json({
     app_download_url: String(process.env.ADORA_APP_DOWNLOAD_URL || "").trim(),
@@ -737,9 +741,9 @@ async function sendPublicStatsJson(_req, res) {
   }
 }
 
-/** أرقام مجمّعة من قاعدة البيانات للواجهة — لا يعرض صفوفاً خام */
+/** Ø£Ø±Ù‚Ø§Ù… Ù…Ø¬Ù…Ù‘Ø¹Ø© Ù…Ù† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù„Ù„ÙˆØ§Ø¬Ù‡Ø© â€” Ù„Ø§ ÙŠØ¹Ø±Ø¶ ØµÙÙˆÙØ§Ù‹ Ø®Ø§Ù… */
 app.get("/api/public/stats", sendPublicStatsJson);
-/** نفس المحتوى — مسار أقصر إن احتجت */
+/** Ù†ÙØ³ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ â€” Ù…Ø³Ø§Ø± Ø£Ù‚ØµØ± Ø¥Ù† Ø§Ø­ØªØ¬Øª */
 app.get("/api/stats", sendPublicStatsJson);
 
 async function loadUserProfileBundle(userId) {
@@ -876,7 +880,7 @@ app.put("/api/profile/notifications", requireAuth, async (req, res) => {
   }
 });
 
-/** مفتاح VAPID العام — للاشتراك في Web Push من المتصفح (200 + ok:false إذا غير مضبوط لتفادي أخطاء حمراء في كونسول المتصفح) */
+/** Ù…ÙØªØ§Ø­ VAPID Ø§Ù„Ø¹Ø§Ù… â€” Ù„Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙÙŠ Web Push Ù…Ù† Ø§Ù„Ù…ØªØµÙØ­ (200 + ok:false Ø¥Ø°Ø§ ØºÙŠØ± Ù…Ø¶Ø¨ÙˆØ· Ù„ØªÙØ§Ø¯ÙŠ Ø£Ø®Ø·Ø§Ø¡ Ø­Ù…Ø±Ø§Ø¡ ÙÙŠ ÙƒÙˆÙ†Ø³ÙˆÙ„ Ø§Ù„Ù…ØªØµÙØ­) */
 app.get("/api/push/vapid-public-key", (_req, res) => {
   const pub = process.env.VAPID_PUBLIC_KEY;
   if (!pub || !String(pub).trim()) {
@@ -924,7 +928,7 @@ app.post("/api/push/unsubscribe", requireAuth, async (req, res) => {
   }
 });
 
-/** تشخيص Web Push — للمشرف: VAPID، عدد الاشتراكات، ملاحظة أن sw.js من نطاق الواجهة (Netlify) */
+/** ØªØ´Ø®ÙŠØµ Web Push â€” Ù„Ù„Ù…Ø´Ø±Ù: VAPIDØŒ Ø¹Ø¯Ø¯ Ø§Ù„Ø§Ø´ØªØ±Ø§ÙƒØ§ØªØŒ Ù…Ù„Ø§Ø­Ø¸Ø© Ø£Ù† sw.js Ù…Ù† Ù†Ø·Ø§Ù‚ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© (Netlify) */
 app.get("/api/admin/push-diagnostics", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const vapidConfigured = isWebPushConfigured();
@@ -939,7 +943,7 @@ app.get("/api/admin/push-diagnostics", requireAuth, requireAdmin, async (_req, r
       subscriptionRows: Number(total?.c ?? 0),
       subscriptionsEligibleForBroadcastPush: Number(eligible?.c ?? 0),
       hintAr:
-        "يُفتح التطبيق من رابط Netlify؛ ملف /sw.js يُقدَّم من نفس النطاق. السيرفر على Render يحفظ الاشتراك ويرسل Push فقط.",
+        "ÙŠÙÙØªØ­ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù…Ù† Ø±Ø§Ø¨Ø· NetlifyØ› Ù…Ù„Ù /sw.js ÙŠÙÙ‚Ø¯Ù‘ÙŽÙ… Ù…Ù† Ù†ÙØ³ Ø§Ù„Ù†Ø·Ø§Ù‚. Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¹Ù„Ù‰ Render ÙŠØ­ÙØ¸ Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ ÙˆÙŠØ±Ø³Ù„ Push ÙÙ‚Ø·.",
       hintEn:
         "Users must open the PWA from your Netlify URL; /sw.js is served there. Render stores subscriptions and sends pushes.",
     });
@@ -948,20 +952,20 @@ app.get("/api/admin/push-diagnostics", requireAuth, requireAdmin, async (_req, r
   }
 });
 
-/** ملخص الجداول (عدد الصفوف) — للمشرف فقط؛ الملف غير معروض للتنزيل */
+/** Ù…Ù„Ø®Øµ Ø§Ù„Ø¬Ø¯Ø§ÙˆÙ„ (Ø¹Ø¯Ø¯ Ø§Ù„ØµÙÙˆÙ) â€” Ù„Ù„Ù…Ø´Ø±Ù ÙÙ‚Ø·Ø› Ø§Ù„Ù…Ù„Ù ØºÙŠØ± Ù…Ø¹Ø±ÙˆØ¶ Ù„Ù„ØªÙ†Ø²ÙŠÙ„ */
 app.get("/api/admin/database/overview", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const overview = await getDatabaseOverview();
     return res.json({
       ...overview,
-      note: "PostgreSQL via DATABASE_URL. Use this dashboard or REST APIs — no direct database file on the app host.",
+      note: "PostgreSQL via DATABASE_URL. Use this dashboard or REST APIs â€” no direct database file on the app host.",
     });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load database overview" });
   }
 });
 
-/** Keys + labels for home section visibility (admin toggles) — derived from DEFAULT_HOME_SECTIONS_VISIBILITY */
+/** Keys + labels for home section visibility (admin toggles) â€” derived from DEFAULT_HOME_SECTIONS_VISIBILITY */
 app.get("/api/admin/home-sections/keys", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const keys = Object.keys(DEFAULT_HOME_SECTIONS_VISIBILITY);
@@ -1002,7 +1006,7 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   }
 });
 
-/** إشعارات: رسائل بث قديمة + إشعارات نصية جديدة (مع قراءة لكل مستخدم) */
+/** Ø¥Ø´Ø¹Ø§Ø±Ø§Øª: Ø±Ø³Ø§Ø¦Ù„ Ø¨Ø« Ù‚Ø¯ÙŠÙ…Ø© + Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ù†ØµÙŠØ© Ø¬Ø¯ÙŠØ¯Ø© (Ù…Ø¹ Ù‚Ø±Ø§Ø¡Ø© Ù„ÙƒÙ„ Ù…Ø³ØªØ®Ø¯Ù…) */
 app.get("/api/notifications", requireAuth, async (req, res) => {
   try {
     const urow = await get(`SELECT created_at FROM users WHERE id=?`, [req.user.id]);
@@ -1056,7 +1060,7 @@ app.get("/api/notifications", requireAuth, async (req, res) => {
   }
 });
 
-/** عدد الإشعارات غير المقروءة (بث + in-app) — أخف من جلب القائمة كاملة */
+/** Ø¹Ø¯Ø¯ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª ØºÙŠØ± Ø§Ù„Ù…Ù‚Ø±ÙˆØ¡Ø© (Ø¨Ø« + in-app) â€” Ø£Ø®Ù Ù…Ù† Ø¬Ù„Ø¨ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© ÙƒØ§Ù…Ù„Ø© */
 app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
   try {
     const urow = await get(`SELECT created_at FROM users WHERE id=?`, [req.user.id]);
@@ -1113,7 +1117,7 @@ app.post("/api/notifications/read", requireAuth, async (req, res) => {
   }
 });
 
-/** توافق مع العميل القديم: يعامل كـ broadcast */
+/** ØªÙˆØ§ÙÙ‚ Ù…Ø¹ Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ù‚Ø¯ÙŠÙ…: ÙŠØ¹Ø§Ù…Ù„ ÙƒÙ€ broadcast */
 app.post("/api/notifications/:id/read", requireAuth, async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -1229,7 +1233,7 @@ app.post("/api/admin/broadcasts", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-/** حذف كل رسائل البث والإشعارات الداخلية لجميع المستخدمين (تُحذف سجلات القراءة تلقائياً بـ CASCADE) */
+/** Ø­Ø°Ù ÙƒÙ„ Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø¨Ø« ÙˆØ§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ© Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† (ØªÙØ­Ø°Ù Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¨Ù€ CASCADE) */
 app.delete("/api/admin/notifications/all", requireAuth, requireAdmin, async (_req, res) => {
   try {
     await run(`DELETE FROM in_app_notifications`);
@@ -1291,13 +1295,18 @@ app.get("/api/products", async (req, res) => {
     const qtrim = q != null ? String(q).trim() : "";
     if (qtrim) {
       const variants = arabicSearchQueryVariants(qtrim);
-      const clause = `(name_ar LIKE ? OR name_en LIKE ? OR COALESCE(brand,'') LIKE ? OR COALESCE(description,'') LIKE ? OR category LIKE ? OR COALESCE(subcategory,'') LIKE ? OR COALESCE(badge,'') LIKE ? OR EXISTS (SELECT 1 FROM brands b WHERE b.name LIKE ? AND (TRIM(COALESCE(products.brand,'')) = TRIM(b.name) OR COALESCE(products.brand,'') LIKE ('%' || TRIM(b.name) || '%'))))`;
+      const clause = `(name_ar ILIKE ? OR name_en ILIKE ? OR COALESCE(brand,'') ILIKE ? OR COALESCE(description,'') ILIKE ? OR category ILIKE ? OR COALESCE(subcategory,'') ILIKE ? OR COALESCE(badge,'') ILIKE ? OR EXISTS (SELECT 1 FROM brands b WHERE b.name ILIKE ? AND (TRIM(COALESCE(products.brand,'')) = TRIM(b.name) OR COALESCE(products.brand,'') ILIKE ('%' || TRIM(b.name) || '%'))))`;
       const parts = variants.map(() => clause);
       where.push(`(${parts.join(" OR ")})`);
       for (const v of variants) {
         const term = sqlLikePrefixParam(v);
-        params.push(term, term, term, term, term, term, term, term);
+        const brandSub = sqlLikeContainsParam(v);
+        params.push(term, term, brandSub, term, term, term, term, term);
       }
+    }
+    const inMpTab = String(req.query.in_marketplace_tab || "").trim();
+    if (inMpTab === "1" || inMpTab === "true") {
+      where.push("COALESCE(show_in_marketplace_tab,0) = 1");
     }
     if (min_price !== undefined && min_price !== "" && !Number.isNaN(Number(min_price))) {
       where.push(`price >= ?`);
@@ -1315,8 +1324,31 @@ app.get("/api/products", async (req, res) => {
       params.push(mr);
     }
     const sql = `SELECT * FROM products ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC`;
-    const products = await all(sql, params);
-    const ids = products.map((p) => p.id).filter((id) => Number.isFinite(Number(id)));
+    let products = await all(sql, params);
+    const fhActive = String(req.query.featured_hub || "").trim();
+    const mergeMpRaw = String(req.query.merge_marketplace ?? "1").trim().toLowerCase();
+    const mergeMp = mergeMpRaw !== "0" && mergeMpRaw !== "false";
+    if (qtrim && mergeMp && fhActive !== "1" && fhActive !== "true") {
+      try {
+        const mpMerged = await fetchMarketplaceProductsForListingSearchMerge(arabicSearchQueryVariants(qtrim));
+        if (mpMerged.length) {
+          const seen = new Set(products.map((p) => Number(p.id)));
+          for (const m of mpMerged) {
+            const mid = Number(m.id);
+            if (Number.isFinite(mid) && !seen.has(mid)) {
+              seen.add(mid);
+              products.push(m);
+            }
+          }
+        }
+      } catch (_e) {
+        /* keep catalog-only */
+      }
+    }
+    const ids = products
+      .filter((p) => p.adora_listing_kind !== "marketplace")
+      .map((p) => Number(p.id))
+      .filter((id) => Number.isFinite(id));
     const reviewMap = {};
     if (ids.length) {
       const ph = ids.map(() => "?").join(",");
@@ -1333,6 +1365,10 @@ app.get("/api/products", async (req, res) => {
     }
     const rows = [];
     for (const p of products) {
+      if (p.adora_listing_kind === "marketplace") {
+        rows.push(p);
+        continue;
+      }
       const images = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
       const base = mapProductRow(p);
       const rev = reviewMap[p.id] || { review_avg: null, review_count: 0 };
@@ -1351,7 +1387,7 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-/** اقتراحات بحث بالبادئة — صفوف غنية (منتج + شركة + صورة) لقائمة تحت مربع البحث */
+/** Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª Ø¨Ø­Ø« Ø¨Ø§Ù„Ø¨Ø§Ø¯Ø¦Ø© â€” ØµÙÙˆÙ ØºÙ†ÙŠØ© (Ù…Ù†ØªØ¬ + Ø´Ø±ÙƒØ© + ØµÙˆØ±Ø©) Ù„Ù‚Ø§Ø¦Ù…Ø© ØªØ­Øª Ù…Ø±Ø¨Ø¹ Ø§Ù„Ø¨Ø­Ø« */
 app.get("/api/search/suggestions", async (req, res) => {
   try {
     const qtrim = String(req.query.q || "").trim();
@@ -1377,8 +1413,9 @@ app.get("/api/search/suggestions", async (req, res) => {
       const params = [];
       for (const v of variants) {
         const pfx = sqlLikePrefixParam(v);
-        clauses.push("(p.name_ar LIKE ? OR p.name_en LIKE ? OR COALESCE(p.brand,'') LIKE ?)");
-        params.push(pfx, pfx, pfx);
+        const sub = sqlLikeContainsParam(v);
+        clauses.push("(p.name_ar ILIKE ? OR p.name_en ILIKE ? OR COALESCE(p.brand,'') ILIKE ?)");
+        params.push(pfx, pfx, sub);
       }
       return { where: clauses.join(" OR "), params };
     };
@@ -1388,8 +1425,11 @@ app.get("/api/search/suggestions", async (req, res) => {
       const params = [];
       for (const v of variants) {
         const pfx = sqlLikePrefixParam(v);
-        clauses.push("(mp.name_ar LIKE ? OR mp.name_en LIKE ? OR mv.name_ar LIKE ? OR mv.name_en LIKE ?)");
-        params.push(pfx, pfx, pfx, pfx);
+        const sub = sqlLikeContainsParam(v);
+        clauses.push(
+          "(mp.name_ar ILIKE ? OR mp.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?)"
+        );
+        params.push(pfx, pfx, pfx, pfx, sub, sub);
       }
       return { where: clauses.join(" OR "), params };
     };
@@ -1451,27 +1491,69 @@ app.get("/api/search/suggestions", async (req, res) => {
       }
     }
 
+    if ((hubOn === "1" || hubOn === "true") && (scope === "products" || scope === "all")) {
+      let limHub = Math.max(1, maxTotal - items.length);
+      if (limHub > 0) {
+        let mpHubSql = " AND COALESCE(mp.featured_hub_enabled,0) = 1 AND COALESCE(mp.show_in_marketplace_tab,1) = 1 ";
+        const mpHubParams = [];
+        if (hubSec) {
+          mpHubSql += " AND mp.featured_hub_section = ? ";
+          mpHubParams.push(hubSec);
+        }
+        const { where, params } = buildMpClauses();
+        const sqlHub = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
+        FROM marketplace_products mp
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+        WHERE mp.is_active = 1 ${mpHubSql} AND (${where})
+        ORDER BY mp.id DESC
+        LIMIT ?`;
+        const rowsHub = await all(sqlHub, [...mpHubParams, ...params, limHub]);
+        for (const r of rowsHub) {
+          const o = mapMpRow(r);
+          if (o) items.push(o);
+        }
+      }
+    }
+
     if (scope === "marketplace" || scope === "all") {
       const { where, params } = buildMpClauses();
       let lim = maxTotal;
       if (scope === "all") {
         lim = Math.max(1, maxTotal - items.length);
       }
+      let mpScopeExtra = " AND COALESCE(mp.show_in_marketplace_tab,1) = 1 ";
+      const mpScopeParams = [];
+      if (hubOn === "1" || hubOn === "true") {
+        mpScopeExtra += " AND COALESCE(mp.featured_hub_enabled,0) = 1 ";
+        if (hubSec) {
+          mpScopeExtra += " AND mp.featured_hub_section = ? ";
+          mpScopeParams.push(hubSec);
+        }
+      }
       const sql = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
         FROM marketplace_products mp
         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
-        WHERE mp.is_active = 1 AND (${where})
+        WHERE mp.is_active = 1 ${mpScopeExtra} AND (${where})
         ORDER BY mp.id DESC
         LIMIT ?`;
-      const rows = await all(sql, [...params, lim]);
+      const rows = await all(sql, [...mpScopeParams, ...params, lim]);
       for (const r of rows) {
         const o = mapMpRow(r);
         if (o) items.push(o);
       }
     }
 
-    return res.json(items.slice(0, maxTotal));
+    const seenKeys = new Set();
+    const deduped = [];
+    for (const it of items) {
+      const kid = it && it.kind != null && it.id != null ? `${it.kind}:${it.id}` : "";
+      if (kid && seenKeys.has(kid)) continue;
+      if (kid) seenKeys.add(kid);
+      deduped.push(it);
+    }
+    return res.json(deduped.slice(0, maxTotal));
   } catch (_e) {
     return res.json([]);
   }
@@ -1513,7 +1595,7 @@ app.get("/api/admin/customer-feedback-notes", requireAuth, requireAdmin, async (
   }
 });
 
-/** منتجات ذات صلة: نفس القسم (ويفضّل نفس الفرع ثم نفس العلامة) */
+/** Ù…Ù†ØªØ¬Ø§Øª Ø°Ø§Øª ØµÙ„Ø©: Ù†ÙØ³ Ø§Ù„Ù‚Ø³Ù… (ÙˆÙŠÙØ¶Ù‘Ù„ Ù†ÙØ³ Ø§Ù„ÙØ±Ø¹ Ø«Ù… Ù†ÙØ³ Ø§Ù„Ø¹Ù„Ø§Ù…Ø©) */
 app.get("/api/products/:id/related", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -1659,10 +1741,14 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       flash_sale_end_time = null,
       featured_hub_enabled = 0,
       featured_hub_section: featuredHubSectionBody = null,
+      show_in_offers_tab = 0,
+      show_in_marketplace_tab = 0,
     } = req.body;
     if (!name_ar || !name_en || !description || !category) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+    const showOffers = Number(show_in_offers_tab) === 1 ? 1 : 0;
+    const showMpTab = Number(show_in_marketplace_tab) === 1 ? 1 : 0;
     const fhEn = featured_hub_enabled ? 1 : 0;
     let fhSec = null;
     if (fhEn) {
@@ -1677,8 +1763,8 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
       `INSERT INTO products (
         name_ar, name_en, description, price, discount, category, subcategory, brand,
         sizes_json, colors_json, stock, inventory_json, product_options_json, badge, is_featured, is_flash_sale, is_new_collection, flash_sale_end_time,
-        featured_hub_enabled, featured_hub_section
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_ar,
         name_en,
@@ -1700,6 +1786,8 @@ app.post("/api/products", requireAuth, requireAdmin, async (req, res) => {
         flash_sale_end_time,
         fhEn,
         fhSec,
+        showOffers,
+        showMpTab,
       ]
     );
     for (const imageUrl of images) {
@@ -1736,7 +1824,11 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       flash_sale_end_time = null,
       featured_hub_enabled = 0,
       featured_hub_section: featuredHubSectionPut = null,
+      show_in_offers_tab = 0,
+      show_in_marketplace_tab = 0,
     } = req.body;
+    const showOffersPut = Number(show_in_offers_tab) === 1 ? 1 : 0;
+    const showMpTabPut = Number(show_in_marketplace_tab) === 1 ? 1 : 0;
     const fhEnPut = featured_hub_enabled ? 1 : 0;
     let fhSecPut = null;
     if (fhEnPut) {
@@ -1751,7 +1843,7 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
       `UPDATE products SET
         name_ar=?, name_en=?, description=?, price=?, discount=?, category=?, subcategory=?, brand=?,
         sizes_json=?, colors_json=?, stock=?, inventory_json=?, product_options_json=?, badge=?, is_featured=?, is_flash_sale=?, is_new_collection=?, flash_sale_end_time=?,
-        featured_hub_enabled=?, featured_hub_section=?
+        featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=?
        WHERE id=?`,
       [
         name_ar,
@@ -1774,6 +1866,8 @@ app.put("/api/products/:id", requireAuth, requireAdmin, async (req, res) => {
         flash_sale_end_time,
         fhEnPut,
         fhSecPut,
+        showOffersPut,
+        showMpTabPut,
         id,
       ]
     );
@@ -1935,24 +2029,24 @@ registerVendorPlatformRoutes(app, {
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
 
-/** عنوان إشعار حالة الطلب — يتضمن رقم الطلب ليظهر في Push والقائمة */
+/** Ø¹Ù†ÙˆØ§Ù† Ø¥Ø´Ø¹Ø§Ø± Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ â€” ÙŠØªØ¶Ù…Ù† Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ Ù„ÙŠØ¸Ù‡Ø± ÙÙŠ Push ÙˆØ§Ù„Ù‚Ø§Ø¦Ù…Ø© */
 function orderStatusNotifyTitle(orderNo) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  return ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
+  return ord ? `ØªØ­Ø¯ÙŠØ« Ø·Ù„Ø¨ ${ord}` : "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ù„Ø¨";
 }
 
-/** نص إشعار حالة الطلب (عربي + سطر إنجليزي قصير يذكر الرقم) */
+/** Ù†Øµ Ø¥Ø´Ø¹Ø§Ø± Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ (Ø¹Ø±Ø¨ÙŠ + Ø³Ø·Ø± Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ Ù‚ØµÙŠØ± ÙŠØ°ÙƒØ± Ø§Ù„Ø±Ù‚Ù…) */
 function orderStatusNotifyMessage(orderNo, status) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  const refAr = ord ? `رقم الطلب ${ord}. ` : "";
+  const refAr = ord ? `Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ ${ord}. ` : "";
   const m = {
-    pending_receipt: `${refAr}تم تحديث حالة طلبك إلى: جاري استلام طلبك`,
-    in_progress: `${refAr}تم تحديث حالة طلبك إلى: جاري تجميع طلبك`,
-    fulfilled: `${refAr}تم تحديث حالة طلبك إلى: تم تجميع طلبك`,
-    shipping: `${refAr}تم تحديث حالة طلبك إلى: جاري الشحن`,
-    delivered: `${refAr}تم تحديث حالة طلبك إلى: تم تسليم الطلب للعميل`,
+    pending_receipt: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨Ùƒ`,
+    in_progress: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ ØªØ¬Ù…ÙŠØ¹ Ø·Ù„Ø¨Ùƒ`,
+    fulfilled: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ¬Ù…ÙŠØ¹ Ø·Ù„Ø¨Ùƒ`,
+    shipping: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø´Ø­Ù†`,
+    delivered: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„Ø¹Ù…ÙŠÙ„`,
   };
-  const ar = m[status] || `${refAr}تم تحديث حالة طلبك (${status})`;
+  const ar = m[status] || `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ (${status})`;
   const refEn = ord ? `Order ${ord}. ` : "";
   const en = {
     pending_receipt: `${refEn}Status: pending receipt`,
@@ -1967,12 +2061,12 @@ function orderStatusNotifyMessage(orderNo, status) {
 
 function orderReceivedNotifyTitle(orderNo) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  return ord ? `تم استلام الطلب ${ord}` : "تم استلام الطلب";
+  return ord ? `ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ø·Ù„Ø¨ ${ord}` : "ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ø·Ù„Ø¨";
 }
 
 function orderReceivedNotifyMessage(orderNo) {
-  const ord = orderNo != null ? String(orderNo).trim() : "—";
-  return `تم استلام طلبك في النظام. رقم الطلب: ${ord}. احفظ الرقم للمتابعة؛ ستصلك إشعارات عند تغيير الحالة.\nOrder received. Number: ${ord}. Save it—you will get status updates here.`;
+  const ord = orderNo != null ? String(orderNo).trim() : "â€”";
+  return `ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨Ùƒ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù…. Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨: ${ord}. Ø§Ø­ÙØ¸ Ø§Ù„Ø±Ù‚Ù… Ù„Ù„Ù…ØªØ§Ø¨Ø¹Ø©Ø› Ø³ØªØµÙ„Ùƒ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¹Ù†Ø¯ ØªØºÙŠÙŠØ± Ø§Ù„Ø­Ø§Ù„Ø©.\nOrder received. Number: ${ord}. Save itâ€”you will get status updates here.`;
 }
 
 app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
@@ -2037,7 +2131,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         return res.status(400).json({ error: "Insufficient stock", detail: mp.name_ar || String(mpid) });
       }
     }
-    /** الحالة الأولى دائماً «قيد الاستلام» — لا يُقبل تمرير حالة من الزبون */
+    /** Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ Ø¯Ø§Ø¦Ù…Ø§Ù‹ Â«Ù‚ÙŠØ¯ Ø§Ù„Ø§Ø³ØªÙ„Ø§Ù…Â» â€” Ù„Ø§ ÙŠÙÙ‚Ø¨Ù„ ØªÙ…Ø±ÙŠØ± Ø­Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ø²Ø¨ÙˆÙ† */
     const status = "pending_receipt";
     const orderNo = await allocateNextOrderNo();
     const result = await run(
@@ -2107,7 +2201,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         "/"
       );
     } catch (_n) {
-      /* لا نفشل إنشاء الطلب إذا تعذر الإشعار */
+      /* Ù„Ø§ Ù†ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø·Ù„Ø¨ Ø¥Ø°Ø§ ØªØ¹Ø°Ø± Ø§Ù„Ø¥Ø´Ø¹Ø§Ø± */
     }
     return res.status(201).json({ order: saved, items });
   } catch (err) {
@@ -2137,7 +2231,7 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
   }
 });
 
-/** ترتيب الحالات للفرز الثانوي بعد التاريخ (الأحدث أولاً) */
+/** ØªØ±ØªÙŠØ¨ Ø§Ù„Ø­Ø§Ù„Ø§Øª Ù„Ù„ÙØ±Ø² Ø§Ù„Ø«Ø§Ù†ÙˆÙŠ Ø¨Ø¹Ø¯ Ø§Ù„ØªØ§Ø±ÙŠØ® (Ø§Ù„Ø£Ø­Ø¯Ø« Ø£ÙˆÙ„Ø§Ù‹) */
 const ORDER_STATUS_SORT_SQL = `CASE o.status
   WHEN 'pending_receipt' THEN 1
   WHEN 'in_progress' THEN 2
@@ -2212,20 +2306,66 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-app.get("/api/offers", async (_req, res) => {
+app.get("/api/offers", async (req, res) => {
   try {
+    const legacyOnly =
+      String(req.query.offers_table_only || "").trim() === "1" ||
+      String(req.query.offers_table_only || "").trim().toLowerCase() === "true";
+    if (legacyOnly) {
+      const offerRowsLegacy = await all(
+        `SELECT id, product_id, banner_image_url, discount_percent, offer_end_time, created_at
+         FROM product_offers ORDER BY id DESC`
+      );
+      const outLegacy = [];
+      for (const o of offerRowsLegacy) {
+        const p = await get(`SELECT * FROM products WHERE id=?`, [o.product_id]);
+        if (!p) continue;
+        const imgs = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
+        outLegacy.push({
+          id: o.id,
+          product_id: o.product_id,
+          banner_image_url: o.banner_image_url || "",
+          discount_percent: Number(o.discount_percent || 0),
+          offer_end_time: o.offer_end_time || null,
+          created_at: o.created_at,
+          name_ar: p.name_ar,
+          name_en: p.name_en,
+          description: p.description,
+          price: p.price,
+          discount: p.discount,
+          category: p.category,
+          subcategory: p.subcategory,
+          brand: p.brand,
+          stock: p.stock,
+          badge: p.badge,
+          sizes: safeJsonParse(p.sizes_json, []),
+          colors: safeJsonParse(p.colors_json, []),
+          images: imgs.map((i) => i.image_url),
+        });
+      }
+      return res.json(outLegacy);
+    }
+
     const offerRows = await all(
       `SELECT id, product_id, banner_image_url, discount_percent, offer_end_time, created_at
        FROM product_offers ORDER BY id DESC`
     );
+    const seenCatalog = new Set();
+    const seenMp = new Set();
     const out = [];
+
     for (const o of offerRows) {
-      const p = await get(`SELECT * FROM products WHERE id=?`, [o.product_id]);
+      const pid = Number(o.product_id);
+      if (!Number.isFinite(pid) || seenCatalog.has(pid)) continue;
+      const p = await get(`SELECT * FROM products WHERE id=?`, [pid]);
       if (!p) continue;
+      seenCatalog.add(pid);
       const imgs = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
       out.push({
         id: o.id,
-        product_id: o.product_id,
+        offer_kind: "catalog_row",
+        product_id: pid,
+        marketplace_product_id: null,
         banner_image_url: o.banner_image_url || "",
         discount_percent: Number(o.discount_percent || 0),
         offer_end_time: o.offer_end_time || null,
@@ -2245,12 +2385,94 @@ app.get("/api/offers", async (_req, res) => {
         images: imgs.map((i) => i.image_url),
       });
     }
+
+    const catFlagged = await all(
+      `SELECT * FROM products WHERE COALESCE(show_in_offers_tab,0) = 1 ORDER BY id DESC LIMIT 300`
+    );
+    for (const p of catFlagged) {
+      const pid = Number(p.id);
+      if (!Number.isFinite(pid) || seenCatalog.has(pid)) continue;
+      seenCatalog.add(pid);
+      const imgs = await all(`SELECT image_url FROM product_images WHERE product_id=?`, [p.id]);
+      out.push({
+        id: null,
+        offer_kind: "catalog_flag",
+        product_id: pid,
+        marketplace_product_id: null,
+        banner_image_url: "",
+        discount_percent: Number(p.discount || 0),
+        offer_end_time: null,
+        created_at: null,
+        name_ar: p.name_ar,
+        name_en: p.name_en,
+        description: p.description,
+        price: p.price,
+        discount: p.discount,
+        category: p.category,
+        subcategory: p.subcategory,
+        brand: p.brand,
+        stock: p.stock,
+        badge: p.badge,
+        sizes: safeJsonParse(p.sizes_json, []),
+        colors: safeJsonParse(p.colors_json, []),
+        images: imgs.map((i) => i.image_url),
+      });
+    }
+
+    const mpOfferRows = await all(
+      `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
+              mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
+              ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
+              mprev.review_avg, mprev.review_count
+       FROM marketplace_products mp
+       INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+       INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
+       LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
+       LEFT JOIN (
+         SELECT marketplace_product_id,
+                ROUND(AVG(stars)::numeric, 1) AS review_avg,
+                COUNT(*)::int AS review_count
+         FROM marketplace_product_reviews
+         GROUP BY marketplace_product_id
+       ) mprev ON mprev.marketplace_product_id = mp.id
+       WHERE mp.is_active = 1 AND COALESCE(mp.show_in_offers_tab,0) = 1
+       ORDER BY mp.id DESC LIMIT 300`
+    );
+    for (const row of mpOfferRows) {
+      const mid = Number(row.id);
+      if (!Number.isFinite(mid) || seenMp.has(mid)) continue;
+      seenMp.add(mid);
+      const m = mapMarketplaceProductRow(row);
+      out.push({
+        id: null,
+        offer_kind: "marketplace_flag",
+        product_id: null,
+        marketplace_product_id: mid,
+        banner_image_url: "",
+        discount_percent: Number(m.discount_percent || 0),
+        offer_end_time: null,
+        created_at: null,
+        name_ar: m.name_ar,
+        name_en: m.name_en,
+        description: String(m.description_ar || m.description_en || ""),
+        price: m.price,
+        discount: m.discount_percent,
+        category: m.section_slug || "",
+        subcategory: "",
+        brand: String(m.vendor_name_en || m.vendor_name_ar || "").trim(),
+        stock: m.stock,
+        badge: "",
+        sizes: [],
+        colors: [],
+        images: Array.isArray(m.images) ? m.images : [],
+      });
+    }
+
     return res.json(out);
   } catch (err) {
     return res.status(500).json({ error: "Failed to load offers" });
   }
 });
-
 app.post("/api/offers", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { product_id, banner_image_url = "", discount_percent = 0, offer_end_time = null } = req.body;
@@ -2293,7 +2515,7 @@ app.post("/api/site-ratings", requireAuth, async (req, res) => {
     const raw = Number(req.body.stars);
     const stars = Number.isFinite(raw) ? Math.min(5, Math.max(1, Math.round(raw))) : NaN;
     if (!Number.isFinite(stars)) {
-      return res.status(400).json({ error: "stars must be 1–5" });
+      return res.status(400).json({ error: "stars must be 1â€“5" });
     }
     let comment = req.body.comment != null ? String(req.body.comment).trim() : "";
     if (comment.length > 2000) comment = comment.slice(0, 2000);
@@ -2329,7 +2551,7 @@ app.post("/api/product-reviews", requireAuth, async (req, res) => {
     const raw = Number(req.body.stars);
     const stars = Number.isFinite(raw) ? Math.min(5, Math.max(1, Math.round(raw))) : NaN;
     if (!Number.isFinite(stars)) {
-      return res.status(400).json({ error: "stars must be 1–5" });
+      return res.status(400).json({ error: "stars must be 1â€“5" });
     }
     let comment = req.body.comment != null ? String(req.body.comment).trim() : "";
     if (comment.length > 2000) comment = comment.slice(0, 2000);
@@ -2366,7 +2588,7 @@ app.get("/api/admin/product-reviews", requireAuth, requireAdmin, async (_req, re
   }
 });
 
-/** تقييمات منتجات السوق الشامل (جدول منفصل عن كتالوج الألبسة) */
+/** ØªÙ‚ÙŠÙŠÙ…Ø§Øª Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„ (Ø¬Ø¯ÙˆÙ„ Ù…Ù†ÙØµÙ„ Ø¹Ù† ÙƒØªØ§Ù„ÙˆØ¬ Ø§Ù„Ø£Ù„Ø¨Ø³Ø©) */
 app.get("/api/admin/marketplace-product-reviews", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const rows = await all(
@@ -2387,7 +2609,7 @@ app.get("/api/admin/marketplace-product-reviews", requireAuth, requireAdmin, asy
   }
 });
 
-/** الأكثر مبيعاً من مجموع كميات order_items */
+/** Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹ Ù…Ù† Ù…Ø¬Ù…ÙˆØ¹ ÙƒÙ…ÙŠØ§Øª order_items */
 app.get("/api/bestsellers", async (req, res) => {
   try {
     const limit = Math.min(48, Math.max(1, Number(req.query.limit) || 12));
@@ -2452,7 +2674,7 @@ function normalizeAppBannerKind(k) {
   return s === "customer_note" ? "customer_note" : "standard";
 }
 
-/** بانرات التطبيق — مواضع متعددة (رئيسية، قوائم، تفاصيل…) */
+/** Ø¨Ø§Ù†Ø±Ø§Øª Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ â€” Ù…ÙˆØ§Ø¶Ø¹ Ù…ØªØ¹Ø¯Ø¯Ø© (Ø±Ø¦ÙŠØ³ÙŠØ©ØŒ Ù‚ÙˆØ§Ø¦Ù…ØŒ ØªÙØ§ØµÙŠÙ„â€¦) */
 app.get("/api/banners", async (_req, res) => {
   try {
     const rows = await all(
@@ -2692,7 +2914,7 @@ function sendAdminPanel(_req, res) {
   res.sendFile(adminHtmlPath, (err) => {
     if (err) {
       // eslint-disable-next-line no-console
-      console.error("[Adora] admin.html missing — ensure public/admin.html is in the deployed repo.", err.message);
+      console.error("[Adora] admin.html missing â€” ensure public/admin.html is in the deployed repo.", err.message);
       res.status(500).type("text/plain").send("Admin panel file missing on server. Check that public/admin.html is deployed.");
     }
   });
@@ -2705,7 +2927,7 @@ app.get("/manifest.json", (_req, res) => {
   res.sendFile(path.join(__dirname, "manifest.json"));
 });
 
-/** لا تُقدَّم ملفات قاعدة SQLite كملفات ثابتة */
+/** Ù„Ø§ ØªÙÙ‚Ø¯Ù‘ÙŽÙ… Ù…Ù„ÙØ§Øª Ù‚Ø§Ø¹Ø¯Ø© SQLite ÙƒÙ…Ù„ÙØ§Øª Ø«Ø§Ø¨ØªØ© */
 app.use((req, res, next) => {
   const p = String(req.path || "");
   if (p.endsWith(".sqlite") || p.endsWith(".sqlite-journal") || p.endsWith(".sqlite-wal")) {
@@ -2724,7 +2946,7 @@ app.use(
   express.static(ADORA_LOCAL_UPLOADS_DIR)
 );
 
-/** عند فتح التطبيق من رابط Render مباشرة: لا تخزّن sw.js بقوة حتى يتحدّث الـ worker */
+/** Ø¹Ù†Ø¯ ÙØªØ­ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù…Ù† Ø±Ø§Ø¨Ø· Render Ù…Ø¨Ø§Ø´Ø±Ø©: Ù„Ø§ ØªØ®Ø²Ù‘Ù† sw.js Ø¨Ù‚ÙˆØ© Ø­ØªÙ‰ ÙŠØªØ­Ø¯Ù‘Ø« Ø§Ù„Ù€ worker */
 app.get("/sw.js", (req, res) => {
   res.set("Cache-Control", "no-cache, no-store, must-revalidate");
   res.type("application/javascript; charset=utf-8");
@@ -2735,7 +2957,7 @@ app.get("/sw.js", (req, res) => {
 
 app.use(express.static(path.join(__dirname)));
 
-/** CORS لـ Socket.IO — يُحاذي منطق Express؛ origin: * بدون credentials يسبب فشلاً مع بعض عملاء polling خلف بروكسي */
+/** CORS Ù„Ù€ Socket.IO â€” ÙŠÙØ­Ø§Ø°ÙŠ Ù…Ù†Ø·Ù‚ ExpressØ› origin: * Ø¨Ø¯ÙˆÙ† credentials ÙŠØ³Ø¨Ø¨ ÙØ´Ù„Ø§Ù‹ Ù…Ø¹ Ø¨Ø¹Ø¶ Ø¹Ù…Ù„Ø§Ø¡ polling Ø®Ù„Ù Ø¨Ø±ÙˆÙƒØ³ÙŠ */
 function socketIoCors() {
   const raw = process.env.SOCKET_CORS_ORIGIN || process.env.CORS_ORIGIN;
   const methods = ["GET", "POST", "OPTIONS"];
@@ -2754,7 +2976,7 @@ function socketIoCors() {
   };
 }
 
-/** عند أكثر من نسخة خادم (Render Instance Count > 1) يجب Redis وإلا polling يعيد 400 «Session ID unknown» */
+/** Ø¹Ù†Ø¯ Ø£ÙƒØ«Ø± Ù…Ù† Ù†Ø³Ø®Ø© Ø®Ø§Ø¯Ù… (Render Instance Count > 1) ÙŠØ¬Ø¨ Redis ÙˆØ¥Ù„Ø§ polling ÙŠØ¹ÙŠØ¯ 400 Â«Session ID unknownÂ» */
 async function attachSocketIoRedisAdapterIfConfigured(io) {
   const url = String(process.env.REDIS_URL || process.env.SOCKET_IO_REDIS_URL || "").trim();
   if (!url) return;
@@ -2792,7 +3014,7 @@ initDb()
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: socketIoCors(),
-    /* أطول عند إيقاظ Render البارد أو شبكات بطيئة — يقلّل إغلاق الـ handshake مبكراً */
+    /* Ø£Ø·ÙˆÙ„ Ø¹Ù†Ø¯ Ø¥ÙŠÙ‚Ø§Ø¸ Render Ø§Ù„Ø¨Ø§Ø±Ø¯ Ø£Ùˆ Ø´Ø¨ÙƒØ§Øª Ø¨Ø·ÙŠØ¦Ø© â€” ÙŠÙ‚Ù„Ù‘Ù„ Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ù€ handshake Ù…Ø¨ÙƒØ±Ø§Ù‹ */
     connectTimeout: 90000,
     pingTimeout: 60000,
     pingInterval: 25000,

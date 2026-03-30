@@ -295,6 +295,20 @@
                   </div>
                 </div>
 
+                <div class="md:col-span-2 rounded-2xl border border-emerald-100 bg-emerald-50/35 p-4 space-y-2">
+                  <p class="text-sm font-bold text-gray-900">
+                    <span data-en="Offers & Market tab visibility" data-ar="عروضنا وتبويب السوق">عروضنا وتبويب السوق</span>
+                  </p>
+                  <label class="flex items-start gap-2 cursor-pointer max-w-xl">
+                    <input id="product-show-in-offers" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
+                    <span class="text-sm font-semibold leading-snug" data-en="Show in «Our offers» (no separate offer row required)" data-ar="إظهار في تبويب عروضنا (دون إضافة سطر في جدول العروض)">إظهار في تبويب عروضنا</span>
+                  </label>
+                  <label class="flex items-start gap-2 cursor-pointer max-w-xl">
+                    <input id="product-show-in-marketplace" type="checkbox" class="w-4 h-4 mt-0.5 shrink-0" />
+                    <span class="text-sm font-semibold leading-snug" data-en="Also list this catalog product in the Market tab (when browsing/searching the market)" data-ar="إظهار منتج الكتالوج داخل تبويب السوق الشامل عند التصفح/البحث">إظهار في تبويب السوق الشامل</span>
+                  </label>
+                </div>
+
                 <div class="md:col-span-2">
                   <label class="text-sm font-semibold"><span data-en="Flash sale end (ISO)" data-ar="نهاية التخفيض السريع (ISO)">نهاية التخفيض السريع (ISO)</span></label>
                   <input id="product-flash-end" type="text" class="mt-1 w-full p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600" data-en-ph="2026-03-25T12:00:00.000Z" data-ar-ph="2026-03-25T12:00:00.000Z" placeholder="2026-03-25T12:00:00.000Z" />
@@ -331,6 +345,8 @@
                       <th class="py-2" data-en="Stock" data-ar="المخزون">المخزون</th>
                       <th class="py-2" data-en="Featured" data-ar="مميز">مميز</th>
                       <th class="py-2" data-en="Featured hub" data-ar="مميز (قائمة)">مميز (قائمة)</th>
+                      <th class="py-2 text-xs" data-en="Offers tab" data-ar="عروضنا">عروضنا</th>
+                      <th class="py-2 text-xs" data-en="Market" data-ar="السوق">السوق</th>
                       <th class="py-2" data-en="Flash" data-ar="سريع">سريع</th>
                       <th class="py-2" data-en="New" data-ar="جديد">جديد</th>
                       <th class="py-2" data-en="Actions" data-ar="إجراءات">إجراءات</th>
@@ -483,6 +499,8 @@
                 <button type="button" data-mp-sub="departments" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Company departments" data-ar="أقسام الشركات">أقسام الشركات</button>
                 <button type="button" data-mp-sub="products" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200">المنتجات</button>
                 <button type="button" data-mp-sub="homeplacements" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Home placement" data-ar="الظهور في الرئيسية">الظهور في الرئيسية</button>
+                <button type="button" data-mp-sub="featured" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Featured hub (مميز)" data-ar="تبويب مميز">تبويب مميز</button>
+                <button type="button" data-mp-sub="join_terms" class="mp-subtab px-3 py-2 rounded-xl bg-gray-50 text-gray-700 text-sm font-bold border border-gray-200" data-en="Join page terms" data-ar="شروط صفحة الانضمام">شروط صفحة الانضمام</button>
               </div>
 
               <div id="mp-pane-sections" class="mp-pane space-y-4">
@@ -669,6 +687,9 @@
                         <button type="button" id="mpv-add-variant-row" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700">
                           <span data-en="+ Variant row" data-ar="+ صف متغير">+ صف متغير</span>
                         </button>
+                        <button type="button" id="mpv-preset-size-color" class="px-3 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-50">
+                          <span data-en="+ Size & color starter" data-ar="+ بداية مقاس ولون">+ بداية مقاس ولون</span>
+                        </button>
                       </div>
                     </div>
                     <p class="text-xs text-gray-600 leading-relaxed" data-en="Same as catalog: groups, values, then rows with optional price, stock, image per combination." data-ar="نفس كتالوج أدورا: مجموعات وقيم ثم صفوف بسعر ومخزون وصورة اختيارية لكل تركيبة. عند وجود مجموعات يُحسب المخزون الإجمالي من مجموع الصفوف.">نفس منطق الكتالوج: مجموعات ثم صفوف تركيبات.</p>
@@ -677,6 +698,25 @@
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-p-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-offer" class="rounded" /><label for="mp-p-offer" class="text-sm font-bold">عرض ترويجي</label></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured" class="rounded" /><label for="mp-p-featured" class="text-sm font-bold" data-en="Featured (home strip & search priority)" data-ar="مميز (الرئيسية وأولوية بالبحث)">مميز (الرئيسية وأولوية بالبحث)</label></div>
+                  <div class="md:col-span-2 rounded-xl border border-violet-100 bg-violet-50/50 p-3 space-y-2">
+                    <p class="text-xs font-bold text-gray-800" data-en="Featured hub (مميز) tab in app" data-ar="تبويب مميز في التطبيق">تبويب مميز في التطبيق</p>
+                    <label class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured-hub" class="rounded" /><span class="text-sm font-bold" data-en="Show in Featured hub" data-ar="إظهار في تبويب مميز">إظهار في تبويب مميز</span></label>
+                    <div>
+                      <label class="text-xs font-bold" data-en="Section in Featured hub" data-ar="القسم داخل مميز">القسم داخل مميز</label>
+                      <select id="mp-p-featured-hub-section" class="mt-1 w-full p-2 rounded-xl border border-gray-200">
+                        <option value="clothes">ملابس</option>
+                        <option value="electronics">إلكترونيات</option>
+                        <option value="phones">موبايلات</option>
+                        <option value="shoes">أحذية</option>
+                        <option value="accessories">إكسسوارات</option>
+                        <option value="bedding">فرش</option>
+                        <option value="medical">طبية</option>
+                        <option value="used">مستعمل</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-show-offers" class="rounded" /><label for="mp-p-show-offers" class="text-sm font-bold" data-en="Show in «Our offers» tab" data-ar="إظهار في تبويب عروضنا">إظهار في تبويب عروضنا</label></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-show-marketplace" checked class="rounded" /><label for="mp-p-show-marketplace" class="text-sm font-bold" data-en="Show in Market tab" data-ar="إظهار في تبويب السوق">إظهار في تبويب السوق</label></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-active" checked class="rounded" /><label for="mp-p-active" class="text-sm font-bold">نشط</label></div>
                   <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ المنتج</button></div>
                 </form>
@@ -735,6 +775,24 @@
                     <input id="mp-hp-bulk-did" type="number" min="1" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
                   </div>
                   <button type="button" id="btn-mp-hp-bulk-dept" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold md:col-span-2" data-en="Add all products in department" data-ar="إضافة كل منتجات هذا القسم">إضافة كل منتجات هذا القسم</button>
+                </div>
+              </div>
+
+              <div id="mp-pane-featured" class="mp-pane hidden space-y-4">
+                <div class="rounded-xl border border-violet-200 bg-violet-50/60 p-4 space-y-2">
+                  <h3 class="text-sm font-bold text-gray-900" data-en="Featured hub (مميز) in the app" data-ar="تبويب «مميز» في التطبيق">تبويب «مميز» في التطبيق</h3>
+                  <p class="text-xs text-gray-700 leading-relaxed" data-en="Enable per marketplace product below in «Products»: check «Show in Featured hub» and pick the section (same sections as catalog)." data-ar="فعّل ذلك لكل منتج سوق من تبويب «المنتجات» أدناه: خانة «إظهار في تبويب مميز» واختيار القسم (نفس أقسام كتالوج أدورا).">فعّل ذلك لكل منتج سوق من تبويب «المنتجات» أدناه: خانة «إظهار في تبويب مميز» واختيار القسم.</p>
+                  <p class="text-xs text-gray-600 leading-relaxed" data-en="Catalog products still use the product form in «Products» tab (main admin) — Featured hub block there." data-ar="منتجات الكتالوج تُضبط من نموذج المنتج في تبويب «المنتجات» الرئيسي — بلوك «قائمة مميز».">منتجات الكتالوج تُضبط من تبويب «المنتجات» — بلوك «قائمة مميز».</p>
+                </div>
+              </div>
+
+              <div id="mp-pane-join_terms" class="mp-pane hidden space-y-4">
+                <div class="rounded-xl border border-violet-200 bg-white p-4 space-y-3">
+                  <h3 class="text-sm font-bold text-gray-900" data-en="Company join page — terms text" data-ar="صفحة «انضم كشركة» — نص الشروط">صفحة «انضم كشركة» — نص الشروط</h3>
+                  <p class="text-xs text-gray-600 leading-relaxed" data-en="This text appears on the in-app join screen opened from the partner banner. Same settings as «Vendor platform»; you can edit here for convenience." data-ar="يظهر هذا النص في شاشة الانضمام داخل التطبيق. نفس الحقول في «إعدادات منصة البائعين» — يمكنك التعديل من هنا بسهولة.">نفس الحقول الموجودة في «إعدادات منصة البائعين» — للتعديل السريع من السوق الشامل.</p>
+                  <div><label class="text-xs font-bold">نص الشروط (عربي)</label><textarea id="mp-join-terms-ar" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans"></textarea></div>
+                  <div><label class="text-xs font-bold">Terms (English)</label><textarea id="mp-join-terms-en" rows="6" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans"></textarea></div>
+                  <button type="button" id="btn-mp-join-terms-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold" data-en="Save terms" data-ar="حفظ الشروط">حفظ الشروط</button>
                 </div>
               </div>
             </div>

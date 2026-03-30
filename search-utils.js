@@ -32,4 +32,18 @@ function sqlLikePrefixParam(v) {
   return `${s}%`;
 }
 
-module.exports = { normalizeArabicSearchQuery, arabicSearchQueryVariants, sqlLikePrefixParam };
+/** تضمين آمن لـ ILIKE/LIKE (بدون أحرف خاصة للنمط) — لمطابقة جزئية مثل اسم شركة */
+function sqlLikeContainsParam(v) {
+  const s = String(v || "")
+    .replace(/\\/g, "")
+    .replace(/%/g, "")
+    .replace(/_/g, "");
+  return `%${s}%`;
+}
+
+module.exports = {
+  normalizeArabicSearchQuery,
+  arabicSearchQueryVariants,
+  sqlLikePrefixParam,
+  sqlLikeContainsParam,
+};
