@@ -3013,6 +3013,8 @@ app.get("/sw.js", (req, res) => {
   });
 });
 
+/** صفحات وملفات داخل public/ (vendor-portal، إل.) تُعرض من جذر المسار: /vendor-portal.html وليس فقط /public/... */
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname)));
 
 /** CORS Ù„Ù€ Socket.IO â€” ÙŠÙØ­Ø§Ø°ÙŠ Ù…Ù†Ø·Ù‚ ExpressØ› origin: * Ø¨Ø¯ÙˆÙ† credentials ÙŠØ³Ø¨Ø¨ ÙØ´Ù„Ø§Ù‹ Ù…Ø¹ Ø¨Ø¹Ø¶ Ø¹Ù…Ù„Ø§Ø¡ polling Ø®Ù„Ù Ø¨Ø±ÙˆÙƒØ³ÙŠ */
