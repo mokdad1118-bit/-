@@ -695,6 +695,58 @@
         let pendingOrder = null;
         let selectedPaymentMethod = 'cod';
         const ADORA_DELIVERY_ADDRESS_KEY = 'adora_delivery_address_v1';
+        const ADORA_SHIPPING_STRUCTURED_KEY = 'adora_shipping_structured_v2';
+        function loadStructuredShippingToForm() {
+            try {
+                const j = JSON.parse(localStorage.getItem(ADORA_SHIPPING_STRUCTURED_KEY) || 'null');
+                if (!j || typeof j !== 'object') return;
+                const map = [
+                    ['checkout-ship-fullname', 'full_name'],
+                    ['checkout-ship-phone', 'phone'],
+                    ['checkout-ship-governorate', 'governorate'],
+                    ['checkout-ship-region', 'region'],
+                    ['checkout-ship-address', 'address'],
+                ];
+                for (const [id, k] of map) {
+                    const el = document.getElementById(id);
+                    if (el && j[k]) el.value = String(j[k]);
+                }
+            } catch (_e) {}
+        }
+        function getStructuredShippingFromForm() {
+            const g = (id) => String(document.getElementById(id)?.value || '').trim();
+            return {
+                full_name: g('checkout-ship-fullname'),
+                phone: g('checkout-ship-phone'),
+                governorate: g('checkout-ship-governorate'),
+                region: g('checkout-ship-region'),
+                address: g('checkout-ship-address'),
+            };
+        }
+        function structuredShippingComplete(s) {
+            return (
+                s &&
+                [s.full_name, s.phone, s.governorate, s.region, s.address].every((x) => String(x || '').trim().length > 0)
+            );
+        }
+        function persistStructuredShipping(s) {
+            try {
+                localStorage.setItem(ADORA_SHIPPING_STRUCTURED_KEY, JSON.stringify(s));
+            } catch (_e) {}
+        }
+        function cartHasMarketplaceSelected() {
+            return getSelectedCartItems().some(
+                (it) => it.marketplaceProductId != null && Number(it.marketplaceProductId) > 0
+            );
+        }
+        function getShippingAddressSummaryForDisplay() {
+            const s = getStructuredShippingFromForm();
+            if (structuredShippingComplete(s)) {
+                const t = [s.full_name, s.phone, `${s.governorate} — ${s.region}`, s.address].join('\n');
+                return { ar: t, en: t };
+            }
+            return getShippingAddress();
+        }
         const defaultShippingAddress = {
             en: 'Damascus, Syria — coordinated with Adora',
             ar: 'دمشق، سوريا — يتم التنسيق مع أدورا'
@@ -995,8 +1047,17 @@
             { key: 'in_progress', en: 'Picking your order', ar: 'جاري تجميع طلبك' },
             { key: 'fulfilled', en: 'Order assembled', ar: 'تم تجميع طلبك' },
             { key: 'shipping', en: 'Shipping', ar: 'جاري الشحن' },
-            { key: 'delivered', en: 'Delivered to you', ar: 'تم تسليم الطلب للعميل' }
+            { key: 'delivered', en: 'Delivered to you', ar: 'تم تسليم الطلب للعميل' },
+            { key: 'cancelled', en: 'Cancelled', ar: 'ملغي' },
         ];
+        const VENDOR_SPLIT_STATUS_UI = {
+            vendor_new: { ar: 'طلب جديد', en: 'New order' },
+            vendor_accepted: { ar: 'تم القبول', en: 'Accepted' },
+            vendor_preparing: { ar: 'قيد التحضير', en: 'Preparing' },
+            vendor_shipped: { ar: 'تم الشحن', en: 'Shipped' },
+            vendor_delivered: { ar: 'تم التسليم', en: 'Delivered' },
+            vendor_cancelled: { ar: 'ملغي', en: 'Cancelled' },
+        };
         const LEGACY_ORDER_STATUS = { pending: 'pending_receipt', processing: 'in_progress', shipped: 'shipping' };
         function normalizeOrderStatus(s) {
             if (!s) return s;
@@ -1009,6 +1070,7 @@
         let latestOrderDbId = null; // numeric DB id for tracking updates
         let latestOrderCreatedAt = null; // ISO string from backend
         let latestTrackingItems = []; // line items for current tracking view
+        let latestTrackingFulfillments = []; // marketplace vendor sub-orders
         let latestTrackingOrder = null; // order row from last tracking fetch (totals, payment)
         let shouldPersistOrderStatusUpdates = false;
         let cachedWhatsAppPhone = null;
@@ -2719,6 +2781,7 @@
             if (tracking.order?.created_at) latestOrderCreatedAt = tracking.order.created_at;
             latestTrackingOrder = tracking.order || null;
             latestTrackingItems = Array.isArray(tracking.items) ? tracking.items : [];
+            latestTrackingFulfillments = Array.isArray(tracking.fulfillments) ? tracking.fulfillments : [];
             updateOrderTrackingUI();
             navigateTo('screen-order-tracking');
         }
@@ -2809,6 +2872,7 @@
                             if (tracking?.order?.created_at) latestOrderCreatedAt = tracking.order.created_at;
                             latestTrackingOrder = tracking?.order || null;
                             latestTrackingItems = Array.isArray(tracking?.items) ? tracking.items : [];
+                            latestTrackingFulfillments = Array.isArray(tracking?.fulfillments) ? tracking.fulfillments : [];
                             updateOrderTrackingUI();
                         })
                         .catch(() => {});
@@ -3006,6 +3070,7 @@
                     if (tracking?.order?.created_at) latestOrderCreatedAt = tracking.order.created_at;
                     latestTrackingOrder = tracking?.order || null;
                     latestTrackingItems = Array.isArray(tracking?.items) ? tracking.items : [];
+                    latestTrackingFulfillments = Array.isArray(tracking?.fulfillments) ? tracking.fulfillments : [];
                     updateOrderTrackingUI();
                 } catch (_e) {}
                 return;
@@ -5571,6 +5636,7 @@
         function openOrderOptions() {
             const modal = document.getElementById('order-options-modal');
             if (!modal) return;
+            loadStructuredShippingToForm();
             renderCheckoutSummary();
             refreshCheckoutOrderPreviewNo().finally(() => renderCheckoutSummary());
             modal.classList.remove('hidden');
@@ -5656,7 +5722,7 @@
                 }
             }
             const shippingEl = document.getElementById('checkout-shipping-address');
-            const ship = getShippingAddress();
+            const ship = getShippingAddressSummaryForDisplay();
             if (shippingEl) shippingEl.textContent = locale === 'ar' ? ship.ar : ship.en;
             const shippingLabelEl = document.getElementById('checkout-shipping-label');
             if (shippingLabelEl) shippingLabelEl.textContent = locale === 'ar' ? translationMap.shippingLabel : 'Shipping:';
@@ -5707,6 +5773,19 @@
                 return null;
             }
 
+            const shipStruct = getStructuredShippingFromForm();
+            if (cartHasMarketplaceSelected()) {
+                if (!structuredShippingComplete(shipStruct)) {
+                    showToast(
+                        isRTL
+                            ? 'أكمل الاسم الثلاثي والهاتف والمحافظة والمنطقة والعنوان لمنتجات السوق الشامل'
+                            : 'Complete full name, phone, governorate, area, and address for marketplace items'
+                    );
+                    return null;
+                }
+                persistStructuredShipping(shipStruct);
+            }
+
             showToast(
                 isRTL
                     ? translationMap.checkoutSaveOrderNoHint
@@ -5746,7 +5825,18 @@
                     };
                 });
 
-                const shipLine = getSavedDeliveryAddressText() || (isRTL ? order.shippingAddress?.ar : order.shippingAddress?.en) || '';
+                const shipStructPost = getStructuredShippingFromForm();
+                const shipLine =
+                    structuredShippingComplete(shipStructPost) && cartHasMarketplaceSelected()
+                        ? [
+                              shipStructPost.full_name,
+                              shipStructPost.phone,
+                              `${shipStructPost.governorate} — ${shipStructPost.region}`,
+                              shipStructPost.address,
+                          ]
+                              .join('\n')
+                              .slice(0, 2000)
+                        : getSavedDeliveryAddressText() || (isRTL ? order.shippingAddress?.ar : order.shippingAddress?.en) || '';
                 const created = await apiFetch('/api/orders', {
                     method: 'POST',
                     requireAuth: true,
@@ -5756,6 +5846,7 @@
                         payment_method: order.paymentMethod,
                         source,
                         shipping_address: shipLine.slice(0, 2000),
+                        shipping_structured: structuredShippingComplete(shipStructPost) ? shipStructPost : undefined,
                     },
                 });
 
@@ -6496,8 +6587,33 @@
             const detailStatus = document.getElementById('tracking-current-status');
             const detailOrderId = document.getElementById('tracking-order-id-detail');
             const orderDateEl = document.getElementById('tracking-order-date');
+            const splitWrap = document.getElementById('order-tracking-vendor-splits-wrap');
+            const splitEl = document.getElementById('order-tracking-vendor-splits');
 
             if (!timeline || !progressLine) return;
+
+            if (splitWrap && splitEl) {
+                const ff = latestTrackingFulfillments || [];
+                if (ff.length) {
+                    splitWrap.classList.remove('hidden');
+                    splitEl.innerHTML = ff
+                        .map((f) => {
+                            const name = isRTL
+                                ? f.vendor_name_ar || ''
+                                : f.vendor_name_en || f.vendor_name_ar || '';
+                            const lab = VENDOR_SPLIT_STATUS_UI[f.status] || { ar: f.status, en: f.status };
+                            const st = isRTL ? lab.ar : lab.en;
+                            return `<div class="flex justify-between gap-2 py-2 border-b border-gray-100 last:border-0">
+                                <span class="font-semibold text-gray-800 truncate">${escapeHtml(name)}</span>
+                                <span class="text-xs text-indigo-600 shrink-0">${escapeHtml(st)}</span>
+                            </div>`;
+                        })
+                        .join('');
+                } else {
+                    splitWrap.classList.add('hidden');
+                    splitEl.innerHTML = '';
+                }
+            }
             const currentIndex = Math.max(0, orderStatusFlow.findIndex(step => step.key === normalizeOrderStatus(latestOrderStatus)));
             const fill = orderStatusFlow.length > 1 ? (currentIndex / (orderStatusFlow.length - 1)) * 100 : 0;
             progressLine.style.width = `${fill}%`;

@@ -246,13 +246,14 @@ let adminBrandProductsCache = [];
 let brandProductsSelection = { mainCat: "Men" };
 
 /** مفاتيح الحالة بالتسلسل (نفس السيرفر) — التعديل للمشرف فقط */
-const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
+const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered", "cancelled"];
 const ORDER_STATUS_LABELS = {
   pending_receipt: { en: "Receiving your order", ar: "جاري استلام طلبك" },
   in_progress: { en: "Picking your order", ar: "جاري تجميع طلبك" },
   fulfilled: { en: "Order assembled", ar: "تم تجميع طلبك" },
   shipping: { en: "Shipping", ar: "جاري الشحن" },
   delivered: { en: "Delivered to customer", ar: "تم تسليم الطلب للعميل" },
+  cancelled: { en: "Cancelled", ar: "ملغي" },
 };
 
 function formatOrderStatusLabel(status) {
@@ -439,6 +440,9 @@ function setActiveTab(tabId) {
   if (tabId === "tab-vendor-subscriptions") {
     loadVendorSubscriptionRequests().catch(() => {});
     loadAppAdInquiriesUi().catch(() => {});
+  }
+  if (tabId === "tab-adora-company") {
+    initAdoraCompanyAdminTab().catch(() => {});
   }
 }
 
@@ -4735,6 +4739,188 @@ async function init() {
 
   // Buttons reset placeholders: keep forms as-is.
   document.getElementById("btn-reset-product").addEventListener("click", () => resetProductForm());
+}
+
+const MV_F_STATUS_LABELS = {
+  vendor_new: { ar: "طلب جديد", en: "New" },
+  vendor_accepted: { ar: "تم القبول", en: "Accepted" },
+  vendor_preparing: { ar: "قيد التحضير", en: "Preparing" },
+  vendor_shipped: { ar: "تم الشحن", en: "Shipped" },
+  vendor_delivered: { ar: "تم التسليم", en: "Delivered" },
+  vendor_cancelled: { ar: "ملغي", en: "Cancelled" },
+};
+
+let adoraCompanyTabListenersBound = false;
+
+async function initAdoraCompanyAdminTab() {
+  const token = getToken();
+  const ar = getAdminLang() === "ar";
+  const secSel = document.getElementById("ac-section-id");
+  if (secSel && secSel.options.length <= 1) {
+    try {
+      const sections = await api("/api/marketplace/sections", { token });
+      secSel.innerHTML =
+        `<option value="">${ar ? "— قسم —" : "— Section —"}</option>` +
+        (Array.isArray(sections) ? sections : [])
+          .map((s) => `<option value="${s.id}">${escapeHtml(ar ? s.name_ar : s.name_en)}</option>`)
+          .join("");
+    } catch (_e) {
+      secSel.innerHTML = `<option value="">${ar ? "تعذر التحميل" : "Load failed"}</option>`;
+    }
+  }
+  if (!adoraCompanyTabListenersBound) {
+    adoraCompanyTabListenersBound = true;
+    document.getElementById("ac-create-company-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const t = getToken();
+      const body = {
+        section_id: Number(document.getElementById("ac-section-id")?.value),
+        company_name_ar: document.getElementById("ac-name-ar")?.value?.trim(),
+        company_name_en: document.getElementById("ac-name-en")?.value?.trim(),
+        owner_name: document.getElementById("ac-owner")?.value?.trim(),
+        portal_username: document.getElementById("ac-user")?.value?.trim().toLowerCase(),
+        portal_password: document.getElementById("ac-pass")?.value,
+        subscription_months: Number(document.getElementById("ac-months")?.value || 1),
+        product_quota: Number(document.getElementById("ac-quota")?.value || 20),
+      };
+      try {
+        await api("/api/admin/adora-companies", { method: "POST", token: t, body });
+        alert(ar ? "تم إنشاء الشركة." : "Company created.");
+        e.target.reset();
+        await loadAdoraCompaniesTable();
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    document.getElementById("ac-refresh-companies")?.addEventListener("click", () => loadAdoraCompaniesTable());
+    document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable());
+    document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
+  }
+  await loadAdoraCompaniesTable();
+}
+
+async function loadAdoraCompaniesTable() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-companies-tbody");
+  const ar = getAdminLang() === "ar";
+  if (!tbody) return;
+  try {
+    const rows = await api("/api/admin/adora-companies", { token });
+    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+      .map((r) => {
+        const col = r.subscription_health?.color || "gray";
+        const dot =
+          col === "green" ? "🟢" : col === "yellow" ? "🟡" : col === "red" ? "🔴" : "⚪";
+        const vname = ar ? r.name_ar : r.name_en;
+        return `<tr class="border-b border-gray-100">
+          <td class="py-2 pr-2 font-mono text-xs">${escapeHtml(r.public_vendor_code || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(vname)}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.owner_name || "—")}</td>
+          <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
+          <td class="py-2">${escapeHtml(r.portal_username || "—")}</td>
+        </tr>`;
+      })
+      .join("");
+    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+  }
+}
+
+async function loadAdoraFulfillmentsTable() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-fulfillments-tbody");
+  const ar = getAdminLang() === "ar";
+  if (!tbody) return;
+  const mode = document.getElementById("ac-ff-mode")?.value || "all";
+  const vendorId = document.getElementById("ac-ff-vendor")?.value?.trim();
+  const status = document.getElementById("ac-ff-status")?.value?.trim();
+  const orderNo = document.getElementById("ac-ff-order")?.value?.trim();
+  const qs = new URLSearchParams({ mode });
+  if (vendorId) qs.set("vendor_id", vendorId);
+  if (status) qs.set("status", status);
+  if (orderNo) qs.set("order_no", orderNo);
+  try {
+    const rows = await api(`/api/admin/order-vendor-fulfillments?${qs}`, { token });
+    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+      .map((r) => {
+        const st = MV_F_STATUS_LABELS[r.status] || { ar: r.status, en: r.status };
+        const sl = ar ? st.ar : st.en;
+        const vname = ar ? r.vendor_name_ar : r.vendor_name_en;
+        return `<tr class="border-b border-gray-100 text-sm">
+          <td class="py-2 pr-2 font-mono">${escapeHtml(r.order_no || "")}</td>
+          <td class="py-2 pr-2">${escapeHtml(vname || "")}</td>
+          <td class="py-2 pr-2">${escapeHtml(sl)}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.created_at || "")}</td>
+          <td class="py-2"><button type="button" class="text-purple-600 font-bold ac-ff-up" data-id="${r.id}">${ar ? "تحديث" : "Update"}</button></td>
+        </tr>`;
+      })
+      .join("");
+    tbody.querySelectorAll(".ac-ff-up").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const next = prompt(ar ? "الحالة الجديدة (vendor_new … vendor_delivered)" : "New status key");
+        if (!next) return;
+        try {
+          await api(`/api/admin/order-vendor-fulfillments/${id}/status`, {
+            method: "PUT",
+            token,
+            body: { status: next.trim() },
+          });
+          await loadAdoraFulfillmentsTable();
+        } catch (err) {
+          alert(err.message || String(err));
+        }
+      });
+    });
+    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا نتائج." : "No rows."}</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+  }
+}
+
+async function loadAdoraAdRequestsTable() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-adreq-tbody");
+  const ar = getAdminLang() === "ar";
+  if (!tbody) return;
+  try {
+    const rows = await api("/api/admin/vendor-ad-requests", { token });
+    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+      .map((r) => {
+        const vname = ar ? r.vendor_name_ar : r.vendor_name_en;
+        return `<tr class="border-b border-gray-100 text-sm">
+          <td class="py-2 pr-2">#${r.id}</td>
+          <td class="py-2 pr-2">${escapeHtml(vname || "")}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.request_type)}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.payment_status)} / ${escapeHtml(r.lifecycle_status)}</td>
+          <td class="py-2"><button type="button" class="text-purple-600 font-bold ac-ad-edit" data-id="${r.id}">${ar ? "تعديل" : "Edit"}</button></td>
+        </tr>`;
+      })
+      .join("");
+    tbody.querySelectorAll(".ac-ad-edit").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const pay = prompt(ar ? "payment: unpaid|paid" : "payment: unpaid|paid", "unpaid");
+        const life = prompt(ar ? "lifecycle: pending|active|expired|rejected" : "lifecycle", "pending");
+        if (!pay || !life) return;
+        try {
+          await api(`/api/admin/vendor-ad-requests/${id}`, {
+            method: "PUT",
+            token,
+            body: { payment_status: pay.trim(), lifecycle_status: life.trim() },
+          });
+          await loadAdoraAdRequestsTable();
+        } catch (err) {
+          alert(err.message || String(err));
+        }
+      });
+    });
+    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+  }
 }
 
 init().catch((e) => {

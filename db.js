@@ -343,6 +343,7 @@ async function initDb() {
   await migrateVendorSubscriptionUserLink();
   await migrateVendorJoinTermsAndDocImages();
   await migrateMarketplaceComprehensiveV2();
+  await migrateAdoraMultiVendorProgramFullV1();
   await migrateMarketplaceHomePlacementsV1();
   await migrateAppAdBannerV1();
   await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
@@ -869,6 +870,103 @@ async function migrateVendorJoinTermsAndDocImages() {
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_front_url TEXT`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_back_url TEXT`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS commercial_register_url TEXT`);
+}
+
+/** Multi-vendor: رموز CMP/PRD، طلبات فرعية لكل شركة، عنوان JSON، طلبات إعلان */
+async function migrateAdoraMultiVendorProgramFullV1() {
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS public_vendor_code TEXT`);
+  await run(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_public_vendor_code ON marketplace_vendors (public_vendor_code) WHERE public_vendor_code IS NOT NULL AND TRIM(public_vendor_code) <> ''`
+  );
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS owner_name TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS portal_username TEXT`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS portal_password_hash TEXT`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS must_change_portal_password INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS product_quota INTEGER NOT NULL DEFAULT 20`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_ends_at TIMESTAMPTZ`);
+
+  await run(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_portal_username ON marketplace_vendors (LOWER(TRIM(portal_username))) WHERE portal_username IS NOT NULL AND TRIM(portal_username) <> ''`
+  );
+
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS public_product_code TEXT`);
+  await run(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_mp_public_product_code ON marketplace_products (public_product_code) WHERE public_product_code IS NOT NULL AND TRIM(public_product_code) <> ''`
+  );
+
+  await run(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address_json TEXT`);
+
+  await run(`CREATE TABLE IF NOT EXISTS order_vendor_fulfillments (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'vendor_new',
+    subtotal DOUBLE PRECISION NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ovf_order_vendor_unique UNIQUE (order_id, vendor_id)
+  )`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_ovf_order ON order_vendor_fulfillments (order_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_ovf_vendor ON order_vendor_fulfillments (vendor_id)`);
+
+  await run(`CREATE TABLE IF NOT EXISTS order_vendor_fulfillment_status_history (
+    id SERIAL PRIMARY KEY,
+    fulfillment_id INTEGER NOT NULL REFERENCES order_vendor_fulfillments(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_ovf_hist_f ON order_vendor_fulfillment_status_history (fulfillment_id)`);
+
+  await run(
+    `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS vendor_fulfillment_id INTEGER REFERENCES order_vendor_fulfillments(id) ON DELETE SET NULL`
+  );
+
+  await run(`CREATE TABLE IF NOT EXISTS vendor_ad_requests (
+    id SERIAL PRIMARY KEY,
+    vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+    request_type TEXT NOT NULL,
+    notes TEXT,
+    payment_status TEXT NOT NULL DEFAULT 'unpaid',
+    lifecycle_status TEXT NOT NULL DEFAULT 'pending',
+    admin_note TEXT,
+    starts_at TIMESTAMPTZ,
+    ends_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_vendor_ad_requests_vendor ON vendor_ad_requests (vendor_id)`);
+
+  try {
+    const vrows = await all(
+      `SELECT id FROM marketplace_vendors WHERE public_vendor_code IS NULL OR TRIM(COALESCE(public_vendor_code,'')) = '' ORDER BY id ASC`
+    );
+    let vmax = await get(
+      `SELECT MAX(CAST(SUBSTRING(public_vendor_code FROM 5) AS INTEGER)) AS m FROM marketplace_vendors WHERE public_vendor_code ~ '^CMP-[0-9]+$'`
+    );
+    let seq = Number(vmax?.m) >= 1000 ? Number(vmax.m) : 1000;
+    for (const r of vrows || []) {
+      seq += 1;
+      await run(`UPDATE marketplace_vendors SET public_vendor_code=? WHERE id=?`, [`CMP-${seq}`, r.id]);
+    }
+  } catch (_e) {
+    /* ignore backfill */
+  }
+
+  try {
+    const prows = await all(
+      `SELECT id FROM marketplace_products WHERE public_product_code IS NULL OR TRIM(COALESCE(public_product_code,'')) = '' ORDER BY id ASC`
+    );
+    let pmax = await get(
+      `SELECT MAX(CAST(SUBSTRING(public_product_code FROM 5) AS INTEGER)) AS m FROM marketplace_products WHERE public_product_code ~ '^PRD-[0-9]+$'`
+    );
+    let pseq = Number(pmax?.m) >= 1000 ? Number(pmax.m) : 1000;
+    for (const r of prows || []) {
+      pseq += 1;
+      await run(`UPDATE marketplace_products SET public_product_code=? WHERE id=?`, [`PRD-${pseq}`, r.id]);
+    }
+  } catch (_e) {
+    /* ignore backfill */
+  }
 }
 
 async function migrateOrderStatusesToV2() {

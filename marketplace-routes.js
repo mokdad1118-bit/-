@@ -4,6 +4,7 @@
 const { get, all, run } = require("./db");
 const { arabicSearchQueryVariants, sqlLikePrefixParam, sqlLikeContainsParam } = require("./search-utils");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
+const { allocateNextPublicProductCode, allocateNextPublicVendorCode } = require("./adora-mv-core");
 
 function safeJsonParse(raw, fallback) {
   try {
@@ -111,7 +112,7 @@ function normalizeMpFeaturedHubSection(raw) {
   return MP_FEATURED_HUB_SECTIONS.has(s) ? s : null;
 }
 
-const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
+const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.public_product_code, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
@@ -279,11 +280,13 @@ async function assertMarketplaceProductQuota(vendorId, settings, willBeActive) {
   if (!willBeActive) return { ok: true };
   if (!settings || Number(settings.product_quota_enabled) !== 1) return { ok: true };
   const v = await get(
-    `SELECT COALESCE(paid_product_slots, 0)::int AS paid_product_slots FROM marketplace_vendors WHERE id = ?`,
+    `SELECT COALESCE(paid_product_slots, 0)::int AS paid_product_slots, COALESCE(product_quota, 0)::int AS product_quota FROM marketplace_vendors WHERE id = ?`,
     [vendorId]
   );
   const paid = Number(v?.paid_product_slots || 0);
-  const free = Math.max(0, Math.floor(Number(settings.free_products_per_vendor) || 0));
+  const pq = Number(v?.product_quota || 0);
+  const freeDefault = Math.max(0, Math.floor(Number(settings.free_products_per_vendor) || 0));
+  const free = pq > 0 ? pq : freeDefault;
   const limit = free + paid;
   const c = await get(
     `SELECT COUNT(*)::int AS n FROM marketplace_products WHERE vendor_id = ? AND is_active = 1`,
@@ -396,10 +399,11 @@ async function fetchMarketplaceProductsForListingSearchMerge(variants) {
   for (const v of variants) {
     const like = sqlLikePrefixParam(v);
     const likeSub = sqlLikeContainsParam(v);
+    const likeCode = sqlLikeContainsParam(v);
     parts.push(
-      `(mp.name_ar ILIKE ? OR mp.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ?)`
+      `(mp.name_ar ILIKE ? OR mp.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ? OR mv.name_ar ILIKE ? OR mv.name_en ILIKE ? OR mp.public_product_code ILIKE ? OR mv.public_vendor_code ILIKE ?)`
     );
-    params.push(like, like, like, like, likeSub, likeSub);
+    params.push(like, like, like, like, likeSub, likeSub, likeCode, likeCode);
   }
   const sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
      ${MP_FROM}
@@ -929,10 +933,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         ? String(b.premium_subscription_type).trim()
         : "none";
       const search_priority = Math.max(0, Math.min(1000, Math.floor(Number(b.search_priority) || 0)));
+      const public_vendor_code = await allocateNextPublicVendorCode();
       const ins = await run(
         `INSERT INTO marketplace_vendors (section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order, is_active,
-          paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?)`,
+          paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority, public_vendor_code)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?, ?)`,
         [
           section_id,
           name_ar,
@@ -947,6 +952,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           premium_until,
           premium_subscription_type,
           search_priority,
+          public_vendor_code,
         ]
       );
       return res.status(201).json(await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [ins.id]));
@@ -1226,9 +1232,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const depRes = await resolveDepartmentIdForProduct(vendor_id, b.department_id);
       if (!depRes.ok) return res.status(400).json({ error: depRes.error });
       const department_id = depRes.department_id;
+      const public_product_code = await allocateNextPublicProductCode();
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1248,6 +1255,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           is_active,
           sku || null,
           barcodeNorm || null,
+          public_product_code,
           is_mp_featured,
           featured_hub_enabled,
           featured_hub_section,
@@ -1544,4 +1552,9 @@ module.exports = {
   registerMarketplaceRoutes,
   fetchMarketplaceProductsForListingSearchMerge,
   mapProductRow,
+  assertMarketplaceProductQuota,
+  resolveDepartmentIdForProduct,
+  clampDiscountPercent,
+  normalizeMpVariantsForSave,
+  getMarketplaceProductMappedAdminById,
 };

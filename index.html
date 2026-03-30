@@ -5916,6 +5916,10 @@
                 <div class="tracking-timeline" id="tracking-timeline"></div>
                 <p class="text-xs text-gray-500 text-center leading-relaxed" data-en="Status updates are sent by the store only. You will receive a notification when your order progresses." data-ar="تحديث الحالة يتم من المتجر فقط. ستصلك إشعار عند تغيّر حالة الطلب.">تحديث الحالة يتم من المتجر فقط. ستصلك إشعار عند تغيّر حالة الطلب.</p>
             </div>
+            <div id="order-tracking-vendor-splits-wrap" class="hidden bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <p class="text-sm font-bold text-gray-900" data-en="Per company (marketplace)" data-ar="حسب الشركة (السوق الشامل)">حسب الشركة (السوق الشامل)</p>
+                <div id="order-tracking-vendor-splits" class="space-y-2 text-sm"></div>
+            </div>
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
                 <p class="text-sm font-bold text-gray-900" data-en="Your order" data-ar="طلبك">Your order</p>
                 <div id="tracking-order-items" class="space-y-3"></div>
@@ -6109,10 +6113,18 @@
                 </div>
             </div>
 
-            <div class="checkout-section">
+            <div class="checkout-section space-y-2">
                 <p class="text-[10px] tracking-[0.4em] uppercase text-gray-400" data-en="Shipping" data-ar="التوصيل">Shipping</p>
-                <p class="text-sm font-semibold text-gray-900" id="checkout-shipping-label">Shipping:</p>
-                <p class="text-sm text-gray-500" id="checkout-shipping-address">Palm Avenue, Riyadh</p>
+                <p class="text-xs text-gray-500 leading-relaxed" data-en="Required for marketplace items: full name, phone, governorate, area, address." data-ar="مطلوب لمنتجات السوق الشامل: الاسم الثلاثي، الهاتف، المحافظة، المنطقة، العنوان.">مطلوب لمنتجات السوق الشامل: الاسم الثلاثي، الهاتف، المحافظة، المنطقة، العنوان.</p>
+                <div id="checkout-structured-shipping" class="grid grid-cols-1 gap-2">
+                    <input type="text" id="checkout-ship-fullname" maxlength="200" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Full name" data-ar-ph="الاسم الثلاثي" placeholder="الاسم الثلاثي" autocomplete="name" />
+                    <input type="tel" id="checkout-ship-phone" maxlength="40" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Phone" data-ar-ph="رقم الهاتف" placeholder="رقم الهاتف" autocomplete="tel" />
+                    <input type="text" id="checkout-ship-governorate" maxlength="120" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Governorate" data-ar-ph="المحافظة" placeholder="المحافظة" />
+                    <input type="text" id="checkout-ship-region" maxlength="120" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Area / district" data-ar-ph="المنطقة" placeholder="المنطقة" />
+                    <textarea id="checkout-ship-address" rows="2" maxlength="1000" class="w-full text-sm p-2.5 rounded-xl border border-gray-200 resize-none" data-en-ph="Street, building, floor…" data-ar-ph="الشارع، البناء، الطابق…" placeholder="الشارع، البناء، الطابق…"></textarea>
+                </div>
+                <p class="text-sm font-semibold text-gray-900" id="checkout-shipping-label">ملخص العنوان:</p>
+                <p class="text-sm text-gray-500 whitespace-pre-line" id="checkout-shipping-address">—</p>
             </div>
 
             <div class="checkout-section">

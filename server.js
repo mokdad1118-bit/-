@@ -19,6 +19,13 @@ const {
 const { registerVendorPlatformRoutes } = require("./vendor-platform-routes");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
+const { registerVendorPortalRoutes } = require("./vendor-portal-routes");
+const { registerAdoraCompanyAdminRoutes } = require("./adora-company-admin-routes");
+const {
+  createFulfillmentsForOrder,
+  parseShippingStructured,
+  shippingStructuredComplete,
+} = require("./adora-mv-core");
 
 const SIGNUP_SEND_COOLDOWN_MS = 45 * 1000;
 const SIGNUP_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -2027,7 +2034,17 @@ registerVendorPlatformRoutes(app, {
   isVendorJoinUploadReady: isCloudinaryConfigured,
 });
 
-const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered"];
+registerVendorPortalRoutes(app, {
+  notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
+});
+
+registerAdoraCompanyAdminRoutes(app, {
+  requireAuth,
+  requireAdmin,
+  notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
+});
+
+const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered", "cancelled"];
 
 /** Ø¹Ù†ÙˆØ§Ù† Ø¥Ø´Ø¹Ø§Ø± Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ â€” ÙŠØªØ¶Ù…Ù† Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ Ù„ÙŠØ¸Ù‡Ø± ÙÙŠ Push ÙˆØ§Ù„Ù‚Ø§Ø¦Ù…Ø© */
 function orderStatusNotifyTitle(orderNo) {
@@ -2045,6 +2062,7 @@ function orderStatusNotifyMessage(orderNo, status) {
     fulfilled: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ¬Ù…ÙŠØ¹ Ø·Ù„Ø¨Ùƒ`,
     shipping: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø´Ø­Ù†`,
     delivered: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„Ø¹Ù…ÙŠÙ„`,
+    cancelled: `${refAr}ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨Ùƒ`,
   };
   const ar = m[status] || `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ (${status})`;
   const refEn = ord ? `Order ${ord}. ` : "";
@@ -2054,6 +2072,7 @@ function orderStatusNotifyMessage(orderNo, status) {
     fulfilled: `${refEn}Status: fulfilled`,
     shipping: `${refEn}Status: shipping`,
     delivered: `${refEn}Status: delivered`,
+    cancelled: `${refEn}Status: cancelled`,
   };
   const enLine = en[status] || `${refEn}Status updated`;
   return `${ar}\n${enLine}`;
@@ -2092,11 +2111,34 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       source = "system",
       shipping_address: shippingAddressBody,
     } = req.body;
-    const shippingAddress =
+    let shippingAddress =
       shippingAddressBody != null && String(shippingAddressBody).trim() ? String(shippingAddressBody).trim().slice(0, 2000) : null;
     const productLines = Array.isArray(products) ? products : [];
     if (productLines.length === 0) {
       return res.status(400).json({ error: "Order must include at least one product" });
+    }
+    const hasMarketplaceLines = productLines.some((it) => {
+      const mpidRaw = it.marketplace_product_id != null ? Number(it.marketplace_product_id) : null;
+      return Number.isFinite(mpidRaw) && mpidRaw > 0;
+    });
+    const shipStruct = parseShippingStructured(req.body);
+    let shippingAddressJson = null;
+    if (hasMarketplaceLines) {
+      if (!shippingStructuredComplete(shipStruct)) {
+        return res.status(400).json({
+          error: "incomplete_shipping",
+          detail: "Full name, phone, governorate, region, and street address are required for marketplace orders.",
+        });
+      }
+      shippingAddressJson = JSON.stringify(shipStruct);
+      shippingAddress = [
+        shipStruct.full_name,
+        shipStruct.phone,
+        `${shipStruct.governorate} — ${shipStruct.region}`,
+        shipStruct.address,
+      ]
+        .join("\n")
+        .slice(0, 2000);
     }
     for (const item of productLines) {
       const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
@@ -2135,8 +2177,8 @@ app.post("/api/orders", requireAuth, async (req, res) => {
     const status = "pending_receipt";
     const orderNo = await allocateNextOrderNo();
     const result = await run(
-      `INSERT INTO orders (order_no, user_id, total_price, status, payment_method, source, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [orderNo, req.user.id, Number(total_price || 0), status, payment_method, source, shippingAddress]
+      `INSERT INTO orders (order_no, user_id, total_price, status, payment_method, source, shipping_address, shipping_address_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [orderNo, req.user.id, Number(total_price || 0), status, payment_method, source, shippingAddress, shippingAddressJson]
     );
 
     await run(`INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`, [result.id, status]);
@@ -2185,6 +2227,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         });
       }
     }
+    await createFulfillmentsForOrder(result.id);
     await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), req.user.id]);
     const saved = await get(`SELECT * FROM orders WHERE id=?`, [result.id]);
     const items = await all(
@@ -2221,11 +2264,25 @@ app.get("/api/orders/:orderId/tracking", requireAuth, async (req, res) => {
       [orderId]
     );
     const items = await all(
-      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, variant_options_json, variant_label
+      `SELECT id, product_id, marketplace_product_id, product_name, qty, price, image_url, color, size, brand, variant_options_json, variant_label, vendor_fulfillment_id
        FROM order_items WHERE order_id=? ORDER BY id ASC`,
       [orderId]
     );
-    return res.json({ order, history, items });
+    const fulfillments = await all(
+      `SELECT f.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en
+       FROM order_vendor_fulfillments f
+       INNER JOIN marketplace_vendors mv ON mv.id = f.vendor_id
+       WHERE f.order_id=?
+       ORDER BY f.id ASC`,
+      [orderId]
+    );
+    let shipping_structured = null;
+    try {
+      shipping_structured = order.shipping_address_json ? JSON.parse(order.shipping_address_json) : null;
+    } catch (_e) {
+      shipping_structured = null;
+    }
+    return res.json({ order, history, items, fulfillments, shipping_structured });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load tracking" });
   }
@@ -2238,7 +2295,8 @@ const ORDER_STATUS_SORT_SQL = `CASE o.status
   WHEN 'fulfilled' THEN 3
   WHEN 'shipping' THEN 4
   WHEN 'delivered' THEN 5
-  ELSE 6
+  WHEN 'cancelled' THEN 6
+  ELSE 7
 END`;
 
 app.get("/api/orders", requireAuth, async (req, res) => {

@@ -86,6 +86,9 @@
             <button data-tab="tab-vendor-subscriptions" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
               <i class="fas fa-file-signature"></i><span data-en="Join requests" data-ar="طلبات الاشتراك">طلبات الاشتراك</span>
             </button>
+            <button data-tab="tab-adora-company" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
+              <i class="fas fa-building"></i><span data-en="Add company" data-ar="إضافة شركة">إضافة شركة</span>
+            </button>
             <button data-tab="tab-offers" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
               <i class="fas fa-tags"></i><span data-en="Elegant picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span>
             </button>
@@ -886,6 +889,113 @@
                     <th class="p-2 text-start">إجراء</th>
                   </tr></thead>
                   <tbody id="app-ad-inq-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-adora-company" class="tab-panel hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <h2 class="text-lg font-bold" data-en="Create company + portal" data-ar="إنشاء شركة وحساب بوابة">إنشاء شركة وحساب بوابة</h2>
+              <p class="text-xs text-gray-600 leading-relaxed" data-en="Creates a marketplace vendor with CMP code, login, subscription end date, and product quota. First login forces password change." data-ar="ينشئ شركة في السوق الشامل برقم CMP، دخول، تاريخ انتهاء اشتراك، وحصة منتجات. أول دخول يفرض تغيير كلمة المرور.">ينشئ شركة في السوق الشامل برقم CMP، دخول، تاريخ انتهاء اشتراك، وحصة منتجات.</p>
+              <form id="ac-create-company-form" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-bold">قسم السوق</label>
+                  <select id="ac-section-id" class="mt-1 w-full p-2 rounded-xl border border-gray-200" required></select>
+                </div>
+                <div>
+                  <label class="text-xs font-bold">مدة الاشتراك (أشهر)</label>
+                  <input id="ac-months" type="number" min="1" value="12" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">اسم الشركة (عربي)</label>
+                  <input id="ac-name-ar" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" required />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">اسم الشركة (إنجليزي)</label>
+                  <input id="ac-name-en" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" required />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">اسم صاحب الشركة</label>
+                  <input id="ac-owner" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" required />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">عدد المنتجات المسموح (افتراضي 20)</label>
+                  <input id="ac-quota" type="number" min="1" value="20" class="mt-1 w-full p-2 rounded-xl border border-gray-200" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">اسم المستخدم للبوابة</label>
+                  <input id="ac-user" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" autocomplete="off" required />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">كلمة المرور</label>
+                  <input id="ac-pass" type="password" class="mt-1 w-full p-2 rounded-xl border border-gray-200" autocomplete="new-password" required />
+                </div>
+                <div class="md:col-span-2">
+                  <button type="submit" class="px-4 py-3 rounded-xl bg-purple-600 text-white font-bold">حفظ وإنشاء الشركة</button>
+                </div>
+              </form>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4">
+              <div class="flex flex-wrap justify-between gap-2 mb-2">
+                <h2 class="text-lg font-bold" data-en="Manage companies" data-ar="إدارة الشركات">إدارة الشركات</h2>
+                <button type="button" id="ac-refresh-companies" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50"><tr>
+                    <th class="p-2 text-start">CMP</th><th class="p-2 text-start">الشركة</th><th class="p-2 text-start">المالك</th><th class="p-2 text-start">الاشتراك</th><th class="p-2 text-start">المنتجات</th><th class="p-2 text-start">المستخدم</th>
+                  </tr></thead>
+                  <tbody id="ac-companies-tbody"></tbody>
+                </table>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">🟢 نشط · 🟡 قريب الانتهاء · 🔴 منتهي — رابط بوابة الشركة: <code class="bg-gray-100 px-1 rounded">/vendor-portal.html</code></p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+              <h2 class="text-lg font-bold" data-en="Vendor fulfillments (split orders)" data-ar="الطلبات الفرعية (عدة شركات)">الطلبات الفرعية</h2>
+              <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label class="text-xs font-bold">الوضع</label>
+                  <select id="ac-ff-mode" class="block mt-1 p-2 rounded-xl border border-gray-200 text-sm">
+                    <option value="all">جميع الطلبات</option>
+                    <option value="multi">طلبات مشتركة (عدة شركات)</option>
+                    <option value="single">طلبات من شركة واحدة</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-bold">معرّف الشركة (اختياري)</label>
+                  <input id="ac-ff-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">حالة فرعية</label>
+                  <input id="ac-ff-status" class="mt-1 p-2 rounded-xl border border-gray-200 w-40" placeholder="vendor_shipped" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">رقم الطلب</label>
+                  <input id="ac-ff-order" class="mt-1 p-2 rounded-xl border border-gray-200 w-32" placeholder="ORD-" />
+                </div>
+                <button type="button" id="ac-load-fulfillments" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">تطبيق</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-80 overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0"><tr>
+                    <th class="p-2 text-start">طلب</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">حالة</th><th class="p-2 text-start">تاريخ</th><th class="p-2 text-start">—</th>
+                  </tr></thead>
+                  <tbody id="ac-fulfillments-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+              <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold" data-en="Company ad requests" data-ar="طلبات إعلان الشركات">طلبات إعلان الشركات</h2>
+                <button type="button" id="ac-load-adreq" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-72 overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50"><tr>
+                    <th class="p-2 text-start">#</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">النوع</th><th class="p-2 text-start">دفع / دورة</th><th class="p-2 text-start">—</th>
+                  </tr></thead>
+                  <tbody id="ac-adreq-tbody"></tbody>
                 </table>
               </div>
             </div>

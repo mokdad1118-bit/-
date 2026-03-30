@@ -50,4 +50,33 @@ function verifyToken(token) {
   }
 }
 
-module.exports = { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth };
+function signMpVendorToken(vendorId, mustChangePassword) {
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid) || vid < 1) throw new Error("Invalid vendor id");
+  return jwt.sign(
+    { role: "mp_vendor", vendor_id: vid, mc: mustChangePassword ? 1 : 0 },
+    JWT_SECRET,
+    { expiresIn: "14d" }
+  );
+}
+
+function requireMpVendorAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const p = jwt.verify(token, JWT_SECRET);
+    if (String(p.role) !== "mp_vendor" || !Number.isFinite(Number(p.vendor_id))) {
+      return res.status(403).json({ error: "Vendor token required" });
+    }
+    req.mpVendor = {
+      id: Number(p.vendor_id),
+      mustChangePassword: Number(p.mc) === 1,
+    };
+    return next();
+  } catch (_e) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+module.exports = { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth, signMpVendorToken, requireMpVendorAuth };
