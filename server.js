@@ -198,21 +198,21 @@ const DEFAULT_HOME_SECTIONS_VISIBILITY = {
   bestsellers: true,
 };
 
-/** Labels for admin UI + `/api/admin/home-sections/keys` â€” keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
+/** Labels for admin UI + `/api/admin/home-sections/keys` — keep keys in sync with DEFAULT_HOME_SECTIONS_VISIBILITY */
 const HOME_SECTION_LABELS = {
-  banners: { ar: "Ø§Ù„Ø¨Ø§Ù†Ø±Ø§Øª Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ© (ÙƒÙ„ Ø§Ù„Ù…ÙˆØ§Ø¶Ø¹)", en: "Promo banners (all slots)" },
-  comprehensive_market: { ar: "Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„ (Ù…ÙˆÙ„Ø§Øª ÙˆØ´Ø±ÙƒØ§Øªâ€¦)", en: "Comprehensive market (malls & companies)" },
-  main_categories: { ar: "Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (Ø±Ø¬Ø§Ù„ÙŠ / Ù†Ø³Ø§Ø¦ÙŠ / ÙˆÙ„Ø§Ø¯ÙŠ)", en: "Main categories (Men / Women / Kids)" },
-  brands: { ar: "Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚", en: "Companies available in the app" },
-  top_brands: { ar: "Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Featured brands" },
-  flash_sale: { ar: "Ø¹Ø±ÙˆØ¶ Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Limited-time offers" },
-  curated: { ar: "Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø£Ù†ÙŠÙ‚Ø© (Ø§Ù„Ø¹Ù†ÙˆØ§Ù† ÙˆØ§Ù„ÙˆØµÙ)", en: "Curated picks (header & intro)" },
-  home_featured: { ar: "Ù…Ù†ØªØ¬Ø§Øª Ù…Ù…ÙŠØ²Ø© (Ø§Ù„Ø´Ø±ÙŠØ· Ø§Ù„Ø£ÙÙ‚ÙŠ)", en: "Featured products (horizontal strip)" },
-  promo_collection: { ar: "ÙˆØµÙ„ Ø­Ø¯ÙŠØ«Ø§Ù‹ / Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ©", en: "New collection / promo strip" },
-  bestsellers: { ar: "Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Bestsellers" },
+  banners: { ar: "البانرات الترويجية (كل المواضع)", en: "Promo banners (all slots)" },
+  comprehensive_market: { ar: "السوق الشامل (مولات وشركات…)", en: "Comprehensive market (malls & companies)" },
+  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories (Men / Women / Kids)" },
+  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies available in the app" },
+  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
+  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
+  curated: { ar: "اختيارات أنيقة (العنوان والوصف)", en: "Curated picks (header & intro)" },
+  home_featured: { ar: "منتجات مميزة (الشريط الأفقي)", en: "Featured products (horizontal strip)" },
+  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection / promo strip" },
+  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
 
-/** ØªØ±ØªÙŠØ¨ Ø§Ù„ÙƒØªÙ„ Ø¯Ø§Ø®Ù„ #home-reorder-root (Ø¨Ø§Ù†Ø± Ø£Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ù‡Ù†Ø§ Ø§ÙØªØ±Ø§Ø¶ÙŠØ§Ù‹Ø› Ø§Ù„ØªØ«Ø¨ÙŠØª Ù…Ø¹ Ø´Ø±ÙŠØ· Ø§Ù„Ø¨Ø­Ø« Ø§Ø®ØªÙŠØ§Ø±ÙŠ Ù…Ù† Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…) */
+/** ترتيب الكتل داخل #home-reorder-root */
 const HOME_SECTION_ORDER_KEYS = [
   "comprehensive_market",
   "banner_home_top",
@@ -233,22 +233,22 @@ const HOME_SECTION_ORDER_KEYS = [
 ];
 
 const HOME_SECTION_ORDER_LABELS = {
-  comprehensive_market: { ar: "Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„", en: "Comprehensive market" },
-  banner_home_top: { ar: "Ø¨Ø§Ù†Ø± Ø£Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (ØªØ­Øª Ø§Ù„Ø³ÙˆÙ‚ Ø§Ù„Ø´Ø§Ù…Ù„)", en: "Top home banner (below market block)" },
-  main_categories: { ar: "Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (Ø±Ø¬Ø§Ù„ÙŠ / Ù†Ø³Ø§Ø¦ÙŠ / ÙˆÙ„Ø§Ø¯ÙŠ)", en: "Main categories" },
-  home_subcat_overlay: { ar: "Ù„ÙˆØ­Ø© Ø§Ù„ÙØ¦Ø§Øª Ø§Ù„ÙØ±Ø¹ÙŠØ© (Ù…Ù†Ø¨Ø«Ù‚Ø©)", en: "Subcategory bottom sheet (fixed overlay)" },
-  banner_below_categories: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©", en: "Banner below main categories" },
-  brands: { ar: "Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚", en: "Companies in the app" },
-  banner_below_brands: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª ØµÙ Ø§Ù„Ø´Ø±ÙƒØ§Øª", en: "Banner below companies row" },
-  top_brands: { ar: "Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Featured brands" },
-  banner_below_top_brands: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ù…Ù…ÙŠØ²Ø©", en: "Banner below featured brands" },
-  flash_sale: { ar: "Ø¹Ø±ÙˆØ¶ Ù„ÙØªØ±Ø© Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Limited-time offers" },
-  banner_below_flash: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø§Ù„Ù…Ø­Ø¯ÙˆØ¯Ø©", en: "Banner below flash offers" },
-  curated: { ar: "Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø£Ù†ÙŠÙ‚Ø©", en: "Curated picks" },
-  banner_below_curated: { ar: "Ø¨Ø§Ù†Ø± ØªØ­Øª Ø§Ù„Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Ø§Ù„Ø£Ù†ÙŠÙ‚Ø©", en: "Banner below curated" },
-  promo_collection: { ar: "ÙˆØµÙ„ Ø­Ø¯ÙŠØ«Ø§Ù‹ / Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ©", en: "New collection strip" },
-  banner_below_trending: { ar: "Ø¨Ø§Ù†Ø± Ù‚Ø¨Ù„ Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Banner before bestsellers" },
-  bestsellers: { ar: "Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ø¨ÙŠØ¹Ø§Ù‹", en: "Bestsellers" },
+  comprehensive_market: { ar: "السوق الشامل", en: "Comprehensive market" },
+  banner_home_top: { ar: "بانر أعلى الرئيسية (تحت السوق الشامل)", en: "Top home banner (below market block)" },
+  main_categories: { ar: "الأقسام الرئيسية (رجالي / نسائي / ولادي)", en: "Main categories" },
+  home_subcat_overlay: { ar: "لوحة الفئات الفرعية (منبثقة)", en: "Subcategory bottom sheet (fixed overlay)" },
+  banner_below_categories: { ar: "بانر تحت الأقسام الرئيسية", en: "Banner below main categories" },
+  brands: { ar: "الشركات المتاحة داخل التطبيق", en: "Companies in the app" },
+  banner_below_brands: { ar: "بانر تحت صف الشركات", en: "Banner below companies row" },
+  top_brands: { ar: "العلامات المميزة", en: "Featured brands" },
+  banner_below_top_brands: { ar: "بانر تحت العلامات المميزة", en: "Banner below featured brands" },
+  flash_sale: { ar: "عروض لفترة محدودة", en: "Limited-time offers" },
+  banner_below_flash: { ar: "بانر تحت العروض المحدودة", en: "Banner below flash offers" },
+  curated: { ar: "اختيارات أنيقة", en: "Curated picks" },
+  banner_below_curated: { ar: "بانر تحت الاختيارات الأنيقة", en: "Banner below curated" },
+  promo_collection: { ar: "وصل حديثاً / المجموعة الترويجية", en: "New collection strip" },
+  banner_below_trending: { ar: "بانر قبل الأكثر مبيعاً", en: "Banner before bestsellers" },
+  bestsellers: { ar: "الأكثر مبيعاً", en: "Bestsellers" },
 };
 
 function mergeHomeSectionsOrder(raw) {
