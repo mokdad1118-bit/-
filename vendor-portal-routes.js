@@ -2,6 +2,7 @@
  * بوابة الشركة (بائع السوق الشامل): تسجيل دخول، طلبات فرعية، طلبات إعلان، منتجات مبسطة
  */
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
 const { get, all, run } = require("./db");
 const { signMpVendorToken, requireMpVendorAuth } = require("./auth");
 const {
@@ -21,6 +22,20 @@ const {
 
 const REQUEST_TYPES = ["general_ad", "featured_product", "search_boost", "home_featured"];
 
+/** حد أقصى 3 صور لكل منتج من البوابة؛ حجم كل صورة يُضبط بالبيئة (افتراضي 1 ميجابايت) */
+const VENDOR_PORTAL_MAX_PRODUCT_IMAGES = 3;
+const VENDOR_PORTAL_MAX_IMAGE_BYTES = Math.min(
+  10 * 1024 * 1024,
+  Math.max(1024, Number(process.env.VENDOR_PORTAL_MAX_IMAGE_BYTES) || 1024 * 1024)
+);
+
+function createVendorPortalImageUpload() {
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: VENDOR_PORTAL_MAX_IMAGE_BYTES },
+  });
+}
+
 function safeJsonParse(raw, fallback) {
   try {
     return JSON.parse(raw || "");
@@ -29,10 +44,11 @@ function safeJsonParse(raw, fallback) {
   }
 }
 
-function registerVendorPortalRoutes(app, { notifyUserInApp }) {
+function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromBuffer }) {
   const nfy = (userId, title, message, link) => {
     if (typeof notifyUserInApp === "function") notifyUserInApp(userId, title, message, link);
   };
+  const vendorImageUpload = createVendorPortalImageUpload();
 
   app.post("/api/vendor-portal/login", async (req, res) => {
     try {
@@ -105,17 +121,75 @@ function registerVendorPortalRoutes(app, { notifyUserInApp }) {
         [v.id]
       );
       const n = Number(c?.n || 0);
-      const quota = Math.max(0, Number(v.product_quota || 0)) + Math.max(0, Number(v.paid_product_slots || 0));
+      const paid = Math.max(0, Number(v.paid_product_slots || 0));
+      const pq = Math.max(0, Number(v.product_quota || 0));
+      const settings = await getVendorPlatformSettings();
+      const quotaEnabled = settings && Number(settings.product_quota_enabled) === 1;
+      const freeDefault = Math.max(0, Math.floor(Number(settings?.free_products_per_vendor) || 0));
+      const free = pq > 0 ? pq : freeDefault;
+      const limit = quotaEnabled ? free + paid : null;
+      const canAdd = !quotaEnabled || limit == null || n < limit;
       return res.json({
         vendor: v,
         active_products: n,
-        product_quota_display: `${n} / ${quota || "—"}`,
+        product_quota_display: quotaEnabled && limit != null ? `${n} / ${limit}` : String(n),
+        product_quota_limit: limit,
+        can_add_product: canAdd,
+        product_form_limits: {
+          max_images: VENDOR_PORTAL_MAX_PRODUCT_IMAGES,
+          max_image_bytes: VENDOR_PORTAL_MAX_IMAGE_BYTES,
+        },
         must_change_password: req.mpVendor.mustChangePassword,
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
     }
   });
+
+  app.get("/api/vendor-portal/departments", requireMpVendorAuth, async (req, res) => {
+    try {
+      const rows = await all(
+        `SELECT id, name_ar, name_en, sort_order FROM marketplace_vendor_departments WHERE vendor_id=? AND is_active=1 ORDER BY sort_order ASC, id ASC`,
+        [req.mpVendor.id]
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  app.post(
+    "/api/vendor-portal/upload/image",
+    requireMpVendorAuth,
+    (req, res, next) => {
+      if (req.mpVendor.mustChangePassword) {
+        return res.status(403).json({ error: "يجب تغيير كلمة المرور أولاً", must_change_password: true });
+      }
+      vendorImageUpload.single("file")(req, res, (err) => {
+        if (err) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({
+              error: `حجم الصورة يتجاوز الحد المسموح (${Math.round(VENDOR_PORTAL_MAX_IMAGE_BYTES / 1024)} كيلوبايت كحد أقصى لكل صورة).`,
+            });
+          }
+          return res.status(400).json({ error: err.message || "فشل الرفع" });
+        }
+        next();
+      });
+    },
+    async (req, res) => {
+      try {
+        if (typeof savePublicImageFromBuffer !== "function") {
+          return res.status(503).json({ error: "الرفع غير مهيأ على الخادم" });
+        }
+        if (!req.file) return res.status(400).json({ error: "الملف مطلوب" });
+        const url = await savePublicImageFromBuffer(req.file.buffer, req.file.originalname);
+        return res.json({ url });
+      } catch (e) {
+        return res.status(500).json({ error: e.message || "فشل الرفع" });
+      }
+    }
+  );
 
   app.get("/api/vendor-portal/fulfillments", requireMpVendorAuth, async (req, res) => {
     try {
@@ -221,7 +295,12 @@ function registerVendorPortalRoutes(app, { notifyUserInApp }) {
       });
       let images = b.images;
       if (!Array.isArray(images)) images = [];
-      images = images.map((u) => String(u || "").trim()).filter(Boolean).slice(0, 12);
+      if (images.length > VENDOR_PORTAL_MAX_PRODUCT_IMAGES) {
+        return res.status(400).json({
+          error: `يمكن إضافة ${VENDOR_PORTAL_MAX_PRODUCT_IMAGES} صور فقط لكل منتج.`,
+        });
+      }
+      images = images.map((u) => String(u || "").trim()).filter(Boolean).slice(0, VENDOR_PORTAL_MAX_PRODUCT_IMAGES);
       const settings = await getVendorPlatformSettings();
       const is_active = Number(b.is_active) === 0 ? 0 : 1;
       const quota = await assertMarketplaceProductQuota(v.id, settings, is_active === 1);

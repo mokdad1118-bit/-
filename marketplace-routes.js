@@ -280,6 +280,7 @@ async function bumpPromotionImpressionsForRows(rows) {
   }
 }
 
+/** حد المنتجات النشطة: كل صف في marketplace_products = منتج واحد ضمن الحصة، بمواصفات ديناميكية أو بدونها (التركيبات لا تزيد العدد). */
 async function assertMarketplaceProductQuota(vendorId, settings, willBeActive) {
   if (!willBeActive) return { ok: true };
   if (!settings || Number(settings.product_quota_enabled) !== 1) return { ok: true };
@@ -300,7 +301,7 @@ async function assertMarketplaceProductQuota(vendorId, settings, willBeActive) {
   if (n >= limit) {
     return {
       ok: false,
-      error: `لنفس الشركة: وصلت لحد المنتجات النشطة (${limit}). زِد «حصص المنتجات المدفوعة» في المول/الشركة أو عطّل نظام الحصص من إعدادات المنصة.`,
+      error: `وصلتَ لحد المنتجات النشطة (${limit}). كل منتج يُحسب وحدة واحدة — بما فيه المنتج ذو المواصفات المتعددة (لون/قياس…). زِد الحصة من لوحة الإدارة أو عطّل نظام الحصص من إعدادات المنصة.`,
     };
   }
   return { ok: true };

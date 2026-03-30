@@ -2036,6 +2036,10 @@ registerVendorPlatformRoutes(app, {
 
 registerVendorPortalRoutes(app, {
   notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
+  savePublicImageFromBuffer: async (buffer, originalname) => {
+    if (isCloudinaryConfigured()) return uploadBufferToCloudinary(buffer);
+    return saveLocalUploadFromBuffer(buffer, originalname);
+  },
 });
 
 registerAdoraCompanyAdminRoutes(app, {

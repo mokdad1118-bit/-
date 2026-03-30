@@ -29,6 +29,82 @@
         <button type="button" id="vp-btn-out" class="text-sm text-gray-500 underline">خروج</button>
       </div>
       <p id="vp-quota" class="text-xs text-gray-600"></p>
+      <p class="text-[11px] text-gray-500 leading-snug">الحصة تُحسب بعدد <strong>المنتجات</strong> النشطة: كل منتج ديناميكي (عدة ألوان/قياسات) = <strong>منتج واحد</strong> من الحد المسموح.</p>
+      <p id="vp-prod-quota-block" class="text-xs text-amber-800 hidden bg-amber-50 border border-amber-200 rounded-xl p-2"></p>
+      <div class="bg-white rounded-2xl border border-gray-200 p-3 space-y-3">
+        <h2 class="font-bold">منتجاتي</h2>
+        <div id="vp-products-list" class="text-sm space-y-1 min-h-[1.5rem] text-gray-600">—</div>
+        <hr class="border-gray-100" />
+        <h3 class="font-bold text-sm text-gray-800">إضافة منتج جديد</h3>
+        <p id="vp-prod-limits-hint" class="text-xs text-gray-500 leading-relaxed"></p>
+        <form id="vp-prod-form" class="space-y-2">
+          <input id="vp-prod-name-ar" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="اسم المنتج (عربي)" />
+          <input id="vp-prod-name-en" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="Product name (English)" />
+          <textarea id="vp-prod-desc-ar" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="وصف عربي (اختياري)"></textarea>
+          <textarea id="vp-prod-desc-en" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="English description (optional)"></textarea>
+          <label class="flex items-start gap-2 text-sm cursor-pointer">
+            <input id="vp-prod-use-variants" type="checkbox" class="mt-1 rounded border-gray-300" />
+            <span class="text-gray-800">منتج بمواصفات ديناميكية (لون، قياس، …) مع <strong>سعر ومخزون لكل تركيبة</strong> — <span class="text-violet-800">يُحسب كمنتج واحد ضمن حصتك (مثل الـ 20)، وليس كل تركيبة على حدة.</span></span>
+          </label>
+          <div id="vp-variants-panel" class="hidden space-y-2 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+            <p class="text-xs text-gray-600 leading-relaxed">
+              عرّف مواصفة واحدة أو اثنتين (مثل اللون والقياس)، ثم اكتب القيم مفصولة بفاصلة إنجليزية أو عربية أو سطر جديد. سيُنشأ جدول بكل التركيبات (مثال: 3 ألوان × 4 قياسات = 12 صفاً).
+            </p>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label class="text-xs font-bold text-gray-700">اسم المواصفة 1 (عربي)</label>
+                <input id="vp-var-g1-ar" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="اللون" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-700">اسم المواصفة 1 (English)</label>
+                <input id="vp-var-g1-en" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="Color" />
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-700">قيم المواصفة 1</label>
+              <textarea id="vp-var-g1-vals" rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" placeholder="مثال: أحمر، أزرق، أسود"></textarea>
+            </div>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <div>
+                <label class="text-xs font-bold text-gray-700">اسم المواصفة 2 (عربي) — اختياري</label>
+                <input id="vp-var-g2-ar" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="المقاس" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-700">اسم المواصفة 2 (English)</label>
+                <input id="vp-var-g2-en" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="Size" />
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-700">قيم المواصفة 2 (اتركها فارغة إن لم تحتج إلا مواصفة واحدة)</label>
+              <textarea id="vp-var-g2-vals" rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" placeholder="مثال: S, M, L, XL"></textarea>
+            </div>
+            <p class="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg p-2">
+              يُستخدم حقل «السعر» أدناه كسعر افتراضي لكل صف في الجدول؛ يمكنك تعديل سعر ومخزون كل تركيبة بعد الإنشاء. الحد الأقصى 120 تركيبة.
+            </p>
+            <button type="button" id="vp-var-build" class="w-full py-2 rounded-xl bg-violet-600 text-white text-sm font-bold">إنشاء / تحديث جدول التركيبات</button>
+            <div id="vp-var-table-wrap" class="overflow-x-auto max-h-80 overflow-y-auto"></div>
+          </div>
+          <div id="vp-prod-simple-pricing" class="grid grid-cols-2 gap-2">
+            <input id="vp-prod-price" type="number" min="0" step="0.01" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="السعر" />
+            <div id="vp-prod-stock-wrap">
+              <input id="vp-prod-stock" type="number" min="0" step="1" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="المخزون" />
+            </div>
+          </div>
+          <input id="vp-prod-discount" type="number" min="0" max="100" step="1" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="خصم % (اختياري)" />
+          <div>
+            <label class="text-xs font-bold text-gray-700">القسم داخل المتجر</label>
+            <select id="vp-prod-dept" class="w-full mt-1 p-2 rounded-xl border border-gray-200 text-sm"></select>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-700">صور المنتج</label>
+            <input id="vp-prod-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="block w-full text-xs mt-1" />
+            <p class="text-xs text-gray-500 mt-1">يمكنك رفع حتى 3 صور لكل منتج؛ إن تجاوزت العدد سيظهر تنبيه. الحد الأقصى لحجم كل صورة يحدده الخادم (عادة 1 ميجابايت).</p>
+          </div>
+          <div id="vp-prod-preview" class="flex flex-wrap gap-2"></div>
+          <p id="vp-prod-upload-err" class="text-xs text-red-600 hidden"></p>
+          <button type="submit" id="vp-prod-submit" class="w-full py-2 rounded-xl bg-emerald-600 text-white font-bold text-sm">حفظ المنتج</button>
+        </form>
+      </div>
       <div class="bg-white rounded-2xl border border-gray-200 p-3">
         <h2 class="font-bold mb-2">الطلبات الفرعية</h2>
         <div id="vp-orders" class="space-y-2 text-sm"></div>
