@@ -4,7 +4,11 @@
 const { get, all, run } = require("./db");
 const { arabicSearchQueryVariants, sqlLikePrefixParam, sqlLikeContainsParam } = require("./search-utils");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
-const { allocateNextPublicProductCode, allocateNextPublicVendorCode } = require("./adora-mv-core");
+const {
+  allocateNextPublicProductCode,
+  allocateNextPublicVendorCode,
+  deleteMarketplaceVendorCompletely,
+} = require("./adora-mv-core");
 
 function safeJsonParse(raw, fallback) {
   try {
@@ -1025,9 +1029,13 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
 
   app.delete("/api/admin/marketplace/vendors/:id", requireAuth, requireAdmin, async (req, res) => {
     try {
-      await run(`DELETE FROM marketplace_vendors WHERE id=?`, [Number(req.params.id)]);
+      const result = await deleteMarketplaceVendorCompletely(Number(req.params.id));
+      if (!result.ok) {
+        return res.status(404).json({ error: result.error || "Not found" });
+      }
       return res.json({ ok: true });
     } catch (err) {
+      console.error(err);
       return res.status(500).json({ error: "Failed to delete vendor" });
     }
   });

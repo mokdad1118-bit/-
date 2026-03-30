@@ -1,7 +1,7 @@
 /**
  * نواة نظام متعدد البائعين: رموز CMP/PRD، طلبات التنفيذ الفرعية، مزامنة حالة الطلب الأب
  */
-const { get, all, run } = require("./db");
+const { pool, get, all, run } = require("./db");
 
 const VENDOR_FULFILLMENT_STATUSES = [
   "vendor_new",
@@ -160,6 +160,72 @@ function formatShippingStructuredForDisplay(s, locale) {
   return lines.join(locale === "en" ? "\n" : "\n");
 }
 
+/**
+ * حذف شركة سوق شاملة مع كل ما يرتبط بها في التطبيق (بدون تغيير مخطط قاعدة البيانات):
+ * فك ارتباط بنود الطلب بمنتجاتها، إزالة مواضع الصفحة الرئيسية، تنظيف قائمة المميزين، ثم حذف سجل البائع
+ * (CASCADE يزيل المنتجات، الأقسام، الطلبات الفرعية، طلبات الإعلان، إلخ حيث مُعرّف في المخطط).
+ */
+async function deleteMarketplaceVendorCompletely(vendorId) {
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid) || vid < 1) {
+    return { ok: false, error: "Invalid vendor id" };
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const lock = await client.query("SELECT id FROM marketplace_vendors WHERE id = $1 FOR UPDATE", [vid]);
+    if (lock.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "Vendor not found" };
+    }
+
+    const prows = (await client.query("SELECT id FROM marketplace_products WHERE vendor_id = $1", [vid])).rows;
+    const pids = prows.map((r) => r.id);
+
+    if (pids.length > 0) {
+      await client.query("UPDATE order_items SET marketplace_product_id = NULL WHERE marketplace_product_id = ANY($1::int[])", [
+        pids,
+      ]);
+      await client.query("DELETE FROM marketplace_home_placements WHERE target_type = 'product' AND target_id = ANY($1::int[])", [
+        pids,
+      ]);
+    }
+
+    await client.query("DELETE FROM marketplace_home_placements WHERE target_type = 'vendor' AND target_id = $1", [vid]);
+
+    const vsRow = (await client.query("SELECT featured_vendor_ids_json FROM vendor_platform_settings WHERE id = 1")).rows[0];
+    if (vsRow) {
+      let arr = [];
+      try {
+        arr = JSON.parse(vsRow.featured_vendor_ids_json || "[]");
+      } catch (_e) {
+        arr = [];
+      }
+      if (!Array.isArray(arr)) arr = [];
+      const next = arr.filter((x) => Number(x) !== vid);
+      if (next.length !== arr.length) {
+        await client.query(
+          "UPDATE vendor_platform_settings SET featured_vendor_ids_json = $1, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+          [JSON.stringify(next)]
+        );
+      }
+    }
+
+    await client.query("DELETE FROM marketplace_vendors WHERE id = $1", [vid]);
+    await client.query("COMMIT");
+    return { ok: true };
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (_r) {
+      /* ignore */
+    }
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   VENDOR_FULFILLMENT_STATUSES,
   VENDOR_STATUS_LABEL_AR,
@@ -173,4 +239,5 @@ module.exports = {
   parseShippingStructured,
   shippingStructuredComplete,
   formatShippingStructuredForDisplay,
+  deleteMarketplaceVendorCompletely,
 };

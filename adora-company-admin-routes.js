@@ -8,6 +8,7 @@ const {
   setVendorFulfillmentStatus,
   VENDOR_FULFILLMENT_STATUSES,
   VENDOR_STATUS_LABEL_AR,
+  deleteMarketplaceVendorCompletely,
 } = require("./adora-mv-core");
 
 function subscriptionHealth(subEnds) {
@@ -133,6 +134,19 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       return res.json(await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [id]));
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  app.delete("/api/admin/adora-companies/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const result = await deleteMarketplaceVendorCompletely(Number(req.params.id));
+      if (!result.ok) {
+        return res.status(404).json({ error: result.error || "Not found" });
+      }
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: "Failed to delete company" });
     }
   });
 

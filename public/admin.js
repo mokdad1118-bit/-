@@ -4812,19 +4812,37 @@ async function loadAdoraCompaniesTable() {
         const dot =
           col === "green" ? "🟢" : col === "yellow" ? "🟡" : col === "red" ? "🔴" : "⚪";
         const vname = ar ? r.name_ar : r.name_en;
+        const delLabel = ar ? "حذف" : "Delete";
         return `<tr class="border-b border-gray-100">
           <td class="py-2 pr-2 font-mono text-xs">${escapeHtml(r.public_vendor_code || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(vname)}</td>
           <td class="py-2 pr-2">${escapeHtml(r.owner_name || "—")}</td>
           <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
-          <td class="py-2">${escapeHtml(r.portal_username || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.portal_username || "—")}</td>
+          <td class="py-2"><button type="button" class="text-red-600 font-bold ac-company-del" data-id="${r.id}" data-name="${escapeHtml(vname)}">${delLabel}</button></td>
         </tr>`;
       })
       .join("");
-    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
+    tbody.querySelectorAll(".ac-company-del").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const nm = btn.getAttribute("data-name") || "";
+        const msg = ar
+          ? `حذف الشركة وجميع بياناتها المرتبطة (منتجات، طلبات فرعية، إل.)؟\n${nm}`
+          : `Delete this company and all linked data (products, fulfillments, etc.)?\n${nm}`;
+        if (!confirm(msg)) return;
+        try {
+          await api(`/api/admin/adora-companies/${id}`, { method: "DELETE", token });
+          await loadAdoraCompaniesTable();
+        } catch (err) {
+          alert(err.message || String(err));
+        }
+      });
+    });
+    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
 }
 
