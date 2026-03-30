@@ -4750,6 +4750,81 @@ const MV_F_STATUS_LABELS = {
   vendor_cancelled: { ar: "ملغي", en: "Cancelled" },
 };
 
+let adoraCompaniesCache = [];
+
+function buildVendorPortalLoginUrl(portalUsername) {
+  const u = String(portalUsername || "").trim();
+  if (!u) return "";
+  return `${window.location.origin}/vendor-portal.html?${new URLSearchParams({ user: u }).toString()}`;
+}
+
+function subscriptionEndsAtToDatetimeLocal(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function datetimeLocalToIsoUtc(localVal) {
+  if (!localVal || !String(localVal).trim()) return null;
+  const d = new Date(localVal);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+async function copyTextToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_e) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch (_e2) {
+      return false;
+    }
+  }
+}
+
+function closeAcEditModal() {
+  const ov = document.getElementById("ac-edit-overlay");
+  if (ov) {
+    ov.classList.add("hidden");
+    ov.setAttribute("aria-hidden", "true");
+  }
+}
+
+function openAcEditCompanyModal(row) {
+  const ov = document.getElementById("ac-edit-overlay");
+  if (!ov || !row) return;
+  const idEl = document.getElementById("ac-edit-id");
+  if (idEl) idEl.value = String(row.id);
+  const nar = document.getElementById("ac-edit-name-ar");
+  if (nar) nar.value = row.name_ar || "";
+  const nen = document.getElementById("ac-edit-name-en");
+  if (nen) nen.value = row.name_en || "";
+  const ow = document.getElementById("ac-edit-owner");
+  if (ow) ow.value = row.owner_name || "";
+  const q = document.getElementById("ac-edit-quota");
+  if (q) q.value = String(Math.max(1, Number(row.product_quota || 1)));
+  const se = document.getElementById("ac-edit-sub-ends");
+  if (se) se.value = subscriptionEndsAtToDatetimeLocal(row.subscription_ends_at);
+  const us = document.getElementById("ac-edit-user");
+  if (us) us.value = row.portal_username || "";
+  const pw = document.getElementById("ac-edit-pass");
+  if (pw) pw.value = "";
+  ov.classList.remove("hidden");
+  ov.setAttribute("aria-hidden", "false");
+}
+
 let adoraCompanyTabListenersBound = false;
 
 async function initAdoraCompanyAdminTab() {
@@ -4784,9 +4859,49 @@ async function initAdoraCompanyAdminTab() {
         product_quota: Number(document.getElementById("ac-quota")?.value || 20),
       };
       try {
-        await api("/api/admin/adora-companies", { method: "POST", token: t, body });
-        alert(ar ? "تم إنشاء الشركة." : "Company created.");
+        const created = await api("/api/admin/adora-companies", { method: "POST", token: t, body });
+        const portalUrl = buildVendorPortalLoginUrl(created?.vendor?.portal_username || body.portal_username);
+        let msg = ar ? "تم إنشاء الشركة." : "Company created.";
+        if (portalUrl) {
+          const copied = await copyTextToClipboard(portalUrl);
+          msg +=
+            "\n\n" +
+            (ar ? "رابط دخول صاحب الشركة إلى البوابة:" : "Portal login link for the company owner:") +
+            "\n" +
+            portalUrl;
+          if (copied) msg += ar ? "\n\n(تم نسخ الرابط إلى الحافظة.)" : "\n\n(Link copied to clipboard.)";
+        }
+        alert(msg);
         e.target.reset();
+        await loadAdoraCompaniesTable();
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+    document.getElementById("ac-edit-overlay")?.addEventListener("click", () => closeAcEditModal());
+    document.getElementById("ac-edit-dialog")?.addEventListener("click", (ev) => ev.stopPropagation());
+    document.getElementById("ac-edit-close")?.addEventListener("click", () => closeAcEditModal());
+    document.getElementById("ac-edit-cancel")?.addEventListener("click", () => closeAcEditModal());
+    document.getElementById("ac-edit-company-form")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const t = getToken();
+      const ar2 = getAdminLang() === "ar";
+      const id = Number(document.getElementById("ac-edit-id")?.value);
+      if (!Number.isFinite(id)) return;
+      const payload = {
+        company_name_ar: document.getElementById("ac-edit-name-ar")?.value?.trim(),
+        company_name_en: document.getElementById("ac-edit-name-en")?.value?.trim(),
+        owner_name: document.getElementById("ac-edit-owner")?.value?.trim(),
+        product_quota: Number(document.getElementById("ac-edit-quota")?.value || 1),
+        subscription_ends_at: datetimeLocalToIsoUtc(document.getElementById("ac-edit-sub-ends")?.value),
+        portal_username: document.getElementById("ac-edit-user")?.value?.trim().toLowerCase(),
+      };
+      const np = document.getElementById("ac-edit-pass")?.value;
+      if (np && String(np).length >= 6) payload.portal_password = np;
+      try {
+        await api(`/api/admin/adora-companies/${id}`, { method: "PUT", token: t, body: payload });
+        alert(ar2 ? "تم حفظ التعديلات." : "Saved.");
+        closeAcEditModal();
         await loadAdoraCompaniesTable();
       } catch (err) {
         alert(err.message || String(err));
@@ -4806,13 +4921,23 @@ async function loadAdoraCompaniesTable() {
   if (!tbody) return;
   try {
     const rows = await api("/api/admin/adora-companies", { token });
-    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+    const list = Array.isArray(rows) ? rows : [];
+    adoraCompaniesCache = list;
+    tbody.innerHTML = list
       .map((r) => {
         const col = r.subscription_health?.color || "gray";
         const dot =
           col === "green" ? "🟢" : col === "yellow" ? "🟡" : col === "red" ? "🔴" : "⚪";
         const vname = ar ? r.name_ar : r.name_en;
         const delLabel = ar ? "حذف" : "Delete";
+        const editLabel = ar ? "تعديل" : "Edit";
+        const openLabel = ar ? "فتح" : "Open";
+        const copyLabel = ar ? "نسخ" : "Copy";
+        const pu = String(r.portal_username || "").trim();
+        const portalCell = pu
+          ? `<button type="button" class="text-purple-600 font-bold text-xs ac-portal-open" data-user="${escapeHtml(pu)}">${openLabel}</button>
+             <button type="button" class="text-gray-600 text-xs font-bold mr-1 ac-portal-copy" data-user="${escapeHtml(pu)}">${copyLabel}</button>`
+          : `<span class="text-gray-400 text-xs">—</span>`;
         return `<tr class="border-b border-gray-100">
           <td class="py-2 pr-2 font-mono text-xs">${escapeHtml(r.public_vendor_code || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(vname)}</td>
@@ -4820,10 +4945,37 @@ async function loadAdoraCompaniesTable() {
           <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(r.portal_username || "—")}</td>
-          <td class="py-2"><button type="button" class="text-red-600 font-bold ac-company-del" data-id="${r.id}" data-name="${escapeHtml(vname)}">${delLabel}</button></td>
+          <td class="py-2 pr-2 whitespace-nowrap">${portalCell}</td>
+          <td class="py-2 space-x-1 rtl:space-x-reverse whitespace-nowrap">
+            <button type="button" class="text-indigo-600 font-bold ac-company-edit" data-id="${r.id}">${editLabel}</button>
+            <button type="button" class="text-red-600 font-bold ac-company-del" data-id="${r.id}" data-name="${escapeHtml(vname)}">${delLabel}</button>
+          </td>
         </tr>`;
       })
       .join("");
+    tbody.querySelectorAll(".ac-portal-open").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const u = btn.getAttribute("data-user");
+        const url = buildVendorPortalLoginUrl(u);
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      });
+    });
+    tbody.querySelectorAll(".ac-portal-copy").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const u = btn.getAttribute("data-user");
+        const url = buildVendorPortalLoginUrl(u);
+        if (!url) return;
+        const ok = await copyTextToClipboard(url);
+        alert(ok ? (ar ? "تم نسخ رابط الدخول." : "Login link copied.") : url);
+      });
+    });
+    tbody.querySelectorAll(".ac-company-edit").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = Number(btn.getAttribute("data-id"));
+        const row = adoraCompaniesCache.find((x) => Number(x.id) === id);
+        if (row) openAcEditCompanyModal(row);
+      });
+    });
     tbody.querySelectorAll(".ac-company-del").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-id");
@@ -4840,9 +4992,9 @@ async function loadAdoraCompaniesTable() {
         }
       });
     });
-    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
+    if (!list.length) tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
 }
 

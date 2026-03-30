@@ -113,16 +113,42 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       const cur = await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [id]);
       if (!cur) return res.status(404).json({ error: "Not found" });
       const b = req.body || {};
+      const name_ar =
+        b.company_name_ar != null ? String(b.company_name_ar).trim() : String(cur.name_ar || "").trim();
+      const name_en =
+        b.company_name_en != null ? String(b.company_name_en).trim() : String(cur.name_en || "").trim();
+      if (!name_ar || !name_en) return res.status(400).json({ error: "company_name_ar, company_name_en required" });
       const product_quota =
         b.product_quota != null ? Math.max(1, Math.floor(Number(b.product_quota))) : cur.product_quota;
       const owner_name = b.owner_name != null ? String(b.owner_name).trim() : cur.owner_name;
       let subscription_ends_at = cur.subscription_ends_at;
-      if (b.subscription_ends_at != null && String(b.subscription_ends_at).trim()) {
-        subscription_ends_at = String(b.subscription_ends_at).trim();
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_ends_at")) {
+        const s = b.subscription_ends_at;
+        if (s == null || (typeof s === "string" && !String(s).trim())) {
+          subscription_ends_at = null;
+        } else {
+          subscription_ends_at = String(s).trim();
+        }
+      }
+      let portal_username = cur.portal_username;
+      if (b.portal_username != null && String(b.portal_username).trim()) {
+        const nu = String(b.portal_username).trim().toLowerCase();
+        if (nu.length < 2) return res.status(400).json({ error: "portal_username too short" });
+        const curLower = String(cur.portal_username || "")
+          .trim()
+          .toLowerCase();
+        if (nu !== curLower) {
+          const dup = await get(
+            `SELECT id FROM marketplace_vendors WHERE LOWER(TRIM(portal_username))=? AND id <> ?`,
+            [nu, id]
+          );
+          if (dup) return res.status(409).json({ error: "Username already used" });
+        }
+        portal_username = nu;
       }
       await run(
-        `UPDATE marketplace_vendors SET product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz WHERE id=?`,
-        [product_quota, owner_name, subscription_ends_at || null, id]
+        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=? WHERE id=?`,
+        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, id]
       );
       if (b.portal_password != null && String(b.portal_password).length >= 6) {
         const hash = await bcrypt.hash(String(b.portal_password), 10);

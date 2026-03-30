@@ -159,6 +159,12 @@
     }
   });
 
+  const qp = new URLSearchParams(location.search);
+  const preUser = qp.get("user");
+  if (preUser && el("vp-user")) {
+    el("vp-user").value = preUser.trim().toLowerCase();
+  }
+
   if (localStorage.getItem(TOKEN_KEY)) {
     bootApp().catch(() => {
       el("vp-login-card")?.classList.remove("hidden");
