@@ -38,6 +38,10 @@
         <h3 class="font-bold text-sm text-gray-800">إضافة منتج جديد</h3>
         <p id="vp-prod-limits-hint" class="text-xs text-gray-500 leading-relaxed"></p>
         <form id="vp-prod-form" class="space-y-2">
+          <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3 space-y-2 shadow-sm">
+            <button type="submit" class="vp-prod-submit w-full py-3.5 rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-md active:scale-[0.99]">إضافة المنتج</button>
+            <p class="text-[11px] text-center text-emerald-900 leading-snug">بعد تعبئة البيانات اضغط هنا، أو استخدم الزر الثابت في أسفل الصفحة (مفيد بعد جدول المواصفات أو رفع الصور).</p>
+          </div>
           <input id="vp-prod-name-ar" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="اسم المنتج (عربي)" />
           <input id="vp-prod-name-en" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="Product name (English)" />
           <textarea id="vp-prod-desc-ar" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="وصف عربي (اختياري)"></textarea>
@@ -82,7 +86,8 @@
               يُستخدم حقل «السعر» أدناه كسعر افتراضي لكل صف في الجدول؛ يمكنك تعديل سعر ومخزون كل تركيبة بعد الإنشاء. الحد الأقصى 120 تركيبة.
             </p>
             <button type="button" id="vp-var-build" class="w-full py-2 rounded-xl bg-violet-600 text-white text-sm font-bold">إنشاء / تحديث جدول التركيبات</button>
-            <div id="vp-var-table-wrap" class="overflow-x-auto max-h-80 overflow-y-auto"></div>
+            <div id="vp-var-table-wrap" class="overflow-x-auto max-h-64 overflow-y-auto"></div>
+            <p class="text-xs text-violet-900 mt-1">بعد الجدول: مرّر الصفحة للأسفل لرفع الصور ثم «إضافة المنتج».</p>
           </div>
           <div id="vp-prod-simple-pricing" class="grid grid-cols-2 gap-2">
             <input id="vp-prod-price" type="number" min="0" step="0.01" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="السعر" />
@@ -102,7 +107,9 @@
           </div>
           <div id="vp-prod-preview" class="flex flex-wrap gap-2"></div>
           <p id="vp-prod-upload-err" class="text-xs text-red-600 hidden"></p>
-          <button type="submit" id="vp-prod-submit" class="w-full py-2 rounded-xl bg-emerald-600 text-white font-bold text-sm">حفظ المنتج</button>
+          <div class="sticky bottom-0 z-20 -mx-1 pt-2 pb-1 bg-gradient-to-t from-white from-75% to-transparent">
+            <button type="submit" class="vp-prod-submit w-full py-3.5 rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-lg ring-2 ring-white/80">إضافة المنتج</button>
+          </div>
         </form>
       </div>
       <div class="bg-white rounded-2xl border border-gray-200 p-3">

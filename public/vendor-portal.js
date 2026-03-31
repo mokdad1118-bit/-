@@ -234,17 +234,25 @@
         " كيلوبايت لكل صورة.";
     }
     const block = el("vp-prod-quota-block");
-    const sub = el("vp-prod-submit");
+    const subs = document.querySelectorAll(".vp-prod-submit");
     if (me && me.can_add_product === false) {
       block?.classList.remove("hidden");
       if (block) {
         block.textContent =
           "وصلتَ للحد الأقصى من المنتجات النشطة (كل منتج = وحدة واحدة، بما فيه المنتج بمواصفات لون/قياس). يمكن للإدارة زيادة الحصة من لوحة التحكم (إضافة شركة — عدد المنتجات المسموح).";
       }
-      if (sub) sub.disabled = true;
+      subs.forEach((sub) => {
+        sub.disabled = true;
+        sub.textContent = "الحصة مكتملة — لا يمكن إضافة منتج";
+        sub.setAttribute("title", "اطلب من الإدارة زيادة عدد المنتجات المسموح.");
+      });
     } else {
       block?.classList.add("hidden");
-      if (sub) sub.disabled = false;
+      subs.forEach((sub) => {
+        sub.disabled = false;
+        sub.textContent = "إضافة المنتج";
+        sub.removeAttribute("title");
+      });
     }
   }
 
