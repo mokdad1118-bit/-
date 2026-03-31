@@ -5077,7 +5077,13 @@ async function loadAcAllMarketplaceProducts() {
   const token = getToken();
   const tbody = document.getElementById("ac-all-mp-tbody");
   const ar = getAdminLang() === "ar";
-  if (!token || !tbody) return;
+  if (!tbody) return;
+  if (!token) {
+    tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-amber-700 text-sm">${
+      ar ? "يجب تسجيل الدخول كمشرف لتفعيل البحث." : "Admin login required to search."
+    }</td></tr>`;
+    return;
+  }
   const code = document.getElementById("ac-mp-filter-code")?.value?.trim();
   const vidRaw = document.getElementById("ac-mp-filter-vendor")?.value?.trim();
   const qs = new URLSearchParams();
@@ -5194,10 +5200,15 @@ async function openAdoraVendorProductById(productId) {
 async function searchAdoraVendorProduct() {
   const token = getToken();
   const msg = document.getElementById("ac-vp-msg");
-  if (!token) return;
+  const ar = getAdminLang() === "ar";
+  if (!token) {
+    if (msg) {
+      msg.textContent = ar ? "يجب تسجيل الدخول كمشرف." : "Admin login required.";
+    }
+    return;
+  }
   const code = document.getElementById("ac-vp-code")?.value?.trim() || "";
   const vidRaw = document.getElementById("ac-vp-vendor")?.value?.trim() || "";
-  const ar = getAdminLang() === "ar";
   if (!code && !vidRaw) {
     if (msg) {
       msg.textContent = ar
@@ -5379,7 +5390,40 @@ async function initAdoraCompanyAdminTab() {
     document.querySelectorAll("#tab-adora-company .ac-prod-subtab").forEach((btn) => {
       btn.addEventListener("click", () => switchAdoraProdSubtab(btn.getAttribute("data-ac-prod-sub")));
     });
-    document.getElementById("ac-mp-apply")?.addEventListener("click", () => loadAcAllMarketplaceProducts().catch(() => {}));
+    const acRoot = document.getElementById("tab-adora-company");
+    if (acRoot) {
+      acRoot.addEventListener("click", (ev) => {
+        if (!(ev.target instanceof Element)) return;
+        if (ev.target.closest("#ac-mp-apply")) {
+          loadAcAllMarketplaceProducts().catch(() => {});
+          return;
+        }
+        if (ev.target.closest("#ac-vp-search")) {
+          searchAdoraVendorProduct().catch((e) => {
+            const m = document.getElementById("ac-vp-msg");
+            if (m) m.textContent = e.message || String(e);
+          });
+        }
+      });
+      acRoot.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter") return;
+        const t = ev.target;
+        if (!(t instanceof HTMLInputElement)) return;
+        const iid = t.id;
+        if (iid === "ac-mp-filter-code" || iid === "ac-mp-filter-vendor") {
+          ev.preventDefault();
+          loadAcAllMarketplaceProducts().catch(() => {});
+          return;
+        }
+        if (iid === "ac-vp-code" || iid === "ac-vp-vendor") {
+          ev.preventDefault();
+          searchAdoraVendorProduct().catch((e) => {
+            const m = document.getElementById("ac-vp-msg");
+            if (m) m.textContent = e.message || String(e);
+          });
+        }
+      });
+    }
     document.getElementById("ac-all-mp-tbody")?.addEventListener("click", (e) => {
       const btn = e.target.closest(".ac-vp-open-product");
       if (!btn) return;
@@ -5393,12 +5437,6 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
-    document.getElementById("ac-vp-search")?.addEventListener("click", () => {
-      searchAdoraVendorProduct().catch((e) => {
-        const m = document.getElementById("ac-vp-msg");
-        if (m) m.textContent = e.message || String(e);
-      });
-    });
     document.getElementById("ac-vp-save")?.addEventListener("click", () => {
       saveAdoraVendorProductVisibility().catch((e) => {
         const m = document.getElementById("ac-vp-msg");
