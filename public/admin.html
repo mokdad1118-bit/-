@@ -961,6 +961,13 @@
                 <h2 class="text-lg font-bold" data-en="Manage companies" data-ar="إدارة الشركات">إدارة الشركات</h2>
                 <button type="button" id="ac-refresh-companies" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
               </div>
+              <div class="flex flex-wrap items-end gap-2 mb-3">
+                <div class="flex-1 min-w-[12rem]">
+                  <label class="text-xs font-bold block" data-en="Search in table" data-ar="بحث في الجدول">بحث في الجدول</label>
+                  <input id="ac-companies-search" type="search" enterkeyhint="search" autocomplete="off" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="CMP، الاسم، المستخدم، المالك…" data-en-placeholder="CMP, name, user, owner…" />
+                </div>
+                <button type="button" id="ac-companies-search-reset" class="px-3 py-2 rounded-xl bg-violet-100 text-violet-900 text-sm font-bold border border-violet-200" data-en="Clear search" data-ar="مسح البحث">مسح البحث</button>
+              </div>
               <div class="overflow-x-auto border border-gray-100 rounded-xl">
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50"><tr>
@@ -1017,6 +1024,7 @@
                   <input id="ac-mp-filter-vendor" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-36 font-mono text-sm" placeholder="12 أو CMP-…" autocomplete="off" />
                 </div>
                 <button type="button" id="ac-mp-apply" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">تطبيق / تحديث القائمة</button>
+                <button type="button" id="ac-mp-clear-filters" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 text-sm font-bold border border-gray-200" data-en="Show all (clear filters)" data-ar="عرض الكل (مسح الفلتر)">عرض الكل (مسح الفلتر)</button>
               </div>
               <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-80 overflow-y-auto">
                 <table class="min-w-full text-sm">
@@ -1048,6 +1056,7 @@
                   <input id="ac-vp-vendor" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-40 font-mono text-sm" placeholder="12 أو CMP-…" autocomplete="off" />
                 </div>
                 <button type="button" id="ac-vp-search" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold" data-en="Search" data-ar="بحث">بحث</button>
+                <button type="button" id="ac-vp-reset" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 text-sm font-bold border border-gray-200" data-en="Clear & close panel" data-ar="مسح البحث وإغلاق اللوحة">مسح البحث وإغلاق اللوحة</button>
               </div>
               <div id="ac-vp-panel" class="hidden space-y-3 border border-violet-100 rounded-xl p-3 bg-violet-50/30">
                 <div id="ac-vp-summary" class="text-sm font-semibold text-gray-800"></div>

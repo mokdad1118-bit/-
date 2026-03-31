@@ -5032,6 +5032,150 @@ const MV_F_STATUS_LABELS = {
 
 let adoraCompaniesCache = [];
 let adoraVpProductCache = null;
+let acCompanySearchTimer = null;
+
+function adoraCompanyRowMatchesQuery(r, qRaw) {
+  const q = String(qRaw || "").trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    r.public_vendor_code,
+    r.name_ar,
+    r.name_en,
+    r.owner_name,
+    r.portal_username,
+    String(r.id),
+  ]
+    .map((x) => String(x || "").toLowerCase())
+    .join(" ");
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  return tokens.every((t) => hay.includes(t));
+}
+
+function getAdoraCompaniesFilteredList() {
+  const base = Array.isArray(adoraCompaniesCache) ? adoraCompaniesCache : [];
+  const q = document.getElementById("ac-companies-search")?.value ?? "";
+  if (!String(q).trim()) return base;
+  return base.filter((r) => adoraCompanyRowMatchesQuery(r, q));
+}
+
+function renderAdoraCompaniesTableRows(list) {
+  const tbody = document.getElementById("ac-companies-tbody");
+  const token = getToken();
+  const ar = getAdminLang() === "ar";
+  if (!tbody) return;
+  if (!list.length) {
+    const emptyMsg = ar ? "لا شركات." : "No companies.";
+    const noMatchMsg = ar ? "لا نتائج تطابق البحث — اضغط «مسح البحث» لعرض الكل." : "No matches — click «Clear search» to show all.";
+    const hasCache = Array.isArray(adoraCompaniesCache) && adoraCompaniesCache.length > 0;
+    const msg = hasCache && String(document.getElementById("ac-companies-search")?.value || "").trim() ? noMatchMsg : emptyMsg;
+    tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-gray-500">${msg}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list
+    .map((r) => {
+      const col = r.subscription_health?.color || "gray";
+      const dot =
+        col === "green" ? "🟢" : col === "yellow" ? "🟡" : col === "red" ? "🔴" : "⚪";
+      const vname = ar ? r.name_ar : r.name_en;
+      const delLabel = ar ? "حذف" : "Delete";
+      const editLabel = ar ? "تعديل" : "Edit";
+      const openLabel = ar ? "فتح" : "Open";
+      const copyLabel = ar ? "نسخ" : "Copy";
+      const pu = String(r.portal_username || "").trim();
+      const portalCell = pu
+        ? `<button type="button" class="text-purple-600 font-bold text-xs ac-portal-open" data-user="${escapeHtml(pu)}">${openLabel}</button>
+             <button type="button" class="text-gray-600 text-xs font-bold mr-1 ac-portal-copy" data-user="${escapeHtml(pu)}">${copyLabel}</button>`
+        : `<span class="text-gray-400 text-xs">—</span>`;
+      return `<tr class="border-b border-gray-100">
+          <td class="py-2 pr-2 font-mono text-xs">${escapeHtml(r.public_vendor_code || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(vname)}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.owner_name || "—")}</td>
+          <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
+          <td class="py-2 pr-2">${escapeHtml(r.portal_username || "—")}</td>
+          <td class="py-2 pr-2 whitespace-nowrap">${portalCell}</td>
+          <td class="py-2 space-x-1 rtl:space-x-reverse whitespace-nowrap">
+            <button type="button" class="text-indigo-600 font-bold ac-company-edit" data-id="${r.id}">${editLabel}</button>
+            <button type="button" class="text-red-600 font-bold ac-company-del" data-id="${r.id}" data-name="${escapeHtml(vname)}">${delLabel}</button>
+          </td>
+        </tr>`;
+    })
+    .join("");
+  tbody.querySelectorAll(".ac-portal-open").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const u = btn.getAttribute("data-user");
+      const url = buildVendorPortalLoginUrl(u);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    });
+  });
+  tbody.querySelectorAll(".ac-portal-copy").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const u = btn.getAttribute("data-user");
+      const url = buildVendorPortalLoginUrl(u);
+      if (!url) return;
+      const ok = await copyTextToClipboard(url);
+      alert(ok ? (ar ? "تم نسخ رابط الدخول." : "Login link copied.") : url);
+    });
+  });
+  tbody.querySelectorAll(".ac-company-edit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.getAttribute("data-id"));
+      const row = adoraCompaniesCache.find((x) => Number(x.id) === id);
+      if (row) openAcEditCompanyModal(row);
+    });
+  });
+  tbody.querySelectorAll(".ac-company-del").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-id");
+      const nm = btn.getAttribute("data-name") || "";
+      const msg = ar
+        ? `حذف الشركة وجميع بياناتها المرتبطة (منتجات، طلبات فرعية، إل.)؟\n${nm}`
+        : `Delete this company and all linked data (products, fulfillments, etc.)?\n${nm}`;
+      if (!confirm(msg)) return;
+      try {
+        await api(`/api/admin/adora-companies/${id}`, { method: "DELETE", token });
+        await loadAdoraCompaniesTable();
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+  });
+}
+
+function applyAdoraCompaniesTableFilter() {
+  renderAdoraCompaniesTableRows(getAdoraCompaniesFilteredList());
+}
+
+function scheduleAdoraCompaniesTableFilter() {
+  clearTimeout(acCompanySearchTimer);
+  acCompanySearchTimer = setTimeout(() => applyAdoraCompaniesTableFilter(), 200);
+}
+
+function resetAdoraCompaniesSearch() {
+  const el = document.getElementById("ac-companies-search");
+  if (el) el.value = "";
+  applyAdoraCompaniesTableFilter();
+}
+
+function resetAcMpProductFiltersAndReload() {
+  const c = document.getElementById("ac-mp-filter-code");
+  const v = document.getElementById("ac-mp-filter-vendor");
+  if (c) c.value = "";
+  if (v) v.value = "";
+  loadAcAllMarketplaceProducts().catch(() => {});
+}
+
+function resetAdoraVendorProductPanel() {
+  const c = document.getElementById("ac-vp-code");
+  const v = document.getElementById("ac-vp-vendor");
+  if (c) c.value = "";
+  if (v) v.value = "";
+  const msg = document.getElementById("ac-vp-msg");
+  if (msg) msg.textContent = "";
+  adoraVpProductCache = null;
+  document.getElementById("ac-vp-panel")?.classList.add("hidden");
+}
 
 function buildVendorPortalLoginUrl(portalUsername) {
   const u = String(portalUsername || "").trim();
@@ -5380,6 +5524,7 @@ async function saveAdoraVendorProductVisibility() {
     adoraVpProductCache = updated;
     fillAdoraVendorProductPanel(updated);
     if (msg) msg.textContent = ar ? "تم الحفظ." : "Saved.";
+    loadAcAllMarketplaceProducts().catch(() => {});
   } catch (e) {
     if (msg) msg.textContent = e.message || String(e);
   }
@@ -5525,6 +5670,8 @@ async function initAdoraCompanyAdminTab() {
       }
     });
     document.getElementById("ac-refresh-companies")?.addEventListener("click", () => loadAdoraCompaniesTable());
+    document.getElementById("ac-companies-search")?.addEventListener("input", () => scheduleAdoraCompaniesTableFilter());
+    document.getElementById("ac-companies-search-reset")?.addEventListener("click", () => resetAdoraCompaniesSearch());
     document.querySelectorAll("#tab-adora-company .ac-main-tab").forEach((btn) => {
       btn.addEventListener("click", () => switchAdoraCompanyMainTab(btn.getAttribute("data-ac-main")));
     });
@@ -5537,6 +5684,14 @@ async function initAdoraCompanyAdminTab() {
         if (!(ev.target instanceof Element)) return;
         if (ev.target.closest("#ac-mp-apply")) {
           loadAcAllMarketplaceProducts().catch(() => {});
+          return;
+        }
+        if (ev.target.closest("#ac-mp-clear-filters")) {
+          resetAcMpProductFiltersAndReload();
+          return;
+        }
+        if (ev.target.closest("#ac-vp-reset")) {
+          resetAdoraVendorProductPanel();
           return;
         }
         if (ev.target.closest("#ac-vp-search")) {
@@ -5592,82 +5747,12 @@ async function initAdoraCompanyAdminTab() {
 async function loadAdoraCompaniesTable() {
   const token = getToken();
   const tbody = document.getElementById("ac-companies-tbody");
-  const ar = getAdminLang() === "ar";
   if (!tbody) return;
   try {
     const rows = await api("/api/admin/adora-companies", { token });
     const list = Array.isArray(rows) ? rows : [];
     adoraCompaniesCache = list;
-    tbody.innerHTML = list
-      .map((r) => {
-        const col = r.subscription_health?.color || "gray";
-        const dot =
-          col === "green" ? "🟢" : col === "yellow" ? "🟡" : col === "red" ? "🔴" : "⚪";
-        const vname = ar ? r.name_ar : r.name_en;
-        const delLabel = ar ? "حذف" : "Delete";
-        const editLabel = ar ? "تعديل" : "Edit";
-        const openLabel = ar ? "فتح" : "Open";
-        const copyLabel = ar ? "نسخ" : "Copy";
-        const pu = String(r.portal_username || "").trim();
-        const portalCell = pu
-          ? `<button type="button" class="text-purple-600 font-bold text-xs ac-portal-open" data-user="${escapeHtml(pu)}">${openLabel}</button>
-             <button type="button" class="text-gray-600 text-xs font-bold mr-1 ac-portal-copy" data-user="${escapeHtml(pu)}">${copyLabel}</button>`
-          : `<span class="text-gray-400 text-xs">—</span>`;
-        return `<tr class="border-b border-gray-100">
-          <td class="py-2 pr-2 font-mono text-xs">${escapeHtml(r.public_vendor_code || "—")}</td>
-          <td class="py-2 pr-2">${escapeHtml(vname)}</td>
-          <td class="py-2 pr-2">${escapeHtml(r.owner_name || "—")}</td>
-          <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
-          <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
-          <td class="py-2 pr-2">${escapeHtml(r.portal_username || "—")}</td>
-          <td class="py-2 pr-2 whitespace-nowrap">${portalCell}</td>
-          <td class="py-2 space-x-1 rtl:space-x-reverse whitespace-nowrap">
-            <button type="button" class="text-indigo-600 font-bold ac-company-edit" data-id="${r.id}">${editLabel}</button>
-            <button type="button" class="text-red-600 font-bold ac-company-del" data-id="${r.id}" data-name="${escapeHtml(vname)}">${delLabel}</button>
-          </td>
-        </tr>`;
-      })
-      .join("");
-    tbody.querySelectorAll(".ac-portal-open").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const u = btn.getAttribute("data-user");
-        const url = buildVendorPortalLoginUrl(u);
-        if (url) window.open(url, "_blank", "noopener,noreferrer");
-      });
-    });
-    tbody.querySelectorAll(".ac-portal-copy").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const u = btn.getAttribute("data-user");
-        const url = buildVendorPortalLoginUrl(u);
-        if (!url) return;
-        const ok = await copyTextToClipboard(url);
-        alert(ok ? (ar ? "تم نسخ رابط الدخول." : "Login link copied.") : url);
-      });
-    });
-    tbody.querySelectorAll(".ac-company-edit").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = Number(btn.getAttribute("data-id"));
-        const row = adoraCompaniesCache.find((x) => Number(x.id) === id);
-        if (row) openAcEditCompanyModal(row);
-      });
-    });
-    tbody.querySelectorAll(".ac-company-del").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        const nm = btn.getAttribute("data-name") || "";
-        const msg = ar
-          ? `حذف الشركة وجميع بياناتها المرتبطة (منتجات، طلبات فرعية، إل.)؟\n${nm}`
-          : `Delete this company and all linked data (products, fulfillments, etc.)?\n${nm}`;
-        if (!confirm(msg)) return;
-        try {
-          await api(`/api/admin/adora-companies/${id}`, { method: "DELETE", token });
-          await loadAdoraCompaniesTable();
-        } catch (err) {
-          alert(err.message || String(err));
-        }
-      });
-    });
-    if (!list.length) tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-gray-500">${ar ? "لا شركات." : "No companies."}</td></tr>`;
+    applyAdoraCompaniesTableFilter();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
