@@ -57,6 +57,8 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
 
       const public_vendor_code = await allocateNextPublicVendorCode();
       const hash = await bcrypt.hash(portal_password, 10);
+      const logo_url =
+        b.logo_url != null && String(b.logo_url).trim() ? String(b.logo_url).trim() : null;
 
       const ins = await run(
         `INSERT INTO marketplace_vendors (
@@ -64,9 +66,9 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
           paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority,
           public_vendor_code, owner_name, portal_username, portal_password_hash, must_change_portal_password,
           product_quota, subscription_ends_at
-        ) VALUES (?, ?, ?, 'company', NULL, NULL, 999, 1, 0, 0, NULL, 'none', 0,
+        ) VALUES (?, ?, ?, 'company', ?, NULL, 999, 1, 0, 0, NULL, 'none', 0,
           ?, ?, ?, ?, 1, ?, ?::timestamptz)`,
-        [section_id, name_ar, name_en, public_vendor_code, owner_name, portal_username, hash, product_quota, ends.toISOString()]
+        [section_id, name_ar, name_en, logo_url, public_vendor_code, owner_name, portal_username, hash, product_quota, ends.toISOString()]
       );
 
       const vid = ins.id;
@@ -146,9 +148,15 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
         }
         portal_username = nu;
       }
+      let logo_url = cur.logo_url;
+      if (Object.prototype.hasOwnProperty.call(b, "logo_url")) {
+        const lv = b.logo_url;
+        if (lv == null || (typeof lv === "string" && !String(lv).trim())) logo_url = null;
+        else logo_url = String(lv).trim();
+      }
       await run(
-        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=? WHERE id=?`,
-        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, id]
+        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=? WHERE id=?`,
+        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, logo_url, id]
       );
       if (b.portal_password != null && String(b.portal_password).length >= 6) {
         const hash = await bcrypt.hash(String(b.portal_password), 10);

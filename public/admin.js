@@ -5034,6 +5034,20 @@ function openAcEditCompanyModal(row) {
   if (us) us.value = row.portal_username || "";
   const pw = document.getElementById("ac-edit-pass");
   if (pw) pw.value = "";
+  const logoUrl = document.getElementById("ac-edit-logo-url");
+  if (logoUrl) logoUrl.value = row.logo_url || "";
+  const logoFile = document.getElementById("ac-edit-logo-file");
+  if (logoFile) logoFile.value = "";
+  const logoPrev = document.getElementById("ac-edit-logo-preview");
+  if (logoPrev) {
+    if (row.logo_url) {
+      logoPrev.src = row.logo_url;
+      logoPrev.classList.remove("hidden");
+    } else {
+      logoPrev.removeAttribute("src");
+      logoPrev.classList.add("hidden");
+    }
+  }
   ov.classList.remove("hidden");
   ov.setAttribute("aria-hidden", "false");
 }
@@ -5324,6 +5338,16 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-create-company-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const t = getToken();
+      let logo_url = document.getElementById("ac-logo-url")?.value?.trim() || null;
+      const logoF = document.getElementById("ac-logo-file")?.files?.[0];
+      if (logoF) {
+        try {
+          logo_url = await uploadImageFile(logoF, t);
+        } catch (err) {
+          alert(err.message || String(err));
+          return;
+        }
+      }
       const body = {
         section_id: Number(document.getElementById("ac-section-id")?.value),
         company_name_ar: document.getElementById("ac-name-ar")?.value?.trim(),
@@ -5334,6 +5358,7 @@ async function initAdoraCompanyAdminTab() {
         subscription_months: Number(document.getElementById("ac-months")?.value || 1),
         product_quota: Number(document.getElementById("ac-quota")?.value || 20),
       };
+      if (logo_url) body.logo_url = logo_url;
       try {
         const created = await api("/api/admin/adora-companies", { method: "POST", token: t, body });
         const portalUrl = buildVendorPortalLoginUrl(created?.vendor?.portal_username || body.portal_username);
@@ -5349,12 +5374,49 @@ async function initAdoraCompanyAdminTab() {
         }
         alert(msg);
         e.target.reset();
+        const lp = document.getElementById("ac-logo-preview");
+        if (lp) {
+          lp.removeAttribute("src");
+          lp.classList.add("hidden");
+        }
         await loadAdoraCompaniesTable();
       } catch (err) {
         alert(err.message || String(err));
       }
     });
-    document.getElementById("ac-edit-overlay")?.addEventListener("click", () => closeAcEditModal());
+    document.getElementById("ac-logo-file")?.addEventListener("change", (ev) => {
+      const f = ev.target?.files?.[0];
+      const img = document.getElementById("ac-logo-preview");
+      if (!img) return;
+      if (!f) {
+        img.classList.add("hidden");
+        img.removeAttribute("src");
+        return;
+      }
+      img.src = URL.createObjectURL(f);
+      img.classList.remove("hidden");
+    });
+    document.getElementById("ac-edit-logo-file")?.addEventListener("change", (ev) => {
+      const f = ev.target?.files?.[0];
+      const img = document.getElementById("ac-edit-logo-preview");
+      if (!img) return;
+      if (!f) {
+        const url = document.getElementById("ac-edit-logo-url")?.value?.trim();
+        if (url) {
+          img.src = url;
+          img.classList.remove("hidden");
+        } else {
+          img.classList.add("hidden");
+          img.removeAttribute("src");
+        }
+        return;
+      }
+      img.src = URL.createObjectURL(f);
+      img.classList.remove("hidden");
+    });
+    document.getElementById("ac-edit-overlay")?.addEventListener("click", (ev) => {
+      if (ev.target === ev.currentTarget) closeAcEditModal();
+    });
     document.getElementById("ac-edit-dialog")?.addEventListener("click", (ev) => ev.stopPropagation());
     document.getElementById("ac-edit-close")?.addEventListener("click", () => closeAcEditModal());
     document.getElementById("ac-edit-cancel")?.addEventListener("click", () => closeAcEditModal());
@@ -5364,6 +5426,16 @@ async function initAdoraCompanyAdminTab() {
       const ar2 = getAdminLang() === "ar";
       const id = Number(document.getElementById("ac-edit-id")?.value);
       if (!Number.isFinite(id)) return;
+      let logo_url = document.getElementById("ac-edit-logo-url")?.value?.trim() || null;
+      const editLogoF = document.getElementById("ac-edit-logo-file")?.files?.[0];
+      if (editLogoF) {
+        try {
+          logo_url = await uploadImageFile(editLogoF, t);
+        } catch (err) {
+          alert(err.message || String(err));
+          return;
+        }
+      }
       const payload = {
         company_name_ar: document.getElementById("ac-edit-name-ar")?.value?.trim(),
         company_name_en: document.getElementById("ac-edit-name-en")?.value?.trim(),
@@ -5371,6 +5443,7 @@ async function initAdoraCompanyAdminTab() {
         product_quota: Number(document.getElementById("ac-edit-quota")?.value || 1),
         subscription_ends_at: datetimeLocalToIsoUtc(document.getElementById("ac-edit-sub-ends")?.value),
         portal_username: document.getElementById("ac-edit-user")?.value?.trim().toLowerCase(),
+        logo_url,
       };
       const np = document.getElementById("ac-edit-pass")?.value;
       if (np && String(np).length >= 6) payload.portal_password = np;
