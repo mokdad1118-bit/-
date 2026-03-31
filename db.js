@@ -350,6 +350,7 @@ async function initDb() {
   await migrateProductsFeaturedHubV1();
   await migrateOffersMarketplaceVisibilityV1();
   await migrateVendorListingStatusV1();
+  await migrateVendorListingPriceApprovalTierV1();
   await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
   await mergeCategorySubcategoriesWithDefaults();
@@ -850,6 +851,16 @@ async function migrateVendorListingStatusV1() {
   await run(
     `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS vendor_listing_status TEXT NOT NULL DEFAULT 'published'`
   );
+}
+
+/** منتجات السعر ≤ 500000 لا تحتاج اعتماداً: نشر تلقائي لما كان معلّقاً أو مرفوضاً */
+async function migrateVendorListingPriceApprovalTierV1() {
+  await run(`
+    UPDATE marketplace_products
+    SET vendor_listing_status = 'published'
+    WHERE COALESCE(price, 0) <= 500000
+      AND LOWER(TRIM(COALESCE(vendor_listing_status, ''))) IN ('pending', 'rejected')
+  `);
 }
 
 /** ظهور تلقائي في شرائط الرئيسية + تجمع «قد يعجبك أيضاً» لصفحات المنتج */

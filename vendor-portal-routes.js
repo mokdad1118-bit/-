@@ -24,6 +24,31 @@ const {
 
 const REQUEST_TYPES = ["general_ad", "featured_product", "search_boost", "home_featured"];
 
+/** سعر المنتج فوق هذا المبلغ يتطلب اعتماد إداري للظهور في التطبيق؛ مساوٍ أو أقل يُنشر تلقائياً */
+const MP_VENDOR_LISTING_APPROVAL_PRICE_ABOVE = 500000;
+
+function vendorPortalListingStatusOnCreate(price) {
+  const p = Number(price);
+  const n = Number.isFinite(p) ? p : 0;
+  return n > MP_VENDOR_LISTING_APPROVAL_PRICE_ABOVE ? "pending" : "published";
+}
+
+/** بعد تعديل البائع: ≤ الحد يُنشر مباشرة؛ فوق الحد يبقى منشوراً إن كان كذلك والسعر لم يتغيّر، وإلا قيد المراجعة */
+function vendorPortalListingStatusOnVendorUpdate(cur, finalPrice) {
+  const p = Number(finalPrice);
+  const n = Number.isFinite(p) ? p : 0;
+  if (n <= MP_VENDOR_LISTING_APPROVAL_PRICE_ABOVE) return "published";
+
+  const curListing = String(cur.vendor_listing_status || "published").toLowerCase();
+  const prev = Number(cur.price);
+  const prevOk = Number.isFinite(prev) ? prev : null;
+
+  if (curListing === "published" && prevOk != null && prevOk === n) {
+    return "published";
+  }
+  return "pending";
+}
+
 /** حد أقصى 3 صور لكل منتج من البوابة؛ حجم كل صورة يُضبط بالبيئة (افتراضي 1 ميجابايت) */
 const VENDOR_PORTAL_MAX_PRODUCT_IMAGES = 3;
 const VENDOR_PORTAL_MAX_IMAGE_BYTES = Math.min(
@@ -399,12 +424,14 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       if (!depRes.ok) return res.status(400).json({ error: depRes.error });
       const discount_percent = clampDiscountPercent(b.discount_percent);
       const public_product_code = await allocateNextPublicProductCode();
+      const priceNum = Number.isFinite(price) ? price : 0;
+      const listingOnCreate = vendorPortalListingStatusOnCreate(priceNum);
       const ins = await run(
         `INSERT INTO marketplace_products (
           section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock,
           images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code,
           is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0, 'pending')`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0, ?)`,
         [
           v.section_id,
           v.id,
@@ -413,7 +440,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           name_en,
           description_ar,
           description_en,
-          Number.isFinite(price) ? price : 0,
+          priceNum,
           discount_percent,
           stockNum,
           JSON.stringify(images),
@@ -421,6 +448,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           JSON.stringify(optArr),
           is_active,
           public_product_code,
+          listingOnCreate,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -509,9 +537,8 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           error: "منتج مكرر لنفس الشركة (نفس الاسم أو SKU أو الباركود).",
         });
       }
-      const curListing = String(cur.vendor_listing_status || "published").toLowerCase();
-      const nextListing =
-        curListing === "rejected" ? "pending" : String(cur.vendor_listing_status || "published");
+      const finalPrice = Number.isFinite(price) ? price : 0;
+      const nextListing = vendorPortalListingStatusOnVendorUpdate(cur, finalPrice);
 
       const hasVariantBody = b.product_options != null || b.inventory != null;
       let invJson;

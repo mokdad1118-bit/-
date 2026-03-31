@@ -7,6 +7,8 @@
   const VP_MAX_VARIANT_COMBOS = 120;
 
   const VP_SECTION_IDS = ["dashboard", "products", "add-product", "ad", "orders", "stats"];
+  /** يطابق الخادم: فوق هذا السعر يحتاج اعتماد إداري للظهور العام */
+  const VP_LISTING_APPROVAL_PRICE_ABOVE = 500000;
 
   function vpNavigate(section) {
     const id = VP_SECTION_IDS.includes(section) ? section : "dashboard";
@@ -695,7 +697,9 @@
             "<div class=\"vp-product-badges\">" +
             badge +
             (!pub
-              ? "<span class=\"vp-badge-hint\">يُعرض في التطبيق بعد اعتماد الإدارة</span>"
+              ? "<span class=\"vp-badge-hint\">يُعرض في التطبيق بعد اعتماد الإدارة (سعر فوق " +
+                String(VP_LISTING_APPROVAL_PRICE_ABOVE).replace(/</g, "&lt;") +
+                ")</span>"
               : "") +
             "</div></div>" +
             "<div class=\"vp-product-actions\">" +
@@ -1148,17 +1152,35 @@
       }
 
       if (editing) {
-        await api("/api/vendor-portal/products/" + encodeURIComponent(editRaw), {
+        const saved = await api("/api/vendor-portal/products/" + encodeURIComponent(editRaw), {
           method: "PUT",
           body: JSON.stringify(body),
         });
-        alert("تم حفظ التعديلات.");
+        const st = String(saved.vendor_listing_status || "published").toLowerCase();
+        if (st === "pending") {
+          alert(
+            "تم حفظ التعديلات. حالة النشر: قيد المراجعة — السعر فوق " +
+              VP_LISTING_APPROVAL_PRICE_ABOVE +
+              " يتطلب اعتماد الإدارة قبل الظهور للزبائن."
+          );
+        } else {
+          alert("تم حفظ التعديلات.");
+        }
       } else {
-        await api("/api/vendor-portal/products", {
+        const saved = await api("/api/vendor-portal/products", {
           method: "POST",
           body: JSON.stringify(body),
         });
-        alert("تم إضافة المنتج. سيظهر للزبائن بعد مراجعة الإدارة واعتماد النشر.");
+        const st = String(saved.vendor_listing_status || "published").toLowerCase();
+        if (st === "pending") {
+          alert(
+            "تم إضافة المنتج. السعر فوق " +
+              VP_LISTING_APPROVAL_PRICE_ABOVE +
+              " — سيظهر للزبائن بعد اعتماد الإدارة."
+          );
+        } else {
+          alert("تم إضافة المنتج. يظهر للزبائن عند تفعيله (لا يتطلب اعتماد إداري لهذا السعر).");
+        }
       }
       e.target.reset();
       productImageUrls = [];
