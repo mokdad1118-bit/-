@@ -1562,7 +1562,7 @@ function mpFillProductForm(p) {
   if (mpFhs) {
     const sec = String(p?.featured_hub_section || "clothes").trim() || "clothes";
     mpFhs.value = sec;
-    mpFhs.disabled = !p || Number(p.featured_hub_enabled) !== 1;
+    mpFhs.disabled = false;
   }
   const mpSo = document.getElementById("mp-p-show-offers");
   if (mpSo) mpSo.checked = p && Number(p.show_in_offers_tab) === 1;
@@ -1724,12 +1724,6 @@ function bindMarketplaceAdminListeners() {
     } catch (err) {
       alert(err.message || String(err));
     }
-  });
-
-  document.getElementById("mp-p-featured-hub")?.addEventListener("change", () => {
-    const on = !!document.getElementById("mp-p-featured-hub")?.checked;
-    const sel = document.getElementById("mp-p-featured-hub-section");
-    if (sel) sel.disabled = !on;
   });
 
   document.getElementById("mpv-preset-size-color")?.addEventListener("click", () => {
@@ -5168,7 +5162,8 @@ function fillAdoraVendorProductPanel(p) {
   if (fhs) {
     const sec = String(p.featured_hub_section || "clothes").trim() || "clothes";
     fhs.value = sec;
-    fhs.disabled = !fh;
+    /* لا نستخدم disabled — المتصفح لا يفتح القائمة المنسددة المعطّلة؛ الحفظ يتجاهل القسم إذا كان المحور غير مفعّل */
+    fhs.disabled = false;
   }
   const sor = document.getElementById("ac-vp-sort");
   if (sor) sor.value = String(p.sort_order ?? 0);
@@ -5409,11 +5404,6 @@ async function initAdoraCompanyAdminTab() {
         const m = document.getElementById("ac-vp-msg");
         if (m) m.textContent = e.message || String(e);
       });
-    });
-    document.getElementById("ac-vp-fh")?.addEventListener("change", () => {
-      const on = !!document.getElementById("ac-vp-fh")?.checked;
-      const s = document.getElementById("ac-vp-fh-section");
-      if (s) s.disabled = !on;
     });
     switchAdoraCompanyMainTab("add");
   }
