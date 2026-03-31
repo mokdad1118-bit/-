@@ -5071,22 +5071,39 @@ async function loadAcAllMarketplaceProducts() {
   const ar = getAdminLang() === "ar";
   if (!token || !tbody) return;
   const code = document.getElementById("ac-mp-filter-code")?.value?.trim();
-  const vid = document.getElementById("ac-mp-filter-vendor")?.value?.trim();
+  const vidRaw = document.getElementById("ac-mp-filter-vendor")?.value?.trim();
   const qs = new URLSearchParams();
   if (code) qs.set("code", code);
-  if (vid) qs.set("vendor_id", vid);
+  if (vidRaw) {
+    if (/^\d+$/.test(vidRaw)) qs.set("vendor_id", vidRaw);
+    else qs.set("vendor_code", vidRaw);
+  }
   const path = qs.toString() ? `/api/admin/marketplace/products?${qs}` : "/api/admin/marketplace/products";
   try {
     const rows = await api(path, { token });
     const list = Array.isArray(rows) ? rows : [];
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
       return;
     }
     tbody.innerHTML = list
       .map((p) => {
         const name = ar ? p.name_ar || p.name_en : p.name_en || p.name_ar;
         const act = Number(p.is_active) === 1 ? "✓" : "—";
+        const st = String(p.vendor_listing_status || "published").toLowerCase();
+        const stLab =
+          st === "pending"
+            ? ar
+              ? "مراجعة"
+              : "Review"
+            : st === "rejected"
+              ? ar
+                ? "مرفوض"
+                : "Rejected"
+              : ar
+                ? "منشور"
+                : "Live";
+        const btnLab = ar ? "حالة النشر" : "Listing";
         return `<tr class="border-b border-gray-100">
           <td class="p-2 font-mono text-xs">${p.id}</td>
           <td class="p-2 font-mono text-xs">${escapeHtml(p.public_product_code || "—")}</td>
@@ -5094,12 +5111,14 @@ async function loadAcAllMarketplaceProducts() {
           <td class="p-2 max-w-[200px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
           <td class="p-2">${escapeHtml(String(p.price ?? ""))}</td>
           <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
+          <td class="p-2 text-xs font-bold">${escapeHtml(stLab)}</td>
           <td class="p-2">${act}</td>
+          <td class="p-2"><button type="button" class="text-xs px-2 py-1 rounded-lg bg-violet-100 text-violet-800 font-bold ac-vp-open-product" data-mp-product-id="${p.id}">${escapeHtml(btnLab)}</button></td>
         </tr>`;
       })
       .join("");
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
   }
 }
 
@@ -5130,24 +5149,52 @@ function fillAdoraVendorProductPanel(p) {
   }
   const sor = document.getElementById("ac-vp-sort");
   if (sor) sor.value = String(p.sort_order ?? 0);
+  const vls = document.getElementById("ac-vp-listing-status");
+  if (vls) {
+    const s = String(p.vendor_listing_status || "published").toLowerCase();
+    vls.value = s === "pending" || s === "rejected" ? s : "published";
+  }
   panel.classList.remove("hidden");
+}
+
+async function openAdoraVendorProductById(productId) {
+  const token = getToken();
+  const msg = document.getElementById("ac-vp-msg");
+  const ar = getAdminLang() === "ar";
+  if (!token) return;
+  const id = Number(productId);
+  if (!Number.isFinite(id)) return;
+  if (msg) msg.textContent = "";
+  const p = await api(`/api/admin/marketplace/products/${id}`, { token });
+  fillAdoraVendorProductPanel(p);
+  document.getElementById("ac-vp-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (msg) {
+    msg.textContent = ar ? "تم تحميل المنتج — عدّل حالة النشر ثم احفظ." : "Product loaded — set listing status and save.";
+  }
 }
 
 async function searchAdoraVendorProduct() {
   const token = getToken();
   const msg = document.getElementById("ac-vp-msg");
   if (!token) return;
-  const code = document.getElementById("ac-vp-code")?.value?.trim();
-  const vidRaw = document.getElementById("ac-vp-vendor")?.value?.trim();
+  const code = document.getElementById("ac-vp-code")?.value?.trim() || "";
+  const vidRaw = document.getElementById("ac-vp-vendor")?.value?.trim() || "";
   const ar = getAdminLang() === "ar";
-  if (!code) {
-    if (msg) msg.textContent = ar ? "أدخل رمز المنتج أو المعرف." : "Enter product code or id.";
+  if (!code && !vidRaw) {
+    if (msg) {
+      msg.textContent = ar
+        ? "أدخل رمز المنتج (PRD-…) أو رقمه، أو رقم الشركة أو رمز CMP (يمكن البحث بالشركة وحدها)."
+        : "Enter product code/id and/or vendor numeric id or CMP code.";
+    }
     return;
   }
   if (msg) msg.textContent = "";
   const qs = new URLSearchParams();
-  qs.set("code", code);
-  if (vidRaw) qs.set("vendor_id", vidRaw);
+  if (code) qs.set("code", code);
+  if (vidRaw) {
+    if (/^\d+$/.test(vidRaw)) qs.set("vendor_id", vidRaw);
+    else qs.set("vendor_code", vidRaw);
+  }
   let rows;
   try {
     rows = await api(`/api/admin/marketplace/products?${qs}`, { token });
@@ -5163,14 +5210,14 @@ async function searchAdoraVendorProduct() {
   }
   let p = rows[0];
   if (rows.length > 1) {
-    const lc = code.toLowerCase();
-    const exact = rows.find((r) => String(r.public_product_code || "").toLowerCase() === lc);
+    const lc = code ? code.toLowerCase() : "";
+    const exact = lc ? rows.find((r) => String(r.public_product_code || "").toLowerCase() === lc) : null;
     if (exact) p = exact;
     else if (msg) {
       msg.textContent =
         ar
-          ? `عدة نتائج (${rows.length}) — عُرضت الأولى. ضيّق بمعرّف الشركة إن لزم.`
-          : `Multiple (${rows.length}) — showing first. Narrow with vendor id if needed.`;
+          ? `عدة نتائج (${rows.length}) — عُرضت الأولى. استخدم رمز PRD- كاملاً أو رقم المنتج، أو زر «حالة النشر» من الجدول.`
+          : `Multiple (${rows.length}) — showing first. Use full PRD code or product id, or «Listing» in the table.`;
     }
   }
   fillAdoraVendorProductPanel(p);
@@ -5210,6 +5257,7 @@ async function saveAdoraVendorProductVisibility() {
     featured_hub_section: fhOn ? document.getElementById("ac-vp-fh-section")?.value : null,
     show_in_offers_tab: document.getElementById("ac-vp-show-offers")?.checked ? 1 : 0,
     show_in_marketplace_tab: document.getElementById("ac-vp-show-marketplace")?.checked ? 1 : 0,
+    vendor_listing_status: (document.getElementById("ac-vp-listing-status")?.value || "published").trim(),
   };
   try {
     const updated = await api(`/api/admin/marketplace/products/${p.id}`, { method: "PUT", token, body });
@@ -5309,6 +5357,16 @@ async function initAdoraCompanyAdminTab() {
       btn.addEventListener("click", () => switchAdoraProdSubtab(btn.getAttribute("data-ac-prod-sub")));
     });
     document.getElementById("ac-mp-apply")?.addEventListener("click", () => loadAcAllMarketplaceProducts().catch(() => {}));
+    document.getElementById("ac-all-mp-tbody")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".ac-vp-open-product");
+      if (!btn) return;
+      const id = Number(btn.getAttribute("data-mp-product-id"));
+      if (!Number.isFinite(id)) return;
+      openAdoraVendorProductById(id).catch((err) => {
+        const m = document.getElementById("ac-vp-msg");
+        if (m) m.textContent = err.message || String(err);
+      });
+    });
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());

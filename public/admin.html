@@ -997,8 +997,8 @@
                   <input id="ac-mp-filter-code" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-40 font-mono text-sm" placeholder="PRD- أو ID" autocomplete="off" />
                 </div>
                 <div>
-                  <label class="text-xs font-bold block">معرّف الشركة (vendor)</label>
-                  <input id="ac-mp-filter-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                  <label class="text-xs font-bold block">الشركة (رقم أو CMP-…)</label>
+                  <input id="ac-mp-filter-vendor" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-36 font-mono text-sm" placeholder="12 أو CMP-…" autocomplete="off" />
                 </div>
                 <button type="button" id="ac-mp-apply" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">تطبيق / تحديث القائمة</button>
               </div>
@@ -1011,7 +1011,9 @@
                     <th class="p-2 text-start">الاسم</th>
                     <th class="p-2 text-start">السعر</th>
                     <th class="p-2 text-start">مخزون</th>
+                    <th class="p-2 text-start">النشر</th>
                     <th class="p-2 text-start">نشط</th>
+                    <th class="p-2 text-start">إجراء</th>
                   </tr></thead>
                   <tbody id="ac-all-mp-tbody"></tbody>
                 </table>
@@ -1019,20 +1021,28 @@
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <h2 class="text-lg font-bold" data-en="Vendor product visibility" data-ar="ظهور منتج المشترك في التطبيق">ظهور منتج المشترك في التطبيق</h2>
-              <p class="text-xs text-gray-600 leading-relaxed" data-en="Search by product code (e.g. PRD-…) or numeric id. New portal products default to company page only until you enable broader tabs below." data-ar="ابحث برمز المنتج العام (مثل PRD-…) أو برقم المعرّف. المنتجات الجديدة من بوابة المشترك تظهر افتراضياً داخل صفحة الشركة فقط حتى تفعّل الخيارات أدناه.">ابحث برمز المنتج العام (مثل PRD-…) أو برقم المعرّف. المنتجات الجديدة من بوابة المشترك تظهر افتراضياً داخل صفحة الشركة فقط حتى تفعّل الخيارات أدناه.</p>
+              <p class="text-xs text-gray-600 leading-relaxed" data-en="Search by product code (PRD-…) or product id, or by company id or CMP code alone (first match). Set listing status below and save." data-ar="ابحث برمز المنتج (PRD-…) أو رقمه، أو برقم الشركة أو رمز CMP وحده (يُعرض أول منتج مطابق). غيّر حالة النشر أدناه ثم احفظ.">ابحث برمز المنتج (PRD-…) أو رقمه، أو برقم الشركة أو رمز CMP وحده (يُعرض أول منتج مطابق). غيّر حالة النشر أدناه ثم احفظ.</p>
               <div class="flex flex-wrap gap-2 items-end">
                 <div>
                   <label class="text-xs font-bold block" data-en="Product code or ID" data-ar="رمز المنتج أو المعرف">رمز المنتج أو المعرف</label>
                   <input id="ac-vp-code" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-44 font-mono text-sm" placeholder="PRD-…" autocomplete="off" />
                 </div>
                 <div>
-                  <label class="text-xs font-bold block" data-en="Company ID (optional)" data-ar="معرّف الشركة (اختياري)">معرّف الشركة (اختياري)</label>
-                  <input id="ac-vp-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                  <label class="text-xs font-bold block" data-en="Company: numeric id or CMP code (optional)" data-ar="الشركة: الرقم أو رمز CMP (اختياري)">الشركة: الرقم أو رمز CMP (اختياري)</label>
+                  <input id="ac-vp-vendor" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-40 font-mono text-sm" placeholder="12 أو CMP-…" autocomplete="off" />
                 </div>
                 <button type="button" id="ac-vp-search" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold" data-en="Search" data-ar="بحث">بحث</button>
               </div>
               <div id="ac-vp-panel" class="hidden space-y-3 border border-violet-100 rounded-xl p-3 bg-violet-50/30">
                 <div id="ac-vp-summary" class="text-sm font-semibold text-gray-800"></div>
+                <div>
+                  <label class="text-xs font-bold block" data-en="Listing status (portal moderation)" data-ar="حالة نشر المنتج (مراجعة البوابة)">حالة نشر المنتج (مراجعة البوابة)</label>
+                  <select id="ac-vp-listing-status" class="mt-1 w-full max-w-sm p-2 rounded-xl border border-gray-200 text-sm font-bold">
+                    <option value="pending" data-en="Under review" data-ar="قيد المراجعة">قيد المراجعة</option>
+                    <option value="published" data-en="Published" data-ar="منشور (مقبول)">منشور (مقبول)</option>
+                    <option value="rejected" data-en="Rejected" data-ar="مرفوض">مرفوض</option>
+                  </select>
+                </div>
                 <div class="flex flex-col gap-2 text-sm">
                   <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-show-marketplace" class="rounded" /><span data-en="Show in Market tab" data-ar="إظهار في تبويب السوق الشامل">إظهار في تبويب السوق الشامل</span></label>
                   <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-show-offers" class="rounded" /><span data-en="Show in «Our offers» tab" data-ar="إظهار في تبويب عروضنا">إظهار في تبويب عروضنا</span></label>

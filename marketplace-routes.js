@@ -1208,13 +1208,26 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         params.push(vid);
       }
       if (codeRaw) {
-        const byId = Number(codeRaw);
-        if (Number.isFinite(byId) && byId > 0) {
-          sql += ` AND (mp.id = ? OR mp.public_product_code ILIKE ?)`;
-          params.push(byId, `%${codeRaw}%`);
+        const trimmed = codeRaw.trim();
+        const byId = Number(trimmed);
+        if (String(byId) === trimmed && Number.isFinite(byId) && byId > 0) {
+          sql += ` AND mp.id = ?`;
+          params.push(byId);
         } else {
           sql += ` AND mp.public_product_code ILIKE ?`;
-          params.push(`%${codeRaw}%`);
+          params.push(`%${trimmed}%`);
+        }
+      }
+      const vendorCodeRaw =
+        req.query.vendor_code != null ? String(req.query.vendor_code).trim() : "";
+      if (vendorCodeRaw) {
+        const vNum = Number(vendorCodeRaw);
+        if (String(Math.trunc(vNum)) === vendorCodeRaw.trim() && Number.isFinite(vNum) && vNum > 0) {
+          sql += ` AND mp.vendor_id = ?`;
+          params.push(vNum);
+        } else {
+          sql += ` AND LOWER(TRIM(COALESCE(mv.public_vendor_code,''))) = LOWER(TRIM(?))`;
+          params.push(vendorCodeRaw);
         }
       }
       sql += ` ORDER BY mp.section_id, mp.vendor_id, mp.sort_order ASC, mp.id DESC LIMIT 500`;
@@ -1222,6 +1235,18 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json(rows.map(mapProductRow));
     } catch (err) {
       return res.status(500).json({ error: "Failed to load products" });
+    }
+  });
+
+  app.get("/api/admin/marketplace/products/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const mapped = await getMarketplaceProductMappedAdminById(id);
+      if (!mapped) return res.status(404).json({ error: "Not found" });
+      return res.json(mapped);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load product" });
     }
   });
 
