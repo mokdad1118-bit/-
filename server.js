@@ -376,7 +376,7 @@ async function allocateNextOrderNo() {
 
 /** Ù…Ù†ØªØ¬Ø§Øª Ø£Ø¯ÙˆØ±Ø§: Ø¨Ø¯ÙˆÙ† Ø¹Ù„Ø§Ù…Ø© Ø£Ùˆ Ø¹Ù„Ø§Ù…Ø© Ø£Ø¯ÙˆØ±Ø§ (Ù„Ù„Ø£Ù‚Ø³Ø§Ù… Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø¹Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©) */
 function sqlAdoraBrandPredicate() {
-  return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'Ø£Ø¯ÙˆØ±Ø§')`;
+  return `(brand IS NULL OR TRIM(brand) = '' OR LOWER(TRIM(brand)) IN ('adora','adoura') OR TRIM(brand) = 'أدورا')`;
 }
 
 /** Ù…Ø·Ø§Ø¨Ù‚Ø© ØµÙ Ù…Ø®Ø²ÙˆÙ† Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ Ø¨Ø®Ø±ÙŠØ·Ø© options (Ù†ÙØ³ Ù…Ù†Ø·Ù‚ decrementProductStock) */
@@ -2058,25 +2058,25 @@ registerAdoraCompanyAdminRoutes(app, {
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered", "cancelled"];
 
-/** Ø¹Ù†ÙˆØ§Ù† Ø¥Ø´Ø¹Ø§Ø± Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ â€” ÙŠØªØ¶Ù…Ù† Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ Ù„ÙŠØ¸Ù‡Ø± ÙÙŠ Push ÙˆØ§Ù„Ù‚Ø§Ø¦Ù…Ø© */
+/** عنوان إشعار حالة الطلب — يتضمن رقم الطلب ليظهر في Push والقائمة */
 function orderStatusNotifyTitle(orderNo) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  return ord ? `ØªØ­Ø¯ÙŠØ« Ø·Ù„Ø¨ ${ord}` : "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ù„Ø¨";
+  return ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
 }
 
-/** Ù†Øµ Ø¥Ø´Ø¹Ø§Ø± Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ (Ø¹Ø±Ø¨ÙŠ + Ø³Ø·Ø± Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠ Ù‚ØµÙŠØ± ÙŠØ°ÙƒØ± Ø§Ù„Ø±Ù‚Ù…) */
+/** نص إشعار حالة الطلب (عربي + سطر إنجليزي قصير يذكر الرقم) */
 function orderStatusNotifyMessage(orderNo, status) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  const refAr = ord ? `Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ ${ord}. ` : "";
+  const refAr = ord ? `رقم الطلب ${ord}. ` : "";
   const m = {
-    pending_receipt: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨Ùƒ`,
-    in_progress: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ ØªØ¬Ù…ÙŠØ¹ Ø·Ù„Ø¨Ùƒ`,
-    fulfilled: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ¬Ù…ÙŠØ¹ Ø·Ù„Ø¨Ùƒ`,
-    shipping: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø´Ø­Ù†`,
-    delivered: `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ Ø¥Ù„Ù‰: ØªÙ… ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨ Ù„Ù„Ø¹Ù…ÙŠÙ„`,
-    cancelled: `${refAr}ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø·Ù„Ø¨Ùƒ`,
+    pending_receipt: `${refAr}تم تحديث حالة طلبك إلى: جاري استلام طلبك`,
+    in_progress: `${refAr}تم تحديث حالة طلبك إلى: جاري تجميع طلبك`,
+    fulfilled: `${refAr}تم تحديث حالة طلبك إلى: تم تجميع طلبك`,
+    shipping: `${refAr}تم تحديث حالة طلبك إلى: جاري الشحن`,
+    delivered: `${refAr}تم تحديث حالة طلبك إلى: تم تسليم الطلب للعميل`,
+    cancelled: `${refAr}تم إلغاء طلبك`,
   };
-  const ar = m[status] || `${refAr}ØªÙ… ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø·Ù„Ø¨Ùƒ (${status})`;
+  const ar = m[status] || `${refAr}تم تحديث حالة طلبك (${status})`;
   const refEn = ord ? `Order ${ord}. ` : "";
   const en = {
     pending_receipt: `${refEn}Status: pending receipt`,
@@ -2092,12 +2092,12 @@ function orderStatusNotifyMessage(orderNo, status) {
 
 function orderReceivedNotifyTitle(orderNo) {
   const ord = orderNo != null ? String(orderNo).trim() : "";
-  return ord ? `ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ø·Ù„Ø¨ ${ord}` : "ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ø·Ù„Ø¨";
+  return ord ? `تم استلام الطلب ${ord}` : "تم استلام الطلب";
 }
 
 function orderReceivedNotifyMessage(orderNo) {
-  const ord = orderNo != null ? String(orderNo).trim() : "â€”";
-  return `ØªÙ… Ø§Ø³ØªÙ„Ø§Ù… Ø·Ù„Ø¨Ùƒ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù…. Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨: ${ord}. Ø§Ø­ÙØ¸ Ø§Ù„Ø±Ù‚Ù… Ù„Ù„Ù…ØªØ§Ø¨Ø¹Ø©Ø› Ø³ØªØµÙ„Ùƒ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¹Ù†Ø¯ ØªØºÙŠÙŠØ± Ø§Ù„Ø­Ø§Ù„Ø©.\nOrder received. Number: ${ord}. Save itâ€”you will get status updates here.`;
+  const ord = orderNo != null ? String(orderNo).trim() : "\u2014";
+  return `تم استلام طلبك في النظام. رقم الطلب: ${ord}. احفظ الرقم للمتابعة؛ ستصلك إشعارات عند تغيير الحالة.\nOrder received. Number: ${ord}. Save it - you will get status updates here.`;
 }
 
 app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
@@ -2256,7 +2256,7 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         "/"
       );
     } catch (_n) {
-      /* Ù„Ø§ Ù†ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø·Ù„Ø¨ Ø¥Ø°Ø§ ØªØ¹Ø°Ø± Ø§Ù„Ø¥Ø´Ø¹Ø§Ø± */
+      /* لا نفشل إنشاء الطلب إذا تعذر الإشعار */
     }
     return res.status(201).json({ order: saved, items });
   } catch (err) {
