@@ -1116,8 +1116,7 @@
             orderShipped: 'تم شحن الطلب',
             orderDelivered: 'تم التوصيل',
             estimatedDelivery: 'موعد التوصيل المتوقع خلال 3 أيام',
-            paymentLabel: 'طريقة الدفع:',
-            shippingLabel: 'عنوان الشحن:'
+            paymentLabel: 'طريقة الدفع:'
         };
         /** صورة احتياطية عندما لا تتوفر صورة للمنتج */
         function adoraPlaceholderImageUrl() {
@@ -5749,8 +5748,6 @@
             const shippingEl = document.getElementById('checkout-shipping-address');
             const ship = getShippingAddressSummaryForDisplay();
             if (shippingEl) shippingEl.textContent = locale === 'ar' ? ship.ar : ship.en;
-            const shippingLabelEl = document.getElementById('checkout-shipping-label');
-            if (shippingLabelEl) shippingLabelEl.textContent = locale === 'ar' ? translationMap.shippingLabel : 'Shipping:';
             updatePaymentSelection();
         }
 
