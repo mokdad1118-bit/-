@@ -66,8 +66,8 @@
       return;
     }
     const groups = vpVariantState.product_options;
-    let header = groups.map((gg) => `<th class="p-2 border border-gray-200 bg-gray-50 text-start">${gg.name_ar}</th>`).join("");
-    header += `<th class="p-2 border border-gray-200 bg-gray-50">السعر</th><th class="p-2 border border-gray-200 bg-gray-50">المخزون</th>`;
+    let header = groups.map((gg) => `<th>${gg.name_ar}</th>`).join("");
+    header += "<th>السعر</th><th>المخزون</th>";
     const body = vpVariantState.inventory
       .map((row, ri) => {
         let tds = groups
@@ -75,18 +75,17 @@
             const vid = row.options[gg.id];
             const val = (gg.values || []).find((v) => String(v.id) === String(vid));
             const lab = val ? val.label_ar || val.label_en : "—";
-            return `<td class="p-2 border border-gray-100">${String(lab).replace(/</g, "&lt;")}</td>`;
+            return `<td>${String(lab).replace(/</g, "&lt;")}</td>`;
           })
           .join("");
         const pr = row.price != null && row.price !== "" ? String(row.price) : "";
         const st = row.stock != null ? String(row.stock) : "0";
-        tds += `<td class="p-2 border border-gray-100"><input type="number" min="0" step="0.01" class="vp-vt-pr w-full min-w-[4.5rem] p-1 border rounded" data-vp-i="${ri}" value="${pr}" /></td>`;
-        tds += `<td class="p-2 border border-gray-100"><input type="number" min="0" step="1" class="vp-vt-st w-full min-w-[3.5rem] p-1 border rounded" data-vp-i="${ri}" value="${st}" /></td>`;
+        tds += `<td><input type="number" min="0" step="0.01" class="vp-vt-pr" data-vp-i="${ri}" value="${pr}" /></td>`;
+        tds += `<td><input type="number" min="0" step="1" class="vp-vt-st" data-vp-i="${ri}" value="${st}" /></td>`;
         return `<tr>${tds}</tr>`;
       })
       .join("");
-    wrap.innerHTML =
-      '<table class="min-w-full text-xs border-collapse"><thead><tr>' + header + "</tr></thead><tbody>" + body + "</tbody></table>";
+    wrap.innerHTML = "<table><thead><tr>" + header + "</tr></thead><tbody>" + body + "</tbody></table>";
   }
 
   function vpReadVariantInputsIntoState() {
@@ -256,20 +255,29 @@
     }
   }
 
+  function refreshVpFileChosenHint() {
+    const p = el("vp-file-chosen");
+    if (!p) return;
+    const n = productImageUrls.length;
+    p.textContent = n
+      ? "مرفوع حالياً: " + n + " صورة — يمكنك إضافة المزيد حتى الحد الأقصى"
+      : "لم يُرفع بعد — اضغط الزر البنفسجي أعلاه لاختيار الصور";
+  }
+
   function renderProductPreview() {
     const box = el("vp-prod-preview");
     if (!box) return;
     box.innerHTML = "";
+    box.className = "vp-preview-grid";
     productImageUrls.forEach((url, i) => {
       const wrap = document.createElement("div");
-      wrap.className = "relative w-20 h-20 rounded-lg border border-gray-200 overflow-hidden shrink-0";
+      wrap.className = "vp-preview-item";
       const img = document.createElement("img");
       img.src = url;
-      img.className = "w-full h-full object-cover";
       img.alt = "";
       const rm = document.createElement("button");
       rm.type = "button";
-      rm.className = "absolute top-0 left-0 bg-red-600 text-white text-xs leading-none px-1.5 py-0.5 rounded-br-lg";
+      rm.className = "vp-preview-rm";
       rm.setAttribute("aria-label", "إزالة الصورة");
       rm.textContent = "×";
       rm.addEventListener("click", () => {
@@ -280,6 +288,7 @@
       wrap.appendChild(rm);
       box.appendChild(wrap);
     });
+    refreshVpFileChosenHint();
   }
 
   async function refreshProductsList() {

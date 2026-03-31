@@ -6,127 +6,197 @@
   <title>بوابة الشركة — Adora</title>
   <link rel="stylesheet" href="/tailwind.admin.bundle.css" />
   <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css" />
+  <link rel="stylesheet" href="/vendor-portal.css" />
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen p-4">
-  <div class="max-w-lg mx-auto space-y-4">
-    <h1 class="text-xl font-extrabold text-purple-800">بوابة الشركة — Adora</h1>
-    <div id="vp-login-card" class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-      <p class="text-sm text-gray-600">تسجيل الدخول باسم المستخدم وكلمة المرور التي استلمتها من الإدارة.</p>
-      <input id="vp-user" type="text" class="w-full p-3 rounded-xl border border-gray-200" placeholder="اسم المستخدم" autocomplete="username" />
-      <input id="vp-pass" type="password" class="w-full p-3 rounded-xl border border-gray-200" placeholder="كلمة المرور" autocomplete="current-password" />
-      <button type="button" id="vp-btn-login" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold">دخول</button>
-      <p id="vp-err" class="text-sm text-red-600 hidden"></p>
-    </div>
-    <div id="vp-change-card" class="hidden bg-amber-50 rounded-2xl border border-amber-200 p-4 space-y-3">
-      <p class="text-sm font-bold text-amber-900">يجب تغيير كلمة المرور قبل المتابعة.</p>
-      <input id="vp-new1" type="password" class="w-full p-3 rounded-xl border border-gray-200" placeholder="كلمة المرور الجديدة" />
-      <input id="vp-new2" type="password" class="w-full p-3 rounded-xl border border-gray-200" placeholder="تأكيد" />
-      <button type="button" id="vp-btn-chpass" class="w-full py-3 rounded-xl bg-amber-600 text-white font-bold">حفظ كلمة المرور</button>
-    </div>
-    <div id="vp-app" class="hidden space-y-4">
-      <div class="flex justify-between items-center">
-        <span id="vp-co-name" class="font-bold text-gray-900"></span>
-        <button type="button" id="vp-btn-out" class="text-sm text-gray-500 underline">خروج</button>
+<body class="vp-page min-h-screen p-4 pb-28 sm:pb-8">
+  <div class="vp-container space-y-5">
+    <header class="text-center pt-1">
+      <p class="text-xs font-bold text-violet-700 uppercase tracking-wider mb-1">Adora Marketplace</p>
+      <h1 class="text-2xl sm:text-3xl font-black vp-hero-title leading-tight">بوابة الشركة</h1>
+      <p class="text-xs text-gray-500 mt-2">إدارة المنتجات والطلبات والإعلانات</p>
+    </header>
+
+    <div id="vp-login-card" class="vp-card p-5 space-y-4">
+      <div class="flex items-center gap-2 text-violet-800">
+        <i class="fas fa-right-to-bracket text-lg"></i>
+        <span class="font-bold">تسجيل الدخول</span>
       </div>
-      <p id="vp-quota" class="text-xs text-gray-600"></p>
-      <p class="text-[11px] text-gray-500 leading-snug">الحصة تُحسب بعدد <strong>المنتجات</strong> النشطة: كل منتج ديناميكي (عدة ألوان/قياسات) = <strong>منتج واحد</strong> من الحد المسموح.</p>
-      <p id="vp-prod-quota-block" class="text-xs text-amber-800 hidden bg-amber-50 border border-amber-200 rounded-xl p-2"></p>
-      <div class="bg-white rounded-2xl border border-gray-200 p-3 space-y-3">
-        <h2 class="font-bold">منتجاتي</h2>
+      <p class="text-sm text-gray-600 leading-relaxed">استخدم اسم المستخدم وكلمة المرور اللذين استلمتهما من الإدارة.</p>
+      <input id="vp-user" type="text" class="vp-input" placeholder="اسم المستخدم" autocomplete="username" />
+      <input id="vp-pass" type="password" class="vp-input" placeholder="كلمة المرور" autocomplete="current-password" />
+      <button type="button" id="vp-btn-login" class="vp-login-btn">دخول</button>
+      <p id="vp-err" class="text-sm text-red-600 hidden font-medium"></p>
+    </div>
+
+    <div id="vp-change-card" class="hidden rounded-2xl border-2 border-amber-300 bg-gradient-to-b from-amber-50 to-orange-50/80 p-5 space-y-4 shadow-lg">
+      <p class="text-sm font-extrabold text-amber-900 flex items-center gap-2">
+        <i class="fas fa-key"></i> يجب تغيير كلمة المرور قبل المتابعة
+      </p>
+      <input id="vp-new1" type="password" class="vp-input" placeholder="كلمة المرور الجديدة" />
+      <input id="vp-new2" type="password" class="vp-input" placeholder="تأكيد كلمة المرور" />
+      <button type="button" id="vp-btn-chpass" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold border-2 border-amber-800 shadow-md">حفظ كلمة المرور</button>
+    </div>
+
+    <div id="vp-app" class="hidden space-y-5">
+      <div class="vp-card p-4 flex justify-between items-center gap-3">
+        <div class="min-w-0">
+          <p class="text-[10px] font-bold text-violet-600 uppercase tracking-wide">الشركة</p>
+          <span id="vp-co-name" class="font-extrabold text-gray-900 text-sm sm:text-base block truncate"></span>
+        </div>
+        <button type="button" id="vp-btn-out" class="vp-logout shrink-0">خروج</button>
+      </div>
+
+      <div class="vp-card p-4 space-y-2">
+        <p id="vp-quota" class="text-sm font-bold text-gray-800"></p>
+        <p class="text-[11px] text-gray-600 leading-snug border-r-4 border-violet-200 pr-2">
+          الحصة تُحسب بعدد <strong>المنتجات</strong> النشطة؛ المنتج متعدد المواصفات = <strong>منتج واحد</strong> من الحد المسموح.
+        </p>
+        <p id="vp-prod-quota-block" class="text-xs text-amber-900 hidden bg-amber-100 border-2 border-amber-300 rounded-xl p-3 font-semibold"></p>
+      </div>
+
+      <div class="vp-card p-4 sm:p-5 space-y-4">
+        <div class="vp-card-header">
+          <i class="fas fa-box-open"></i>
+          <h2 class="font-black text-gray-900 text-lg">منتجاتي</h2>
+        </div>
         <div id="vp-products-list" class="text-sm space-y-1 min-h-[1.5rem] text-gray-600">—</div>
-        <hr class="border-gray-100" />
-        <h3 class="font-bold text-sm text-gray-800">إضافة منتج جديد</h3>
-        <p id="vp-prod-limits-hint" class="text-xs text-gray-500 leading-relaxed"></p>
-        <form id="vp-prod-form" class="space-y-2">
-          <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3 space-y-2 shadow-sm">
-            <button type="submit" class="vp-prod-submit w-full py-3.5 rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-md active:scale-[0.99]">إضافة المنتج</button>
-            <p class="text-[11px] text-center text-emerald-900 leading-snug">بعد تعبئة البيانات اضغط هنا، أو استخدم الزر الثابت في أسفل الصفحة (مفيد بعد جدول المواصفات أو رفع الصور).</p>
+        <hr class="border-violet-100" />
+
+        <div class="vp-card-header border-0 mb-0 pb-0">
+          <i class="fas fa-plus-circle text-emerald-600"></i>
+          <h3 class="font-black text-gray-900">إضافة منتج جديد</h3>
+        </div>
+        <p id="vp-prod-limits-hint" class="text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-2 border border-gray-100"></p>
+
+        <form id="vp-prod-form" class="space-y-3">
+          <div class="vp-submit-wrap-top space-y-2">
+            <button type="submit" class="vp-prod-submit">إضافة المنتج</button>
+            <p class="text-[11px] text-center text-emerald-900 font-semibold leading-snug">
+              اضغط هنا بعد التأكد من الحقول، أو الزر الأخضر في أسفل الصفحة بعد رفع الصور.
+            </p>
           </div>
-          <input id="vp-prod-name-ar" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="اسم المنتج (عربي)" />
-          <input id="vp-prod-name-en" type="text" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="Product name (English)" />
-          <textarea id="vp-prod-desc-ar" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="وصف عربي (اختياري)"></textarea>
-          <textarea id="vp-prod-desc-en" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="English description (optional)"></textarea>
-          <label class="flex items-start gap-2 text-sm cursor-pointer">
-            <input id="vp-prod-use-variants" type="checkbox" class="mt-1 rounded border-gray-300" />
-            <span class="text-gray-800">منتج بمواصفات ديناميكية (لون، قياس، …) مع <strong>سعر ومخزون لكل تركيبة</strong> — <span class="text-violet-800">يُحسب كمنتج واحد ضمن حصتك (مثل الـ 20)، وليس كل تركيبة على حدة.</span></span>
+
+          <div>
+            <span class="vp-section-label">الاسم</span>
+            <input id="vp-prod-name-ar" type="text" required class="vp-input mb-2" placeholder="اسم المنتج (عربي)" />
+            <input id="vp-prod-name-en" type="text" required class="vp-input" placeholder="Product name (English)" />
+          </div>
+          <div>
+            <span class="vp-section-label">الوصف (اختياري)</span>
+            <textarea id="vp-prod-desc-ar" rows="2" class="vp-input mb-2" placeholder="وصف عربي"></textarea>
+            <textarea id="vp-prod-desc-en" rows="2" class="vp-input" placeholder="English description"></textarea>
+          </div>
+
+          <label class="flex items-start gap-3 p-3 rounded-xl bg-violet-50 border border-violet-200 cursor-pointer">
+            <input id="vp-prod-use-variants" type="checkbox" class="mt-1 w-4 h-4 rounded border-violet-400 text-violet-600" />
+            <span class="text-sm text-gray-800 leading-relaxed">
+              منتج بمواصفات ديناميكية (لون، قياس…) مع <strong>سعر ومخزون لكل تركيبة</strong>
+              <span class="text-violet-800 block text-xs mt-1">يُحسب كمنتج واحد ضمن حصتك.</span>
+            </span>
           </label>
-          <div id="vp-variants-panel" class="hidden space-y-2 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
-            <p class="text-xs text-gray-600 leading-relaxed">
-              عرّف مواصفة واحدة أو اثنتين (مثل اللون والقياس)، ثم اكتب القيم مفصولة بفاصلة إنجليزية أو عربية أو سطر جديد. سيُنشأ جدول بكل التركيبات (مثال: 3 ألوان × 4 قياسات = 12 صفاً).
+
+          <div id="vp-variants-panel" class="hidden space-y-3 rounded-xl border-2 border-violet-200 bg-gradient-to-b from-violet-50/90 to-white p-4">
+            <p class="text-xs text-gray-700 leading-relaxed">
+              مواصفة واحدة أو اثنتان؛ القيم مفصولة بفاصلة أو سطر جديد.
             </p>
             <div class="grid gap-2 sm:grid-cols-2">
               <div>
-                <label class="text-xs font-bold text-gray-700">اسم المواصفة 1 (عربي)</label>
-                <input id="vp-var-g1-ar" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="اللون" />
+                <span class="vp-section-label">مواصفة 1 — عربي</span>
+                <input id="vp-var-g1-ar" type="text" class="vp-input" value="اللون" />
               </div>
               <div>
-                <label class="text-xs font-bold text-gray-700">اسم المواصفة 1 (English)</label>
-                <input id="vp-var-g1-en" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="Color" />
+                <span class="vp-section-label">مواصفة 1 — EN</span>
+                <input id="vp-var-g1-en" type="text" class="vp-input" value="Color" />
               </div>
             </div>
             <div>
-              <label class="text-xs font-bold text-gray-700">قيم المواصفة 1</label>
-              <textarea id="vp-var-g1-vals" rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" placeholder="مثال: أحمر، أزرق، أسود"></textarea>
+              <span class="vp-section-label">قيم المواصفة 1</span>
+              <textarea id="vp-var-g1-vals" rows="2" class="vp-input" placeholder="أحمر، أزرق، أسود"></textarea>
             </div>
             <div class="grid gap-2 sm:grid-cols-2">
               <div>
-                <label class="text-xs font-bold text-gray-700">اسم المواصفة 2 (عربي) — اختياري</label>
-                <input id="vp-var-g2-ar" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="المقاس" />
+                <span class="vp-section-label">مواصفة 2 — عربي</span>
+                <input id="vp-var-g2-ar" type="text" class="vp-input" value="المقاس" />
               </div>
               <div>
-                <label class="text-xs font-bold text-gray-700">اسم المواصفة 2 (English)</label>
-                <input id="vp-var-g2-en" type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" value="Size" />
+                <span class="vp-section-label">مواصفة 2 — EN</span>
+                <input id="vp-var-g2-en" type="text" class="vp-input" value="Size" />
               </div>
             </div>
             <div>
-              <label class="text-xs font-bold text-gray-700">قيم المواصفة 2 (اتركها فارغة إن لم تحتج إلا مواصفة واحدة)</label>
-              <textarea id="vp-var-g2-vals" rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" placeholder="مثال: S, M, L, XL"></textarea>
+              <span class="vp-section-label">قيم المواصفة 2 (اختياري)</span>
+              <textarea id="vp-var-g2-vals" rows="2" class="vp-input" placeholder="S, M, L, XL"></textarea>
             </div>
-            <p class="text-xs text-amber-900 bg-amber-50 border border-amber-100 rounded-lg p-2">
-              يُستخدم حقل «السعر» أدناه كسعر افتراضي لكل صف في الجدول؛ يمكنك تعديل سعر ومخزون كل تركيبة بعد الإنشاء. الحد الأقصى 120 تركيبة.
+            <p class="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
+              السعر في الحقل أدناه = افتراضي لكل صف في الجدول. حد أقصى 120 تركيبة.
             </p>
-            <button type="button" id="vp-var-build" class="w-full py-2 rounded-xl bg-violet-600 text-white text-sm font-bold">إنشاء / تحديث جدول التركيبات</button>
-            <div id="vp-var-table-wrap" class="overflow-x-auto max-h-64 overflow-y-auto"></div>
-            <p class="text-xs text-violet-900 mt-1">بعد الجدول: مرّر الصفحة للأسفل لرفع الصور ثم «إضافة المنتج».</p>
+            <button type="button" id="vp-var-build" class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-extrabold text-sm border-2 border-violet-900 shadow-md">إنشاء / تحديث جدول التركيبات</button>
+            <div id="vp-var-table-wrap" class="overflow-x-auto max-h-64 overflow-y-auto rounded-lg border border-violet-100"></div>
+            <p class="text-xs text-violet-800 font-medium">↓ مرّر للأسفل لرفع الصور ثم «إضافة المنتج».</p>
           </div>
-          <div id="vp-prod-simple-pricing" class="grid grid-cols-2 gap-2">
-            <input id="vp-prod-price" type="number" min="0" step="0.01" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="السعر" />
+
+          <div id="vp-prod-simple-pricing" class="grid grid-cols-2 gap-3">
+            <div>
+              <span class="vp-section-label">السعر</span>
+              <input id="vp-prod-price" type="number" min="0" step="0.01" required class="vp-input" placeholder="0" />
+            </div>
             <div id="vp-prod-stock-wrap">
-              <input id="vp-prod-stock" type="number" min="0" step="1" required class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="المخزون" />
+              <span class="vp-section-label">المخزون</span>
+              <input id="vp-prod-stock" type="number" min="0" step="1" required class="vp-input" placeholder="0" />
             </div>
           </div>
-          <input id="vp-prod-discount" type="number" min="0" max="100" step="1" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="خصم % (اختياري)" />
           <div>
-            <label class="text-xs font-bold text-gray-700">القسم داخل المتجر</label>
-            <select id="vp-prod-dept" class="w-full mt-1 p-2 rounded-xl border border-gray-200 text-sm"></select>
+            <span class="vp-section-label">خصم % (اختياري)</span>
+            <input id="vp-prod-discount" type="number" min="0" max="100" step="1" class="vp-input" placeholder="0" />
           </div>
           <div>
-            <label class="text-xs font-bold text-gray-700">صور المنتج</label>
-            <input id="vp-prod-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="block w-full text-xs mt-1" />
-            <p class="text-xs text-gray-500 mt-1">يمكنك رفع حتى 3 صور لكل منتج؛ إن تجاوزت العدد سيظهر تنبيه. الحد الأقصى لحجم كل صورة يحدده الخادم (عادة 1 ميجابايت).</p>
+            <span class="vp-section-label">القسم داخل المتجر</span>
+            <select id="vp-prod-dept" class="vp-select mt-1"></select>
           </div>
+
+          <div class="vp-file-row">
+            <span class="vp-section-label">صور المنتج (حتى 3)</span>
+            <input id="vp-prod-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="vp-file-input-hidden" />
+            <label for="vp-prod-files" class="vp-file-label">
+              <i class="fas fa-image"></i>
+              اختيار الصور من الجهاز
+            </label>
+            <p id="vp-file-chosen" class="vp-file-name">لم يُختَر ملف بعد</p>
+            <p class="text-xs text-gray-500 leading-relaxed">حد أقصى 3 صور؛ الحجم يحدده الخادم (غالباً 1 ميجابايت لكل صورة).</p>
+          </div>
+
           <div id="vp-prod-preview" class="flex flex-wrap gap-2"></div>
-          <p id="vp-prod-upload-err" class="text-xs text-red-600 hidden"></p>
-          <div class="sticky bottom-0 z-20 -mx-1 pt-2 pb-1 bg-gradient-to-t from-white from-75% to-transparent">
-            <button type="submit" class="vp-prod-submit w-full py-3.5 rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-lg ring-2 ring-white/80">إضافة المنتج</button>
+          <p id="vp-prod-upload-err" class="text-xs text-red-600 font-semibold hidden"></p>
+
+          <div class="vp-submit-wrap-bottom sticky bottom-2 z-30 rounded-xl">
+            <button type="submit" class="vp-prod-submit">إضافة المنتج</button>
+            <p class="text-[10px] text-center text-gray-500 mt-1.5 font-medium">زر الحفظ النهائي — أخضر واضح</p>
           </div>
         </form>
       </div>
-      <div class="bg-white rounded-2xl border border-gray-200 p-3">
-        <h2 class="font-bold mb-2">الطلبات الفرعية</h2>
+
+      <div class="vp-card p-4 sm:p-5">
+        <div class="vp-card-header">
+          <i class="fas fa-truck-fast text-indigo-600"></i>
+          <h2 class="font-black text-gray-900 text-lg">الطلبات الفرعية</h2>
+        </div>
         <div id="vp-orders" class="space-y-2 text-sm"></div>
       </div>
-      <div class="bg-white rounded-2xl border border-gray-200 p-3">
-        <h2 class="font-bold mb-2">طلب إعلان / تمييز</h2>
-        <select id="vp-ad-type" class="w-full p-2 rounded-xl border border-gray-200 mb-2">
+
+      <div class="vp-card p-4 sm:p-5">
+        <div class="vp-card-header">
+          <i class="fas fa-bullhorn text-indigo-600"></i>
+          <h2 class="font-black text-gray-900 text-lg">طلب إعلان / تمييز</h2>
+        </div>
+        <select id="vp-ad-type" class="vp-select mb-3">
           <option value="general_ad">إعلان عام</option>
           <option value="featured_product">منتج مميز</option>
           <option value="search_boost">ظهور بالبحث</option>
           <option value="home_featured">الصفحة الرئيسية</option>
         </select>
-        <textarea id="vp-ad-notes" rows="2" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="ملاحظات"></textarea>
-        <button type="button" id="vp-btn-ad" class="mt-2 w-full py-2 rounded-xl bg-indigo-600 text-white font-bold text-sm">إرسال الطلب</button>
-        <div id="vp-ad-list" class="mt-3 space-y-1 text-xs text-gray-600"></div>
+        <textarea id="vp-ad-notes" rows="2" class="vp-input mb-3" placeholder="ملاحظات"></textarea>
+        <button type="button" id="vp-btn-ad" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-700 text-white font-extrabold border-2 border-indigo-900 shadow-md">إرسال الطلب</button>
+        <div id="vp-ad-list" class="mt-4 space-y-1 text-xs text-gray-600"></div>
       </div>
     </div>
   </div>
