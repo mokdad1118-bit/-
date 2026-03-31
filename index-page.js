@@ -4179,6 +4179,7 @@
                 persistAdoraSessionState();
             }
         }
+        window.backFromMarketplaceProduct = backFromMarketplaceProduct;
 
         function attachMarketplaceSearchListeners() {
             const inp = document.getElementById('marketplace-search-input');
@@ -9293,6 +9294,7 @@
             adoraSyncHistoryToScreen(back);
             persistAdoraSessionState();
         }
+        window.backFromProductDetail = backFromProductDetail;
 
         function captureProductDeepLinkFromUrl() {
             try {

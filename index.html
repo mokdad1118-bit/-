@@ -2334,6 +2334,17 @@
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12);
         }
+        /* زر إغلاق/رجوع فوق الصورة — يبقى واضحاً على خلفيات فاتحة (مثل صور الموبايلات) */
+        .adora-gallery-top-actions--noon .adora-noon-fab.adora-noon-fab--close {
+            background: rgba(15, 23, 42, 0.58);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 2px 14px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        }
+        .adora-gallery-top-actions--noon .adora-noon-fab.adora-noon-fab--close:hover {
+            background: rgba(15, 23, 42, 0.72);
+            color: #fff;
+        }
 
         .adora-noon-desc-block .adora-noon-desc-label {
             color: #6b7280;
@@ -5402,6 +5413,17 @@
             </div>
             <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute inset-x-0 top-0 z-[60] flex justify-between items-start pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-1 pointer-events-none">
                 <div class="flex gap-2 pointer-events-auto">
+                    <button
+                        type="button"
+                        id="mp-pdp-close-btn"
+                        onclick="backFromMarketplaceProduct()"
+                        class="adora-noon-fab adora-noon-fab--close pointer-events-auto"
+                        data-en-aria="Close"
+                        data-ar-aria="إغلاق"
+                        aria-label="إغلاق"
+                    >
+                        <i class="fas fa-times text-base" aria-hidden="true"></i>
+                    </button>
                     <button type="button" id="marketplace-detail-wishlist-btn" onclick="toggleMarketplaceWishlistBtn(this)" class="adora-noon-fab wishlist-btn" data-en-aria="Wishlist" data-ar-aria="المفضلة" aria-label="Wishlist">
                         <i class="fas fa-heart text-sm"></i>
                     </button>
@@ -5598,6 +5620,17 @@
             </div>
             <div class="adora-gallery-top-actions adora-gallery-top-actions--noon absolute inset-x-0 top-0 z-[60] flex justify-between items-start pt-[max(0.75rem,env(safe-area-inset-top))] px-3 pb-1 pointer-events-none">
                 <div class="flex gap-2 pointer-events-auto">
+                    <button
+                        type="button"
+                        id="product-pdp-close-btn"
+                        onclick="backFromProductDetail()"
+                        class="adora-noon-fab adora-noon-fab--close pointer-events-auto"
+                        data-en-aria="Close"
+                        data-ar-aria="إغلاق"
+                        aria-label="إغلاق"
+                    >
+                        <i class="fas fa-times text-base" aria-hidden="true"></i>
+                    </button>
                     <button type="button" id="product-wishlist-btn" onclick="toggleWishlist(this)" class="adora-noon-fab wishlist-btn" data-en-aria="Wishlist" data-ar-aria="المفضلة" aria-label="Wishlist">
                         <i class="fas fa-heart text-sm"></i>
                     </button>
