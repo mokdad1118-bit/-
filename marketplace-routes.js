@@ -119,9 +119,25 @@ function normalizeMpFeaturedHubSection(raw) {
   return MP_FEATURED_HUB_SECTIONS.has(s) ? s : null;
 }
 
+const VENDOR_LISTING_STATUSES = new Set(["pending", "published", "rejected"]);
+
+function normalizeVendorListingStatus(raw, curRow) {
+  const fb =
+    curRow && curRow.vendor_listing_status != null
+      ? String(curRow.vendor_listing_status).trim().toLowerCase()
+      : "published";
+  const fallback = VENDOR_LISTING_STATUSES.has(fb) ? fb : "published";
+  if (raw === undefined || raw === null) return fallback;
+  const s = String(raw).trim().toLowerCase();
+  return VENDOR_LISTING_STATUSES.has(s) ? s : fallback;
+}
+
+/** منتجات البائع غير المعتمدة لا تظهر للزبائن في واجهة التطبيق */
+const MP_PUBLIC_LISTING_FILTER = `AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`;
+
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.public_product_code, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
-      mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab,
+      mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.vendor_listing_status,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en`;
@@ -158,7 +174,7 @@ async function resolveMpHomeSlotItems(placements, slot) {
         });
       } else {
         const prows = await all(
-          `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.vendor_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
+          `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND mp.vendor_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
           [tid]
         );
         for (const row of prows) {
@@ -176,7 +192,7 @@ async function resolveMpHomeSlotItems(placements, slot) {
       );
       if (!d) continue;
       const prows = await all(
-        `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.department_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
+        `SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND mp.department_id=? ORDER BY mp.sort_order ASC, mp.id DESC LIMIT 60`,
         [tid]
       );
       for (const row of prows) {
@@ -187,7 +203,7 @@ async function resolveMpHomeSlotItems(placements, slot) {
       }
     } else if (tt === "product") {
       if (isBrandSlot) continue;
-      const row = await get(`SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 AND mp.id=?`, [tid]);
+      const row = await get(`SELECT ${MP_SELECT_LIST} ${MP_FROM} WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND mp.id=?`, [tid]);
       if (!row) continue;
       const k = `p:${row.id}`;
       if (seen.has(k)) continue;
@@ -261,7 +277,7 @@ async function fetchMarketplaceProductsByPromotionSlot(slot, limit) {
       mprev.review_avg, mprev.review_count,
       pr.id AS promo_id, pr.priority AS promo_priority, pr.slot AS promo_slot
      FROM marketplace_product_promotions pr
-     INNER JOIN marketplace_products mp ON mp.id = pr.product_id AND mp.is_active = 1
+     INNER JOIN marketplace_products mp ON mp.id = pr.product_id AND mp.is_active = 1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'
      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
      INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
      LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
@@ -416,7 +432,7 @@ async function fetchMarketplaceProductsForListingSearchMerge(variants) {
   const sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
      ${MP_FROM}
      ${MP_REVIEW_JOIN_SQL}
-     WHERE mp.is_active = 1 AND COALESCE(mp.show_in_marketplace_tab, 1) = 1
+     WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND COALESCE(mp.show_in_marketplace_tab, 1) = 1
      AND (${parts.join(" OR ")})
      ORDER BY mp.id DESC
      LIMIT 120`;
@@ -555,7 +571,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                  LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  ${MP_REVIEW_JOIN_SQL}
                  ${promoJoin}
-                 WHERE mp.is_active = 1`;
+                 WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER}`;
       const params = [];
       if (promoSlot) params.push(promoSlot);
 
@@ -656,7 +672,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
          INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
          INNER JOIN marketplace_sections ms ON ms.id = mp.section_id
          LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
-         WHERE mp.id = ? AND mp.is_active = 1 AND mv.is_active = 1 AND ms.is_active = 1`,
+         WHERE mp.id = ? AND mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND mv.is_active = 1 AND ms.is_active = 1`,
         [id]
       );
       if (!row) return res.status(404).json({ error: "Not found" });
@@ -670,7 +686,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
     try {
       const productId = Number(req.params.id);
       if (!Number.isFinite(productId)) return res.status(400).json({ error: "Invalid id" });
-      const p = await get(`SELECT id FROM marketplace_products WHERE id=? AND is_active=1`, [productId]);
+      const p = await get(
+        `SELECT id FROM marketplace_products WHERE id=? AND is_active=1 AND COALESCE(vendor_listing_status, 'published') = 'published'`,
+        [productId]
+      );
       if (!p) return res.status(404).json({ error: "Not found" });
       const agg = await get(
         `SELECT AVG(stars) AS avg_stars, COUNT(*)::int AS cnt FROM marketplace_product_reviews WHERE marketplace_product_id=?`,
@@ -720,7 +739,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
       let comment = req.body.comment != null ? String(req.body.comment).trim() : "";
       if (comment.length > 2000) comment = comment.slice(0, 2000);
-      const p = await get(`SELECT id FROM marketplace_products WHERE id=? AND is_active=1`, [marketplace_product_id]);
+      const p = await get(
+        `SELECT id FROM marketplace_products WHERE id=? AND is_active=1 AND COALESCE(vendor_listing_status, 'published') = 'published'`,
+        [marketplace_product_id]
+      );
       if (!p) return res.status(404).json({ error: "Product not found" });
       await run(
         `INSERT INTO marketplace_product_reviews (user_id, marketplace_product_id, stars, comment) VALUES (?, ?, ?, ?)
@@ -753,7 +775,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         ${MP_REVIEW_JOIN_SQL}
-        WHERE mp.is_active = 1`;
+        WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER}`;
 
       let promotedHome = [];
       if (adsOn) {
@@ -1262,9 +1284,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (!depRes.ok) return res.status(400).json({ error: depRes.error });
       const department_id = depRes.department_id;
       const public_product_code = await allocateNextPublicProductCode();
+      const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, { vendor_listing_status: "published" });
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1290,6 +1313,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           featured_hub_section,
           show_in_offers_tab,
           show_in_marketplace_tab,
+          vendor_listing_status,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -1367,6 +1391,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           : cur.show_in_marketplace_tab != null && Number(cur.show_in_marketplace_tab) === 0
             ? 0
             : 1;
+      const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, cur);
       const discount_percent =
         b.discount_percent !== undefined
           ? clampDiscountPercent(b.discount_percent)
@@ -1399,7 +1424,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       await run(
         `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
          price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=?,
-         featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=? WHERE id=?`,
+         featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=?, vendor_listing_status=? WHERE id=?`,
         [
           section_id,
           vendor_id,
@@ -1424,6 +1449,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           featured_hub_section,
           show_in_offers_tab,
           show_in_marketplace_tab,
+          vendor_listing_status,
           id,
         ]
       );

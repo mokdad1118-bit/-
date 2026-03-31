@@ -1471,17 +1471,31 @@ function renderMpProductsTable() {
   const ar = getAdminLang() === "ar";
   const rows = Array.isArray(adminMpProductsCache) ? adminMpProductsCache : [];
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows
     .map((p) => {
       const name = ar ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+      const st = String(p.vendor_listing_status || "published").toLowerCase();
+      const stLab =
+        st === "pending"
+          ? ar
+            ? "مراجعة"
+            : "Review"
+          : st === "rejected"
+            ? ar
+              ? "مرفوض"
+              : "Rejected"
+            : ar
+              ? "منشور"
+              : "Live";
       return `<tr class="border-t border-gray-100">
         <td class="p-2">${p.id}</td>
         <td class="p-2 max-w-[180px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
         <td class="p-2">${escapeHtml(String(p.price))}</td>
         <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
+        <td class="p-2 text-xs font-bold">${escapeHtml(stLab)}</td>
         <td class="p-2 flex flex-wrap gap-1">
           <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-p-up="${p.id}">↑</button>
           <button type="button" class="text-xs px-2 py-1 rounded-lg bg-gray-100" data-mp-p-down="${p.id}">↓</button>
@@ -1554,6 +1568,15 @@ function mpFillProductForm(p) {
   if (mpSo) mpSo.checked = p && Number(p.show_in_offers_tab) === 1;
   const mpSm = document.getElementById("mp-p-show-marketplace");
   if (mpSm) mpSm.checked = !p || Number(p.show_in_marketplace_tab) !== 0;
+  const mpVls = document.getElementById("mp-p-vendor-listing-status");
+  if (mpVls) {
+    if (p) {
+      const s = String(p.vendor_listing_status || "published").toLowerCase();
+      mpVls.value = s === "pending" || s === "rejected" ? s : "published";
+    } else {
+      mpVls.value = "published";
+    }
+  }
   document.getElementById("mp-p-active").checked = !p || Number(p.is_active) !== 0;
   const f = document.getElementById("mp-p-images-file");
   if (f) f.value = "";
@@ -2128,6 +2151,7 @@ function bindMarketplaceAdminListeners() {
         const v = document.getElementById("mp-p-department")?.value?.trim();
         return v ? Number(v) : undefined;
       })(),
+      vendor_listing_status: (document.getElementById("mp-p-vendor-listing-status")?.value || "published").trim(),
     };
     if (!Number.isFinite(body.section_id) || !Number.isFinite(body.vendor_id)) {
       alert(getAdminLang() === "ar" ? "اختر القسم والمورد." : "Choose section and vendor.");

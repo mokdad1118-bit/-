@@ -1,5 +1,5 @@
 /**
- * بوابة الشركة (بائع السوق الشامل): تسجيل دخول، طلبات فرعية، طلبات إعلان، منتجات مبسطة
+ * بوابة شركاء Adora (بائع السوق الشامل): تسجيل دخول، طلبات فرعية، طلبات إعلان، منتجات
  */
 const bcrypt = require("bcryptjs");
 const multer = require("multer");
@@ -112,7 +112,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
   app.get("/api/vendor-portal/me", requireMpVendorAuth, async (req, res) => {
     try {
       const v = await get(
-        `SELECT id, name_ar, name_en, public_vendor_code, owner_name, product_quota, paid_product_slots, subscription_ends_at, portal_username
+        `SELECT id, name_ar, name_en, public_vendor_code, owner_name, product_quota, paid_product_slots, subscription_ends_at, portal_username, is_active
          FROM marketplace_vendors WHERE id=?`,
         [req.mpVendor.id]
       );
@@ -130,11 +130,36 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       const free = pq > 0 ? pq : freeDefault;
       const limit = quotaEnabled ? free + paid : null;
       const canAdd = !quotaEnabled || limit == null || n < limit;
+      const ord = await get(
+        `SELECT COUNT(*)::int AS n FROM order_vendor_fulfillments WHERE vendor_id=?`,
+        [v.id]
+      );
+      const orders_count = Number(ord?.n || 0);
+      const remaining_product_slots = limit != null ? Math.max(0, limit - n) : null;
+      let account_status = "active";
+      let account_status_label_ar = "نشط";
+      if (req.mpVendor.mustChangePassword) {
+        account_status = "password_change_required";
+        account_status_label_ar = "يجب تغيير كلمة المرور";
+      } else if (Number(v.is_active) !== 1) {
+        account_status = "inactive";
+        account_status_label_ar = "الحساب موقوف — تواصل مع الإدارة";
+      } else if (v.subscription_ends_at) {
+        const end = new Date(v.subscription_ends_at);
+        if (!Number.isNaN(end.getTime()) && end.getTime() < Date.now()) {
+          account_status = "subscription_expired";
+          account_status_label_ar = "انتهى الاشتراك — تواصل مع الإدارة";
+        }
+      }
       return res.json({
         vendor: v,
         active_products: n,
         product_quota_display: quotaEnabled && limit != null ? `${n} / ${limit}` : String(n),
         product_quota_limit: limit,
+        remaining_product_slots,
+        orders_count,
+        account_status,
+        account_status_label_ar,
         can_add_product: canAdd,
         product_form_limits: {
           max_images: VENDOR_PORTAL_MAX_PRODUCT_IMAGES,
@@ -315,8 +340,8 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         `INSERT INTO marketplace_products (
           section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock,
           images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code,
-          is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0)`,
+          is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0, 'pending')`,
         [
           v.section_id,
           v.id,
@@ -421,6 +446,10 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           error: "منتج مكرر لنفس الشركة (نفس الاسم أو SKU أو الباركود).",
         });
       }
+      const curListing = String(cur.vendor_listing_status || "published").toLowerCase();
+      const nextListing =
+        curListing === "rejected" ? "pending" : String(cur.vendor_listing_status || "published");
+
       const hasVariantBody = b.product_options != null || b.inventory != null;
       let invJson;
       let optJson;
@@ -437,7 +466,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       await run(
         `UPDATE marketplace_products SET name_ar=?, name_en=?, description_ar=?, description_en=?,
          price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?,
-         department_id=?, is_active=? WHERE id=? AND vendor_id=?`,
+         department_id=?, is_active=?, vendor_listing_status=? WHERE id=? AND vendor_id=?`,
         [
           name_ar,
           name_en,
@@ -451,6 +480,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           optJson,
           depRes.department_id,
           is_active,
+          nextListing,
           id,
           req.mpVendor.id,
         ]
@@ -462,11 +492,37 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
+  app.delete("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+    try {
+      if (req.mpVendor.mustChangePassword) {
+        return res.status(403).json({ error: "Change password first", must_change_password: true });
+      }
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const cur = await get(`SELECT id, vendor_id FROM marketplace_products WHERE id=?`, [id]);
+      if (!cur || Number(cur.vendor_id) !== Number(req.mpVendor.id)) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const ref = await get(`SELECT 1 AS x FROM order_items WHERE marketplace_product_id=? LIMIT 1`, [id]);
+      if (ref) {
+        return res.status(409).json({
+          error:
+            "لا يمكن حذف المنتج لأنه مرتبط بطلبات سابقة. يمكنك إيقاف ظهوره بإلغاء تفعيل «منتج نشط».",
+        });
+      }
+      await run(`DELETE FROM marketplace_products WHERE id=? AND vendor_id=?`, [id, req.mpVendor.id]);
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
   app.get("/api/vendor-portal/products", requireMpVendorAuth, async (req, res) => {
     try {
       const rows = await all(
         `SELECT mp.id, mp.public_product_code, mp.name_ar, mp.name_en, mp.price, mp.stock, mp.is_active,
-                mp.featured_hub_enabled, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.created_at
+                mp.featured_hub_enabled, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.created_at,
+                COALESCE(mp.vendor_listing_status, 'published') AS vendor_listing_status
          FROM marketplace_products mp WHERE mp.vendor_id=? ORDER BY mp.id DESC LIMIT 300`,
         [req.mpVendor.id]
       );

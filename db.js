@@ -349,6 +349,7 @@ async function initDb() {
   await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
   await migrateProductsFeaturedHubV1();
   await migrateOffersMarketplaceVisibilityV1();
+  await migrateVendorListingStatusV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -839,6 +840,13 @@ async function migrateOffersMarketplaceVisibilityV1() {
   await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS featured_hub_section TEXT`);
   await run(
     `CREATE INDEX IF NOT EXISTS idx_mp_featured_hub ON marketplace_products (featured_hub_enabled, featured_hub_section) WHERE featured_hub_enabled = 1`
+  );
+}
+
+/** حالة اعتماد عرض المنتج من البوابة: pending / published / rejected */
+async function migrateVendorListingStatusV1() {
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS vendor_listing_status TEXT NOT NULL DEFAULT 'published'`
   );
 }
 

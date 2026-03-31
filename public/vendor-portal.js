@@ -6,6 +6,77 @@
   let vpVariantState = { product_options: [], inventory: [] };
   const VP_MAX_VARIANT_COMBOS = 120;
 
+  const VP_SECTION_IDS = ["dashboard", "products", "add-product", "ad", "orders", "stats"];
+
+  function vpNavigate(section) {
+    const id = VP_SECTION_IDS.includes(section) ? section : "dashboard";
+    VP_SECTION_IDS.forEach((s) => {
+      const sec = document.getElementById("vp-section-" + s);
+      if (sec) sec.classList.toggle("hidden", s !== id);
+    });
+    document.querySelectorAll(".vp-nav-item[data-vp-nav]").forEach((btn) => {
+      const on = btn.getAttribute("data-vp-nav") === id;
+      btn.classList.toggle("vp-nav-active", on);
+      btn.setAttribute("aria-current", on ? "page" : "false");
+    });
+    try {
+      history.replaceState(null, "", "#" + id);
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+
+  function vpProductPublicUrl(productId) {
+    const u = new URL("/", window.location.origin);
+    u.searchParams.set("mp", String(productId));
+    return u.href;
+  }
+
+  function vpListingStatusBadge(st) {
+    const s = String(st || "published").trim().toLowerCase();
+    if (s === "pending") {
+      return "<span class=\"vp-badge vp-badge-pending\"><i class=\"fas fa-clock\"></i> قيد المراجعة</span>";
+    }
+    if (s === "rejected") {
+      return "<span class=\"vp-badge vp-badge-rejected\"><i class=\"fas fa-circle-xmark\"></i> مرفوض</span>";
+    }
+    return "<span class=\"vp-badge vp-badge-published\"><i class=\"fas fa-circle-check\"></i> منشور</span>";
+  }
+
+  function refreshStatsFromMe(me) {
+    if (!me) return;
+    const sp = el("vp-stat-products");
+    const sr = el("vp-stat-remaining");
+    const so = el("vp-stat-orders");
+    const sa = el("vp-stat-account");
+    if (sp) sp.textContent = String(me.active_products ?? "—");
+    if (sr) {
+      if (me.remaining_product_slots != null) {
+        sr.textContent = String(me.remaining_product_slots);
+      } else {
+        sr.textContent = "غير محدود";
+      }
+    }
+    if (so) so.textContent = String(me.orders_count ?? "—");
+    if (sa) sa.textContent = me.account_status_label_ar || "—";
+    const dp = el("vp-detail-products");
+    const dl = el("vp-detail-limit");
+    const dr = el("vp-detail-remaining");
+    const dor = el("vp-detail-orders");
+    const dac = el("vp-detail-account");
+    if (dp) dp.textContent = String(me.active_products ?? "—");
+    if (dl) {
+      dl.textContent =
+        me.product_quota_limit != null ? String(me.product_quota_limit) : "بدون حد (حسب إعدادات المنصة)";
+    }
+    if (dr) {
+      dr.textContent =
+        me.remaining_product_slots != null ? String(me.remaining_product_slots) : "—";
+    }
+    if (dor) dor.textContent = String(me.orders_count ?? "—");
+    if (dac) dac.textContent = me.account_status_label_ar || "—";
+  }
+
   const api = (path, opts = {}) => {
     const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
     const t = localStorage.getItem(TOKEN_KEY);
@@ -345,7 +416,10 @@
       el("vp-prod-stock").value = String(p.stock ?? 0);
     }
     updateProductFormState(lastVendorMe);
-    el("vp-prod-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    vpNavigate("add-product");
+    requestAnimationFrame(() => {
+      el("vp-prod-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function refreshVpFileChosenHint() {
@@ -387,11 +461,11 @@
   async function refreshProductsList() {
     const list = el("vp-products-list");
     if (!list) return;
-    list.textContent = "جاري التحميل…";
+    list.innerHTML = "<p class=\"text-gray-500 py-2\">جاري التحميل…</p>";
     try {
       const rows = await api("/api/vendor-portal/products");
       if (!Array.isArray(rows) || !rows.length) {
-        list.innerHTML = "<p class='text-gray-400'>لا منتجات بعد.</p>";
+        list.innerHTML = "<p class='text-gray-400 py-4 text-center'>لا منتجات بعد.</p>";
         return;
       }
       list.innerHTML = rows
@@ -400,27 +474,51 @@
           const name = String(r.name_ar || r.name_en || "—")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;");
-          const act = Number(r.is_active) === 1 ? "" : " <span class='text-amber-700'>(موقوف)</span>";
+          const act = Number(r.is_active) === 1 ? "" : " <span class='text-amber-800 font-semibold'>(موقوف)</span>";
           const pid = Number(r.id);
+          const st = r.vendor_listing_status;
+          const badge = vpListingStatusBadge(st);
+          const pub = String(st || "").toLowerCase() === "published";
+          const viewBtn = Number.isFinite(pid)
+            ? "<a href=\"" +
+              vpProductPublicUrl(pid).replace(/"/g, "&quot;") +
+              "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"vp-prod-action vp-prod-action-view\"><i class=\"fas fa-eye\"></i> عرض</a>"
+            : "";
           const editBtn = Number.isFinite(pid)
-            ? "<button type='button' class='vp-edit-product shrink-0 text-violet-700 font-bold text-xs border border-violet-200 rounded-lg px-2 py-0.5' data-vp-product-id='" +
+            ? "<button type=\"button\" class=\"vp-prod-action vp-prod-action-edit vp-edit-product\" data-vp-product-id=\"" +
               pid +
-              "'>تعديل</button>"
+              "\"><i class=\"fas fa-pen\"></i> تعديل</button>"
+            : "";
+          const delBtn = Number.isFinite(pid)
+            ? "<button type=\"button\" class=\"vp-prod-action vp-prod-action-del vp-delete-product\" data-vp-product-id=\"" +
+              pid +
+              "\"><i class=\"fas fa-trash\"></i> حذف</button>"
             : "";
           return (
-            "<div class='flex flex-wrap items-start justify-between gap-2 py-2 border-b border-gray-100'>" +
-            "<div class='flex flex-col gap-0.5 min-w-0'>" +
-            "<span class='font-mono text-xs text-gray-500'>" +
+            "<article class=\"vp-product-card\">" +
+            "<div class=\"vp-product-card-main\">" +
+            "<div class=\"vp-product-card-titles\">" +
+            "<span class=\"vp-product-code\">" +
             code +
             "</span>" +
-            "<span>" +
+            "<h3 class=\"vp-product-name\">" +
             name +
-            " — " +
-            String(r.price ?? "") +
             act +
-            "</span></div>" +
+            "</h3>" +
+            "<p class=\"vp-product-meta\"><span class=\"vp-product-price\">" +
+            String(r.price ?? "") +
+            "</span></p>" +
+            "<div class=\"vp-product-badges\">" +
+            badge +
+            (!pub
+              ? "<span class=\"vp-badge-hint\">يُعرض في التطبيق بعد اعتماد الإدارة</span>"
+              : "") +
+            "</div></div>" +
+            "<div class=\"vp-product-actions\">" +
+            viewBtn +
             editBtn +
-            "</div>"
+            delBtn +
+            "</div></div></article>"
           );
         })
         .join("");
@@ -467,25 +565,41 @@
   async function bootApp() {
     el("vp-login-card")?.classList.add("hidden");
     el("vp-app")?.classList.remove("hidden");
+    el("vp-marketing-head")?.classList.add("hidden");
     try {
       const me = await api("/api/vendor-portal/me");
       lastVendorMe = me;
-      el("vp-co-name").textContent =
-        (me.vendor && (me.vendor.name_ar || me.vendor.name_en)) || "";
+      const co = el("vp-co-name");
+      const vn = (me.vendor && (me.vendor.name_ar || me.vendor.name_en)) || "";
+      if (co) {
+        co.textContent = vn;
+        co.setAttribute("title", vn);
+      }
       el("vp-quota").textContent = "المنتجات النشطة: " + (me.product_quota_display || "—");
+      refreshStatsFromMe(me);
       updateProductFormState(me);
       if (me.must_change_password) {
         el("vp-change-card")?.classList.remove("hidden");
         el("vp-app")?.classList.add("hidden");
+        el("vp-marketing-head")?.classList.remove("hidden");
         return;
       }
       el("vp-change-card")?.classList.add("hidden");
+      let initial = "dashboard";
+      try {
+        const h = (location.hash || "").replace(/^#/, "");
+        if (VP_SECTION_IDS.includes(h)) initial = h;
+      } catch (_e) {
+        /* ignore */
+      }
+      vpNavigate(initial);
       await Promise.all([refreshOrders(), refreshAdList(), refreshProductsList(), loadVendorDepartments()]);
     } catch (e) {
       showErr(e.message || String(e));
       setToken(null);
       el("vp-login-card")?.classList.remove("hidden");
       el("vp-app")?.classList.add("hidden");
+      el("vp-marketing-head")?.classList.remove("hidden");
     }
   }
 
@@ -541,9 +655,25 @@
     }
   });
 
-  el("vp-btn-out")?.addEventListener("click", () => {
+  function vpDoLogout() {
     setToken(null);
     location.reload();
+  }
+
+  el("vp-btn-out-sidebar")?.addEventListener("click", vpDoLogout);
+
+  document.querySelectorAll(".vp-nav-item[data-vp-nav]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const s = btn.getAttribute("data-vp-nav");
+      if (s) vpNavigate(s);
+    });
+  });
+
+  document.querySelectorAll("[data-vp-go]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const s = btn.getAttribute("data-vp-go");
+      if (s) vpNavigate(s);
+    });
   });
 
   el("vp-prod-files")?.addEventListener("change", async () => {
@@ -610,6 +740,24 @@
   el("vp-var-build")?.addEventListener("click", () => vpBuildVariantMatrix());
 
   el("vp-products-list")?.addEventListener("click", (ev) => {
+    const del = ev.target && ev.target.closest && ev.target.closest(".vp-delete-product");
+    if (del) {
+      const raw = del.getAttribute("data-vp-product-id");
+      const id = Number(raw);
+      if (!Number.isFinite(id)) return;
+      if (!confirm("حذف هذا المنتج نهائياً؟ لا يمكن التراجع.")) return;
+      api("/api/vendor-portal/products/" + encodeURIComponent(id), { method: "DELETE" })
+        .then(async () => {
+          const me = await api("/api/vendor-portal/me");
+          lastVendorMe = me;
+          el("vp-quota").textContent = "المنتجات النشطة: " + (me.product_quota_display || "—");
+          refreshStatsFromMe(me);
+          updateProductFormState(me);
+          await refreshProductsList();
+        })
+        .catch((err) => alert(err.message || String(err)));
+      return;
+    }
     const btn = ev.target && ev.target.closest && ev.target.closest(".vp-edit-product");
     if (!btn) return;
     const raw = btn.getAttribute("data-vp-product-id");
@@ -705,7 +853,7 @@
           method: "POST",
           body: JSON.stringify(body),
         });
-        alert("تم إضافة المنتج.");
+        alert("تم إضافة المنتج. سيظهر للزبائن بعد مراجعة الإدارة واعتماد النشر.");
       }
       e.target.reset();
       productImageUrls = [];
@@ -717,6 +865,7 @@
       const me = await api("/api/vendor-portal/me");
       lastVendorMe = me;
       el("vp-quota").textContent = "المنتجات النشطة: " + (me.product_quota_display || "—");
+      refreshStatsFromMe(me);
       updateProductFormState(me);
       await refreshProductsList();
     } catch (err) {

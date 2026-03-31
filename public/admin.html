@@ -696,6 +696,7 @@
                       <th class="text-start p-2">المنتج</th>
                       <th class="text-start p-2">سعر</th>
                       <th class="text-start p-2">مخزون</th>
+                      <th class="text-start p-2" data-en="Listing" data-ar="النشر">النشر</th>
                       <th class="text-start p-2">إجراءات</th>
                     </tr></thead>
                     <tbody id="mp-products-tbody"></tbody>
@@ -756,6 +757,14 @@
                         <option value="used">مستعمل</option>
                       </select>
                     </div>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold" data-en="Vendor listing status (portal moderation)" data-ar="حالة نشر البائع (مراجعة البوابة)">حالة نشر البائع (مراجعة البوابة)</label>
+                    <select id="mp-p-vendor-listing-status" class="mt-1 w-full p-2 rounded-xl border border-gray-200">
+                      <option value="pending" data-en="Pending review" data-ar="قيد المراجعة">قيد المراجعة</option>
+                      <option value="published" data-en="Published" data-ar="منشور">منشور</option>
+                      <option value="rejected" data-en="Rejected" data-ar="مرفوض">مرفوض</option>
+                    </select>
                   </div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-show-offers" class="rounded" /><label for="mp-p-show-offers" class="text-sm font-bold" data-en="Show in «Our offers» tab" data-ar="إظهار في تبويب عروضنا">إظهار في تبويب عروضنا</label></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-show-marketplace" checked class="rounded" /><label for="mp-p-show-marketplace" class="text-sm font-bold" data-en="Show in Market tab" data-ar="إظهار في تبويب السوق">إظهار في تبويب السوق</label></div>
