@@ -1059,6 +1059,9 @@ function setMpSubtab(name) {
     b.classList.toggle("text-gray-700", !on);
     b.classList.toggle("border-gray-200", !on);
   });
+  if (name === "products") {
+    initMarketplaceProductVariantBuilderUi();
+  }
 }
 
 function mpParseImageUrls(raw) {
@@ -2645,26 +2648,57 @@ function pvRenderBuilder(groups, variants, rootId = "pv-builder-root") {
   });
 }
 
+function pvNormalizeOptionsArray(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const x = JSON.parse(raw);
+      return Array.isArray(x) ? x : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function pvNormalizeInventoryArray(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const x = JSON.parse(raw);
+      return Array.isArray(x) ? x : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function pvHydrateFromProduct(product, rootId = "pv-builder-root") {
   const root = pvGetBuilderRoot(rootId);
   if (!root) return;
   if (!product) {
-    root.innerHTML = `<p class="text-xs text-gray-500">${getAdminLang() === "ar" ? "لا مجموعات بعد — اضغط «مجموعة مواصفات»." : 'No option groups yet — use “+ Option group”.'}</p>`;
+    root.innerHTML = `<p class="text-xs text-gray-500">${getAdminLang() === "ar" ? "لا مجموعات بعد — اضغط «مجموعة مواصفات» أو «بداية مقاس ولون»." : 'No option groups yet — use “+ Option group” or “+ Size & color starter”.'}</p>`;
     return;
   }
   let groups;
   let variants;
-  const po = product.product_options;
-  if (Array.isArray(po) && po.length) {
+  const po = pvNormalizeOptionsArray(product.product_options);
+  if (po.length) {
     groups = JSON.parse(JSON.stringify(po));
-    variants = (Array.isArray(product.inventory) ? product.inventory : []).map((row) => ({
+    variants = pvNormalizeInventoryArray(product.inventory).map((row) => ({
       options: row.options && typeof row.options === "object" ? { ...row.options } : {},
       price: row.price != null && row.price !== "" ? row.price : "",
       stock: row.stock != null ? row.stock : 0,
       image: row.image || "",
     }));
   } else {
-    const st = pvLegacyToBuilderState(product);
+    const st = pvLegacyToBuilderState({
+      ...product,
+      inventory: pvNormalizeInventoryArray(product.inventory),
+    });
     groups = st.groups;
     variants = st.variants;
   }

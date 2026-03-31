@@ -11,8 +11,11 @@ const {
 } = require("./adora-mv-core");
 
 function safeJsonParse(raw, fallback) {
+  if (raw == null || raw === "") return fallback;
+  /** PostgreSQL قد يُرجِع JSON/JSONB ككائن/مصفوفة جاهزة — JSON.parse عليها يفشل ويُعاد fallback خاطئ */
+  if (typeof raw === "object") return raw;
   try {
-    return JSON.parse(raw || "");
+    return JSON.parse(String(raw));
   } catch {
     return fallback;
   }
