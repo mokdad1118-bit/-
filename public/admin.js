@@ -509,7 +509,6 @@ function setActiveTab(tabId) {
     bindVendorPlatformAdminListenersOnce();
   }
   if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
-  if (tabId === "tab-vendor-platform") initVendorPlatformAdminTab().catch(() => {});
   if (tabId === "tab-vendor-subscriptions") {
     loadVendorSubscriptionRequests().catch(() => {});
     loadAppAdInquiriesUi().catch(() => {});
@@ -553,11 +552,16 @@ async function loadVendorPlatformSettingsUi() {
   const token = getToken();
   if (!token) return;
   const s = await api("/api/admin/vendor-platform/settings", { token });
-  document.getElementById("vp-quota-on").checked = Number(s.product_quota_enabled) !== 0;
-  document.getElementById("vp-free-n").value = String(s.free_products_per_vendor ?? 20);
-  document.getElementById("vp-extra-price").value = String(s.extra_product_price_usd ?? 0.5);
-  document.getElementById("vp-commission").value = String(s.commission_percent ?? 5);
-  document.getElementById("vp-ads-on").checked = Number(s.ads_module_enabled) !== 0;
+  const qOn = document.getElementById("vp-quota-on");
+  if (qOn) qOn.checked = Number(s.product_quota_enabled) !== 0;
+  const freeN = document.getElementById("vp-free-n");
+  if (freeN) freeN.value = String(s.free_products_per_vendor ?? 20);
+  const exP = document.getElementById("vp-extra-price");
+  if (exP) exP.value = String(s.extra_product_price_usd ?? 0.5);
+  const comm = document.getElementById("vp-commission");
+  if (comm) comm.value = String(s.commission_percent ?? 5);
+  const adsOn = document.getElementById("vp-ads-on");
+  if (adsOn) adsOn.checked = Number(s.ads_module_enabled) !== 0;
   document.getElementById("vp-banner-on").checked = Number(s.partner_banner_enabled) !== 0;
   document.getElementById("vp-banner-ar").value = s.partner_banner_text_ar || "";
   document.getElementById("vp-banner-en").value = s.partner_banner_text_en || "";
@@ -577,15 +581,18 @@ async function loadVendorPlatformSettingsUi() {
     const el = document.getElementById(`vp-pl-${k}`);
     if (el) el.checked = pset.has(k);
   }
-  document.getElementById("vp-featured-mode").value = s.featured_products_mode || "manual";
+  const featMode = document.getElementById("vp-featured-mode");
+  if (featMode) featMode.value = s.featured_products_mode || "manual";
   let ids = [];
   try {
     ids = JSON.parse(s.featured_vendor_ids_json || "[]");
   } catch (_e) {
     ids = [];
   }
-  document.getElementById("vp-featured-vendors").value = Array.isArray(ids) ? ids.join(", ") : "";
-  document.getElementById("vp-bestsellers-boost").checked = Number(s.bestsellers_boost_enabled) !== 0;
+  const featV = document.getElementById("vp-featured-vendors");
+  if (featV) featV.value = Array.isArray(ids) ? ids.join(", ") : "";
+  const bsBoost = document.getElementById("vp-bestsellers-boost");
+  if (bsBoost) bsBoost.checked = Number(s.bestsellers_boost_enabled) !== 0;
   const jtAr = document.getElementById("vp-join-terms-ar");
   const jtEn = document.getElementById("vp-join-terms-en");
   if (jtAr) jtAr.value = s.vendor_join_terms_ar || "";
@@ -766,49 +773,124 @@ async function loadVendorCommissionReportUi() {
   }
 }
 
-function collectVendorPlatformSettingsBody() {
-  const fv = document.getElementById("vp-featured-vendors")?.value?.trim() ?? "";
-  const vendorIds = fv
-    ? fv
-        .split(/[\s,]+/)
-        .map((x) => Number(x.trim()))
-        .filter((n) => Number.isFinite(n) && n > 0)
-    : [];
-  const partner_cta_placements = VP_PARTNER_CTA_PLACEMENT_KEYS.filter((k) => {
-    const el = document.getElementById(`vp-pl-${k}`);
-    return el && el.checked;
-  });
-  const app_ad_banner_placements = VP_APP_AD_PLACEMENT_KEYS.filter((k) => {
-    const el = document.getElementById(`vp-aad-pl-${k}`);
-    return el && el.checked;
-  });
+async function collectVendorPlatformSettingsBody() {
+  const token = getToken();
+  let s = {};
+  if (token) {
+    try {
+      s = await api("/api/admin/vendor-platform/settings", { token });
+    } catch (_e) {
+      s = {};
+    }
+  }
+  const bit = (id, sk) => {
+    const el = document.getElementById(id);
+    if (el) return el.checked ? 1 : 0;
+    return Number(s[sk]) ? 1 : 0;
+  };
+  const num = (id, sk, def) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const n = Number(el.value);
+      return Number.isFinite(n) ? n : def;
+    }
+    const v = s[sk];
+    if (v == null || v === "") return def;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : def;
+  };
+  const txt = (id, sk) => {
+    const el = document.getElementById(id);
+    if (el && "value" in el) return String(el.value ?? "");
+    const v = s[sk];
+    return v != null ? String(v) : "";
+  };
+  const trimTxt = (id, sk) => txt(id, sk).trim();
+
+  let vendorIds = [];
+  const fvEl = document.getElementById("vp-featured-vendors");
+  if (fvEl) {
+    const fv = fvEl.value?.trim() ?? "";
+    vendorIds = fv
+      ? fv
+          .split(/[\s,]+/)
+          .map((x) => Number(x.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0)
+      : [];
+  } else {
+    try {
+      const parsed = JSON.parse(s.featured_vendor_ids_json || "[]");
+      vendorIds = Array.isArray(parsed)
+        ? parsed.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0)
+        : [];
+    } catch (_e) {
+      vendorIds = [];
+    }
+  }
+
+  const hasPartnerPl = VP_PARTNER_CTA_PLACEMENT_KEYS.some((k) => document.getElementById(`vp-pl-${k}`));
+  let partner_cta_placements;
+  if (hasPartnerPl) {
+    partner_cta_placements = VP_PARTNER_CTA_PLACEMENT_KEYS.filter((k) => {
+      const el = document.getElementById(`vp-pl-${k}`);
+      return el && el.checked;
+    });
+  } else {
+    try {
+      partner_cta_placements = JSON.parse(s.partner_cta_placements_json || "[]");
+      if (!Array.isArray(partner_cta_placements)) partner_cta_placements = [];
+    } catch (_e) {
+      partner_cta_placements = [];
+    }
+  }
+
+  const hasAppAdPl = VP_APP_AD_PLACEMENT_KEYS.some((k) => document.getElementById(`vp-aad-pl-${k}`));
+  let app_ad_banner_placements;
+  if (hasAppAdPl) {
+    app_ad_banner_placements = VP_APP_AD_PLACEMENT_KEYS.filter((k) => {
+      const el = document.getElementById(`vp-aad-pl-${k}`);
+      return el && el.checked;
+    });
+  } else {
+    try {
+      app_ad_banner_placements = JSON.parse(s.app_ad_banner_placements_json || "[]");
+      if (!Array.isArray(app_ad_banner_placements)) app_ad_banner_placements = [];
+    } catch (_e) {
+      app_ad_banner_placements = [];
+    }
+  }
+
+  const featModeEl = document.getElementById("vp-featured-mode");
+  const featured_products_mode =
+    featModeEl && featModeEl.value ? featModeEl.value : s.featured_products_mode || "manual";
+
   return {
-    product_quota_enabled: document.getElementById("vp-quota-on")?.checked ? 1 : 0,
-    free_products_per_vendor: Number(document.getElementById("vp-free-n")?.value || 0),
-    extra_product_price_usd: Number(document.getElementById("vp-extra-price")?.value || 0),
-    commission_percent: Number(document.getElementById("vp-commission")?.value || 0),
-    ads_module_enabled: document.getElementById("vp-ads-on")?.checked ? 1 : 0,
-    partner_banner_enabled: document.getElementById("vp-banner-on")?.checked ? 1 : 0,
-    partner_banner_text_ar: document.getElementById("vp-banner-ar")?.value?.trim() ?? "",
-    partner_banner_text_en: document.getElementById("vp-banner-en")?.value?.trim() ?? "",
-    partner_cta_subtitle_ar: document.getElementById("vp-cta-sub-ar")?.value?.trim() ?? "",
-    partner_cta_subtitle_en: document.getElementById("vp-cta-sub-en")?.value?.trim() ?? "",
+    product_quota_enabled: bit("vp-quota-on", "product_quota_enabled"),
+    free_products_per_vendor: num("vp-free-n", "free_products_per_vendor", 20),
+    extra_product_price_usd: num("vp-extra-price", "extra_product_price_usd", 0.5),
+    commission_percent: num("vp-commission", "commission_percent", 5),
+    ads_module_enabled: bit("vp-ads-on", "ads_module_enabled"),
+    partner_banner_enabled: bit("vp-banner-on", "partner_banner_enabled"),
+    partner_banner_text_ar: trimTxt("vp-banner-ar", "partner_banner_text_ar"),
+    partner_banner_text_en: trimTxt("vp-banner-en", "partner_banner_text_en"),
+    partner_cta_subtitle_ar: trimTxt("vp-cta-sub-ar", "partner_cta_subtitle_ar"),
+    partner_cta_subtitle_en: trimTxt("vp-cta-sub-en", "partner_cta_subtitle_en"),
     partner_cta_placements,
-    vendor_join_terms_ar: document.getElementById("vp-join-terms-ar")?.value ?? "",
-    vendor_join_terms_en: document.getElementById("vp-join-terms-en")?.value ?? "",
-    app_ad_banner_enabled: document.getElementById("vp-app-ad-on")?.checked ? 1 : 0,
-    app_ad_banner_text_ar: document.getElementById("vp-app-ad-ar")?.value?.trim() ?? "",
-    app_ad_banner_text_en: document.getElementById("vp-app-ad-en")?.value?.trim() ?? "",
-    app_ad_banner_subtitle_ar: document.getElementById("vp-app-ad-sub-ar")?.value?.trim() ?? "",
-    app_ad_banner_subtitle_en: document.getElementById("vp-app-ad-sub-en")?.value?.trim() ?? "",
+    vendor_join_terms_ar: txt("vp-join-terms-ar", "vendor_join_terms_ar"),
+    vendor_join_terms_en: txt("vp-join-terms-en", "vendor_join_terms_en"),
+    app_ad_banner_enabled: bit("vp-app-ad-on", "app_ad_banner_enabled"),
+    app_ad_banner_text_ar: trimTxt("vp-app-ad-ar", "app_ad_banner_text_ar"),
+    app_ad_banner_text_en: trimTxt("vp-app-ad-en", "app_ad_banner_text_en"),
+    app_ad_banner_subtitle_ar: trimTxt("vp-app-ad-sub-ar", "app_ad_banner_subtitle_ar"),
+    app_ad_banner_subtitle_en: trimTxt("vp-app-ad-sub-en", "app_ad_banner_subtitle_en"),
     app_ad_banner_placements,
-    app_ad_terms_ar: document.getElementById("vp-app-ad-terms-ar")?.value ?? "",
-    app_ad_terms_en: document.getElementById("vp-app-ad-terms-en")?.value ?? "",
-    partner_cta_slides_json: document.getElementById("vp-partner-slides-json")?.value ?? "",
-    app_ad_cta_slides_json: document.getElementById("vp-app-ad-slides-json")?.value ?? "",
-    featured_products_mode: document.getElementById("vp-featured-mode")?.value ?? "manual",
+    app_ad_terms_ar: txt("vp-app-ad-terms-ar", "app_ad_terms_ar"),
+    app_ad_terms_en: txt("vp-app-ad-terms-en", "app_ad_terms_en"),
+    partner_cta_slides_json: txt("vp-partner-slides-json", "partner_cta_slides_json"),
+    app_ad_cta_slides_json: txt("vp-app-ad-slides-json", "app_ad_cta_slides_json"),
+    featured_products_mode,
     featured_vendor_ids: vendorIds,
-    bestsellers_boost_enabled: document.getElementById("vp-bestsellers-boost")?.checked ? 1 : 0,
+    bestsellers_boost_enabled: bit("vp-bestsellers-boost", "bestsellers_boost_enabled"),
   };
 }
 
@@ -816,7 +898,7 @@ async function saveVendorPlatformSettingsFromForm() {
   const token = getToken();
   if (!token) return;
   const ar = getAdminLang() === "ar";
-  const body = collectVendorPlatformSettingsBody();
+  const body = await collectVendorPlatformSettingsBody();
   await api("/api/admin/vendor-platform/settings", { method: "PUT", token, body });
   await loadVendorPlatformSettingsUi();
   alert(ar ? "تم حفظ الإعدادات." : "Settings saved.");
@@ -879,12 +961,6 @@ function bindVendorPlatformAdminListenersOnce() {
     }
   });
   document.getElementById("btn-vp-comm-refresh")?.addEventListener("click", () => loadVendorCommissionReportUi().catch((err) => alert(err.message || err)));
-}
-
-async function initVendorPlatformAdminTab() {
-  await loadVendorPlatformSettingsUi();
-  await loadVendorPromotionsUi();
-  bindVendorPlatformAdminListenersOnce();
 }
 
 const VP_SUB_STATUS_LABELS_AR = {
