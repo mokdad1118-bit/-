@@ -4974,6 +4974,77 @@ function openAcEditCompanyModal(row) {
 
 let adoraCompanyTabListenersBound = false;
 
+function switchAdoraCompanyMainTab(key) {
+  document.querySelectorAll("#tab-adora-company .ac-main-tab").forEach((btn) => {
+    const on = btn.getAttribute("data-ac-main") === key;
+    btn.classList.toggle("bg-white", on);
+    btn.classList.toggle("shadow", on);
+    btn.classList.toggle("text-purple-700", on);
+    btn.classList.toggle("text-gray-600", !on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll("#tab-adora-company .ac-main-pane").forEach((pane) => pane.classList.add("hidden"));
+  const pane = document.getElementById("ac-pane-" + key);
+  if (pane) pane.classList.remove("hidden");
+  if (key === "ads") loadAdoraAdRequestsTable().catch(() => {});
+  if (key === "products") switchAdoraProdSubtab("all");
+}
+
+function switchAdoraProdSubtab(key) {
+  document.querySelectorAll("#tab-adora-company .ac-prod-subtab").forEach((btn) => {
+    const on = btn.getAttribute("data-ac-prod-sub") === key;
+    btn.classList.toggle("bg-white", on);
+    btn.classList.toggle("shadow", on);
+    btn.classList.toggle("text-violet-800", on);
+    btn.classList.toggle("text-gray-600", !on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  document.querySelectorAll("#tab-adora-company .ac-prod-pane").forEach((p) => p.classList.add("hidden"));
+  const p = document.getElementById("ac-prod-pane-" + key);
+  if (p) p.classList.remove("hidden");
+  if (key === "all") loadAcAllMarketplaceProducts().catch(() => {});
+  if (key === "orders") loadAdoraFulfillmentsTable({ shared: false }).catch(() => {});
+  if (key === "shared") loadAdoraFulfillmentsTable({ shared: true }).catch(() => {});
+}
+
+async function loadAcAllMarketplaceProducts() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-all-mp-tbody");
+  const ar = getAdminLang() === "ar";
+  if (!token || !tbody) return;
+  const code = document.getElementById("ac-mp-filter-code")?.value?.trim();
+  const vid = document.getElementById("ac-mp-filter-vendor")?.value?.trim();
+  const qs = new URLSearchParams();
+  if (code) qs.set("code", code);
+  if (vid) qs.set("vendor_id", vid);
+  const path = qs.toString() ? `/api/admin/marketplace/products?${qs}` : "/api/admin/marketplace/products";
+  try {
+    const rows = await api(path, { token });
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list
+      .map((p) => {
+        const name = ar ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+        const act = Number(p.is_active) === 1 ? "✓" : "—";
+        return `<tr class="border-b border-gray-100">
+          <td class="p-2 font-mono text-xs">${p.id}</td>
+          <td class="p-2 font-mono text-xs">${escapeHtml(p.public_product_code || "—")}</td>
+          <td class="p-2">${p.vendor_id}</td>
+          <td class="p-2 max-w-[200px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
+          <td class="p-2">${escapeHtml(String(p.price ?? ""))}</td>
+          <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
+          <td class="p-2">${act}</td>
+        </tr>`;
+      })
+      .join("");
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" class="p-3 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+  }
+}
+
 function fillAdoraVendorProductPanel(p) {
   adoraVpProductCache = p;
   const panel = document.getElementById("ac-vp-panel");
@@ -5173,7 +5244,15 @@ async function initAdoraCompanyAdminTab() {
       }
     });
     document.getElementById("ac-refresh-companies")?.addEventListener("click", () => loadAdoraCompaniesTable());
-    document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable());
+    document.querySelectorAll("#tab-adora-company .ac-main-tab").forEach((btn) => {
+      btn.addEventListener("click", () => switchAdoraCompanyMainTab(btn.getAttribute("data-ac-main")));
+    });
+    document.querySelectorAll("#tab-adora-company .ac-prod-subtab").forEach((btn) => {
+      btn.addEventListener("click", () => switchAdoraProdSubtab(btn.getAttribute("data-ac-prod-sub")));
+    });
+    document.getElementById("ac-mp-apply")?.addEventListener("click", () => loadAcAllMarketplaceProducts().catch(() => {}));
+    document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
+    document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
     document.getElementById("ac-vp-search")?.addEventListener("click", () => {
       searchAdoraVendorProduct().catch((e) => {
@@ -5192,6 +5271,7 @@ async function initAdoraCompanyAdminTab() {
       const s = document.getElementById("ac-vp-fh-section");
       if (s) s.disabled = !on;
     });
+    switchAdoraCompanyMainTab("add");
   }
   await loadAdoraCompaniesTable();
 }
@@ -5280,22 +5360,39 @@ async function loadAdoraCompaniesTable() {
   }
 }
 
-async function loadAdoraFulfillmentsTable() {
+function acFulfillmentProductQueryParam(productRaw) {
+  const raw = productRaw != null ? String(productRaw).trim() : "";
+  if (!raw) return null;
+  const n = Number(raw);
+  if (Number.isFinite(n) && n > 0 && String(n) === raw) {
+    return { key: "marketplace_product_id", val: String(n) };
+  }
+  return { key: "product_code", val: raw };
+}
+
+async function loadAdoraFulfillmentsTable(opts = {}) {
+  const shared = opts.shared === true;
   const token = getToken();
-  const tbody = document.getElementById("ac-fulfillments-tbody");
+  const tbodyId = shared ? "ac-fulfillments-shared-tbody" : "ac-fulfillments-tbody";
+  const tbody = document.getElementById(tbodyId);
   const ar = getAdminLang() === "ar";
   if (!tbody) return;
-  const mode = document.getElementById("ac-ff-mode")?.value || "all";
-  const vendorId = document.getElementById("ac-ff-vendor")?.value?.trim();
-  const status = document.getElementById("ac-ff-status")?.value?.trim();
-  const orderNo = document.getElementById("ac-ff-order")?.value?.trim();
+  const mode = shared ? "multi" : document.getElementById("ac-ff-mode")?.value || "all";
+  const pfx = shared ? "ac-ffs-" : "ac-ff-";
+  const vendorId = document.getElementById(pfx + "vendor")?.value?.trim();
+  const status = document.getElementById(pfx + "status")?.value?.trim();
+  const orderNo = document.getElementById(pfx + "order")?.value?.trim();
+  const productRaw = document.getElementById(pfx + "product")?.value?.trim();
   const qs = new URLSearchParams({ mode });
   if (vendorId) qs.set("vendor_id", vendorId);
   if (status) qs.set("status", status);
   if (orderNo) qs.set("order_no", orderNo);
+  const pq = acFulfillmentProductQueryParam(productRaw);
+  if (pq) qs.set(pq.key, pq.val);
   try {
     const rows = await api(`/api/admin/order-vendor-fulfillments?${qs}`, { token });
-    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+    const list = Array.isArray(rows) ? rows : [];
+    tbody.innerHTML = list
       .map((r) => {
         const st = MV_F_STATUS_LABELS[r.status] || { ar: r.status, en: r.status };
         const sl = ar ? st.ar : st.en;
@@ -5320,13 +5417,13 @@ async function loadAdoraFulfillmentsTable() {
             token,
             body: { status: next.trim() },
           });
-          await loadAdoraFulfillmentsTable();
+          await loadAdoraFulfillmentsTable({ shared });
         } catch (err) {
           alert(err.message || String(err));
         }
       });
     });
-    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا نتائج." : "No rows."}</td></tr>`;
+    if (!list.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا نتائج." : "No rows."}</td></tr>`;
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
@@ -5337,31 +5434,69 @@ async function loadAdoraAdRequestsTable() {
   const tbody = document.getElementById("ac-adreq-tbody");
   const ar = getAdminLang() === "ar";
   if (!tbody) return;
+  const payOpts = [
+    ["unpaid", ar ? "غير مدفوع" : "Unpaid"],
+    ["paid", ar ? "مدفوع" : "Paid"],
+  ];
+  const lifeOpts = [
+    ["pending", ar ? "قيد الانتظار" : "Pending"],
+    ["active", ar ? "نشط" : "Active"],
+    ["expired", ar ? "منتهي" : "Expired"],
+    ["rejected", ar ? "مرفوض" : "Rejected"],
+  ];
   try {
     const rows = await api("/api/admin/vendor-ad-requests", { token });
-    tbody.innerHTML = (Array.isArray(rows) ? rows : [])
+    const list = Array.isArray(rows) ? rows : [];
+    tbody.innerHTML = list
       .map((r) => {
         const vname = ar ? r.vendor_name_ar : r.vendor_name_en;
-        return `<tr class="border-b border-gray-100 text-sm">
-          <td class="py-2 pr-2">#${r.id}</td>
-          <td class="py-2 pr-2">${escapeHtml(vname || "")}</td>
-          <td class="py-2 pr-2">${escapeHtml(r.request_type)}</td>
-          <td class="py-2 pr-2">${escapeHtml(r.payment_status)} / ${escapeHtml(r.lifecycle_status)}</td>
-          <td class="py-2"><button type="button" class="text-purple-600 font-bold ac-ad-edit" data-id="${r.id}">${ar ? "تعديل" : "Edit"}</button></td>
+        const paySel = payOpts
+          .map(
+            ([v, lab]) =>
+              `<option value="${v}"${String(r.payment_status) === v ? " selected" : ""}>${escapeHtml(lab)}</option>`
+          )
+          .join("");
+        const lifeSel = lifeOpts
+          .map(
+            ([v, lab]) =>
+              `<option value="${v}"${String(r.lifecycle_status) === v ? " selected" : ""}>${escapeHtml(lab)}</option>`
+          )
+          .join("");
+        const startsVal = subscriptionEndsAtToDatetimeLocal(r.starts_at);
+        const endsVal = subscriptionEndsAtToDatetimeLocal(r.ends_at);
+        const noteEsc = escapeHtml(r.admin_note || "");
+        return `<tr class="border-b border-gray-100 text-sm align-top">
+          <td class="py-2 pr-2 font-mono whitespace-nowrap">#${r.id}</td>
+          <td class="py-2 pr-2">${escapeHtml(vname || "")}<div class="text-[10px] text-gray-500 font-mono mt-0.5">${escapeHtml(r.public_vendor_code || "")}</div></td>
+          <td class="py-2 pr-2 whitespace-nowrap">${escapeHtml(r.request_type || "")}</td>
+          <td class="py-2 pr-2 max-w-[140px]"><div class="text-xs text-gray-700 break-words">${escapeHtml(r.notes || "—")}</div></td>
+          <td class="py-2 pr-2"><select class="w-full p-1.5 rounded-lg border border-gray-200 text-xs ac-ad-pay" data-ac-ad-id="${r.id}">${paySel}</select></td>
+          <td class="py-2 pr-2"><select class="w-full p-1.5 rounded-lg border border-gray-200 text-xs ac-ad-life" data-ac-ad-id="${r.id}">${lifeSel}</select></td>
+          <td class="py-2 pr-2"><textarea class="w-full min-h-[52px] p-1.5 rounded-lg border border-gray-200 text-xs ac-ad-note" rows="2" data-ac-ad-id="${r.id}">${noteEsc}</textarea></td>
+          <td class="py-2 pr-2">
+            <input type="datetime-local" class="w-full max-w-[11rem] text-[10px] p-1 border border-gray-200 rounded ac-ad-starts" data-ac-ad-id="${r.id}" value="${startsVal}" />
+            <input type="datetime-local" class="w-full max-w-[11rem] text-[10px] p-1 border border-gray-200 rounded mt-1 ac-ad-ends" data-ac-ad-id="${r.id}" value="${endsVal}" />
+          </td>
+          <td class="py-2 pr-2 whitespace-nowrap"><button type="button" class="px-2 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold ac-ad-save" data-ac-ad-id="${r.id}">${ar ? "حفظ" : "Save"}</button></td>
         </tr>`;
       })
       .join("");
-    tbody.querySelectorAll(".ac-ad-edit").forEach((btn) => {
+    tbody.querySelectorAll(".ac-ad-save").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        const pay = prompt(ar ? "payment: unpaid|paid" : "payment: unpaid|paid", "unpaid");
-        const life = prompt(ar ? "lifecycle: pending|active|expired|rejected" : "lifecycle", "pending");
-        if (!pay || !life) return;
+        const id = btn.getAttribute("data-ac-ad-id");
+        const pay = tbody.querySelector(`.ac-ad-pay[data-ac-ad-id="${id}"]`)?.value;
+        const life = tbody.querySelector(`.ac-ad-life[data-ac-ad-id="${id}"]`)?.value;
+        const noteEl = tbody.querySelector(`.ac-ad-note[data-ac-ad-id="${id}"]`);
+        const note = noteEl ? noteEl.value : "";
+        const stEl = tbody.querySelector(`.ac-ad-starts[data-ac-ad-id="${id}"]`);
+        const enEl = tbody.querySelector(`.ac-ad-ends[data-ac-ad-id="${id}"]`);
+        const starts_at = stEl && stEl.value ? datetimeLocalToIsoUtc(stEl.value) : null;
+        const ends_at = enEl && enEl.value ? datetimeLocalToIsoUtc(enEl.value) : null;
         try {
           await api(`/api/admin/vendor-ad-requests/${id}`, {
             method: "PUT",
             token,
-            body: { payment_status: pay.trim(), lifecycle_status: life.trim() },
+            body: { payment_status: pay, lifecycle_status: life, admin_note: note, starts_at, ends_at },
           });
           await loadAdoraAdRequestsTable();
         } catch (err) {
@@ -5369,9 +5504,9 @@ async function loadAdoraAdRequestsTable() {
         }
       });
     });
-    if (!rows?.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+    if (!list.length) tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
 }
 

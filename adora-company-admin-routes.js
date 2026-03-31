@@ -206,6 +206,19 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
         sql += ` AND o.order_no ILIKE ?`;
         params.push(`%${orderNo}%`);
       }
+      const mpPid = req.query.marketplace_product_id != null ? Number(req.query.marketplace_product_id) : null;
+      const productCode = req.query.product_code != null ? String(req.query.product_code).trim() : "";
+      if (Number.isFinite(mpPid) && mpPid > 0) {
+        sql += ` AND EXISTS (SELECT 1 FROM order_items oi WHERE oi.vendor_fulfillment_id = f.id AND oi.marketplace_product_id = ?)`;
+        params.push(mpPid);
+      } else if (productCode) {
+        sql += ` AND EXISTS (
+          SELECT 1 FROM order_items oi
+          INNER JOIN marketplace_products mp ON mp.id = oi.marketplace_product_id
+          WHERE oi.vendor_fulfillment_id = f.id AND mp.public_product_code ILIKE ?
+        )`;
+        params.push(`%${productCode}%`);
+      }
       if (from) {
         sql += ` AND f.created_at >= ?::timestamptz`;
         params.push(from);

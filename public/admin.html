@@ -881,6 +881,13 @@
           </div>
 
           <div id="tab-adora-company" class="tab-panel hidden space-y-4">
+            <nav class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-2xl border border-gray-200" role="tablist" aria-label="شركات المشتركين">
+              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition bg-white shadow text-purple-700" data-ac-main="add">إضافة شركة</button>
+              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="companies">إدارة الشركات</button>
+              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="ads">طلبات الإعلانات</button>
+              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="products">المنتجات والطلبات</button>
+            </nav>
+            <div id="ac-pane-add" class="ac-main-pane space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <h2 class="text-lg font-bold" data-en="Create company + portal" data-ar="إنشاء شركة وحساب بوابة">إنشاء شركة وحساب بوابة</h2>
               <p class="text-xs text-gray-600 leading-relaxed" data-en="Creates a marketplace vendor with CMP code, login, subscription end date, and product quota. First login forces password change. After save, a portal login link is shown and copied when possible." data-ar="ينشئ شركة في السوق الشامل برقم CMP، دخول، تاريخ انتهاء اشتراك، وحصة منتجات. أول دخول يفرض تغيير كلمة المرور. بعد الحفظ يُعرض رابط دخول البوابة ويُنسخ تلقائياً إن أمكن.">ينشئ شركة في السوق الشامل برقم CMP، دخول، تاريخ انتهاء اشتراك، وحصة منتجات. بعد الحفظ يُعرض رابط دخول البوابة لصاحب الشركة.</p>
@@ -922,6 +929,8 @@
                 </div>
               </form>
             </div>
+            </div>
+            <div id="ac-pane-companies" class="ac-main-pane hidden space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">
               <div class="flex flex-wrap justify-between gap-2 mb-2">
                 <h2 class="text-lg font-bold" data-en="Manage companies" data-ar="إدارة الشركات">إدارة الشركات</h2>
@@ -936,6 +945,68 @@
                 </table>
               </div>
               <p class="text-xs text-gray-500 mt-2">🟢 نشط · 🟡 قريب الانتهاء · 🔴 منتهي — صفحة الدخول: <code class="bg-gray-100 px-1 rounded">/vendor-portal.html?user=اسم_المستخدم</code> (يُملأ اسم المستخدم تلقائياً من الرابط).</p>
+            </div>
+            </div>
+            <div id="ac-pane-ads" class="ac-main-pane hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <div class="flex flex-wrap justify-between items-center gap-2">
+                <h2 class="text-lg font-bold" data-en="Company ad requests" data-ar="طلبات إعلان الشركات">طلبات إعلان الشركات</h2>
+                <button type="button" id="ac-load-adreq" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+              </div>
+              <p class="text-xs text-gray-600 leading-relaxed">عدّل حالة الدفع والدورة واكتب رد الإدارة لكل طلب ثم اضغط <strong>حفظ</strong>. يمكن جدولة بداية/نهاية الإعلان عند الحاجة.</p>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[min(70vh,560px)] overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0 z-10"><tr>
+                    <th class="p-2 text-start whitespace-nowrap">#</th>
+                    <th class="p-2 text-start min-w-[88px]">شركة</th>
+                    <th class="p-2 text-start whitespace-nowrap">النوع</th>
+                    <th class="p-2 text-start min-w-[100px]">ملاحظات المشترك</th>
+                    <th class="p-2 text-start">الدفع</th>
+                    <th class="p-2 text-start">الحالة</th>
+                    <th class="p-2 text-start min-w-[140px]">رد الإدارة</th>
+                    <th class="p-2 text-start min-w-[200px]">جدولة</th>
+                    <th class="p-2 text-start whitespace-nowrap">—</th>
+                  </tr></thead>
+                  <tbody id="ac-adreq-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            </div>
+            <div id="ac-pane-products" class="ac-main-pane hidden space-y-4">
+            <div class="flex flex-wrap gap-1 p-1 bg-violet-50 rounded-xl border border-violet-100" role="tablist" aria-label="المنتجات والطلبات">
+              <button type="button" role="tab" class="ac-prod-subtab px-3 py-2 rounded-lg text-xs sm:text-sm font-bold bg-white shadow text-violet-800" data-ac-prod-sub="all">جميع المنتجات</button>
+              <button type="button" role="tab" class="ac-prod-subtab px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:bg-white/80" data-ac-prod-sub="orders">طلبات الشركات</button>
+              <button type="button" role="tab" class="ac-prod-subtab px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:bg-white/80" data-ac-prod-sub="shared">طلبات مشتركة</button>
+            </div>
+            <div id="ac-prod-pane-all" class="ac-prod-pane space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <h2 class="text-lg font-bold">جميع منتجات الشركات الفرعية</h2>
+              <p class="text-xs text-gray-600">فلترة اختيارية؛ بدون فلتر يُحمّل أحدث 500 منتجاً.</p>
+              <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label class="text-xs font-bold block">رمز المنتج أو المعرف</label>
+                  <input id="ac-mp-filter-code" type="text" class="mt-1 p-2 rounded-xl border border-gray-200 w-40 font-mono text-sm" placeholder="PRD- أو ID" autocomplete="off" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold block">معرّف الشركة (vendor)</label>
+                  <input id="ac-mp-filter-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                </div>
+                <button type="button" id="ac-mp-apply" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">تطبيق / تحديث القائمة</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-80 overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0"><tr>
+                    <th class="p-2 text-start">ID</th>
+                    <th class="p-2 text-start">الرمز</th>
+                    <th class="p-2 text-start">vendor</th>
+                    <th class="p-2 text-start">الاسم</th>
+                    <th class="p-2 text-start">السعر</th>
+                    <th class="p-2 text-start">مخزون</th>
+                    <th class="p-2 text-start">نشط</th>
+                  </tr></thead>
+                  <tbody id="ac-all-mp-tbody"></tbody>
+                </table>
+              </div>
             </div>
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <h2 class="text-lg font-bold" data-en="Vendor product visibility" data-ar="ظهور منتج المشترك في التطبيق">ظهور منتج المشترك في التطبيق</h2>
@@ -980,6 +1051,81 @@
               </div>
               <p id="ac-vp-msg" class="text-xs text-gray-600 min-h-[1rem]"></p>
             </div>
+            </div>
+            <div id="ac-prod-pane-orders" class="ac-prod-pane hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+              <h2 class="text-lg font-bold" data-en="Vendor fulfillments (split orders)" data-ar="الطلبات الفرعية لكل شركة">الطلبات الفرعية لكل شركة</h2>
+              <p class="text-xs text-gray-600">فلترة برقم الطلب، معرّف الشركة، رقم منتج السوق (ID رقمي أو رمز PRD-…)، وحالة التنفيذ الفرعية.</p>
+              <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label class="text-xs font-bold">الوضع</label>
+                  <select id="ac-ff-mode" class="block mt-1 p-2 rounded-xl border border-gray-200 text-sm">
+                    <option value="all">جميع الطلبات</option>
+                    <option value="multi">طلبات مشتركة (عدة شركات)</option>
+                    <option value="single">طلبات من شركة واحدة</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-bold">معرّف الشركة</label>
+                  <input id="ac-ff-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">رقم الطلب</label>
+                  <input id="ac-ff-order" class="mt-1 p-2 rounded-xl border border-gray-200 w-32" placeholder="ORD-" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">منتج سوق (ID أو PRD)</label>
+                  <input id="ac-ff-product" class="mt-1 p-2 rounded-xl border border-gray-200 w-36 font-mono text-xs" placeholder="12 أو PRD-" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">حالة فرعية</label>
+                  <input id="ac-ff-status" class="mt-1 p-2 rounded-xl border border-gray-200 w-40" placeholder="vendor_shipped" />
+                </div>
+                <button type="button" id="ac-load-fulfillments" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">تطبيق</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[min(70vh,420px)] overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0"><tr>
+                    <th class="p-2 text-start">طلب</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">حالة</th><th class="p-2 text-start">تاريخ</th><th class="p-2 text-start">—</th>
+                  </tr></thead>
+                  <tbody id="ac-fulfillments-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            </div>
+            <div id="ac-prod-pane-shared" class="ac-prod-pane hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+              <h2 class="text-lg font-bold">طلبات مشتركة (عدة شركات في طلب واحد)</h2>
+              <p class="text-xs text-gray-600">يُعرض فقط ما يضم أكثر من شركة؛ يمكنك ضبط نفس الفلاتر أدناه.</p>
+              <div class="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label class="text-xs font-bold">معرّف الشركة</label>
+                  <input id="ac-ffs-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">رقم الطلب</label>
+                  <input id="ac-ffs-order" class="mt-1 p-2 rounded-xl border border-gray-200 w-32" placeholder="ORD-" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">منتج سوق (ID أو PRD)</label>
+                  <input id="ac-ffs-product" class="mt-1 p-2 rounded-xl border border-gray-200 w-36 font-mono text-xs" placeholder="12 أو PRD-" />
+                </div>
+                <div>
+                  <label class="text-xs font-bold">حالة فرعية</label>
+                  <input id="ac-ffs-status" class="mt-1 p-2 rounded-xl border border-gray-200 w-40" placeholder="vendor_shipped" />
+                </div>
+                <button type="button" id="ac-load-fulfillments-shared" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">تطبيق</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[min(70vh,420px)] overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0"><tr>
+                    <th class="p-2 text-start">طلب</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">حالة</th><th class="p-2 text-start">تاريخ</th><th class="p-2 text-start">—</th>
+                  </tr></thead>
+                  <tbody id="ac-fulfillments-shared-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            </div>
             <div id="ac-edit-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
               <div id="ac-edit-dialog" class="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 space-y-3">
                 <div class="flex justify-between items-center gap-2">
@@ -1023,53 +1169,6 @@
                 </form>
               </div>
             </div>
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
-              <h2 class="text-lg font-bold" data-en="Vendor fulfillments (split orders)" data-ar="الطلبات الفرعية (عدة شركات)">الطلبات الفرعية</h2>
-              <div class="flex flex-wrap gap-2 items-end">
-                <div>
-                  <label class="text-xs font-bold">الوضع</label>
-                  <select id="ac-ff-mode" class="block mt-1 p-2 rounded-xl border border-gray-200 text-sm">
-                    <option value="all">جميع الطلبات</option>
-                    <option value="multi">طلبات مشتركة (عدة شركات)</option>
-                    <option value="single">طلبات من شركة واحدة</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs font-bold">معرّف الشركة (اختياري)</label>
-                  <input id="ac-ff-vendor" type="number" class="mt-1 p-2 rounded-xl border border-gray-200 w-28" placeholder="ID" />
-                </div>
-                <div>
-                  <label class="text-xs font-bold">حالة فرعية</label>
-                  <input id="ac-ff-status" class="mt-1 p-2 rounded-xl border border-gray-200 w-40" placeholder="vendor_shipped" />
-                </div>
-                <div>
-                  <label class="text-xs font-bold">رقم الطلب</label>
-                  <input id="ac-ff-order" class="mt-1 p-2 rounded-xl border border-gray-200 w-32" placeholder="ORD-" />
-                </div>
-                <button type="button" id="ac-load-fulfillments" class="px-3 py-2 rounded-xl bg-purple-600 text-white text-sm font-bold">تطبيق</button>
-              </div>
-              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-80 overflow-y-auto">
-                <table class="min-w-full text-sm">
-                  <thead class="bg-gray-50 sticky top-0"><tr>
-                    <th class="p-2 text-start">طلب</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">حالة</th><th class="p-2 text-start">تاريخ</th><th class="p-2 text-start">—</th>
-                  </tr></thead>
-                  <tbody id="ac-fulfillments-tbody"></tbody>
-                </table>
-              </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
-              <div class="flex justify-between items-center">
-                <h2 class="text-lg font-bold" data-en="Company ad requests" data-ar="طلبات إعلان الشركات">طلبات إعلان الشركات</h2>
-                <button type="button" id="ac-load-adreq" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
-              </div>
-              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-72 overflow-y-auto">
-                <table class="min-w-full text-sm">
-                  <thead class="bg-gray-50"><tr>
-                    <th class="p-2 text-start">#</th><th class="p-2 text-start">شركة</th><th class="p-2 text-start">النوع</th><th class="p-2 text-start">دفع / دورة</th><th class="p-2 text-start">—</th>
-                  </tr></thead>
-                  <tbody id="ac-adreq-tbody"></tbody>
-                </table>
-              </div>
             </div>
           </div>
 
