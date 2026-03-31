@@ -9,6 +9,9 @@
   const VP_SECTION_IDS = ["dashboard", "products", "add-product", "ad", "orders", "stats"];
   /** يطابق الخادم: فوق هذا السعر يحتاج اعتماد إداري للظهور العام */
   const VP_LISTING_APPROVAL_PRICE_ABOVE = 500000;
+  /** يُلحق برسالة نجاح إضافة منتج جديد */
+  const VP_MSG_AFTER_ADD_CHECK_APP =
+    "\n\nيرجى الدخول إلى التطبيق والتأكد بأن مواصفات منتجك (الصور، الخيارات، الوصف، السعر…) تظهر كما وصفتها.";
 
   function vpNavigate(section) {
     const id = VP_SECTION_IDS.includes(section) ? section : "dashboard";
@@ -1196,10 +1199,14 @@
           alert(
             "تم إضافة المنتج. السعر فوق " +
               VP_LISTING_APPROVAL_PRICE_ABOVE +
-              " — سيظهر للزبائن بعد اعتماد الإدارة."
+              " — سيظهر للزبائن بعد اعتماد الإدارة." +
+              VP_MSG_AFTER_ADD_CHECK_APP
           );
         } else {
-          alert("تم إضافة المنتج. يظهر للزبائن عند تفعيله (لا يتطلب اعتماد إداري لهذا السعر).");
+          alert(
+            "تم إضافة المنتج. يظهر للزبائن عند تفعيله (لا يتطلب اعتماد إداري لهذا السعر)." +
+              VP_MSG_AFTER_ADD_CHECK_APP
+          );
         }
       }
       e.target.reset();
