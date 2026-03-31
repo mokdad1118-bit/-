@@ -37,15 +37,15 @@
       <button type="button" id="vp-btn-chpass" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-extrabold border-2 border-amber-800 shadow-md">حفظ كلمة المرور</button>
     </div>
 
-    <div id="vp-app" class="hidden vp-app-shell max-w-6xl mx-auto">
-      <div class="vp-layout flex flex-col lg:flex-row gap-5 lg:gap-8 items-start">
-        <aside class="vp-sidebar w-full lg:w-60 shrink-0 lg:sticky lg:top-4 order-1">
-          <div class="vp-sidebar-inner vp-card p-4 space-y-1">
+    <div id="vp-app" class="hidden vp-app-shell max-w-7xl mx-auto">
+      <div class="vp-layout vp-layout-root flex flex-col lg:flex-row gap-5 lg:gap-8 items-stretch lg:items-start">
+        <aside class="vp-sidebar w-full lg:w-auto shrink-0 lg:sticky lg:top-4 order-1">
+          <div class="vp-sidebar-inner vp-card p-4 sm:p-5 space-y-1">
             <div class="pb-3 mb-2 border-b border-violet-100">
               <p class="text-[10px] font-bold text-violet-600 uppercase tracking-wide">الشركة</p>
               <p id="vp-co-name" class="font-extrabold text-gray-900 text-sm truncate" title=""></p>
             </div>
-            <nav class="vp-nav flex flex-row lg:flex-col flex-wrap lg:flex-nowrap gap-1.5 lg:gap-0.5" aria-label="القائمة الرئيسية">
+            <nav class="vp-nav vp-nav-desktop flex flex-row lg:flex-col flex-wrap lg:flex-nowrap gap-1.5 lg:gap-1" aria-label="القائمة الرئيسية">
               <button type="button" class="vp-nav-item" data-vp-nav="dashboard"><i class="fas fa-gauge-high"></i><span>لوحة التحكم</span></button>
               <button type="button" class="vp-nav-item" data-vp-nav="products"><i class="fas fa-boxes-stacked"></i><span>منتجاتي</span></button>
               <button type="button" class="vp-nav-item" data-vp-nav="add-product"><i class="fas fa-circle-plus"></i><span>إضافة منتج</span></button>
@@ -61,8 +61,8 @@
           </div>
         </aside>
 
-        <main class="vp-main flex-1 min-w-0 space-y-5 order-2 w-full">
-          <div id="vp-stats-row" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <main class="vp-main flex-1 min-w-0 space-y-5 order-2 w-full lg:min-w-0">
+          <div id="vp-stats-row" class="vp-stats-grid grid grid-cols-2 gap-3 sm:gap-4">
             <div class="vp-stat-card">
               <div class="vp-stat-icon text-violet-600"><i class="fas fa-box-open"></i></div>
               <p class="vp-stat-label">المنتجات النشطة</p>
