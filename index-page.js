@@ -6105,7 +6105,6 @@
                 const qs = new URLSearchParams();
                 qs.set('exclude_id', String(excludeMpId));
                 qs.set('limit', '12');
-                qs.set('fallback', '1');
                 const rows = await apiFetch(`/api/marketplace/products/you-may-also-like?${qs}`, { requireAuth: false });
                 if (currentScreen !== 'screen-marketplace-product' || !currentMarketplaceProductDetail) return;
                 if (Number(currentMarketplaceProductDetail.id) !== Number(excludeMpId)) return;
@@ -7033,7 +7032,6 @@
             try {
                 const mpQs = new URLSearchParams();
                 mpQs.set('limit', '12');
-                mpQs.set('fallback', '1');
                 const [rows, mpRows] = await Promise.all([
                     apiFetch(`/api/products/${productId}/related?limit=12`, { requireAuth: false }),
                     apiFetch(`/api/marketplace/products/you-may-also-like?${mpQs}`, { requireAuth: false }).catch(() => []),

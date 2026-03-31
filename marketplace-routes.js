@@ -704,7 +704,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const excludeRaw = req.query.exclude_id != null ? Number(req.query.exclude_id) : NaN;
       const limRaw = req.query.limit != null ? Number(req.query.limit) : 12;
       const limit = Number.isFinite(limRaw) ? Math.min(24, Math.max(1, Math.floor(limRaw))) : 12;
-      const allowFallback = req.query.fallback !== "0" && req.query.fallback !== "false";
+      /** فقط منتجات مفعّل لها «قد يعجبك أيضاً» في لوحة التحكم. لا تعبئة تلقائية من باقي السوق (fallback=1 اختياري لاختبار داخلي فقط). */
+      const allowFallback = req.query.fallback === "1" || req.query.fallback === "true";
 
       let sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
         ${MP_FROM}
