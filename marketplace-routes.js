@@ -138,9 +138,47 @@ const MP_PUBLIC_LISTING_FILTER = `AND COALESCE(mp.vendor_listing_status, 'publis
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.public_product_code, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.vendor_listing_status,
+      mp.show_in_flash_sale_strip, mp.show_in_curated_strip, mp.show_in_promo_collection_strip, mp.show_in_bestsellers_strip, mp.show_in_you_may_also_like,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en`;
+
+/** دمج منتجات السوق المفعّل لها ظهور تلقائي في شريط رئيسي (إضافةً لجدول marketplace_home_placements) */
+const MP_HOME_STRIP_FLAG_COLUMN = {
+  flash_sale: "show_in_flash_sale_strip",
+  curated: "show_in_curated_strip",
+  promo_collection: "show_in_promo_collection_strip",
+  bestsellers: "show_in_bestsellers_strip",
+};
+
+async function mergeMpHomeStripFlagProducts(result) {
+  for (const slot of Object.keys(MP_HOME_STRIP_FLAG_COLUMN)) {
+    const col = MP_HOME_STRIP_FLAG_COLUMN[slot];
+    if (!col || String(col).includes(" ") || String(col).includes(";")) continue;
+    const items = Array.isArray(result[slot]) ? result[slot] : [];
+    const seen = new Set();
+    for (const x of items) {
+      if (x && x.kind === "mp_product" && x.id != null) seen.add(Number(x.id));
+    }
+    const rows = await all(
+      `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
+       ${MP_FROM}
+       ${MP_REVIEW_JOIN_SQL}
+       WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND COALESCE(mp.${col},0) = 1
+       ORDER BY mp.sort_order ASC, mp.id DESC
+       LIMIT 80`,
+      []
+    );
+    const out = items.slice();
+    for (const row of rows) {
+      const pid = Number(row.id);
+      if (!Number.isFinite(pid) || seen.has(pid)) continue;
+      seen.add(pid);
+      out.push({ kind: "mp_product", ...mapProductRow(row) });
+    }
+    result[slot] = out;
+  }
+}
 
 const MP_FROM = `FROM marketplace_products mp
       INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
@@ -230,6 +268,7 @@ async function buildAppHomePlacementsResponse() {
   for (const slot of slotList) {
     result[slot] = await resolveMpHomeSlotItems(bySlot[slot] || [], slot);
   }
+  await mergeMpHomeStripFlagProducts(result);
   return result;
 }
 
@@ -657,6 +696,29 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json(rows.map(mapProductRow));
     } catch (err) {
       return res.status(500).json({ error: "Failed to load marketplace products" });
+    }
+  });
+
+  app.get("/api/marketplace/products/you-may-also-like", async (req, res) => {
+    try {
+      const excludeRaw = req.query.exclude_id != null ? Number(req.query.exclude_id) : NaN;
+      const limRaw = req.query.limit != null ? Number(req.query.limit) : 12;
+      const limit = Number.isFinite(limRaw) ? Math.min(24, Math.max(1, Math.floor(limRaw))) : 12;
+      let sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
+        ${MP_FROM}
+        ${MP_REVIEW_JOIN_SQL}
+        WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND COALESCE(mp.show_in_you_may_also_like,0) = 1`;
+      const params = [];
+      if (Number.isFinite(excludeRaw) && excludeRaw > 0) {
+        sql += ` AND mp.id <> ?`;
+        params.push(excludeRaw);
+      }
+      sql += ` ORDER BY mp.sort_order ASC, mp.id DESC LIMIT ?`;
+      params.push(limit);
+      const rows = await all(sql, params);
+      return res.json(rows.map(mapProductRow));
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load suggestions" });
     }
   });
 
@@ -1291,6 +1353,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (!featured_hub_enabled) featured_hub_section = null;
       const show_in_offers_tab = Number(b.show_in_offers_tab) === 1 ? 1 : 0;
       const show_in_marketplace_tab = Number(b.show_in_marketplace_tab) === 0 ? 0 : 1;
+      const show_in_flash_sale_strip = Number(b.show_in_flash_sale_strip) === 1 ? 1 : 0;
+      const show_in_curated_strip = Number(b.show_in_curated_strip) === 1 ? 1 : 0;
+      const show_in_promo_collection_strip = Number(b.show_in_promo_collection_strip) === 1 ? 1 : 0;
+      const show_in_bestsellers_strip = Number(b.show_in_bestsellers_strip) === 1 ? 1 : 0;
+      const show_in_you_may_also_like = Number(b.show_in_you_may_also_like) === 1 ? 1 : 0;
       const settings = await getVendorPlatformSettings();
       const dup = await findMarketplaceProductDuplicate(
         vendor_id,
@@ -1311,8 +1378,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const public_product_code = await allocateNextPublicProductCode();
       const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, { vendor_listing_status: "published" });
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status, show_in_flash_sale_strip, show_in_curated_strip, show_in_promo_collection_strip, show_in_bestsellers_strip, show_in_you_may_also_like)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1339,6 +1406,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           show_in_offers_tab,
           show_in_marketplace_tab,
           vendor_listing_status,
+          show_in_flash_sale_strip,
+          show_in_curated_strip,
+          show_in_promo_collection_strip,
+          show_in_bestsellers_strip,
+          show_in_you_may_also_like,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -1416,6 +1488,13 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           : cur.show_in_marketplace_tab != null && Number(cur.show_in_marketplace_tab) === 0
             ? 0
             : 1;
+      const pickMpStrip = (k) =>
+        b[k] != null ? (Number(b[k]) === 1 ? 1 : 0) : Number(cur[k]) === 1 ? 1 : 0;
+      const show_in_flash_sale_strip = pickMpStrip("show_in_flash_sale_strip");
+      const show_in_curated_strip = pickMpStrip("show_in_curated_strip");
+      const show_in_promo_collection_strip = pickMpStrip("show_in_promo_collection_strip");
+      const show_in_bestsellers_strip = pickMpStrip("show_in_bestsellers_strip");
+      const show_in_you_may_also_like = pickMpStrip("show_in_you_may_also_like");
       const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, cur);
       const discount_percent =
         b.discount_percent !== undefined
@@ -1449,7 +1528,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       await run(
         `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
          price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=?,
-         featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=?, vendor_listing_status=? WHERE id=?`,
+         featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=?, vendor_listing_status=?,
+         show_in_flash_sale_strip=?, show_in_curated_strip=?, show_in_promo_collection_strip=?, show_in_bestsellers_strip=?, show_in_you_may_also_like=? WHERE id=?`,
         [
           section_id,
           vendor_id,
@@ -1475,6 +1555,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           show_in_offers_tab,
           show_in_marketplace_tab,
           vendor_listing_status,
+          show_in_flash_sale_strip,
+          show_in_curated_strip,
+          show_in_promo_collection_strip,
+          show_in_bestsellers_strip,
+          show_in_you_may_also_like,
           id,
         ]
       );

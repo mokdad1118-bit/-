@@ -1568,6 +1568,15 @@ function mpFillProductForm(p) {
   if (mpSo) mpSo.checked = p && Number(p.show_in_offers_tab) === 1;
   const mpSm = document.getElementById("mp-p-show-marketplace");
   if (mpSm) mpSm.checked = !p || Number(p.show_in_marketplace_tab) !== 0;
+  const setStrip = (id, key) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = p && Number(p[key]) === 1;
+  };
+  setStrip("mp-p-strip-flash", "show_in_flash_sale_strip");
+  setStrip("mp-p-strip-curated", "show_in_curated_strip");
+  setStrip("mp-p-strip-promo", "show_in_promo_collection_strip");
+  setStrip("mp-p-strip-bestsellers", "show_in_bestsellers_strip");
+  setStrip("mp-p-ymal", "show_in_you_may_also_like");
   const mpVls = document.getElementById("mp-p-vendor-listing-status");
   if (mpVls) {
     if (p) {
@@ -2144,6 +2153,11 @@ function bindMarketplaceAdminListeners() {
       featured_hub_section: (document.getElementById("mp-p-featured-hub-section")?.value || "").trim() || null,
       show_in_offers_tab: document.getElementById("mp-p-show-offers")?.checked ? 1 : 0,
       show_in_marketplace_tab: document.getElementById("mp-p-show-marketplace")?.checked ? 1 : 0,
+      show_in_flash_sale_strip: document.getElementById("mp-p-strip-flash")?.checked ? 1 : 0,
+      show_in_curated_strip: document.getElementById("mp-p-strip-curated")?.checked ? 1 : 0,
+      show_in_promo_collection_strip: document.getElementById("mp-p-strip-promo")?.checked ? 1 : 0,
+      show_in_bestsellers_strip: document.getElementById("mp-p-strip-bestsellers")?.checked ? 1 : 0,
+      show_in_you_may_also_like: document.getElementById("mp-p-ymal")?.checked ? 1 : 0,
       sort_order: Number(document.getElementById("mp-p-sort").value || 0),
       is_active: document.getElementById("mp-p-active").checked ? 1 : 0,
       discount_percent: Number(document.getElementById("mp-p-discount")?.value || 0),
@@ -5138,6 +5152,15 @@ function fillAdoraVendorProductPanel(p) {
   if (sof) sof.checked = Number(p.show_in_offers_tab) === 1;
   const feat = document.getElementById("ac-vp-featured");
   if (feat) feat.checked = Number(p.is_mp_featured) === 1;
+  const acStrip = (id, key) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = Number(p[key]) === 1;
+  };
+  acStrip("ac-vp-strip-flash", "show_in_flash_sale_strip");
+  acStrip("ac-vp-strip-curated", "show_in_curated_strip");
+  acStrip("ac-vp-strip-promo", "show_in_promo_collection_strip");
+  acStrip("ac-vp-strip-bestsellers", "show_in_bestsellers_strip");
+  acStrip("ac-vp-ymal", "show_in_you_may_also_like");
   const fh = Number(p.featured_hub_enabled) === 1;
   const fhc = document.getElementById("ac-vp-fh");
   if (fhc) fhc.checked = fh;
@@ -5257,6 +5280,11 @@ async function saveAdoraVendorProductVisibility() {
     featured_hub_section: fhOn ? document.getElementById("ac-vp-fh-section")?.value : null,
     show_in_offers_tab: document.getElementById("ac-vp-show-offers")?.checked ? 1 : 0,
     show_in_marketplace_tab: document.getElementById("ac-vp-show-marketplace")?.checked ? 1 : 0,
+    show_in_flash_sale_strip: document.getElementById("ac-vp-strip-flash")?.checked ? 1 : 0,
+    show_in_curated_strip: document.getElementById("ac-vp-strip-curated")?.checked ? 1 : 0,
+    show_in_promo_collection_strip: document.getElementById("ac-vp-strip-promo")?.checked ? 1 : 0,
+    show_in_bestsellers_strip: document.getElementById("ac-vp-strip-bestsellers")?.checked ? 1 : 0,
+    show_in_you_may_also_like: document.getElementById("ac-vp-ymal")?.checked ? 1 : 0,
     vendor_listing_status: (document.getElementById("ac-vp-listing-status")?.value || "published").trim(),
   };
   try {

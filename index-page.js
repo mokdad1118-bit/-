@@ -4653,6 +4653,10 @@
         async function openMarketplaceProductDetail(id, opts = {}) {
             const skipNavigate = opts.skipNavigate === true;
             const loadGen = ++adoraMpPdpLoadGen;
+            const relSec = document.getElementById('mp-product-related-section');
+            const relWrap = document.getElementById('mp-product-related-scroll');
+            if (relWrap) relWrap.innerHTML = '';
+            if (relSec) relSec.classList.add('hidden');
             if (!skipNavigate) {
                 navigateTo('screen-marketplace-product');
             }
@@ -4667,6 +4671,7 @@
                     persistAdoraSessionState();
                 }
                 scheduleMpPdpReviews(loadGen, p.id);
+                scheduleMpPdpYouMayAlsoLike(loadGen, p.id);
             } catch (err) {
                 if (loadGen !== adoraMpPdpLoadGen) return;
                 try {
@@ -6076,6 +6081,42 @@
             }
         }
 
+        function scheduleMpPdpYouMayAlsoLike(loadGen, mpId) {
+            const run = () => {
+                if (loadGen !== adoraMpPdpLoadGen) return;
+                if (currentScreen !== 'screen-marketplace-product' || !currentMarketplaceProductDetail) return;
+                if (Number(currentMarketplaceProductDetail.id) !== Number(mpId)) return;
+                loadMarketplaceYouMayAlsoLikeForPdp(mpId).catch(() => {});
+            };
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(() => run(), { timeout: 2000 });
+            } else {
+                setTimeout(run, 120);
+            }
+        }
+
+        async function loadMarketplaceYouMayAlsoLikeForPdp(excludeMpId) {
+            const section = document.getElementById('mp-product-related-section');
+            const wrap = document.getElementById('mp-product-related-scroll');
+            if (!wrap || !section) return;
+            wrap.innerHTML = '';
+            section.classList.add('hidden');
+            try {
+                const qs = new URLSearchParams();
+                qs.set('exclude_id', String(excludeMpId));
+                qs.set('limit', '12');
+                const rows = await apiFetch(`/api/marketplace/products/you-may-also-like?${qs}`, { requireAuth: false });
+                if (currentScreen !== 'screen-marketplace-product' || !currentMarketplaceProductDetail) return;
+                if (Number(currentMarketplaceProductDetail.id) !== Number(excludeMpId)) return;
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) return;
+                section.classList.remove('hidden');
+                wrap.innerHTML = `<div class="home-product-strip">${list.map((p) => renderMpProductCardHomeCompact(p)).join('')}</div>`;
+            } catch (_e) {
+                section.classList.add('hidden');
+            }
+        }
+
         const DEFAULT_HOME_SECTIONS_VISIBILITY = {
             banners: true,
             comprehensive_market: true,
@@ -6986,16 +7027,20 @@
             wrap.innerHTML = '';
             section.classList.add('hidden');
             try {
-                const rows = await apiFetch(`/api/products/${productId}/related?limit=12`, { requireAuth: false });
+                const [rows, mpRows] = await Promise.all([
+                    apiFetch(`/api/products/${productId}/related?limit=12`, { requireAuth: false }),
+                    apiFetch('/api/marketplace/products/you-may-also-like?limit=10', { requireAuth: false }).catch(() => []),
+                ]);
                 if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) {
                     return;
                 }
                 const list = Array.isArray(rows) ? rows : [];
-                if (!list.length) return;
+                const mpList = Array.isArray(mpRows) ? mpRows : [];
+                if (!list.length && !mpList.length) return;
                 section.classList.remove('hidden');
-                wrap.innerHTML = `<div class="home-product-strip">${list
-                    .map((p) => renderProductCardHtml(p, { compact: true }))
-                    .join('')}</div>`;
+                const catHtml = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
+                const mpHtml = mpList.map((p) => renderMpProductCardHomeCompact(p)).join('');
+                wrap.innerHTML = `<div class="home-product-strip">${catHtml}${mpHtml}</div>`;
             } catch (_e) {
                 section.classList.add('hidden');
             }

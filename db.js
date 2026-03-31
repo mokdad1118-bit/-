@@ -350,6 +350,7 @@ async function initDb() {
   await migrateProductsFeaturedHubV1();
   await migrateOffersMarketplaceVisibilityV1();
   await migrateVendorListingStatusV1();
+  await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
   await mergeCategorySubcategoriesWithDefaults();
 
@@ -849,6 +850,19 @@ async function migrateVendorListingStatusV1() {
   await run(
     `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS vendor_listing_status TEXT NOT NULL DEFAULT 'published'`
   );
+}
+
+/** ظهور تلقائي في شرائط الرئيسية + تجمع «قد يعجبك أيضاً» لصفحات المنتج */
+async function migrateMpHomeStripVisibilityAndYmalV1() {
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_flash_sale_strip INTEGER NOT NULL DEFAULT 0`
+  );
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_curated_strip INTEGER NOT NULL DEFAULT 0`);
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_promo_collection_strip INTEGER NOT NULL DEFAULT 0`
+  );
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_bestsellers_strip INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS show_in_you_may_also_like INTEGER NOT NULL DEFAULT 0`);
 }
 
 /** إشعارات رسمية من إدارة Adora تظهر داخل بوابة البائع */
