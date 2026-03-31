@@ -6105,6 +6105,7 @@
                 const qs = new URLSearchParams();
                 qs.set('exclude_id', String(excludeMpId));
                 qs.set('limit', '12');
+                qs.set('fallback', '1');
                 const rows = await apiFetch(`/api/marketplace/products/you-may-also-like?${qs}`, { requireAuth: false });
                 if (currentScreen !== 'screen-marketplace-product' || !currentMarketplaceProductDetail) return;
                 if (Number(currentMarketplaceProductDetail.id) !== Number(excludeMpId)) return;
@@ -7021,28 +7022,38 @@
         }
 
         async function loadProductRelatedForDetail(productId) {
-            const section = document.getElementById('product-related-section');
-            const wrap = document.getElementById('product-related-scroll');
-            if (!wrap || !section) return;
-            wrap.innerHTML = '';
-            section.classList.add('hidden');
+            const catSec = document.getElementById('product-related-section');
+            const catWrap = document.getElementById('product-related-scroll');
+            const mpSec = document.getElementById('product-marketplace-ymal-section');
+            const mpWrap = document.getElementById('product-marketplace-ymal-scroll');
+            if (catWrap) catWrap.innerHTML = '';
+            if (catSec) catSec.classList.add('hidden');
+            if (mpWrap) mpWrap.innerHTML = '';
+            if (mpSec) mpSec.classList.add('hidden');
             try {
+                const mpQs = new URLSearchParams();
+                mpQs.set('limit', '12');
+                mpQs.set('fallback', '1');
                 const [rows, mpRows] = await Promise.all([
                     apiFetch(`/api/products/${productId}/related?limit=12`, { requireAuth: false }),
-                    apiFetch('/api/marketplace/products/you-may-also-like?limit=10', { requireAuth: false }).catch(() => []),
+                    apiFetch(`/api/marketplace/products/you-may-also-like?${mpQs}`, { requireAuth: false }).catch(() => []),
                 ]);
                 if (currentScreen !== 'screen-product' || !currentProductDetail || Number(currentProductDetail.id) !== Number(productId)) {
                     return;
                 }
                 const list = Array.isArray(rows) ? rows : [];
                 const mpList = Array.isArray(mpRows) ? mpRows : [];
-                if (!list.length && !mpList.length) return;
-                section.classList.remove('hidden');
-                const catHtml = list.map((p) => renderProductCardHtml(p, { compact: true })).join('');
-                const mpHtml = mpList.map((p) => renderMpProductCardHomeCompact(p)).join('');
-                wrap.innerHTML = `<div class="home-product-strip">${catHtml}${mpHtml}</div>`;
+                if (mpList.length && mpWrap && mpSec) {
+                    mpSec.classList.remove('hidden');
+                    mpWrap.innerHTML = `<div class="home-product-strip">${mpList.map((p) => renderMpProductCardHomeCompact(p)).join('')}</div>`;
+                }
+                if (list.length && catWrap && catSec) {
+                    catSec.classList.remove('hidden');
+                    catWrap.innerHTML = `<div class="home-product-strip">${list.map((p) => renderProductCardHtml(p, { compact: true })).join('')}</div>`;
+                }
             } catch (_e) {
-                section.classList.add('hidden');
+                if (catSec) catSec.classList.add('hidden');
+                if (mpSec) mpSec.classList.add('hidden');
             }
         }
 
@@ -8190,6 +8201,10 @@
                 productDetailBackScreen = currentScreen || 'screen-listing';
             }
             const loadGen = ++adoraCatalogPdpLoadGen;
+            const mpYmalSec = document.getElementById('product-marketplace-ymal-section');
+            const mpYmalWrap = document.getElementById('product-marketplace-ymal-scroll');
+            if (mpYmalWrap) mpYmalWrap.innerHTML = '';
+            if (mpYmalSec) mpYmalSec.classList.add('hidden');
             if (!skipNavigate) {
                 navigateTo('screen-product');
             }

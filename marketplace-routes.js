@@ -704,6 +704,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const excludeRaw = req.query.exclude_id != null ? Number(req.query.exclude_id) : NaN;
       const limRaw = req.query.limit != null ? Number(req.query.limit) : 12;
       const limit = Number.isFinite(limRaw) ? Math.min(24, Math.max(1, Math.floor(limRaw))) : 12;
+      const allowFallback = req.query.fallback !== "0" && req.query.fallback !== "false";
+
       let sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
         ${MP_FROM}
         ${MP_REVIEW_JOIN_SQL}
@@ -715,7 +717,28 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       }
       sql += ` ORDER BY mp.sort_order ASC, mp.id DESC LIMIT ?`;
       params.push(limit);
-      const rows = await all(sql, params);
+      let rows = await all(sql, params);
+
+      if (allowFallback && rows.length < limit) {
+        const need = limit - rows.length;
+        const seen = new Set();
+        for (const r of rows) {
+          const id = Number(r.id);
+          if (Number.isFinite(id) && id > 0) seen.add(id);
+        }
+        if (Number.isFinite(excludeRaw) && excludeRaw > 0) seen.add(excludeRaw);
+        const ids = [...seen].filter((id) => Number.isFinite(id) && id > 0);
+        const notIn = ids.length ? ` AND mp.id NOT IN (${ids.map(() => "?").join(", ")})` : "";
+        const sql2 = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
+          ${MP_FROM}
+          ${MP_REVIEW_JOIN_SQL}
+          WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND COALESCE(mp.show_in_marketplace_tab,1) = 1${notIn}
+          ORDER BY mp.sales_count DESC, mp.created_at DESC, mp.id DESC
+          LIMIT ?`;
+        const fill = await all(sql2, [...ids, need]);
+        rows = rows.concat(fill);
+      }
+
       return res.json(rows.map(mapProductRow));
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load suggestions" });
