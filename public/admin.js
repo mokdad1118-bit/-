@@ -5208,6 +5208,9 @@ async function bootstrapAuthed() {
     }
   });
 
+  /* ربط قسم «إضافة شركة» فور تسجيل الدخول حتى لا يُفتح الطلب قبل اكتمال init عند أول زيارة للتبويب */
+  void initAdoraCompanyAdminTab().catch(() => {});
+
   setActiveTab("tab-products");
   hideError(document.getElementById("auth-error"));
   applyAdminLang();
@@ -5764,18 +5767,7 @@ async function initAdoraCompanyAdminTab() {
   const token = getToken();
   const ar = getAdminLang() === "ar";
   const secSel = document.getElementById("ac-section-id");
-  if (secSel && secSel.options.length <= 1) {
-    try {
-      const sections = await api("/api/marketplace/sections", { token });
-      secSel.innerHTML =
-        `<option value="">${ar ? "— قسم —" : "— Section —"}</option>` +
-        (Array.isArray(sections) ? sections : [])
-          .map((s) => `<option value="${s.id}">${escapeHtml(ar ? s.name_ar : s.name_en)}</option>`)
-          .join("");
-    } catch (_e) {
-      secSel.innerHTML = `<option value="">${ar ? "تعذر التحميل" : "Load failed"}</option>`;
-    }
-  }
+  /* اربط مستمعي النقر فوراً — لا تنتظر تحميل الأقسام وإلا قد ينقر المستخدم «رقم الطلب» قبل اكتمال الربط */
   if (!adoraCompanyTabListenersBound) {
     adoraCompanyTabListenersBound = true;
     document.getElementById("ac-create-company-form")?.addEventListener("submit", async (e) => {
@@ -5946,8 +5938,10 @@ async function initAdoraCompanyAdminTab() {
     const acRoot = document.getElementById("tab-adora-company");
     if (acRoot) {
       acRoot.addEventListener("click", (ev) => {
-        if (!(ev.target instanceof Element)) return;
-        const ffOrder = ev.target.closest(".ac-ff-order-link");
+        const raw = ev.target;
+        const el = raw instanceof Element ? raw : raw && raw.parentElement;
+        if (!(el instanceof Element)) return;
+        const ffOrder = el.closest(".ac-ff-order-link");
         if (ffOrder) {
           const id = Number(ffOrder.getAttribute("data-ff-id"));
           const shared = ffOrder.getAttribute("data-shared") === "1";
@@ -5956,7 +5950,7 @@ async function initAdoraCompanyAdminTab() {
           }
           return;
         }
-        const ffUp = ev.target.closest(".ac-ff-up");
+        const ffUp = el.closest(".ac-ff-up");
         if (ffUp) {
           const id = Number(ffUp.getAttribute("data-id"));
           const shared = ffUp.getAttribute("data-shared") === "1";
@@ -5965,19 +5959,19 @@ async function initAdoraCompanyAdminTab() {
           }
           return;
         }
-        if (ev.target.closest("#ac-mp-apply")) {
+        if (el.closest("#ac-mp-apply")) {
           loadAcAllMarketplaceProducts().catch(() => {});
           return;
         }
-        if (ev.target.closest("#ac-mp-clear-filters")) {
+        if (el.closest("#ac-mp-clear-filters")) {
           resetAcMpProductFiltersAndReload();
           return;
         }
-        if (ev.target.closest("#ac-vp-reset")) {
+        if (el.closest("#ac-vp-reset")) {
           resetAdoraVendorProductPanel();
           return;
         }
-        if (ev.target.closest("#ac-vp-search")) {
+        if (el.closest("#ac-vp-search")) {
           searchAdoraVendorProduct().catch((e) => {
             const m = document.getElementById("ac-vp-msg");
             if (m) m.textContent = e.message || String(e);
@@ -6023,6 +6017,18 @@ async function initAdoraCompanyAdminTab() {
       });
     });
     switchAdoraCompanyMainTab("add");
+  }
+  if (secSel && secSel.options.length <= 1) {
+    try {
+      const sections = await api("/api/marketplace/sections", { token });
+      secSel.innerHTML =
+        `<option value="">${ar ? "— قسم —" : "— Section —"}</option>` +
+        (Array.isArray(sections) ? sections : [])
+          .map((s) => `<option value="${s.id}">${escapeHtml(ar ? s.name_ar : s.name_en)}</option>`)
+          .join("");
+    } catch (_e) {
+      secSel.innerHTML = `<option value="">${ar ? "تعذر التحميل" : "Load failed"}</option>`;
+    }
   }
   connectAdminSocket();
   await loadAdoraCompaniesTable();
