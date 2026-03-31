@@ -18,6 +18,7 @@ const {
   clampDiscountPercent,
   normalizeMpVariantsForSave,
   getMarketplaceProductMappedAdminById,
+  findMarketplaceProductDuplicate,
 } = require("./marketplace-routes");
 
 const REQUEST_TYPES = ["general_ad", "featured_product", "search_boost", "home_featured"];
@@ -266,6 +267,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       const st = req.body?.status != null ? String(req.body.status).trim() : "";
       const f = await get(`SELECT id, vendor_id FROM order_vendor_fulfillments WHERE id=?`, [id]);
       if (!f || Number(f.vendor_id) !== Number(req.mpVendor.id)) return res.status(404).json({ error: "Not found" });
+      const nfy = !!req.body?.notify_user;
       const r = await setVendorFulfillmentStatus(id, st, { notifyUserInApp: nfy });
       if (!r.ok) return res.status(400).json({ error: r.error || "Invalid status" });
       return res.json(r);
@@ -314,7 +316,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock,
           images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code,
           is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 1)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0)`,
         [
           v.section_id,
           v.id,
@@ -337,6 +339,126 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       return res.status(201).json(mapped);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to create product" });
+    }
+  });
+
+  app.get("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const mapped = await getMarketplaceProductMappedAdminById(id);
+      if (!mapped || Number(mapped.vendor_id) !== Number(req.mpVendor.id)) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      return res.json(mapped);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  app.put("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+    try {
+      if (req.mpVendor.mustChangePassword) {
+        return res.status(403).json({ error: "Change password first", must_change_password: true });
+      }
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const cur = await get(`SELECT * FROM marketplace_products WHERE id=?`, [id]);
+      if (!cur || Number(cur.vendor_id) !== Number(req.mpVendor.id)) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      const b = req.body || {};
+      const name_ar = b.name_ar != null ? String(b.name_ar).trim() : cur.name_ar;
+      const name_en = b.name_en != null ? String(b.name_en).trim() : cur.name_en;
+      if (!name_ar || !name_en) return res.status(400).json({ error: "name_ar, name_en required" });
+      const description_ar = b.description_ar != null ? String(b.description_ar).trim() : cur.description_ar;
+      const description_en = b.description_en != null ? String(b.description_en).trim() : cur.description_en;
+      const price = b.price != null ? Number(b.price) : cur.price;
+      const { optArr, invArr, stockNum } = normalizeMpVariantsForSave({
+        product_options: b.product_options,
+        inventory: b.inventory,
+        stock: b.stock != null ? b.stock : cur.stock,
+      });
+      let images = b.images;
+      if (images != null) {
+        if (!Array.isArray(images)) images = [];
+        if (images.length > VENDOR_PORTAL_MAX_PRODUCT_IMAGES) {
+          return res.status(400).json({
+            error: `يمكن إضافة ${VENDOR_PORTAL_MAX_PRODUCT_IMAGES} صور فقط لكل منتج.`,
+          });
+        }
+        images = images.map((u) => String(u || "").trim()).filter(Boolean).slice(0, VENDOR_PORTAL_MAX_PRODUCT_IMAGES);
+      } else {
+        try {
+          const parsed = JSON.parse(cur.images_json || "[]");
+          images = Array.isArray(parsed) ? parsed : [];
+        } catch (_e) {
+          images = [];
+        }
+      }
+      const settings = await getVendorPlatformSettings();
+      const is_active = b.is_active != null ? (Number(b.is_active) === 0 ? 0 : 1) : Number(cur.is_active) === 0 ? 0 : 1;
+      const wasInactive = Number(cur.is_active) === 0;
+      if (wasInactive && is_active === 1) {
+        const quota = await assertMarketplaceProductQuota(req.mpVendor.id, settings, true);
+        if (!quota.ok) return res.status(400).json({ error: quota.error });
+      }
+      const depRes = await resolveDepartmentIdForProduct(req.mpVendor.id, b.department_id !== undefined ? b.department_id : cur.department_id);
+      if (!depRes.ok) return res.status(400).json({ error: depRes.error });
+      const discount_percent = b.discount_percent !== undefined ? clampDiscountPercent(b.discount_percent) : clampDiscountPercent(cur.discount_percent);
+      const dup = await findMarketplaceProductDuplicate(
+        req.mpVendor.id,
+        {
+          name_ar,
+          name_en,
+          sku: cur.sku,
+          barcode: cur.barcode,
+        },
+        id
+      );
+      if (dup) {
+        return res.status(409).json({
+          error: "منتج مكرر لنفس الشركة (نفس الاسم أو SKU أو الباركود).",
+        });
+      }
+      const hasVariantBody = b.product_options != null || b.inventory != null;
+      let invJson;
+      let optJson;
+      let stockFinal;
+      if (hasVariantBody) {
+        stockFinal = stockNum;
+        invJson = JSON.stringify(invArr);
+        optJson = JSON.stringify(optArr);
+      } else {
+        stockFinal = b.stock != null ? Math.max(0, Math.floor(Number(b.stock) || 0)) : cur.stock;
+        invJson = cur.inventory_json != null ? cur.inventory_json : "[]";
+        optJson = cur.product_options_json != null ? cur.product_options_json : "[]";
+      }
+      await run(
+        `UPDATE marketplace_products SET name_ar=?, name_en=?, description_ar=?, description_en=?,
+         price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?,
+         department_id=?, is_active=? WHERE id=? AND vendor_id=?`,
+        [
+          name_ar,
+          name_en,
+          description_ar,
+          description_en,
+          Number.isFinite(price) ? price : 0,
+          discount_percent,
+          stockFinal,
+          JSON.stringify(images),
+          invJson,
+          optJson,
+          depRes.department_id,
+          is_active,
+          id,
+          req.mpVendor.id,
+        ]
+      );
+      const mapped = await getMarketplaceProductMappedAdminById(id);
+      return res.json(mapped);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to update product" });
     }
   });
 

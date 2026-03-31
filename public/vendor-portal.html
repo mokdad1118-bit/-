@@ -62,13 +62,19 @@
         <div id="vp-products-list" class="text-sm space-y-1 min-h-[1.5rem] text-gray-600">—</div>
         <hr class="border-violet-100" />
 
-        <div class="vp-card-header border-0 mb-0 pb-0">
-          <i class="fas fa-plus-circle text-emerald-600"></i>
-          <h3 class="font-black text-gray-900">إضافة منتج جديد</h3>
+        <div class="vp-card-header border-0 mb-0 pb-0 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-plus-circle text-emerald-600" id="vp-prod-form-icon"></i>
+            <h3 id="vp-prod-form-title" class="font-black text-gray-900">إضافة منتج جديد</h3>
+          </div>
+          <button type="button" id="vp-prod-cancel-edit" class="hidden text-sm font-bold text-violet-700 border-2 border-violet-300 rounded-xl px-3 py-1.5 bg-white">
+            إلغاء التعديل
+          </button>
         </div>
         <p id="vp-prod-limits-hint" class="text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-2 border border-gray-100"></p>
 
         <form id="vp-prod-form" class="space-y-3">
+          <input type="hidden" id="vp-prod-edit-id" value="" />
           <div class="vp-submit-wrap-top space-y-2">
             <button type="submit" class="vp-prod-submit">إضافة المنتج</button>
             <p class="text-[11px] text-center text-emerald-900 font-semibold leading-snug">
@@ -153,6 +159,10 @@
             <span class="vp-section-label">القسم داخل المتجر</span>
             <select id="vp-prod-dept" class="vp-select mt-1"></select>
           </div>
+          <label class="flex items-center gap-2 text-sm text-gray-800">
+            <input id="vp-prod-active" type="checkbox" class="w-4 h-4 rounded border-violet-400 text-violet-600" checked />
+            <span>منتج نشط (يظهر للزبائن داخل صفحة شركتك)</span>
+          </label>
 
           <div class="vp-file-row">
             <span class="vp-section-label">صور المنتج (حتى 3)</span>

@@ -4897,6 +4897,7 @@ const MV_F_STATUS_LABELS = {
 };
 
 let adoraCompaniesCache = [];
+let adoraVpProductCache = null;
 
 function buildVendorPortalLoginUrl(portalUsername) {
   const u = String(portalUsername || "").trim();
@@ -4972,6 +4973,124 @@ function openAcEditCompanyModal(row) {
 }
 
 let adoraCompanyTabListenersBound = false;
+
+function fillAdoraVendorProductPanel(p) {
+  adoraVpProductCache = p;
+  const panel = document.getElementById("ac-vp-panel");
+  const sum = document.getElementById("ac-vp-summary");
+  if (!panel || !sum) return;
+  const ar = getAdminLang() === "ar";
+  const name = ar ? p.name_ar || p.name_en : p.name_en || p.name_ar;
+  sum.innerHTML =
+    `<span class="font-mono text-xs text-violet-700">${escapeHtml(p.public_product_code || "")}</span> — ${escapeHtml(name || "")}` +
+    `<div class="text-xs font-normal text-gray-600 mt-1">vendor_id: ${p.vendor_id} · section_id: ${p.section_id}</div>`;
+  const sm = document.getElementById("ac-vp-show-marketplace");
+  if (sm) sm.checked = Number(p.show_in_marketplace_tab) !== 0;
+  const sof = document.getElementById("ac-vp-show-offers");
+  if (sof) sof.checked = Number(p.show_in_offers_tab) === 1;
+  const feat = document.getElementById("ac-vp-featured");
+  if (feat) feat.checked = Number(p.is_mp_featured) === 1;
+  const fh = Number(p.featured_hub_enabled) === 1;
+  const fhc = document.getElementById("ac-vp-fh");
+  if (fhc) fhc.checked = fh;
+  const fhs = document.getElementById("ac-vp-fh-section");
+  if (fhs) {
+    const sec = String(p.featured_hub_section || "clothes").trim() || "clothes";
+    fhs.value = sec;
+    fhs.disabled = !fh;
+  }
+  const sor = document.getElementById("ac-vp-sort");
+  if (sor) sor.value = String(p.sort_order ?? 0);
+  panel.classList.remove("hidden");
+}
+
+async function searchAdoraVendorProduct() {
+  const token = getToken();
+  const msg = document.getElementById("ac-vp-msg");
+  if (!token) return;
+  const code = document.getElementById("ac-vp-code")?.value?.trim();
+  const vidRaw = document.getElementById("ac-vp-vendor")?.value?.trim();
+  const ar = getAdminLang() === "ar";
+  if (!code) {
+    if (msg) msg.textContent = ar ? "أدخل رمز المنتج أو المعرف." : "Enter product code or id.";
+    return;
+  }
+  if (msg) msg.textContent = "";
+  const qs = new URLSearchParams();
+  qs.set("code", code);
+  if (vidRaw) qs.set("vendor_id", vidRaw);
+  let rows;
+  try {
+    rows = await api(`/api/admin/marketplace/products?${qs}`, { token });
+  } catch (e) {
+    if (msg) msg.textContent = e.message || String(e);
+    return;
+  }
+  if (!Array.isArray(rows) || !rows.length) {
+    if (msg) msg.textContent = ar ? "لا نتائج." : "No results.";
+    document.getElementById("ac-vp-panel")?.classList.add("hidden");
+    adoraVpProductCache = null;
+    return;
+  }
+  let p = rows[0];
+  if (rows.length > 1) {
+    const lc = code.toLowerCase();
+    const exact = rows.find((r) => String(r.public_product_code || "").toLowerCase() === lc);
+    if (exact) p = exact;
+    else if (msg) {
+      msg.textContent =
+        ar
+          ? `عدة نتائج (${rows.length}) — عُرضت الأولى. ضيّق بمعرّف الشركة إن لزم.`
+          : `Multiple (${rows.length}) — showing first. Narrow with vendor id if needed.`;
+    }
+  }
+  fillAdoraVendorProductPanel(p);
+}
+
+async function saveAdoraVendorProductVisibility() {
+  const token = getToken();
+  const p = adoraVpProductCache;
+  const msg = document.getElementById("ac-vp-msg");
+  const ar = getAdminLang() === "ar";
+  if (!token || !p) {
+    if (msg) msg.textContent = ar ? "ابحث عن منتج أولاً." : "Search a product first.";
+    return;
+  }
+  const fhOn = !!document.getElementById("ac-vp-fh")?.checked;
+  const body = {
+    section_id: p.section_id,
+    vendor_id: p.vendor_id,
+    department_id: p.department_id ?? null,
+    name_ar: p.name_ar,
+    name_en: p.name_en,
+    description_ar: p.description_ar || "",
+    description_en: p.description_en || "",
+    price: p.price,
+    discount_percent: p.discount_percent != null ? p.discount_percent : 0,
+    stock: p.stock,
+    images: Array.isArray(p.images) ? p.images : [],
+    product_options: Array.isArray(p.product_options) ? p.product_options : [],
+    inventory: Array.isArray(p.inventory) ? p.inventory : [],
+    is_offer: p.is_offer != null ? p.is_offer : 0,
+    sort_order: Number(document.getElementById("ac-vp-sort")?.value) || 0,
+    is_active: p.is_active != null ? p.is_active : 1,
+    sku: p.sku || "",
+    barcode: p.barcode || "",
+    is_mp_featured: document.getElementById("ac-vp-featured")?.checked ? 1 : 0,
+    featured_hub_enabled: fhOn ? 1 : 0,
+    featured_hub_section: fhOn ? document.getElementById("ac-vp-fh-section")?.value : null,
+    show_in_offers_tab: document.getElementById("ac-vp-show-offers")?.checked ? 1 : 0,
+    show_in_marketplace_tab: document.getElementById("ac-vp-show-marketplace")?.checked ? 1 : 0,
+  };
+  try {
+    const updated = await api(`/api/admin/marketplace/products/${p.id}`, { method: "PUT", token, body });
+    adoraVpProductCache = updated;
+    fillAdoraVendorProductPanel(updated);
+    if (msg) msg.textContent = ar ? "تم الحفظ." : "Saved.";
+  } catch (e) {
+    if (msg) msg.textContent = e.message || String(e);
+  }
+}
 
 async function initAdoraCompanyAdminTab() {
   const token = getToken();
@@ -5056,6 +5175,23 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-refresh-companies")?.addEventListener("click", () => loadAdoraCompaniesTable());
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable());
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
+    document.getElementById("ac-vp-search")?.addEventListener("click", () => {
+      searchAdoraVendorProduct().catch((e) => {
+        const m = document.getElementById("ac-vp-msg");
+        if (m) m.textContent = e.message || String(e);
+      });
+    });
+    document.getElementById("ac-vp-save")?.addEventListener("click", () => {
+      saveAdoraVendorProductVisibility().catch((e) => {
+        const m = document.getElementById("ac-vp-msg");
+        if (m) m.textContent = e.message || String(e);
+      });
+    });
+    document.getElementById("ac-vp-fh")?.addEventListener("change", () => {
+      const on = !!document.getElementById("ac-vp-fh")?.checked;
+      const s = document.getElementById("ac-vp-fh-section");
+      if (s) s.disabled = !on;
+    });
   }
   await loadAdoraCompaniesTable();
 }

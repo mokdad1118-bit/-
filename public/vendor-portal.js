@@ -221,6 +221,10 @@
     }
   }
 
+  function isVpEditingProduct() {
+    return !!(el("vp-prod-edit-id")?.value && String(el("vp-prod-edit-id").value).trim());
+  }
+
   function updateProductFormState(me) {
     const lim = me?.product_form_limits || { max_images: 3, max_image_bytes: 1024 * 1024 };
     const hint = el("vp-prod-limits-hint");
@@ -234,11 +238,12 @@
     }
     const block = el("vp-prod-quota-block");
     const subs = document.querySelectorAll(".vp-prod-submit");
-    if (me && me.can_add_product === false) {
+    const editing = isVpEditingProduct();
+    if (me && me.can_add_product === false && !editing) {
       block?.classList.remove("hidden");
       if (block) {
         block.textContent =
-          "وصلتَ للحد الأقصى من المنتجات النشطة (كل منتج = وحدة واحدة، بما فيه المنتج بمواصفات لون/قياس). يمكن للإدارة زيادة الحصة من لوحة التحكم (إضافة شركة — عدد المنتجات المسموح).";
+          "وصلتَ للحد الأقصى من المنتجات النشطة (كل منتج = وحدة واحدة، بما فيه المنتج بمواصفات لون/قياس). يمكن للإدارة زيادة الحصة من لوحة التحكم (إضافة شركة — عدد المنتجات المسموح). لا يزال بإمكانك تعديل منتجاتك الحالية.";
       }
       subs.forEach((sub) => {
         sub.disabled = true;
@@ -249,10 +254,98 @@
       block?.classList.add("hidden");
       subs.forEach((sub) => {
         sub.disabled = false;
-        sub.textContent = "إضافة المنتج";
+        sub.textContent = editing ? "حفظ التعديلات" : "إضافة المنتج";
         sub.removeAttribute("title");
       });
     }
+  }
+
+  function vpFillVariantBuilderFieldsFromState() {
+    const po = vpVariantState.product_options;
+    if (!po || !po.length) return;
+    const g1 = po[0];
+    const g1ar = el("vp-var-g1-ar");
+    const g1en = el("vp-var-g1-en");
+    const g1vals = el("vp-var-g1-vals");
+    if (g1ar) g1ar.value = g1.name_ar || "";
+    if (g1en) g1en.value = g1.name_en || "";
+    if (g1vals) g1vals.value = (g1.values || []).map((v) => v.label_ar || v.label_en || "").join("، ");
+    const g2 = po[1];
+    const g2ar = el("vp-var-g2-ar");
+    const g2en = el("vp-var-g2-en");
+    const g2vals = el("vp-var-g2-vals");
+    if (g2) {
+      if (g2ar) g2ar.value = g2.name_ar || "";
+      if (g2en) g2en.value = g2.name_en || "";
+      if (g2vals) g2vals.value = (g2.values || []).map((v) => v.label_ar || v.label_en || "").join("، ");
+    } else {
+      if (g2ar) g2ar.value = "المقاس";
+      if (g2en) g2en.value = "Size";
+      if (g2vals) g2vals.value = "";
+    }
+  }
+
+  function vpClearProductEditUi() {
+    const hid = el("vp-prod-edit-id");
+    if (hid) hid.value = "";
+    el("vp-prod-cancel-edit")?.classList.add("hidden");
+    const title = el("vp-prod-form-title");
+    if (title) title.textContent = "إضافة منتج جديد";
+    const ic = el("vp-prod-form-icon");
+    if (ic) {
+      ic.className = "fas fa-plus-circle text-emerald-600";
+    }
+  }
+
+  async function vpLoadProductForEdit(productId) {
+    const id = Number(productId);
+    if (!Number.isFinite(id)) return;
+    await loadVendorDepartments();
+    const p = await api("/api/vendor-portal/products/" + id);
+    el("vp-prod-edit-id").value = String(p.id);
+    el("vp-prod-cancel-edit")?.classList.remove("hidden");
+    const title = el("vp-prod-form-title");
+    if (title) title.textContent = "تعديل منتج — " + (p.public_product_code || "#" + p.id);
+    const ic = el("vp-prod-form-icon");
+    if (ic) ic.className = "fas fa-pen-to-square text-violet-600";
+    el("vp-prod-name-ar").value = p.name_ar || "";
+    el("vp-prod-name-en").value = p.name_en || "";
+    el("vp-prod-desc-ar").value = p.description_ar || "";
+    el("vp-prod-desc-en").value = p.description_en || "";
+    el("vp-prod-discount").value = String(p.discount_percent ?? 0);
+    const dept = el("vp-prod-dept");
+    if (dept && p.department_id != null) dept.value = String(p.department_id);
+    const act = el("vp-prod-active");
+    if (act) act.checked = Number(p.is_active) !== 0;
+    productImageUrls = Array.isArray(p.images) ? p.images.slice() : [];
+    renderProductPreview();
+    const po = Array.isArray(p.product_options) ? p.product_options : [];
+    const inv = Array.isArray(p.inventory) ? p.inventory : [];
+    if (po.length && inv.length) {
+      el("vp-prod-use-variants").checked = true;
+      el("vp-variants-panel")?.classList.remove("hidden");
+      vpApplyPricingMode(true);
+      vpVariantState = {
+        product_options: JSON.parse(JSON.stringify(po)),
+        inventory: JSON.parse(JSON.stringify(inv)),
+      };
+      vpFillVariantBuilderFieldsFromState();
+      vpRenderVariantTable();
+      const prices = inv.map((r) => Number(r.price)).filter((n) => Number.isFinite(n) && n >= 0);
+      const base = prices.length ? Math.min(...prices) : Number(p.price);
+      el("vp-prod-price").value = Number.isFinite(base) ? String(base) : "";
+      el("vp-prod-stock").value = String(p.stock ?? 0);
+    } else {
+      el("vp-prod-use-variants").checked = false;
+      el("vp-variants-panel")?.classList.add("hidden");
+      vpVariantState = { product_options: [], inventory: [] };
+      el("vp-var-table-wrap").innerHTML = "";
+      vpApplyPricingMode(false);
+      el("vp-prod-price").value = String(p.price ?? "");
+      el("vp-prod-stock").value = String(p.stock ?? 0);
+    }
+    updateProductFormState(lastVendorMe);
+    el("vp-prod-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function refreshVpFileChosenHint() {
@@ -308,8 +401,15 @@
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;");
           const act = Number(r.is_active) === 1 ? "" : " <span class='text-amber-700'>(موقوف)</span>";
+          const pid = Number(r.id);
+          const editBtn = Number.isFinite(pid)
+            ? "<button type='button' class='vp-edit-product shrink-0 text-violet-700 font-bold text-xs border border-violet-200 rounded-lg px-2 py-0.5' data-vp-product-id='" +
+              pid +
+              "'>تعديل</button>"
+            : "";
           return (
-            "<div class='flex flex-col gap-0.5 py-2 border-b border-gray-100'>" +
+            "<div class='flex flex-wrap items-start justify-between gap-2 py-2 border-b border-gray-100'>" +
+            "<div class='flex flex-col gap-0.5 min-w-0'>" +
             "<span class='font-mono text-xs text-gray-500'>" +
             code +
             "</span>" +
@@ -318,7 +418,9 @@
             " — " +
             String(r.price ?? "") +
             act +
-            "</span></div>"
+            "</span></div>" +
+            editBtn +
+            "</div>"
           );
         })
         .join("");
@@ -507,9 +609,31 @@
 
   el("vp-var-build")?.addEventListener("click", () => vpBuildVariantMatrix());
 
+  el("vp-products-list")?.addEventListener("click", (ev) => {
+    const btn = ev.target && ev.target.closest && ev.target.closest(".vp-edit-product");
+    if (!btn) return;
+    const raw = btn.getAttribute("data-vp-product-id");
+    const id = Number(raw);
+    if (!Number.isFinite(id)) return;
+    vpLoadProductForEdit(id).catch((err) => alert(err.message || String(err)));
+  });
+
+  el("vp-prod-cancel-edit")?.addEventListener("click", () => {
+    el("vp-prod-form")?.reset();
+    productImageUrls = [];
+    vpResetVariantUi();
+    vpClearProductEditUi();
+    renderProductPreview();
+    const act = el("vp-prod-active");
+    if (act) act.checked = true;
+    updateProductFormState(lastVendorMe);
+  });
+
   el("vp-prod-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    if (!lastVendorMe || lastVendorMe.can_add_product === false) {
+    const editRaw = el("vp-prod-edit-id")?.value?.trim();
+    const editing = !!editRaw;
+    if (!editing && (!lastVendorMe || lastVendorMe.can_add_product === false)) {
       alert("لا يمكن إضافة منتج نشط جديد؛ بلغت الحد الأقصى للحصة. راجع الإدارة لزيادة العدد المسموح.");
       return;
     }
@@ -551,7 +675,7 @@
           discount_percent: Number(el("vp-prod-discount")?.value) || 0,
           department_id: deptVal ? Number(deptVal) : undefined,
           images: productImageUrls.slice(),
-          is_active: 1,
+          is_active: el("vp-prod-active")?.checked ? 1 : 0,
           product_options: vpVariantState.product_options,
           inventory: invOut,
         };
@@ -566,19 +690,30 @@
           discount_percent: Number(el("vp-prod-discount")?.value) || 0,
           department_id: deptVal ? Number(deptVal) : undefined,
           images: productImageUrls.slice(),
-          is_active: 1,
+          is_active: el("vp-prod-active")?.checked ? 1 : 0,
         };
       }
 
-      await api("/api/vendor-portal/products", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      alert("تم إضافة المنتج.");
+      if (editing) {
+        await api("/api/vendor-portal/products/" + encodeURIComponent(editRaw), {
+          method: "PUT",
+          body: JSON.stringify(body),
+        });
+        alert("تم حفظ التعديلات.");
+      } else {
+        await api("/api/vendor-portal/products", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        alert("تم إضافة المنتج.");
+      }
       e.target.reset();
       productImageUrls = [];
       renderProductPreview();
       vpResetVariantUi();
+      vpClearProductEditUi();
+      const act = el("vp-prod-active");
+      if (act) act.checked = true;
       const me = await api("/api/vendor-portal/me");
       lastVendorMe = me;
       el("vp-quota").textContent = "المنتجات النشطة: " + (me.product_quota_display || "—");

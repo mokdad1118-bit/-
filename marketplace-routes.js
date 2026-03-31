@@ -552,9 +552,15 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                  LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  ${MP_REVIEW_JOIN_SQL}
                  ${promoJoin}
-                 WHERE mp.is_active = 1 AND COALESCE(mp.show_in_marketplace_tab, 1) = 1`;
+                 WHERE mp.is_active = 1`;
       const params = [];
       if (promoSlot) params.push(promoSlot);
+
+      /** داخل واجهة شركة محددة: كل المنتجات النشطة تظهر حتى لو show_in_marketplace_tab=0 */
+      const vendorScopedList = vendorId != null && Number.isFinite(vendorId);
+      if (!vendorScopedList) {
+        sql += ` AND COALESCE(mp.show_in_marketplace_tab, 1) = 1`;
+      }
 
       const fh = String(req.query.featured_hub || "").trim();
       if (fh === "1" || fh === "true") {
@@ -1159,6 +1165,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
     try {
       const sid = req.query.section_id != null ? Number(req.query.section_id) : null;
       const vid = req.query.vendor_id != null ? Number(req.query.vendor_id) : null;
+      const codeRaw = req.query.code != null ? String(req.query.code).trim() : "";
       let sql = `SELECT mp.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
                         mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en, ms.slug AS section_slug
                  FROM marketplace_products mp
@@ -1174,6 +1181,16 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       if (vid != null && Number.isFinite(vid)) {
         sql += ` AND mp.vendor_id = ?`;
         params.push(vid);
+      }
+      if (codeRaw) {
+        const byId = Number(codeRaw);
+        if (Number.isFinite(byId) && byId > 0) {
+          sql += ` AND (mp.id = ? OR mp.public_product_code ILIKE ?)`;
+          params.push(byId, `%${codeRaw}%`);
+        } else {
+          sql += ` AND mp.public_product_code ILIKE ?`;
+          params.push(`%${codeRaw}%`);
+        }
       }
       sql += ` ORDER BY mp.section_id, mp.vendor_id, mp.sort_order ASC, mp.id DESC LIMIT 500`;
       const rows = await all(sql, params);
@@ -1566,4 +1583,6 @@ module.exports = {
   clampDiscountPercent,
   normalizeMpVariantsForSave,
   getMarketplaceProductMappedAdminById,
+  findMarketplaceProductDuplicate,
+  normalizeMpFeaturedHubSection,
 };
