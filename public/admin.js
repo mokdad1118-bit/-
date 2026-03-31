@@ -5281,6 +5281,7 @@ function adoraCompanyRowMatchesQuery(r, qRaw) {
     r.owner_name,
     r.portal_username,
     String(r.id),
+    Number(r.portal_suspended) === 1 ? "موقوف إيقاف بوابة suspended" : "",
   ]
     .map((x) => String(x || "").toLowerCase())
     .join(" ");
@@ -5306,7 +5307,7 @@ function renderAdoraCompaniesTableRows(list) {
     const noMatchMsg = ar ? "لا نتائج تطابق البحث — اضغط «مسح البحث» لعرض الكل." : "No matches — click «Clear search» to show all.";
     const hasCache = Array.isArray(adoraCompaniesCache) && adoraCompaniesCache.length > 0;
     const msg = hasCache && String(document.getElementById("ac-companies-search")?.value || "").trim() ? noMatchMsg : emptyMsg;
-    tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-gray-500">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-gray-500">${msg}</td></tr>`;
     return;
   }
   tbody.innerHTML = list
@@ -5320,6 +5321,10 @@ function renderAdoraCompaniesTableRows(list) {
       const openLabel = ar ? "فتح" : "Open";
       const copyLabel = ar ? "نسخ" : "Copy";
       const pu = String(r.portal_username || "").trim();
+      const suspended = Number(r.portal_suspended) === 1;
+      const portalState = suspended
+        ? `<span class="text-amber-800 font-bold text-xs" title="${ar ? "بوابة موقوفة مؤقتاً" : "Portal suspended"}">⏸ ${ar ? "موقوف" : "Off"}</span>`
+        : `<span class="text-emerald-700 font-bold text-xs" title="${ar ? "البوابة متاحة" : "Portal active"}">✓ ${ar ? "نشط" : "On"}</span>`;
       const portalCell = pu
         ? `<button type="button" class="text-purple-600 font-bold text-xs ac-portal-open" data-user="${escapeHtml(pu)}">${openLabel}</button>
              <button type="button" class="text-gray-600 text-xs font-bold mr-1 ac-portal-copy" data-user="${escapeHtml(pu)}">${copyLabel}</button>`
@@ -5331,6 +5336,7 @@ function renderAdoraCompaniesTableRows(list) {
           <td class="py-2 pr-2">${dot} ${escapeHtml(r.subscription_ends_at || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(r.product_quota_display || "—")}</td>
           <td class="py-2 pr-2">${escapeHtml(r.portal_username || "—")}</td>
+          <td class="py-2 pr-2 whitespace-nowrap">${portalState}</td>
           <td class="py-2 pr-2 whitespace-nowrap">${portalCell}</td>
           <td class="py-2 space-x-1 rtl:space-x-reverse whitespace-nowrap">
             <button type="button" class="text-indigo-600 font-bold ac-company-edit" data-id="${r.id}">${editLabel}</button>
@@ -5497,6 +5503,8 @@ function openAcEditCompanyModal(row) {
       logoPrev.classList.add("hidden");
     }
   }
+  const susp = document.getElementById("ac-edit-portal-suspended");
+  if (susp) susp.checked = Number(row.portal_suspended) === 1;
   ov.classList.remove("hidden");
   ov.setAttribute("aria-hidden", "false");
 }
@@ -5796,6 +5804,7 @@ async function initAdoraCompanyAdminTab() {
         portal_password: document.getElementById("ac-pass")?.value,
         subscription_months: Number(document.getElementById("ac-months")?.value || 1),
         product_quota: Number(document.getElementById("ac-quota")?.value || 20),
+        portal_suspended: document.getElementById("ac-create-portal-suspended")?.checked ? 1 : 0,
       };
       if (logo_url) body.logo_url = logo_url;
       try {
@@ -5813,6 +5822,8 @@ async function initAdoraCompanyAdminTab() {
         }
         alert(msg);
         e.target.reset();
+        const suspC = document.getElementById("ac-create-portal-suspended");
+        if (suspC) suspC.checked = false;
         const lp = document.getElementById("ac-logo-preview");
         if (lp) {
           lp.removeAttribute("src");
@@ -5919,6 +5930,7 @@ async function initAdoraCompanyAdminTab() {
         subscription_ends_at: datetimeLocalToIsoUtc(document.getElementById("ac-edit-sub-ends")?.value),
         portal_username: document.getElementById("ac-edit-user")?.value?.trim().toLowerCase(),
         logo_url,
+        portal_suspended: document.getElementById("ac-edit-portal-suspended")?.checked ? 1 : 0,
       };
       const np = document.getElementById("ac-edit-pass")?.value;
       if (np && String(np).length >= 6) payload.portal_password = np;

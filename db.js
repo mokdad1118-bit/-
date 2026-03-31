@@ -353,6 +353,7 @@ async function initDb() {
   await migrateVendorListingPriceApprovalTierV1();
   await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
+  await migrateVendorPortalSuspendedV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -891,6 +892,13 @@ async function migrateVendorPortalNotificationsV1() {
   `);
   await run(
     `CREATE INDEX IF NOT EXISTS idx_vp_notif_vendor_created ON vendor_portal_notifications (vendor_id, id DESC)`
+  );
+}
+
+/** إيقاف مؤقت لبوابة الشركة من لوحة الإدارة — يمنع الدخول وكل طلبات API للبائع */
+async function migrateVendorPortalSuspendedV1() {
+  await run(
+    `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS portal_suspended INTEGER NOT NULL DEFAULT 0`
   );
 }
 

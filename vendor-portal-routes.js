@@ -77,17 +77,53 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
   };
   const vendorImageUpload = createVendorPortalImageUpload();
 
+  async function requireVendorPortalActive(req, res, next) {
+    try {
+      const id = req.mpVendor?.id;
+      if (!id) return res.status(401).json({ error: "Unauthorized" });
+      const v = await get(
+        `SELECT COALESCE(portal_suspended,0)::int AS portal_suspended, COALESCE(is_active,0)::int AS is_active
+         FROM marketplace_vendors WHERE id=?`,
+        [id]
+      );
+      if (!v || Number(v.is_active) !== 1) {
+        return res.status(403).json({
+          error: "هذه الشركة غير مفعّلة في المنصة.",
+          code: "VENDOR_INACTIVE",
+        });
+      }
+      if (Number(v.portal_suspended) === 1) {
+        return res.status(403).json({
+          error: "تم إيقاف لوحة التحكم مؤقتاً. يُرجى مراجعة إدارة المنصة.",
+          code: "PORTAL_SUSPENDED",
+        });
+      }
+      next();
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  }
+
+  const vpGuarded = [requireMpVendorAuth, requireVendorPortalActive];
+
   app.post("/api/vendor-portal/login", async (req, res) => {
     try {
       const username = req.body?.username != null ? String(req.body.username).trim().toLowerCase() : "";
       const password = req.body?.password != null ? String(req.body.password) : "";
       if (!username || !password) return res.status(400).json({ error: "username and password required" });
       const v = await get(
-        `SELECT id, name_ar, name_en, portal_password_hash, must_change_portal_password, is_active, public_vendor_code
+        `SELECT id, name_ar, name_en, portal_password_hash, must_change_portal_password, is_active, public_vendor_code,
+                COALESCE(portal_suspended,0)::int AS portal_suspended
          FROM marketplace_vendors WHERE LOWER(TRIM(portal_username)) = ?`,
         [username]
       );
       if (!v || Number(v.is_active) !== 1) return res.status(401).json({ error: "Invalid credentials" });
+      if (Number(v.portal_suspended) === 1) {
+        return res.status(403).json({
+          error: "تم إيقاف لوحة التحكم مؤقتاً. يُرجى مراجعة إدارة المنصة.",
+          code: "PORTAL_SUSPENDED",
+        });
+      }
       const hash = v.portal_password_hash != null ? String(v.portal_password_hash) : "";
       if (!hash || !(await bcrypt.compare(password, hash))) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -109,7 +145,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.post("/api/vendor-portal/change-password", requireMpVendorAuth, async (req, res) => {
+  app.post("/api/vendor-portal/change-password", ...vpGuarded, async (req, res) => {
     try {
       const cur = req.body?.current_password != null ? String(req.body.current_password) : "";
       const nw = req.body?.new_password != null ? String(req.body.new_password) : "";
@@ -135,7 +171,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/me", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/me", ...vpGuarded, async (req, res) => {
     try {
       const v = await get(
         `SELECT id, name_ar, name_en, public_vendor_code, owner_name, product_quota, paid_product_slots, subscription_ends_at, portal_username, is_active
@@ -198,7 +234,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/departments", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/departments", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(
         `SELECT id, name_ar, name_en, sort_order FROM marketplace_vendor_departments WHERE vendor_id=? AND is_active=1 ORDER BY sort_order ASC, id ASC`,
@@ -212,7 +248,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
 
   app.post(
     "/api/vendor-portal/upload/image",
-    requireMpVendorAuth,
+    ...vpGuarded,
     (req, res, next) => {
       if (req.mpVendor.mustChangePassword) {
         return res.status(403).json({ error: "يجب تغيير كلمة المرور أولاً", must_change_password: true });
@@ -243,7 +279,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   );
 
-  app.get("/api/vendor-portal/fulfillments", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/fulfillments", ...vpGuarded, async (req, res) => {
     try {
       const vid = req.mpVendor.id;
       const rows = await all(
@@ -268,7 +304,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/fulfillments/:id", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/fulfillments/:id", ...vpGuarded, async (req, res) => {
     try {
       const id = Number(req.params.id);
       const f = await get(
@@ -311,7 +347,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.put("/api/vendor-portal/fulfillments/:id/status", requireMpVendorAuth, async (req, res) => {
+  app.put("/api/vendor-portal/fulfillments/:id/status", ...vpGuarded, async (req, res) => {
     try {
       if (req.mpVendor.mustChangePassword) {
         return res.status(403).json({ error: "Change password first", must_change_password: true });
@@ -356,7 +392,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/notifications", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/notifications", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(
         `SELECT id, title, message, link_url, is_read, created_at
@@ -373,7 +409,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.put("/api/vendor-portal/notifications/:id/read", requireMpVendorAuth, async (req, res) => {
+  app.put("/api/vendor-portal/notifications/:id/read", ...vpGuarded, async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
@@ -389,7 +425,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.post("/api/vendor-portal/products", requireMpVendorAuth, async (req, res) => {
+  app.post("/api/vendor-portal/products", ...vpGuarded, async (req, res) => {
     try {
       if (req.mpVendor.mustChangePassword) {
         return res.status(403).json({ error: "Change password first", must_change_password: true });
@@ -458,7 +494,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/products/:id", ...vpGuarded, async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
@@ -472,7 +508,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.put("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+  app.put("/api/vendor-portal/products/:id", ...vpGuarded, async (req, res) => {
     try {
       if (req.mpVendor.mustChangePassword) {
         return res.status(403).json({ error: "Change password first", must_change_password: true });
@@ -582,7 +618,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.delete("/api/vendor-portal/products/:id", requireMpVendorAuth, async (req, res) => {
+  app.delete("/api/vendor-portal/products/:id", ...vpGuarded, async (req, res) => {
     try {
       if (req.mpVendor.mustChangePassword) {
         return res.status(403).json({ error: "Change password first", must_change_password: true });
@@ -607,7 +643,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/products", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/products", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(
         `SELECT mp.id, mp.public_product_code, mp.name_ar, mp.name_en, mp.price, mp.stock, mp.is_active,
@@ -622,7 +658,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.post("/api/vendor-portal/ad-requests", requireMpVendorAuth, async (req, res) => {
+  app.post("/api/vendor-portal/ad-requests", ...vpGuarded, async (req, res) => {
     try {
       const t = req.body?.request_type != null ? String(req.body.request_type).trim() : "";
       if (!REQUEST_TYPES.includes(t)) return res.status(400).json({ error: "Invalid request_type" });
@@ -638,7 +674,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
-  app.get("/api/vendor-portal/ad-requests", requireMpVendorAuth, async (req, res) => {
+  app.get("/api/vendor-portal/ad-requests", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(`SELECT * FROM vendor_ad_requests WHERE vendor_id=? ORDER BY id DESC LIMIT 100`, [
         req.mpVendor.id,

@@ -85,7 +85,14 @@
     if (t) headers.Authorization = "Bearer " + t;
     return fetch(path, { ...opts, headers }).then(async (r) => {
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || r.statusText);
+      if (!r.ok) {
+        if (j.code === "PORTAL_SUSPENDED" || j.code === "VENDOR_INACTIVE") {
+          vpRevokePortalSession();
+        }
+        const err = new Error(j.error || r.statusText);
+        err.code = j.code;
+        throw err;
+      }
       return j;
     });
   };
@@ -100,7 +107,12 @@
       body: fd,
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || r.statusText);
+    if (!r.ok) {
+      if (j.code === "PORTAL_SUSPENDED" || j.code === "VENDOR_INACTIVE") {
+        vpRevokePortalSession();
+      }
+      throw new Error(j.error || r.statusText);
+    }
     return j.url;
   }
 
@@ -272,6 +284,14 @@
   function setToken(t) {
     if (t) localStorage.setItem(TOKEN_KEY, t);
     else localStorage.removeItem(TOKEN_KEY);
+  }
+
+  function vpRevokePortalSession() {
+    setToken(null);
+    el("vp-app")?.classList.add("hidden");
+    el("vp-change-card")?.classList.add("hidden");
+    el("vp-login-card")?.classList.remove("hidden");
+    el("vp-marketing-head")?.classList.remove("hidden");
   }
 
   let vpOrderDetailFulfillmentId = null;

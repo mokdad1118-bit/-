@@ -973,6 +973,12 @@
                   <label class="text-xs font-bold" data-en="Password" data-ar="كلمة المرور">كلمة المرور</label>
                   <input id="ac-pass" type="password" class="mt-1 w-full p-2 rounded-xl border border-gray-200" autocomplete="new-password" required />
                 </div>
+                <div class="md:col-span-2 rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                  <label class="flex items-start gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                    <input id="ac-create-portal-suspended" type="checkbox" class="rounded mt-0.5 shrink-0" />
+                    <span data-en="Suspend vendor portal immediately (block login until unchecked in company edit)" data-ar="إيقاف مؤقت لبوابة الشركة فور الإنشاء (يُمنع الدخول حتى إلغاؤه من تعديل الشركة)">إيقاف مؤقت لبوابة الشركة فور الإنشاء (يُمنع الدخول حتى إلغاؤه من «تعديل» الشركة)</span>
+                  </label>
+                </div>
                 <div class="md:col-span-2">
                   <label class="text-xs font-bold" data-en="Company logo (URL or file)" data-ar="شعار الشركة (رابط أو ملف)">شعار الشركة (رابط أو ملف)</label>
                   <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -1003,12 +1009,12 @@
               <div class="overflow-x-auto border border-gray-100 rounded-xl">
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50"><tr>
-                    <th class="p-2 text-start">CMP</th><th class="p-2 text-start">الشركة</th><th class="p-2 text-start">المالك</th><th class="p-2 text-start">الاشتراك</th><th class="p-2 text-start">المنتجات</th><th class="p-2 text-start">المستخدم</th><th class="p-2 text-start" data-en="Portal link" data-ar="رابط الدخول">رابط الدخول</th><th class="p-2 text-start" data-en="Actions" data-ar="إجراءات">إجراءات</th>
+                    <th class="p-2 text-start">CMP</th><th class="p-2 text-start">الشركة</th><th class="p-2 text-start">المالك</th><th class="p-2 text-start">الاشتراك</th><th class="p-2 text-start">المنتجات</th><th class="p-2 text-start">المستخدم</th><th class="p-2 text-start whitespace-nowrap" data-en="Portal" data-ar="البوابة">البوابة</th><th class="p-2 text-start" data-en="Portal link" data-ar="رابط الدخول">رابط الدخول</th><th class="p-2 text-start" data-en="Actions" data-ar="إجراءات">إجراءات</th>
                   </tr></thead>
                   <tbody id="ac-companies-tbody"></tbody>
                 </table>
               </div>
-              <p class="text-xs text-gray-500 mt-2">🟢 نشط · 🟡 قريب الانتهاء · 🔴 منتهي — صفحة الدخول: <code class="bg-gray-100 px-1 rounded">/vendor-portal.html?user=اسم_المستخدم</code> (يُملأ اسم المستخدم تلقائياً من الرابط).</p>
+              <p class="text-xs text-gray-500 mt-2">عمود «البوابة»: ✓ نشط = يمكن الدخول؛ ⏸ موقوف = إيقاف مؤقت من تعديل الشركة. الاشتراك: 🟢 نشط · 🟡 قريب الانتهاء · 🔴 منتهي — صفحة الدخول: <code class="bg-gray-100 px-1 rounded">/vendor-portal.html?user=اسم_المستخدم</code>.</p>
             </div>
             </div>
             <div id="ac-pane-ads" class="ac-main-pane hidden space-y-4">
@@ -1254,6 +1260,12 @@
                 <div>
                   <label class="text-xs font-bold">كلمة مرور جديدة (اختياري)</label>
                   <input id="ac-edit-pass" type="password" class="mt-1 w-full p-2 rounded-xl border border-gray-200" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على الحالية" />
+                </div>
+                <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                  <label class="flex items-start gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+                    <input id="ac-edit-portal-suspended" type="checkbox" class="rounded mt-0.5 shrink-0" />
+                    <span data-en="Suspend vendor portal (blocks login and all portal API until disabled)" data-ar="إيقاف مؤقت لبوابة الشركة (يمنع الدخول وكل طلبات لوحة التحكم حتى إلغاء الخيار)">إيقاف مؤقت لبوابة الشركة (يمنع الدخول وكل طلبات لوحة التحكم حتى إلغاء الخيار)</span>
+                  </label>
                 </div>
                 <div class="flex flex-wrap gap-2 pt-1">
                   <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ</button>

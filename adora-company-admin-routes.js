@@ -61,16 +61,29 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       const hash = await bcrypt.hash(portal_password, 10);
       const logo_url =
         b.logo_url != null && String(b.logo_url).trim() ? String(b.logo_url).trim() : null;
+      const portal_suspended = Number(b.portal_suspended) === 1 ? 1 : 0;
 
       const ins = await run(
         `INSERT INTO marketplace_vendors (
           section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order, is_active,
           paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority,
           public_vendor_code, owner_name, portal_username, portal_password_hash, must_change_portal_password,
-          product_quota, subscription_ends_at
+          product_quota, subscription_ends_at, portal_suspended
         ) VALUES (?, ?, ?, 'company', ?, NULL, 999, 1, 0, 0, NULL, 'none', 0,
-          ?, ?, ?, ?, 1, ?, ?::timestamptz)`,
-        [section_id, name_ar, name_en, logo_url, public_vendor_code, owner_name, portal_username, hash, product_quota, ends.toISOString()]
+          ?, ?, ?, ?, 1, ?, ?::timestamptz, ?)`,
+        [
+          section_id,
+          name_ar,
+          name_en,
+          logo_url,
+          public_vendor_code,
+          owner_name,
+          portal_username,
+          hash,
+          product_quota,
+          ends.toISOString(),
+          portal_suspended,
+        ]
       );
 
       const vid = ins.id;
@@ -156,9 +169,13 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
         if (lv == null || (typeof lv === "string" && !String(lv).trim())) logo_url = null;
         else logo_url = String(lv).trim();
       }
+      let portal_suspended = Number(cur.portal_suspended) === 1 ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(b, "portal_suspended")) {
+        portal_suspended = Number(b.portal_suspended) === 1 ? 1 : 0;
+      }
       await run(
-        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=? WHERE id=?`,
-        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, logo_url, id]
+        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=? WHERE id=?`,
+        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, logo_url, portal_suspended, id]
       );
       if (b.portal_password != null && String(b.portal_password).length >= 6) {
         const hash = await bcrypt.hash(String(b.portal_password), 10);
