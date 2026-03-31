@@ -1209,7 +1209,15 @@ app.get("/api/admin/orders/:id", requireAuth, requireAdmin, async (req, res) => 
       `SELECT status, created_at FROM order_status_history WHERE order_id=? ORDER BY id ASC`,
       [id]
     );
-    return res.json({ order, items, history });
+    const fulfillments = await all(
+      `SELECT f.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en
+       FROM order_vendor_fulfillments f
+       INNER JOIN marketplace_vendors mv ON mv.id = f.vendor_id
+       WHERE f.order_id=?
+       ORDER BY f.id ASC`,
+      [id]
+    );
+    return res.json({ order, items, history, fulfillments });
   } catch (err) {
     return res.status(500).json({ error: "Failed to load order" });
   }
@@ -2308,7 +2316,23 @@ app.get("/api/orders", requireAuth, async (req, res) => {
     const rows =
       req.user.role === "admin"
         ? await all(
-            `SELECT o.*, u.name AS customer_name, COALESCE(NULLIF(TRIM(u.phone), ''), u.email) AS customer_phone
+            `SELECT o.*, u.name AS customer_name, COALESCE(NULLIF(TRIM(u.phone), ''), u.email) AS customer_phone,
+              COALESCE(
+                (SELECT json_agg(
+                  json_build_object(
+                    'fulfillment_id', f.id,
+                    'vendor_id', f.vendor_id,
+                    'vendor_name_ar', mv.name_ar,
+                    'vendor_name_en', mv.name_en,
+                    'status', f.status,
+                    'subtotal', f.subtotal
+                  ) ORDER BY f.id
+                )
+                FROM order_vendor_fulfillments f
+                INNER JOIN marketplace_vendors mv ON mv.id = f.vendor_id
+                WHERE f.order_id = o.id),
+                '[]'::json
+              ) AS mp_fulfillments
              FROM orders o
              LEFT JOIN users u ON u.id = o.user_id
              ORDER BY o.created_at DESC NULLS LAST, ${ORDER_STATUS_SORT_SQL} ASC, o.id DESC`

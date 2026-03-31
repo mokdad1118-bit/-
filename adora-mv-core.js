@@ -55,6 +55,8 @@ async function createFulfillmentsForOrder(orderId) {
     [oid]
   );
   if (!items.length) return;
+  const ordRow = await get(`SELECT order_no FROM orders WHERE id=?`, [oid]);
+  const orderNoLabel = ordRow?.order_no != null && String(ordRow.order_no).trim() ? String(ordRow.order_no).trim() : `#${oid}`;
   const byVendor = new Map();
   for (const it of items) {
     const vid = Number(it.vendor_id);
@@ -75,6 +77,19 @@ async function createFulfillmentsForOrder(orderId) {
     await run(`INSERT INTO order_vendor_fulfillment_status_history (fulfillment_id, status) VALUES (?, 'vendor_new')`, [fid]);
     for (const lid of lineIds) {
       await run(`UPDATE order_items SET vendor_fulfillment_id=? WHERE id=?`, [fid, lid]);
+    }
+    try {
+      await run(
+        `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
+        [
+          vid,
+          "طلب جديد — سوق أدورا",
+          `طلب عميل جديد (${orderNoLabel}) يخص شركتك فقط. راجع التنفيذ الفرعي رقم ${fid} في لوحة المشترك وعالج الطلب.\nNew customer order (${orderNoLabel}) for your company only — fulfillment #${fid}.`,
+          null,
+        ]
+      );
+    } catch (e) {
+      console.error("vendor_portal_notifications insert failed (new order)", e);
     }
   }
   await syncParentOrderStatusFromFulfillments(oid);

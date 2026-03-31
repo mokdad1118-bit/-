@@ -2907,6 +2907,8 @@
                 'exit-app-modal',
                 'filter-modal',
                 'order-options-modal',
+                'checkout-system-confirm-modal',
+                'checkout-card-soon-modal',
                 'orders-list-modal',
                 'profile-edit-modal',
                 'contact-info-modal',
@@ -5743,6 +5745,55 @@
                 await openWhatsAppWithOrder(created);
             }
         }
+
+        function openCheckoutSystemConfirmModal() {
+            const m = document.getElementById('checkout-system-confirm-modal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCheckoutSystemConfirmModal() {
+            const m = document.getElementById('checkout-system-confirm-modal');
+            if (m) m.classList.add('hidden');
+            restoreBodyScrollIfIdle();
+        }
+
+        async function confirmCheckoutSystemProceed() {
+            closeCheckoutSystemConfirmModal();
+            const token = getStoredJwtToken();
+            if (!token) {
+                const order = buildOrderSummary();
+                pendingOrderPayload = order;
+                pendingOrderSource = 'system';
+                closeOrderOptions();
+                openAuthModal('signup', isRTL ? 'سجّل أو سجّل الدخول لإتمام الطلب' : 'Sign up or log in to complete checkout');
+                return;
+            }
+            closeOrderOptions();
+            await refreshCheckoutOrderPreviewNo();
+            const order = buildOrderSummary();
+            await sendOrderToSystem(order, 'system');
+        }
+
+        function openCheckoutCardSoonModal() {
+            const m = document.getElementById('checkout-card-soon-modal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCheckoutCardSoonModal() {
+            const m = document.getElementById('checkout-card-soon-modal');
+            if (m) m.classList.add('hidden');
+            restoreBodyScrollIfIdle();
+        }
+
+        window.openCheckoutSystemConfirmModal = openCheckoutSystemConfirmModal;
+        window.closeCheckoutSystemConfirmModal = closeCheckoutSystemConfirmModal;
+        window.confirmCheckoutSystemProceed = confirmCheckoutSystemProceed;
+        window.openCheckoutCardSoonModal = openCheckoutCardSoonModal;
+        window.closeCheckoutCardSoonModal = closeCheckoutCardSoonModal;
 
         function buildOrderSummary() {
             const id = checkoutPreviewOrderNo || '';
@@ -10409,6 +10460,8 @@
                 'auth-modal',
                 'filter-modal',
                 'order-options-modal',
+                'checkout-system-confirm-modal',
+                'checkout-card-soon-modal',
                 'signup-credentials-modal',
                 'notification-prompt-modal',
                 'language-prompt-modal',

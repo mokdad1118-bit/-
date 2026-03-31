@@ -2849,6 +2849,91 @@
             display: none;
         }
 
+        /* تأكيد إرسال الطلب + بطاقة قريباً — فوق نافذة إتمام الطلب */
+        .checkout-dialog-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+            z-index: 80;
+        }
+        .checkout-dialog-modal.hidden {
+            display: none;
+        }
+        .checkout-dialog-card {
+            width: min(100%, 22rem);
+            border-radius: 24px;
+            padding: 1.35rem 1.25rem 1.25rem;
+            background: linear-gradient(165deg, #ffffff 0%, #f5f3ff 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            box-shadow: 0 24px 60px rgba(91, 33, 182, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+            text-align: center;
+        }
+        .checkout-dialog-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 14px;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #ede9fe 0%, #ddd6fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6d28d9;
+            font-size: 1.35rem;
+        }
+        .checkout-dialog-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .checkout-dialog-actions .btn-primary-adora {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: #fff;
+            box-shadow: 0 10px 28px rgba(124, 58, 237, 0.35);
+        }
+        .checkout-dialog-actions .btn-primary-adora:active {
+            transform: scale(0.98);
+        }
+        .checkout-dialog-actions .btn-secondary-adora {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 2px solid #e9d5ff;
+            background: #fff;
+            color: #5b21b6;
+            cursor: pointer;
+        }
+        .checkout-dialog-actions .btn-secondary-adora:active {
+            transform: scale(0.98);
+        }
+        .checkout-dialog-actions .btn-close-adora {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: #fff;
+            box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+        }
+
         /* تأكيد الخروج من التطبيق — فوق كل الطبقات */
         .exit-app-modal {
             position: fixed;
@@ -6151,25 +6236,51 @@
                     <button type="button" class="payment-chip selected" data-payment="cod" onclick="selectPaymentMethod('cod')">
                         <span data-en="Cash on Delivery" data-ar="الدفع عند الاستلام">Cash on Delivery</span>
                     </button>
-                    <button type="button" class="payment-chip" data-payment="card" onclick="selectPaymentMethod('card')">
+                    <button type="button" class="payment-chip" data-payment="card" onclick="openCheckoutCardSoonModal(); event.stopPropagation();">
                         <span data-en="Card" data-ar="بطاقة">Card</span>
                     </button>
                 </div>
             </div>
 
             <div class="order-options-actions">
-                <button type="button" class="order-option-btn primary" onclick="handleCheckoutOption('whatsapp')">
+                <!-- إعادة تفعيل زر واتساب لاحقاً -->
+                <button type="button" class="order-option-btn primary hidden" style="display: none !important;" onclick="handleCheckoutOption('whatsapp')" aria-hidden="true" tabindex="-1">
                     <strong data-en="Send via WhatsApp" data-ar="إرسال عبر واتساب">Send via WhatsApp</strong>
                     <span class="text-[11px]" data-en="Chat + Auto push" data-ar="دردشة + حفظ تلقائي">Chat + Auto push</span>
                     <i class="fab fa-whatsapp text-2xl"></i>
                 </button>
-                <button type="button" class="order-option-btn secondary" onclick="handleCheckoutOption('system')">
+                <button type="button" class="order-option-btn secondary w-full" onclick="openCheckoutSystemConfirmModal()">
                     <strong data-en="Complete within app" data-ar="إكمال داخل التطبيق">Complete within app</strong>
-                    <span class="text-[11px]" data-en="Secure payment" data-ar="دفع آمن">Secure payment</span>
+                    <span class="text-[11px]" data-en="Review and submit" data-ar="مراجعة وإرسال">مراجعة وإرسال</span>
                     <i class="fas fa-lock text-xl"></i>
                 </button>
             </div>
             <button type="button" class="w-full text-sm font-semibold text-gray-500" onclick="closeOrderOptions()" data-en="Cancel" data-ar="إلغاء">Cancel</button>
+        </div>
+    </div>
+
+    <!-- تأكيد إرسال الطلب داخل التطبيق -->
+    <div id="checkout-system-confirm-modal" class="checkout-dialog-modal hidden" role="dialog" aria-modal="true" aria-labelledby="checkout-system-confirm-title" onclick="if (event.target === this) closeCheckoutSystemConfirmModal()">
+        <div class="checkout-dialog-card" onclick="event.stopPropagation()">
+            <div class="checkout-dialog-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></div>
+            <h3 id="checkout-system-confirm-title" class="text-base font-bold text-gray-900 leading-snug px-1" data-en="Review before sending" data-ar="مراجعة قبل الإرسال">مراجعة قبل الإرسال</h3>
+            <p id="checkout-system-confirm-text" class="text-sm text-gray-600 mt-3 leading-relaxed px-0.5" data-en="Please review your order and the details you entered to avoid mistakes. Each company will only receive its own items." data-ar="يرجى مراجعة الطلب ومراجعة بياناتك المدخلة لتجنب الخطأ. يُرسل كل طلب فرعي للشركة المخصصة له فقط (عند وجود أكثر من شركة).">يرجى مراجعة الطلب ومراجعة بياناتك المدخلة لتجنب الخطأ. يُرسل كل طلب فرعي للشركة المخصصة له فقط (عند وجود أكثر من شركة).</p>
+            <div class="checkout-dialog-actions">
+                <button type="button" class="btn-primary-adora" onclick="confirmCheckoutSystemProceed()" data-en="Continue sending" data-ar="متابعة الإرسال">متابعة الإرسال</button>
+                <button type="button" class="btn-secondary-adora" onclick="closeCheckoutSystemConfirmModal()" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- الدفع بالبطاقة — قريباً -->
+    <div id="checkout-card-soon-modal" class="checkout-dialog-modal hidden" role="dialog" aria-modal="true" aria-labelledby="checkout-card-soon-title" onclick="if (event.target === this) closeCheckoutCardSoonModal()">
+        <div class="checkout-dialog-card" onclick="event.stopPropagation()">
+            <div class="checkout-dialog-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></div>
+            <h3 id="checkout-card-soon-title" class="text-base font-bold text-gray-900 leading-snug px-1" data-en="Card payment" data-ar="الدفع بالبطاقة">الدفع بالبطاقة</h3>
+            <p class="text-sm text-gray-600 mt-3 leading-relaxed px-0.5" data-en="Card payment will be enabled in a future update." data-ar="سيتم تفعيل الدفع بالبطاقة فيما القادم.">سيتم تفعيل الدفع بالبطاقة فيما بعد.</p>
+            <div class="checkout-dialog-actions">
+                <button type="button" class="btn-close-adora" onclick="closeCheckoutCardSoonModal()" data-en="Close" data-ar="إغلاق النافذة">إغلاق النافذة</button>
+            </div>
         </div>
     </div>
 

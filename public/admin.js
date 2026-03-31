@@ -4044,6 +4044,20 @@ async function loadFlashSales() {
   renderFlashSalesTable();
 }
 
+function parseAdminOrderMpFulfillments(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const p = JSON.parse(raw);
+      return Array.isArray(p) ? p : [];
+    } catch (_e) {
+      return [];
+    }
+  }
+  return [];
+}
+
 function renderOrdersTable() {
   const token = getToken();
   const tbody = document.getElementById("orders-tbody");
@@ -4070,7 +4084,7 @@ function renderOrdersTable() {
 
   const ar = getAdminLang() === "ar";
   if (!adminOrdersCache.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-gray-500">${
       ar ? "لا طلبات بعد — تظهر هنا طلبات التطبيق بعد إتمام الشراء." : "No orders yet — app orders appear here after checkout."
     }</td></tr>`;
     return;
@@ -4083,7 +4097,7 @@ function renderOrdersTable() {
       : ar
         ? "لا طلبات في هذا القسم ضمن الفترة المحددة."
         : "No orders in this section for the selected period.";
-    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="py-6 text-center text-gray-500">${msg}</td></tr>`;
     return;
   }
   tbody.innerHTML = list
@@ -4100,6 +4114,16 @@ function renderOrdersTable() {
             minute: "2-digit",
           })
         : "—";
+      const mpList = parseAdminOrderMpFulfillments(o.mp_fulfillments);
+      const companiesCell =
+        mpList.length === 0
+          ? `<span class="text-gray-400 text-xs">${ar ? "—" : "—"}</span>`
+          : `<div class="flex flex-col gap-1 max-w-[11rem]">${mpList
+              .map((fv) => {
+                const vn = ar ? fv.vendor_name_ar || fv.vendor_name_en : fv.vendor_name_en || fv.vendor_name_ar;
+                return `<button type="button" class="text-start px-2 py-1 rounded-lg bg-violet-50 border border-violet-100 text-violet-900 font-semibold text-xs hover:bg-violet-100 leading-tight" data-order-detail="${o.id}" data-focus-fulfillment="${fv.fulfillment_id}">${escapeHtml(vn || "—")}</button>`;
+              })
+              .join("")}</div>`;
       return `
         <tr>
           <td class="py-2 font-semibold">${escapeHtml(o.order_no)}</td>
@@ -4112,9 +4136,10 @@ function renderOrdersTable() {
           <td class="py-2">${Number(o.total_price).toLocaleString()} ل.س</td>
           <td class="py-2">${escapeHtml(formatOrderStatusLabel(o.status))}</td>
           <td class="py-2">${escapeHtml(o.source)}</td>
+          <td class="py-2 align-top">${companiesCell}</td>
           <td class="py-2">
             <button type="button" class="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 hover:bg-gray-100 text-sm" data-order-detail="${o.id}">
-              ${ar ? "عرض" : "View"}
+              ${ar ? "عرض الكل" : "View all"}
             </button>
           </td>
           <td class="py-2">
@@ -4138,7 +4163,12 @@ function renderOrdersTable() {
     .join("");
 
   tbody.querySelectorAll("button[data-order-detail]").forEach((btn) => {
-    btn.addEventListener("click", () => openOrderDetailModal(Number(btn.getAttribute("data-order-detail"))));
+    btn.addEventListener("click", () => {
+      const id = Number(btn.getAttribute("data-order-detail"));
+      const ff = btn.getAttribute("data-focus-fulfillment");
+      const fid = ff != null && ff !== "" ? Number(ff) : NaN;
+      openOrderDetailModal(id, Number.isFinite(fid) ? { focusFulfillmentId: fid } : {});
+    });
   });
 
   tbody.querySelectorAll("button[data-status-save]").forEach((btn) => {
@@ -4260,7 +4290,41 @@ async function sendAdminNotification(e) {
   }
 }
 
-async function openOrderDetailModal(orderId) {
+function formatAdminOrderItemRow(it, ar) {
+  const img = it.image_url
+    ? `<img src="${escapeHtml(it.image_url)}" alt="" class="w-16 h-20 object-cover rounded-xl border border-gray-100 shrink-0 bg-gray-50" loading="lazy" />`
+    : `<div class="w-16 h-20 rounded-xl border border-dashed border-gray-200 bg-gray-50 shrink-0 flex items-center justify-center text-[10px] text-gray-400">—</div>`;
+  const colorLine =
+    it.color && String(it.color).trim()
+      ? `<div class="text-xs text-gray-600">${ar ? "اللون" : "Color"}: <span class="font-semibold">${escapeHtml(it.color)}</span></div>`
+      : "";
+  const sizeLine =
+    it.size && String(it.size).trim()
+      ? `<div class="text-xs text-gray-600">${ar ? "المقاس" : "Size"}: <span class="font-semibold">${escapeHtml(it.size)}</span></div>`
+      : "";
+  const variantLine =
+    it.variant_label && String(it.variant_label).trim()
+      ? `<div class="text-xs text-gray-700 mt-0.5 leading-snug">${escapeHtml(it.variant_label)}</div>`
+      : "";
+  const brandLine =
+    it.brand && String(it.brand).trim()
+      ? `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة" : "Brand"}: ${escapeHtml(it.brand)}</div>`
+      : `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة: أدورا" : "Brand: Adora"}</div>`;
+  return `<div class="flex gap-3 py-3 border-b border-gray-100">
+    ${img}
+    <div class="flex-1 min-w-0">
+      <div class="font-semibold text-gray-900">${escapeHtml(it.product_name)} <span class="text-gray-500 font-normal">× ${it.qty}</span></div>
+      ${brandLine}${variantLine}${colorLine}${sizeLine}
+      <div class="text-sm font-mono mt-1">${Number(it.price).toLocaleString()} ل.س</div>
+    </div>
+  </div>`;
+}
+
+async function openOrderDetailModal(orderId, opts = {}) {
+  const focusFulfillmentId =
+    opts && opts.focusFulfillmentId != null && Number.isFinite(Number(opts.focusFulfillmentId))
+      ? Number(opts.focusFulfillmentId)
+      : null;
   const backdrop = document.getElementById("order-detail-backdrop");
   const body = document.getElementById("order-detail-body");
   if (!backdrop || !body) return;
@@ -4273,37 +4337,31 @@ async function openOrderDetailModal(orderId) {
     const o = data.order;
     const items = data.items || [];
     const history = data.history || [];
-    const lines = items
-      .map((it) => {
-        const img = it.image_url
-          ? `<img src="${escapeHtml(it.image_url)}" alt="" class="w-16 h-20 object-cover rounded-xl border border-gray-100 shrink-0 bg-gray-50" loading="lazy" />`
-          : `<div class="w-16 h-20 rounded-xl border border-dashed border-gray-200 bg-gray-50 shrink-0 flex items-center justify-center text-[10px] text-gray-400">—</div>`;
-        const colorLine =
-          it.color && String(it.color).trim()
-            ? `<div class="text-xs text-gray-600">${ar ? "اللون" : "Color"}: <span class="font-semibold">${escapeHtml(it.color)}</span></div>`
-            : "";
-        const sizeLine =
-          it.size && String(it.size).trim()
-            ? `<div class="text-xs text-gray-600">${ar ? "المقاس" : "Size"}: <span class="font-semibold">${escapeHtml(it.size)}</span></div>`
-            : "";
-        const variantLine =
-          it.variant_label && String(it.variant_label).trim()
-            ? `<div class="text-xs text-gray-700 mt-0.5 leading-snug">${escapeHtml(it.variant_label)}</div>`
-            : "";
-        const brandLine =
-          it.brand && String(it.brand).trim()
-            ? `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة" : "Brand"}: ${escapeHtml(it.brand)}</div>`
-            : `<div class="text-xs text-violet-700 font-semibold mt-0.5">${ar ? "الشركة: أدورا" : "Brand: Adora"}</div>`;
-        return `<div class="flex gap-3 py-3 border-b border-gray-100">
-          ${img}
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-gray-900">${escapeHtml(it.product_name)} <span class="text-gray-500 font-normal">× ${it.qty}</span></div>
-            ${brandLine}${variantLine}${colorLine}${sizeLine}
-            <div class="text-sm font-mono mt-1">${Number(it.price).toLocaleString()} ل.س</div>
+    const fulfillments = Array.isArray(data.fulfillments) ? data.fulfillments : [];
+    let itemsHtml = "";
+    if (fulfillments.length) {
+      const orphans = items.filter((it) => !it.vendor_fulfillment_id);
+      if (orphans.length) {
+        itemsHtml += `<div class="mb-4"><div class="font-bold mb-2 text-gray-800">${ar ? "منتجات متجر أدورا" : "Adora store items"}</div><div>${orphans.map((it) => formatAdminOrderItemRow(it, ar)).join("")}</div></div>`;
+      }
+      for (const f of fulfillments) {
+        const vname = ar ? f.vendor_name_ar || f.vendor_name_en : f.vendor_name_en || f.vendor_name_ar;
+        const stLab = MV_F_STATUS_LABELS[f.status] || { ar: f.status, en: f.status };
+        const stStr = ar ? stLab.ar : stLab.en;
+        const fItems = items.filter((it) => Number(it.vendor_fulfillment_id) === Number(f.id));
+        const block = `<div id="admin-order-fulfillment-${f.id}" class="rounded-xl border border-violet-200 bg-violet-50/50 p-3 mb-4 scroll-mt-4">
+          <div class="flex flex-wrap justify-between gap-2 mb-2">
+            <div class="font-bold text-violet-900">${ar ? "شركة" : "Company"}: ${escapeHtml(vname || "—")}</div>
+            <div class="text-xs font-semibold text-violet-800">${escapeHtml(stStr)} · ${ar ? "فرعي" : "Split"} #${f.id}</div>
           </div>
+          <div class="text-xs text-gray-600 mb-2">${ar ? "مجموع هذا الجزء" : "This split subtotal"}: <span class="font-mono font-bold">${Number(f.subtotal || 0).toLocaleString()} ل.س</span></div>
+          <div>${fItems.length ? fItems.map((it) => formatAdminOrderItemRow(it, ar)).join("") : `<p class="text-gray-400 text-sm">${ar ? "لا بنود مرتبطة." : "No linked lines."}</p>`}</div>
         </div>`;
-      })
-      .join("");
+        itemsHtml += block;
+      }
+    } else {
+      itemsHtml = items.map((it) => formatAdminOrderItemRow(it, ar)).join("");
+    }
     const hist = history
       .map(
         (h) =>
@@ -4331,12 +4389,22 @@ async function openOrderDetailModal(orderId) {
         <div><strong>${ar ? "الإجمالي" : "Total"}:</strong> ${Number(o.total_price).toLocaleString()} ل.س</div>
         <div><strong>${ar ? "الحالة الحالية" : "Current status"}:</strong> ${escapeHtml(formatOrderStatusLabel(o.status))}</div>
         <div><strong>${ar ? "الدفع" : "Payment"}:</strong> ${escapeHtml(o.payment_method)}</div>
+        ${
+          fulfillments.length
+            ? `<p class="text-xs text-violet-800 leading-relaxed">${ar ? "يُقسَّم هذا الطلب تلقائياً: كل شركة تستلم فقط البنود الخاصة بها في لوحة المشترك." : "This order is split: each company only receives its own lines in the vendor portal."}</p>`
+            : ""
+        }
       </div>
       <div class="font-bold mb-1">${ar ? "المنتجات" : "Items"}</div>
-      <div class="mb-4">${lines || `<p class="text-gray-400">${ar ? "لا بنود." : "No line items."}</p>`}</div>
+      <div class="mb-4">${itemsHtml || `<p class="text-gray-400">${ar ? "لا بنود." : "No line items."}</p>`}</div>
       <div class="font-bold mb-1">${ar ? "سجل الحالة" : "Status history"}</div>
       <div>${hist || "—"}</div>
     `;
+    if (focusFulfillmentId != null) {
+      requestAnimationFrame(() => {
+        document.getElementById(`admin-order-fulfillment-${focusFulfillmentId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    }
     document.getElementById("order-detail-status-save")?.addEventListener("click", async () => {
       const sel = document.getElementById("order-detail-status-sel");
       const status = sel?.value;
