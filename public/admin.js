@@ -133,6 +133,10 @@ function applyAdminLang() {
     const al = ar ? closeSb.getAttribute("data-ar-aria") : closeSb.getAttribute("data-en-aria");
     if (al) closeSb.setAttribute("aria-label", al);
   }
+  document.querySelectorAll("[data-en-aria][data-ar-aria]").forEach((el) => {
+    const al = ar ? el.getAttribute("data-ar-aria") : el.getAttribute("data-en-aria");
+    if (al) el.setAttribute("aria-label", al);
+  });
   const vis = document.querySelector(".tab-panel:not(.hidden)");
   if (vis?.id) updateAdminActiveSectionLabel(vis.id);
   syncAdminDashSidebarOrder();
@@ -5860,6 +5864,7 @@ async function initAdoraCompanyAdminTab() {
     });
     document.getElementById("ac-ff-detail-dialog")?.addEventListener("click", (ev) => ev.stopPropagation());
     document.getElementById("ac-ff-detail-close")?.addEventListener("click", () => closeAcFfDetailOverlay());
+    document.getElementById("ac-ff-detail-close-footer")?.addEventListener("click", () => closeAcFfDetailOverlay());
     document.getElementById("ac-ff-save-status")?.addEventListener("click", async () => {
       const id = acFfDetailOpenId;
       const sel = document.getElementById("ac-ff-status-select");

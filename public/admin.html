@@ -86,6 +86,9 @@
       /* نافذة تفاصيل التنفيذ الفرعي: تمرير واضح للمحتوى الطويل */
       #ac-ff-detail-overlay .ac-ff-modal-panel {
         box-sizing: border-box;
+        width: 100%;
+        max-width: min(42rem, calc(100vw - 1.25rem));
+        max-height: min(88dvh, 800px);
       }
       #ac-ff-detail-scroll.ac-ff-detail-scroll {
         -webkit-overflow-scrolling: touch;
@@ -2099,18 +2102,30 @@
     >
       <div
         id="ac-ff-detail-dialog"
-        class="ac-ff-modal-panel w-full sm:max-w-2xl h-[min(92dvh,900px)] max-h-[min(96vh,900px)] sm:max-h-[min(90vh,880px)] flex flex-col min-h-0 my-auto rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
+        class="ac-ff-modal-panel w-full flex flex-col min-h-0 my-auto rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
         onclick="event.stopPropagation()"
       >
-        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0 z-10">
-          <h3 id="ac-ff-detail-title" class="font-black text-gray-900 text-base" data-en="Fulfillment details" data-ar="تفاصيل الطلب الفرعي">تفاصيل الطلب الفرعي</h3>
+        <div
+          class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0 z-10"
+        >
+          <h3
+            id="ac-ff-detail-title"
+            class="font-black text-gray-900 text-sm sm:text-base min-w-0 flex-1 leading-tight"
+            data-en="Fulfillment details"
+            data-ar="تفاصيل الطلب الفرعي"
+          >
+            تفاصيل الطلب الفرعي
+          </h3>
           <button
             type="button"
             id="ac-ff-detail-close"
-            class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center"
-            aria-label="Close"
+            class="ac-ff-detail-close-btn shrink-0 inline-flex items-center justify-center gap-1.5 sm:gap-2 min-h-[2.75rem] min-w-[2.75rem] sm:min-w-0 px-3 sm:px-4 rounded-xl bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.98] font-extrabold text-xs sm:text-sm shadow-md border border-gray-800"
+            data-en-aria="Close window"
+            data-ar-aria="إغلاق النافذة"
+            aria-label="إغلاق النافذة"
           >
-            <i class="fas fa-times"></i>
+            <i class="fas fa-times text-base sm:text-lg" aria-hidden="true"></i>
+            <span data-en="Close" data-ar="إغلاق" class="hidden sm:inline">إغلاق</span>
           </button>
         </div>
         <div
@@ -2140,6 +2155,15 @@
             حفظ الحالة
           </button>
           <p id="ac-ff-status-msg" class="text-xs text-center min-h-[1rem] text-gray-600"></p>
+          <button
+            type="button"
+            id="ac-ff-detail-close-footer"
+            class="w-full py-2.5 sm:py-3 rounded-xl border-2 border-gray-300 bg-white text-gray-800 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.99]"
+            data-en="Close window"
+            data-ar="إغلاق النافذة"
+          >
+            إغلاق النافذة
+          </button>
         </div>
       </div>
     </div>
