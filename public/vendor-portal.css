@@ -16,17 +16,23 @@ body.vp-page {
   color: #111827;
 }
 
-/* نافذة تفاصيل الطلب: مقاسات آمنة للجوال + تمرير واضح */
+/* نافذة تفاصيل الطلب: الارتفاع = طول الشاشة ناقص حشو الـ overlay (safe-area)، العرض ثانوي */
 #vp-order-overlay {
   -webkit-overflow-scrolling: touch;
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  --vp-order-pad-top: max(0.35rem, env(safe-area-inset-top, 0px));
+  --vp-order-pad-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
+  padding-top: var(--vp-order-pad-top);
+  padding-bottom: var(--vp-order-pad-bottom);
+  padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
 }
 #vp-order-overlay .vp-order-modal-panel {
   box-sizing: border-box;
   width: 100%;
-  max-width: min(36rem, calc(100vw - 1.25rem));
-  max-height: min(88dvh, 820px);
+  max-width: min(36rem, calc(100vw - 1rem));
+  height: calc(100dvh - var(--vp-order-pad-top) - var(--vp-order-pad-bottom));
+  max-height: calc(100dvh - var(--vp-order-pad-top) - var(--vp-order-pad-bottom));
+  min-height: 0;
 }
 #vp-order-detail-scroll.vp-order-detail-scroll {
   -webkit-overflow-scrolling: touch;
