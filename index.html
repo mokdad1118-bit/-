@@ -3408,6 +3408,43 @@
             padding-top: 16px;
         }
 
+        /* حقول بيانات التوصيل — ألوان فاتحة متناسقة مع التطبيق */
+        .checkout-structured-shipping-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.65rem;
+        }
+        .checkout-ship-input {
+            width: 100%;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            padding: 0.72rem 0.9rem;
+            min-height: 2.75rem;
+            border-radius: 14px;
+            border: 1px solid rgba(196, 181, 253, 0.65);
+            background: linear-gradient(180deg, #faf5ff 0%, #f5f3ff 55%, #ede9fe 100%);
+            color: #1e1b4b;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 1px 3px rgba(124, 58, 237, 0.08);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .checkout-ship-input::placeholder {
+            color: #8b5cf6;
+            opacity: 0.72;
+            font-size: 0.8125rem;
+        }
+        .checkout-ship-input:focus {
+            outline: none;
+            border-color: #a78bfa;
+            background: #faf5ff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(167, 139, 250, 0.28);
+        }
+        textarea.checkout-ship-input {
+            min-height: 4.5rem;
+            resize: vertical;
+        }
+
         .brand-sort-btn {
             border-radius: 999px;
             border: 1px solid rgba(124, 58, 237, 0.2);
@@ -6217,14 +6254,15 @@
             </div>
 
             <div class="checkout-section space-y-2">
-                <p class="text-[10px] tracking-[0.4em] uppercase text-gray-400" data-en="Shipping" data-ar="التوصيل">Shipping</p>
-                <p class="text-xs text-gray-500 leading-relaxed" data-en="Required for marketplace items: full name, phone, governorate, area, address." data-ar="مطلوب لمنتجات السوق الشامل: الاسم الثلاثي، الهاتف، المحافظة، المنطقة، العنوان.">مطلوب لمنتجات السوق الشامل: الاسم الثلاثي، الهاتف، المحافظة، المنطقة، العنوان.</p>
-                <div id="checkout-structured-shipping" class="grid grid-cols-1 gap-2">
-                    <input type="text" id="checkout-ship-fullname" maxlength="200" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Full name" data-ar-ph="الاسم الثلاثي" placeholder="الاسم الثلاثي" autocomplete="name" />
-                    <input type="tel" id="checkout-ship-phone" maxlength="40" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Phone" data-ar-ph="رقم الهاتف" placeholder="رقم الهاتف" autocomplete="tel" />
-                    <input type="text" id="checkout-ship-governorate" maxlength="120" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Governorate" data-ar-ph="المحافظة" placeholder="المحافظة" />
-                    <input type="text" id="checkout-ship-region" maxlength="120" class="w-full text-sm p-2.5 rounded-xl border border-gray-200" data-en-ph="Area / district" data-ar-ph="المنطقة" placeholder="المنطقة" />
-                    <textarea id="checkout-ship-address" rows="2" maxlength="1000" class="w-full text-sm p-2.5 rounded-xl border border-gray-200 resize-none" data-en-ph="Street, building, floor…" data-ar-ph="الشارع، البناء، الطابق…" placeholder="الشارع، البناء، الطابق…"></textarea>
+                <p class="text-[10px] tracking-[0.4em] uppercase text-violet-400 font-semibold" data-en="Shipping" data-ar="التوصيل">Shipping</p>
+                <p class="text-sm font-semibold text-violet-900 leading-relaxed" data-en="Please enter your details fully and correctly." data-ar="الرجاء إدخال بياناتك كاملة بشكل صحيح">الرجاء إدخال بياناتك كاملة بشكل صحيح</p>
+                <p class="text-[11px] text-violet-700/90 leading-relaxed px-0.5" data-en="(If you have any issue, please send your notes to Adora administration via the My Account tab.)" data-ar="(إذا واجهتك مشكلة ما، الرجاء إرسال ملاحظاتك لإدارة Adora من خلال تبويب حسابي)">(إذا واجهتك مشكلة ما، الرجاء إرسال ملاحظاتك لإدارة Adora من خلال تبويب حسابي)</p>
+                <div id="checkout-structured-shipping" class="checkout-structured-shipping-grid">
+                    <input type="text" id="checkout-ship-fullname" maxlength="200" class="checkout-ship-input" data-en-ph="Full name (as on ID)" data-ar-ph="الاسم الثلاثي" placeholder="الاسم الثلاثي" autocomplete="name" />
+                    <input type="tel" id="checkout-ship-phone" maxlength="40" class="checkout-ship-input" data-en-ph="WhatsApp number for contact" data-ar-ph="يرجى إدخال رقم واتساب للتواصل" placeholder="يرجى إدخال رقم واتساب للتواصل" autocomplete="tel" />
+                    <input type="text" id="checkout-ship-governorate" maxlength="120" class="checkout-ship-input" data-en-ph="Governorate" data-ar-ph="المحافظة" placeholder="المحافظة" />
+                    <input type="text" id="checkout-ship-region" maxlength="120" class="checkout-ship-input" data-en-ph="Area / district" data-ar-ph="المنطقة" placeholder="المنطقة" />
+                    <textarea id="checkout-ship-address" rows="3" maxlength="1000" class="checkout-ship-input resize-y" data-en-ph="Street, building, floor…" data-ar-ph="الشارع، البناء، الطابق…" placeholder="الشارع، البناء، الطابق…"></textarea>
                 </div>
                 <p class="text-sm font-semibold text-gray-900" id="checkout-shipping-label">ملخص العنوان:</p>
                 <p class="text-sm text-gray-500 whitespace-pre-line" id="checkout-shipping-address">—</p>
@@ -6250,9 +6288,8 @@
                     <i class="fab fa-whatsapp text-2xl"></i>
                 </button>
                 <button type="button" class="order-option-btn secondary w-full" onclick="openCheckoutSystemConfirmModal()">
-                    <strong data-en="Complete within app" data-ar="إكمال داخل التطبيق">Complete within app</strong>
-                    <span class="text-[11px]" data-en="Review and submit" data-ar="مراجعة وإرسال">مراجعة وإرسال</span>
-                    <i class="fas fa-lock text-xl"></i>
+                    <strong data-en="Send order" data-ar="إرسال الأوردر">إرسال الأوردر</strong>
+                    <i class="fas fa-paper-plane text-xl"></i>
                 </button>
             </div>
             <button type="button" class="w-full text-sm font-semibold text-gray-500" onclick="closeOrderOptions()" data-en="Cancel" data-ar="إلغاء">Cancel</button>
@@ -6277,7 +6314,7 @@
         <div class="checkout-dialog-card" onclick="event.stopPropagation()">
             <div class="checkout-dialog-icon" aria-hidden="true"><i class="fas fa-credit-card"></i></div>
             <h3 id="checkout-card-soon-title" class="text-base font-bold text-gray-900 leading-snug px-1" data-en="Card payment" data-ar="الدفع بالبطاقة">الدفع بالبطاقة</h3>
-            <p class="text-sm text-gray-600 mt-3 leading-relaxed px-0.5" data-en="Card payment will be enabled in a future update." data-ar="سيتم تفعيل الدفع بالبطاقة فيما القادم.">سيتم تفعيل الدفع بالبطاقة فيما بعد.</p>
+            <p class="text-sm text-gray-600 mt-3 leading-relaxed px-0.5" data-en="Card payment will be enabled later." data-ar="سيتم تفعيل الدفع بالبطاقة فيما بعد.">سيتم تفعيل الدفع بالبطاقة فيما بعد.</p>
             <div class="checkout-dialog-actions">
                 <button type="button" class="btn-close-adora" onclick="closeCheckoutCardSoonModal()" data-en="Close" data-ar="إغلاق النافذة">إغلاق النافذة</button>
             </div>

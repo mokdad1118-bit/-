@@ -5834,8 +5834,8 @@
                 if (!structuredShippingComplete(shipStruct)) {
                     showToast(
                         isRTL
-                            ? 'أكمل الاسم الثلاثي والهاتف والمحافظة والمنطقة والعنوان لمنتجات السوق الشامل'
-                            : 'Complete full name, phone, governorate, area, and address for marketplace items'
+                            ? 'الرجاء إدخال بياناتك كاملة بشكل صحيح (الاسم، واتساب، المحافظة، المنطقة، العنوان).'
+                            : 'Please enter your details fully and correctly (name, WhatsApp, governorate, area, address).'
                     );
                     return null;
                 }
