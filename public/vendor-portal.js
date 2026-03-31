@@ -920,6 +920,7 @@
     if (ev.target === ev.currentTarget) closeVpOrderOverlay();
   });
   el("vp-order-detail-close")?.addEventListener("click", () => closeVpOrderOverlay());
+  el("vp-order-close-footer")?.addEventListener("click", () => closeVpOrderOverlay());
   el("vp-order-save-status")?.addEventListener("click", async () => {
     const fid = vpOrderDetailFulfillmentId;
     const sel = el("vp-order-status-select");

@@ -297,30 +297,35 @@
 
   <div
     id="vp-order-overlay"
-    class="hidden fixed inset-0 z-[400] flex items-center justify-center bg-black/55 p-3 sm:p-4 overflow-y-auto"
+    class="hidden fixed inset-0 z-[6000] flex items-center justify-center bg-black/55 p-3 sm:p-4 overflow-y-auto"
     role="dialog"
     aria-modal="true"
     aria-labelledby="vp-order-detail-title"
   >
     <div
-      class="vp-order-modal-panel w-full sm:max-w-xl h-[min(92dvh,880px)] max-h-[96vh] sm:max-h-[min(90vh,860px)] flex flex-col min-h-0 rounded-t-[1.75rem] sm:rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
+      class="vp-order-modal-panel w-full flex flex-col min-h-0 my-auto rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
       onclick="event.stopPropagation()"
     >
-      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0 z-10">
-        <h3 id="vp-order-detail-title" class="font-black text-gray-900 text-base">تفاصيل الطلب</h3>
+      <div
+        class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0 z-10"
+      >
+        <h3
+          id="vp-order-detail-title"
+          class="font-black text-gray-900 text-sm sm:text-base min-w-0 flex-1 leading-tight line-clamp-2"
+        >
+          تفاصيل الطلب
+        </h3>
         <button
           type="button"
           id="vp-order-detail-close"
-          class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center"
-          aria-label="إغلاق"
+          class="vp-order-modal-close shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] px-3 py-2 rounded-xl bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.98] font-extrabold text-xs sm:text-sm shadow-md border border-gray-800"
+          aria-label="إغلاق النافذة"
         >
-          <i class="fas fa-times"></i>
+          <i class="fas fa-times text-base sm:text-lg shrink-0" aria-hidden="true"></i>
+          <span class="text-[11px] sm:text-xs font-black whitespace-nowrap">إغلاق</span>
         </button>
       </div>
-      <div
-        id="vp-order-detail-scroll"
-        class="vp-order-detail-scroll overflow-y-scroll flex-1 min-h-0 p-4 text-sm text-gray-800 space-y-4 overscroll-y-contain"
-      ></div>
+      <div id="vp-order-detail-scroll" class="vp-order-detail-scroll p-4 text-sm text-gray-800 space-y-4"></div>
       <div class="border-t border-violet-100 p-4 space-y-3 shrink-0 bg-violet-50/50 z-10">
         <div>
           <label class="block text-xs font-extrabold text-violet-900 mb-1">تحديث حالة الطلب</label>
@@ -344,6 +349,13 @@
           حفظ الحالة
         </button>
         <p id="vp-order-status-msg" class="text-xs text-center min-h-[1rem] text-gray-600"></p>
+        <button
+          type="button"
+          id="vp-order-close-footer"
+          class="w-full py-2.5 sm:py-3 rounded-xl border-2 border-gray-300 bg-white text-gray-800 font-extrabold text-sm hover:bg-gray-50 active:scale-[0.99]"
+        >
+          إغلاق النافذة
+        </button>
       </div>
     </div>
   </div>
