@@ -6,6 +6,55 @@
     <title data-en="Adora Admin" data-ar="لوحة تحكم أدورا">لوحة تحكم أدورا</title>
     <link rel="stylesheet" href="/tailwind.admin.bundle.css">
     <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css" />
+    <style>
+      body.admin-sidebar-noscroll {
+        overflow: hidden;
+      }
+      .admin-sidebar-backdrop.is-open {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      .admin-sidebar-panel {
+        transform: translate3d(100%, 0, 0);
+        transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: -16px 0 48px rgba(15, 23, 42, 0.4);
+        background: linear-gradient(165deg, #1e1b4b 0%, #5b21b6 42%, #312e81 100%);
+      }
+      .admin-sidebar-panel.is-open {
+        transform: translate3d(0, 0, 0);
+      }
+      .admin-sidebar-item {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: rgba(233, 213, 255, 0.92);
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid transparent;
+        transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        text-align: start;
+      }
+      .admin-sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: #fff;
+      }
+      .admin-sidebar-item--active {
+        background: linear-gradient(135deg, #c4b5fd 0%, #6d28d9 55%, #4f46e5 100%);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.25);
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.5);
+      }
+      .admin-sidebar-item i {
+        width: 1.2rem;
+        text-align: center;
+        flex-shrink: 0;
+        opacity: 0.95;
+      }
+    </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
     <div class="max-w-6xl mx-auto p-4 md:p-6">
@@ -55,70 +104,29 @@
       <!-- Dashboard -->
       <div id="dash-panel" class="hidden mt-4">
         <div class="bg-white rounded-2xl border border-gray-200 p-3 md:p-4 mb-4 flex flex-wrap items-center gap-3">
-          <label class="text-sm font-semibold text-gray-600 shrink-0" data-en="Search current tab" data-ar="بحث في التبويب الحالي">بحث في التبويب الحالي</label>
-          <input
-            id="admin-table-search"
-            type="search"
-            class="flex-1 min-w-[200px] p-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
-            data-en-ph="Filter table (orders: number or customer name)…"
-            data-ar-ph="تصفية الجدول (طلبات: رقم الطلب أو اسم الزبون)…"
-            placeholder=""
-            autocomplete="off"
-          />
-        </div>
-        <div class="bg-white rounded-2xl border border-gray-200 p-3 md:p-4">
-          <div class="flex flex-wrap gap-2">
-            <button data-tab="tab-products" class="tab-btn px-3 py-2 rounded-xl bg-purple-50 text-purple-700 font-bold text-sm hover:bg-purple-100 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-box"></i><span data-en="Products" data-ar="المنتجات">المنتجات</span>
-            </button>
-            <button data-tab="tab-brands" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-building"></i><span data-en="Brands" data-ar="العلامات">العلامات</span>
-            </button>
-            <button data-tab="tab-categories" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-layer-group"></i><span data-en="Categories" data-ar="الأقسام">الأقسام</span>
-            </button>
-            <button data-tab="tab-marketplace" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-store"></i><span data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</span>
-            </button>
-            <button data-tab="tab-vendor-platform" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-sliders-h"></i><span data-en="Vendor platform" data-ar="منصة البائعين">منصة البائعين</span>
-            </button>
-            <button data-tab="tab-vendor-subscriptions" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-file-signature"></i><span data-en="Join requests" data-ar="طلبات الاشتراك">طلبات الاشتراك</span>
-            </button>
-            <button data-tab="tab-adora-company" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-building"></i><span data-en="Add company" data-ar="إضافة شركة">إضافة شركة</span>
-            </button>
-            <button data-tab="tab-offers" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-tags"></i><span data-en="Elegant picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span>
-            </button>
-            <button data-tab="tab-flash" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-bolt"></i><span data-en="Quick offers" data-ar="عروض سريعة">عروض سريعة</span>
-            </button>
-            <button data-tab="tab-orders" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-receipt"></i><span data-en="Orders" data-ar="الطلبات">الطلبات</span>
-            </button>
-            <button data-tab="tab-users" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-users"></i><span data-en="Users" data-ar="المستخدمون">المستخدمون</span>
-            </button>
-            <button data-tab="tab-notifications" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-bell"></i><span data-en="Notifications" data-ar="الإشعارات">الإشعارات</span>
-            </button>
-            <button data-tab="tab-home-layout" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-layer-group"></i><span data-en="Home sections" data-ar="ظهور الأقسام">ظهور الأقسام</span>
-            </button>
-            <button data-tab="tab-contact" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-phone"></i><span data-en="Contact" data-ar="التواصل">التواصل</span>
-            </button>
-            <button data-tab="tab-ratings" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-star"></i><span data-en="Ratings" data-ar="التقييمات">التقييمات</span>
-            </button>
-            <button data-tab="tab-banners" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-rectangle-ad"></i><span data-en="Banners" data-ar="البانرات">البانرات</span>
-            </button>
-            <button data-tab="tab-database" class="tab-btn px-3 py-2 rounded-xl bg-white text-gray-700 font-bold text-sm border border-gray-200 hover:bg-gray-50 active:scale-95 inline-flex items-center gap-2">
-              <i class="fas fa-database"></i><span data-en="Database" data-ar="قاعدة البيانات">قاعدة البيانات</span>
-            </button>
+          <button
+            type="button"
+            id="admin-sidebar-toggle"
+            class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 via-purple-600 to-indigo-600 text-white text-sm font-extrabold shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all"
+          >
+            <i class="fas fa-bars" aria-hidden="true"></i>
+            <span data-en="Sections menu" data-ar="قائمة الأقسام">قائمة الأقسام</span>
+          </button>
+          <div class="min-w-0 flex-1 basis-[160px]">
+            <p class="text-xs font-semibold text-gray-500 mb-0.5" data-en="Current section" data-ar="القسم الحالي">القسم الحالي</p>
+            <p id="admin-active-section-label" class="text-sm font-extrabold text-violet-900 truncate">—</p>
+          </div>
+          <div class="flex flex-1 min-w-[min(100%,240px)] items-center gap-2">
+            <label class="text-sm font-semibold text-gray-600 shrink-0" data-en="Search current tab" data-ar="بحث في التبويب الحالي">بحث في التبويب الحالي</label>
+            <input
+              id="admin-table-search"
+              type="search"
+              class="flex-1 min-w-0 p-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
+              data-en-ph="Filter table (orders: number or customer name)…"
+              data-ar-ph="تصفية الجدول (طلبات: رقم الطلب أو اسم الزبون)…"
+              placeholder=""
+              autocomplete="off"
+            />
           </div>
         </div>
 
@@ -1793,6 +1801,88 @@
             </div>
           </div>
         </div>
+
+        <div
+          id="admin-sidebar-backdrop"
+          class="admin-sidebar-backdrop fixed inset-0 z-[45] bg-slate-900/50 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300"
+          aria-hidden="true"
+        ></div>
+        <aside
+          id="admin-sidebar"
+          class="admin-sidebar-panel fixed top-0 right-0 z-[50] flex h-[100dvh] w-[min(100%,19rem)] flex-col text-white border-l border-white/10"
+          role="navigation"
+          aria-labelledby="admin-sidebar-title"
+          aria-hidden="true"
+        >
+          <div class="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/10 shrink-0">
+            <h2 id="admin-sidebar-title" class="text-base font-extrabold tracking-tight text-white">
+              <span data-en="Dashboard sections" data-ar="أقسام اللوحة">أقسام اللوحة</span>
+            </h2>
+            <button
+              type="button"
+              id="admin-sidebar-close"
+              class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-95 transition"
+              data-en-aria="Close menu"
+              data-ar-aria="إغلاق القائمة"
+              aria-label="إغلاق القائمة"
+            >
+              <i class="fas fa-times text-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+          <nav class="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1.5" id="admin-sidebar-nav">
+            <button type="button" data-tab="tab-products" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-box"></i><span data-en="Products" data-ar="المنتجات">المنتجات</span>
+            </button>
+            <button type="button" data-tab="tab-brands" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-building"></i><span data-en="Brands" data-ar="العلامات">العلامات</span>
+            </button>
+            <button type="button" data-tab="tab-categories" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-layer-group"></i><span data-en="Categories" data-ar="الأقسام">الأقسام</span>
+            </button>
+            <button type="button" data-tab="tab-marketplace" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-store"></i><span data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</span>
+            </button>
+            <button type="button" data-tab="tab-vendor-platform" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-sliders-h"></i><span data-en="Vendor platform" data-ar="منصة البائعين">منصة البائعين</span>
+            </button>
+            <button type="button" data-tab="tab-vendor-subscriptions" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-file-signature"></i><span data-en="Join requests" data-ar="طلبات الاشتراك">طلبات الاشتراك</span>
+            </button>
+            <button type="button" data-tab="tab-adora-company" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-building"></i><span data-en="Add company" data-ar="إضافة شركة">إضافة شركة</span>
+            </button>
+            <button type="button" data-tab="tab-offers" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-tags"></i><span data-en="Elegant picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span>
+            </button>
+            <button type="button" data-tab="tab-flash" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-bolt"></i><span data-en="Quick offers" data-ar="عروض سريعة">عروض سريعة</span>
+            </button>
+            <button type="button" data-tab="tab-orders" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-receipt"></i><span data-en="Orders" data-ar="الطلبات">الطلبات</span>
+            </button>
+            <button type="button" data-tab="tab-users" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-users"></i><span data-en="Users" data-ar="المستخدمون">المستخدمون</span>
+            </button>
+            <button type="button" data-tab="tab-notifications" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-bell"></i><span data-en="Notifications" data-ar="الإشعارات">الإشعارات</span>
+            </button>
+            <button type="button" data-tab="tab-home-layout" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-layer-group"></i><span data-en="Home sections" data-ar="ظهور الأقسام">ظهور الأقسام</span>
+            </button>
+            <button type="button" data-tab="tab-contact" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-phone"></i><span data-en="Contact" data-ar="التواصل">التواصل</span>
+            </button>
+            <button type="button" data-tab="tab-ratings" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-star"></i><span data-en="Ratings" data-ar="التقييمات">التقييمات</span>
+            </button>
+            <button type="button" data-tab="tab-banners" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-rectangle-ad"></i><span data-en="Banners" data-ar="البانرات">البانرات</span>
+            </button>
+            <button type="button" data-tab="tab-database" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-database"></i><span data-en="Database" data-ar="قاعدة البيانات">قاعدة البيانات</span>
+            </button>
+          </nav>
+        </aside>
       </div>
     </div>
 

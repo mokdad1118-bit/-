@@ -117,6 +117,13 @@ function applyAdminLang() {
   if (ordPanel && !ordPanel.classList.contains("hidden")) {
     renderOrdersTable();
   }
+  const closeSb = document.getElementById("admin-sidebar-close");
+  if (closeSb) {
+    const al = ar ? closeSb.getAttribute("data-ar-aria") : closeSb.getAttribute("data-en-aria");
+    if (al) closeSb.setAttribute("aria-label", al);
+  }
+  const vis = document.querySelector(".tab-panel:not(.hidden)");
+  if (vis?.id) updateAdminActiveSectionLabel(vis.id);
 }
 
 function getToken() {
@@ -386,18 +393,84 @@ function bindOrdersAdminUi() {
   document.getElementById("orders-apply-filters")?.addEventListener("click", () => renderOrdersTable());
 }
 
+function updateAdminActiveSectionLabel(tabId) {
+  const label = document.getElementById("admin-active-section-label");
+  if (!label) return;
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  if (!btn) {
+    label.textContent = "—";
+    return;
+  }
+  const s = btn.querySelector("span[data-ar][data-en]") || btn.querySelector("span");
+  const t = s ? String(s.textContent || "").trim() : "";
+  label.textContent = t || "—";
+}
+
+let adminSidebarUiBound = false;
+
+function closeAdminSidebar() {
+  const panel = document.getElementById("admin-sidebar");
+  const bd = document.getElementById("admin-sidebar-backdrop");
+  if (panel) {
+    panel.classList.remove("is-open");
+    panel.setAttribute("aria-hidden", "true");
+  }
+  if (bd) {
+    bd.classList.remove("is-open");
+    bd.setAttribute("aria-hidden", "true");
+  }
+  document.body.classList.remove("admin-sidebar-noscroll");
+}
+
+function openAdminSidebar() {
+  const panel = document.getElementById("admin-sidebar");
+  const bd = document.getElementById("admin-sidebar-backdrop");
+  if (panel) {
+    panel.classList.add("is-open");
+    panel.setAttribute("aria-hidden", "false");
+  }
+  if (bd) {
+    bd.classList.add("is-open");
+    bd.setAttribute("aria-hidden", "false");
+  }
+  document.body.classList.add("admin-sidebar-noscroll");
+}
+
+function toggleAdminSidebar() {
+  const panel = document.getElementById("admin-sidebar");
+  if (panel?.classList.contains("is-open")) closeAdminSidebar();
+  else openAdminSidebar();
+}
+
+function bindAdminSidebarOnce() {
+  if (adminSidebarUiBound) return;
+  adminSidebarUiBound = true;
+  document.getElementById("admin-sidebar-toggle")?.addEventListener("click", () => toggleAdminSidebar());
+  document.getElementById("admin-sidebar-close")?.addEventListener("click", () => closeAdminSidebar());
+  document.getElementById("admin-sidebar-backdrop")?.addEventListener("click", () => closeAdminSidebar());
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-tab");
+      if (id) setActiveTab(id);
+      closeAdminSidebar();
+    });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const panel = document.getElementById("admin-sidebar");
+    if (panel?.classList.contains("is-open")) closeAdminSidebar();
+  });
+}
+
 function setActiveTab(tabId) {
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
   document.querySelectorAll(".tab-btn").forEach((b) => {
-    b.classList.remove("bg-purple-50", "text-purple-700");
-    b.classList.add("border", "border-gray-200", "text-gray-700");
+    b.classList.remove("admin-sidebar-item--active");
   });
   document.getElementById(tabId).classList.remove("hidden");
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-  if (btn) {
-    btn.classList.remove("border", "border-gray-200", "text-gray-700");
-    btn.classList.add("bg-purple-50", "text-purple-700");
-  }
+  if (btn) btn.classList.add("admin-sidebar-item--active");
+  updateAdminActiveSectionLabel(tabId);
   if (tabId === "tab-users") {
     loadUsers().catch(() => {});
     loadBroadcasts().catch(() => {});
@@ -4542,10 +4615,7 @@ async function bootstrapAuthed() {
   document.getElementById("dash-panel").classList.remove("hidden");
   document.getElementById("auth-panel").classList.add("hidden");
 
-  // tabs
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => setActiveTab(btn.getAttribute("data-tab")));
-  });
+  bindAdminSidebarOnce();
 
   document.getElementById("btn-logout").addEventListener("click", () => {
     clearToken();
