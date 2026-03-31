@@ -272,6 +272,184 @@
     else localStorage.removeItem(TOKEN_KEY);
   }
 
+  let vpOrderDetailFulfillmentId = null;
+
+  function vpAbsMediaUrl(u) {
+    const s = String(u || "").trim();
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.startsWith("//")) return (typeof location !== "undefined" ? location.protocol : "https:") + s;
+    if (s.startsWith("/")) return (typeof location !== "undefined" ? location.origin : "") + s;
+    return s;
+  }
+
+  function closeVpOrderOverlay() {
+    const overlay = el("vp-order-overlay");
+    if (overlay) overlay.classList.add("hidden");
+    document.body.style.overflow = "";
+    vpOrderDetailFulfillmentId = null;
+  }
+
+  async function openVpOrderDetail(fid) {
+    const id = Number(fid);
+    if (!Number.isFinite(id)) return;
+    vpOrderDetailFulfillmentId = id;
+    const overlay = el("vp-order-overlay");
+    const scroll = el("vp-order-detail-scroll");
+    const title = el("vp-order-detail-title");
+    const sel = el("vp-order-status-select");
+    const note = el("vp-order-status-note");
+    const notifyCb = el("vp-order-notify-user");
+    const msg = el("vp-order-status-msg");
+    if (!overlay || !scroll) return;
+    if (msg) msg.textContent = "";
+    if (note) note.value = "";
+    if (notifyCb) notifyCb.checked = true;
+    scroll.innerHTML = '<p class="text-gray-500">جاري التحميل…</p>';
+    overlay.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    const data = await api("/api/vendor-portal/fulfillments/" + encodeURIComponent(id));
+    const f = data.fulfillment;
+    const cust = data.customer || {};
+    if (title) title.textContent = "طلب " + (f.order_no || "#" + f.order_id);
+    const pay = String(f.payment_method || "").trim();
+    const payLab = pay === "cod" ? "الدفع عند الاستلام" : pay === "card" ? "بطاقة" : pay || "—";
+    let shipBlock = "";
+    if (data.shipping_structured && typeof data.shipping_structured === "object") {
+      const s = data.shipping_structured;
+      shipBlock =
+        '<div class="rounded-xl border border-gray-200 p-3 bg-gray-50/80 space-y-1 text-xs">' +
+        '<p class="font-black text-gray-900 mb-2">بيانات التوصيل</p>' +
+        "<p><strong>الاسم:</strong> " +
+        vpEscNotif(s.full_name) +
+        "</p>" +
+        '<p><strong>واتساب:</strong> <a class="text-violet-700 font-bold" href="tel:' +
+        vpEscNotif(s.phone) +
+        '">' +
+        vpEscNotif(s.phone) +
+        "</a></p>" +
+        "<p><strong>المحافظة:</strong> " +
+        vpEscNotif(s.governorate) +
+        "</p>" +
+        "<p><strong>المنطقة:</strong> " +
+        vpEscNotif(s.region) +
+        "</p>" +
+        "<p><strong>العنوان:</strong> " +
+        vpEscNotif(s.address) +
+        "</p></div>";
+    } else if (f.shipping_address) {
+      shipBlock =
+        '<div class="rounded-xl border border-gray-200 p-3 bg-gray-50/80"><p class="font-black text-gray-900 mb-1 text-xs">العنوان</p><pre class="whitespace-pre-wrap text-xs">' +
+        vpEscNotif(f.shipping_address) +
+        "</pre></div>";
+    }
+    const custBlock =
+      '<div class="rounded-xl border border-violet-200 p-3 bg-violet-50/40 space-y-1 text-xs">' +
+      '<p class="font-black text-violet-950 mb-2">بيانات الزبون</p>' +
+      "<p><strong>الاسم:</strong> " +
+      vpEscNotif(cust.name) +
+      "</p>" +
+      "<p><strong>الهاتف:</strong> " +
+      (cust.phone
+        ? '<a class="text-violet-700 font-bold" href="tel:' +
+          vpEscNotif(cust.phone) +
+          '">' +
+          vpEscNotif(cust.phone) +
+          "</a>"
+        : "—") +
+      "</p>" +
+      "<p><strong>البريد:</strong> " +
+      (cust.email
+        ? '<a class="text-violet-700 break-all" href="mailto:' +
+          vpEscNotif(cust.email) +
+          '">' +
+          vpEscNotif(cust.email) +
+          "</a>"
+        : "—") +
+      "</p></div>";
+    let itemsHtml = (data.items || [])
+      .map((it) => {
+        const img = it.image_url ? vpAbsMediaUrl(it.image_url) : "";
+        const imgCell = img
+          ? '<a href="' +
+            vpEscNotif(img) +
+            '" target="_blank" rel="noopener noreferrer" class="inline-block mt-1"><img src="' +
+            vpEscNotif(img) +
+            '" alt="" class="h-16 w-16 object-cover rounded-lg border border-gray-200 hover:opacity-90" /></a><div class="mt-1"><a href="' +
+            vpEscNotif(img) +
+            '" target="_blank" rel="noopener" class="text-[10px] font-bold text-violet-700">فتح الصورة</a></div>'
+          : "";
+        const meta = [it.variant_label, it.color, it.size, it.brand].filter(Boolean).join(" · ");
+        return (
+          '<div class="rounded-xl border border-gray-100 p-3 flex gap-3">' +
+          '<div class="flex-1 min-w-0">' +
+          '<p class="font-bold text-gray-900">' +
+          vpEscNotif(it.product_name) +
+          "</p>" +
+          '<p class="text-[11px] text-gray-600 mt-1">الكمية: ' +
+          vpEscNotif(String(it.qty)) +
+          " × السعر: " +
+          vpEscNotif(String(it.price)) +
+          "</p>" +
+          (meta ? '<p class="text-[11px] text-gray-500 mt-1">' + vpEscNotif(meta) + "</p>" : "") +
+          "</div>" +
+          '<div class="shrink-0 text-center">' +
+          imgCell +
+          "</div></div>"
+        );
+      })
+      .join("");
+    if (!itemsHtml) itemsHtml = '<p class="text-gray-400">لا بنود.</p>';
+    const portalLab = data.portal_status_labels_ar || {};
+    const slabAr = data.status_labels_ar || {};
+    const hist = (data.history || [])
+      .map((h) => {
+        const slab = portalLab[h.status] || slabAr[h.status] || h.status;
+        const nt = h.customer_note
+          ? '<div class="text-[10px] text-gray-600 mt-1">ملاحظة: ' + vpEscNotif(h.customer_note) + "</div>"
+          : "";
+        return (
+          '<div class="border-b border-gray-100 py-2 text-xs"><span class="font-bold">' +
+          vpEscNotif(slab) +
+          '</span><span class="text-gray-400 mr-2">' +
+          vpEscNotif(h.created_at || "") +
+          "</span>" +
+          nt +
+          "</div>"
+        );
+      })
+      .join("");
+    scroll.innerHTML =
+      '<div class="flex flex-wrap gap-2 text-xs">' +
+      '<span class="px-2 py-1 rounded-lg bg-gray-100 font-mono">تنفيذ #' +
+      f.id +
+      '</span><span class="px-2 py-1 rounded-lg bg-indigo-100 font-bold">الطلب: ' +
+      vpEscNotif(f.order_no || "") +
+      '</span><span class="px-2 py-1 rounded-lg bg-emerald-50">مجموع الشركة: ' +
+      vpEscNotif(String(f.subtotal)) +
+      '</span><span class="px-2 py-1 rounded-lg bg-amber-50">الدفع: ' +
+      vpEscNotif(payLab) +
+      "</span></div>" +
+      custBlock +
+      shipBlock +
+      '<div><p class="font-black text-gray-900 mb-2">المنتجات</p>' +
+      itemsHtml +
+      '</div><div><p class="font-black text-gray-900 mb-2">سجل الحالات</p><div class="max-h-40 overflow-y-auto">' +
+      (hist || '<p class="text-gray-400 text-xs">—</p>') +
+      "</div></div>";
+    const allowed = data.allowed_statuses || [];
+    if (sel) {
+      sel.innerHTML = allowed
+        .map((st) => {
+          const lab = portalLab[st] || slabAr[st] || st;
+          const v = String(st).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+          const selAttr = String(f.status) === String(st) ? " selected" : "";
+          return '<option value="' + v + '"' + selAttr + ">" + vpEscNotif(lab) + "</option>";
+        })
+        .join("");
+    }
+  }
+
   async function refreshOrders() {
     const list = el("vp-orders");
     if (!list) return;
@@ -279,16 +457,22 @@
     try {
       const rows = await api("/api/vendor-portal/fulfillments");
       list.innerHTML = (Array.isArray(rows) ? rows : [])
-        .map(
-          (r) =>
-            `<div class="flex justify-between gap-2 py-2 border-b border-gray-100">
-            <span class="font-mono text-xs">${r.order_no || ""}</span>
-            <span class="text-indigo-600">${r.status_label_ar || r.status}</span>
-          </div>`
-        )
+        .map((r) => {
+          const fid = Number(r.id);
+          return (
+            '<button type="button" class="vp-order-row w-full text-start flex justify-between items-center gap-2 py-3 px-2 rounded-xl border border-gray-100 hover:bg-violet-50/80 hover:border-violet-200 transition" data-vp-ff-id="' +
+            fid +
+            '">' +
+            '<span class="font-mono text-xs font-extrabold text-violet-900">' +
+            vpEscNotif(r.order_no || "") +
+            '</span><span class="text-indigo-600 text-xs font-bold shrink-0">' +
+            vpEscNotif(r.status_label_ar || r.status) +
+            "</span></button>"
+          );
+        })
         .join("") || "<p class='text-gray-400'>لا طلبات.</p>";
     } catch (e) {
-      list.innerHTML = "<p class='text-red-600'>" + (e.message || "") + "</p>";
+      list.innerHTML = "<p class='text-red-600'>" + (e.message || "").replace(/</g, "&lt;") + "</p>";
     }
   }
 
@@ -731,6 +915,44 @@
   }
 
   el("vp-btn-out-sidebar")?.addEventListener("click", vpDoLogout);
+
+  el("vp-order-overlay")?.addEventListener("click", (ev) => {
+    if (ev.target === ev.currentTarget) closeVpOrderOverlay();
+  });
+  el("vp-order-detail-close")?.addEventListener("click", () => closeVpOrderOverlay());
+  el("vp-order-save-status")?.addEventListener("click", async () => {
+    const fid = vpOrderDetailFulfillmentId;
+    const sel = el("vp-order-status-select");
+    const note = el("vp-order-status-note");
+    const notifyCb = el("vp-order-notify-user");
+    const msg = el("vp-order-status-msg");
+    if (!fid || !sel) return;
+    const st = sel.value;
+    if (!st) return;
+    if (msg) msg.textContent = "جاري الحفظ…";
+    try {
+      await api("/api/vendor-portal/fulfillments/" + encodeURIComponent(fid) + "/status", {
+        method: "PUT",
+        body: JSON.stringify({
+          status: st,
+          customer_note: note && note.value ? note.value.trim() : "",
+          notify_user: notifyCb ? notifyCb.checked : true,
+        }),
+      });
+      if (msg) msg.textContent = "تم الحفظ.";
+      await openVpOrderDetail(fid);
+      await refreshOrders();
+    } catch (e) {
+      if (msg) msg.textContent = e.message || String(e);
+    }
+  });
+  el("vp-orders")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest && ev.target.closest("[data-vp-ff-id]");
+    if (!btn) return;
+    const id = Number(btn.getAttribute("data-vp-ff-id"));
+    if (!Number.isFinite(id)) return;
+    openVpOrderDetail(id).catch((e) => alert(e.message || String(e)));
+  });
 
   document.querySelectorAll(".vp-nav-item[data-vp-nav]").forEach((btn) => {
     btn.addEventListener("click", () => {

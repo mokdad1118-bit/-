@@ -23,7 +23,7 @@ function subscriptionHealth(subEnds) {
 }
 
 function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notifyUserInApp }) {
-  const nfy = (userId, title, message, link) => {
+  const pushCustomerNotify = (userId, title, message, link) => {
     if (typeof notifyUserInApp === "function") notifyUserInApp(userId, title, message, link);
   };
 
@@ -266,11 +266,38 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
     try {
       const id = Number(req.params.id);
       const st = req.body?.status != null ? String(req.body.status).trim() : "";
+      const notifyOff =
+        req.body?.notify_user === false || String(req.body?.notify_user || "").toLowerCase() === "false";
+      const wantNotify = !notifyOff;
+      const customerNote =
+        req.body?.customer_note != null ? String(req.body.customer_note).trim().slice(0, 2000) : "";
       const r = await setVendorFulfillmentStatus(id, st, {
-        notifyUserInApp: nfy,
+        notifyUserInApp: wantNotify ? pushCustomerNotify : null,
         statusChangedBy: "admin",
+        customerNote: customerNote || undefined,
       });
       if (!r.ok) return res.status(400).json({ error: r.error });
+      const io = app.get("io");
+      const syncRow = await get(
+        `SELECT f.order_id, f.vendor_id, o.user_id, o.order_no, o.status
+         FROM order_vendor_fulfillments f INNER JOIN orders o ON o.id = f.order_id WHERE f.id=?`,
+        [id]
+      );
+      if (io && syncRow?.user_id) {
+        io.to(`user:${syncRow.user_id}`).emit("order:updated", {
+          orderId: syncRow.order_id,
+          status: syncRow.status,
+          order_no: syncRow.order_no || null,
+        });
+      }
+      if (io) {
+        io.to("admin").emit("mp_fulfillment:updated", {
+          fulfillment_id: id,
+          order_id: syncRow?.order_id,
+          vendor_id: syncRow?.vendor_id,
+          status: st,
+        });
+      }
       return res.json(r);
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });

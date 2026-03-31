@@ -10,6 +10,7 @@ const {
   setVendorFulfillmentStatus,
   VENDOR_FULFILLMENT_STATUSES,
   VENDOR_STATUS_LABEL_AR,
+  VENDOR_PORTAL_CUSTOMER_FACING_AR,
 } = require("./adora-mv-core");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 const {
@@ -46,7 +47,7 @@ function safeJsonParse(raw, fallback) {
 }
 
 function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromBuffer }) {
-  const nfy = (userId, title, message, link) => {
+  const pushCustomerNotify = (userId, title, message, link) => {
     if (typeof notifyUserInApp === "function") notifyUserInApp(userId, title, message, link);
   };
   const vendorImageUpload = createVendorPortalImageUpload();
@@ -246,7 +247,8 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     try {
       const id = Number(req.params.id);
       const f = await get(
-        `SELECT f.*, o.order_no, o.user_id, o.shipping_address, o.shipping_address_json, o.created_at AS order_created_at
+        `SELECT f.*, o.order_no, o.user_id, o.shipping_address, o.shipping_address_json, o.created_at AS order_created_at,
+                o.payment_method, o.total_price, o.status AS parent_order_status
          FROM order_vendor_fulfillments f
          INNER JOIN orders o ON o.id = f.order_id
          WHERE f.id=? AND f.vendor_id=?`,
@@ -255,12 +257,12 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       if (!f) return res.status(404).json({ error: "Not found" });
       const u = await get(`SELECT id, name, phone, email FROM users WHERE id=?`, [f.user_id]);
       const items = await all(
-        `SELECT id, product_name, qty, price, image_url, marketplace_product_id, variant_label
+        `SELECT id, product_name, qty, price, image_url, marketplace_product_id, variant_label, color, size, brand
          FROM order_items WHERE vendor_fulfillment_id=? ORDER BY id ASC`,
         [id]
       );
       const hist = await all(
-        `SELECT status, created_at FROM order_vendor_fulfillment_status_history WHERE fulfillment_id=? ORDER BY id ASC`,
+        `SELECT status, customer_note, created_at FROM order_vendor_fulfillment_status_history WHERE fulfillment_id=? ORDER BY id ASC`,
         [id]
       );
       let ship = null;
@@ -277,6 +279,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         history: hist,
         allowed_statuses: VENDOR_FULFILLMENT_STATUSES,
         status_labels_ar: VENDOR_STATUS_LABEL_AR,
+        portal_status_labels_ar: VENDOR_PORTAL_CUSTOMER_FACING_AR,
       });
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
@@ -292,9 +295,36 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       const st = req.body?.status != null ? String(req.body.status).trim() : "";
       const f = await get(`SELECT id, vendor_id FROM order_vendor_fulfillments WHERE id=?`, [id]);
       if (!f || Number(f.vendor_id) !== Number(req.mpVendor.id)) return res.status(404).json({ error: "Not found" });
-      const nfy = !!req.body?.notify_user;
-      const r = await setVendorFulfillmentStatus(id, st, { notifyUserInApp: nfy });
+      const notifyOff =
+        req.body?.notify_user === false || String(req.body?.notify_user || "").toLowerCase() === "false";
+      const wantNotify = !notifyOff;
+      const customerNote =
+        req.body?.customer_note != null ? String(req.body.customer_note).trim().slice(0, 2000) : "";
+      const r = await setVendorFulfillmentStatus(id, st, {
+        notifyUserInApp: wantNotify ? pushCustomerNotify : null,
+        customerNote: customerNote || undefined,
+      });
       if (!r.ok) return res.status(400).json({ error: r.error || "Invalid status" });
+      const io = app.get("io");
+      const syncRow = await get(
+        `SELECT f.order_id, o.user_id, o.order_no, o.status FROM order_vendor_fulfillments f INNER JOIN orders o ON o.id = f.order_id WHERE f.id=?`,
+        [id]
+      );
+      if (io && syncRow?.user_id) {
+        io.to(`user:${syncRow.user_id}`).emit("order:updated", {
+          orderId: syncRow.order_id,
+          status: syncRow.status,
+          order_no: syncRow.order_no || null,
+        });
+      }
+      if (io) {
+        io.to("admin").emit("mp_fulfillment:updated", {
+          fulfillment_id: id,
+          order_id: syncRow?.order_id,
+          vendor_id: f.vendor_id,
+          status: st,
+        });
+      }
       return res.json(r);
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });

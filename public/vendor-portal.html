@@ -294,6 +294,57 @@
       </div>
     </div>
   </div>
+
+  <div
+    id="vp-order-overlay"
+    class="hidden fixed inset-0 z-[400] flex items-end sm:items-center justify-center bg-black/55 p-0 sm:p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="vp-order-detail-title"
+  >
+    <div
+      class="w-full sm:max-w-xl max-h-[94vh] sm:max-h-[90vh] flex flex-col rounded-t-[1.75rem] sm:rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
+      onclick="event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0">
+        <h3 id="vp-order-detail-title" class="font-black text-gray-900 text-base">تفاصيل الطلب</h3>
+        <button
+          type="button"
+          id="vp-order-detail-close"
+          class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center"
+          aria-label="إغلاق"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="vp-order-detail-scroll" class="overflow-y-auto flex-1 min-h-0 p-4 text-sm text-gray-800 space-y-4"></div>
+      <div class="border-t border-violet-100 p-4 space-y-3 shrink-0 bg-violet-50/50">
+        <div>
+          <label class="block text-xs font-extrabold text-violet-900 mb-1">تحديث حالة الطلب</label>
+          <select id="vp-order-status-select" class="vp-input w-full text-sm font-bold"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-gray-700 mb-1">ملاحظة للزبون (اختياري)</label>
+          <textarea
+            id="vp-order-status-note"
+            rows="2"
+            maxlength="2000"
+            class="vp-input w-full text-sm resize-y"
+            placeholder="تفاصيل إضافية تظهر للزبون مع الإشعار…"
+          ></textarea>
+        </div>
+        <label class="flex items-start gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+          <input type="checkbox" id="vp-order-notify-user" class="mt-1 w-4 h-4 rounded border-violet-400 text-violet-600" checked />
+          <span>إرسال إشعار للزبون بالحالة الجديدة والملاحظة (إن وُجدت)</span>
+        </label>
+        <button type="button" id="vp-order-save-status" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-700 text-white font-extrabold text-sm shadow-md border-2 border-indigo-900">
+          حفظ الحالة
+        </button>
+        <p id="vp-order-status-msg" class="text-xs text-center min-h-[1rem] text-gray-600"></p>
+      </div>
+    </div>
+  </div>
+
   <script src="/vendor-portal.js"></script>
 </body>
 </html>

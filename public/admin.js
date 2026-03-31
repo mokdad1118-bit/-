@@ -211,6 +211,69 @@ async function api(path, { method = "GET", token, body, isFormData = false } = {
   return data;
 }
 
+let adminIoSocket = null;
+let adminMpFfRefreshTimer = null;
+
+function scheduleAdminFulfillmentsRefresh() {
+  if (adminMpFfRefreshTimer) clearTimeout(adminMpFfRefreshTimer);
+  adminMpFfRefreshTimer = setTimeout(() => {
+    adminMpFfRefreshTimer = null;
+    const acTab = document.getElementById("tab-adora-company");
+    const prodPane = document.getElementById("ac-pane-products");
+    if (!acTab || acTab.classList.contains("hidden")) return;
+    if (!prodPane || prodPane.classList.contains("hidden")) return;
+    const po = document.getElementById("ac-prod-pane-orders");
+    const ps = document.getElementById("ac-prod-pane-shared");
+    if (po && !po.classList.contains("hidden")) {
+      loadAdoraFulfillmentsTable({ shared: false }).catch(() => {});
+    }
+    if (ps && !ps.classList.contains("hidden")) {
+      loadAdoraFulfillmentsTable({ shared: true }).catch(() => {});
+    }
+  }, 350);
+}
+
+function connectAdminSocket() {
+  if (typeof io === "undefined") return;
+  const token = getToken();
+  if (!token) return;
+  if (adminIoSocket && adminIoSocket.connected) return;
+  if (adminIoSocket) {
+    try {
+      adminIoSocket.disconnect();
+    } catch (_e) {}
+    adminIoSocket = null;
+  }
+  const rawOrigin =
+    typeof window.ADORA_API_ORIGIN === "string" && window.ADORA_API_ORIGIN.trim()
+      ? window.ADORA_API_ORIGIN.trim()
+      : window.location.origin;
+  const socketUrl = String(rawOrigin).replace(/\/$/, "");
+  const norm = (o) => String(o || "").replace(/\/$/, "");
+  const forcePollingOnly =
+    typeof window.ADORA_FORCE_SOCKET_POLLING === "boolean" && window.ADORA_FORCE_SOCKET_POLLING;
+  const crossApi = norm(socketUrl) !== norm(window.location.origin) || forcePollingOnly;
+  const transportOpts = forcePollingOnly
+    ? { transports: ["polling"], upgrade: false }
+    : crossApi
+      ? { transports: ["websocket", "polling"], upgrade: true, rememberUpgrade: true }
+      : { transports: ["polling", "websocket"], upgrade: true, rememberUpgrade: true };
+  adminIoSocket = io(socketUrl, {
+    auth: { token },
+    ...transportOpts,
+    withCredentials: true,
+    timeout: 60000,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1500,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.5,
+  });
+  adminIoSocket.on("mp_fulfillment:updated", () => {
+    scheduleAdminFulfillmentsRefresh();
+  });
+}
+
 function showError(el, message) {
   el.textContent = message;
   el.classList.remove("hidden");
@@ -5741,6 +5804,7 @@ async function initAdoraCompanyAdminTab() {
     });
     switchAdoraCompanyMainTab("add");
   }
+  connectAdminSocket();
   await loadAdoraCompaniesTable();
 }
 

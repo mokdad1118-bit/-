@@ -957,6 +957,7 @@ async function migrateAdoraMultiVendorProgramFullV1() {
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
   await run(`CREATE INDEX IF NOT EXISTS idx_ovf_hist_f ON order_vendor_fulfillment_status_history (fulfillment_id)`);
+  await run(`ALTER TABLE order_vendor_fulfillment_status_history ADD COLUMN IF NOT EXISTS customer_note TEXT`);
 
   await run(
     `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS vendor_fulfillment_id INTEGER REFERENCES order_vendor_fulfillments(id) ON DELETE SET NULL`

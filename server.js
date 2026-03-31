@@ -3123,7 +3123,9 @@ initDb()
     socket.userId = payload.id;
     socket.userRole = payload.role || "user";
     socket.join(`user:${payload.id}`);
-    if (socket.userRole !== "admin") {
+    if (socket.userRole === "admin") {
+      socket.join("admin");
+    } else {
       socket.join("app-users");
     }
     return next();

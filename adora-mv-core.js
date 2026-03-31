@@ -21,6 +21,25 @@ const VENDOR_STATUS_LABEL_AR = {
   vendor_cancelled: "ملغي",
 };
 
+/** عناوين الحالة كما يقرأها الزبون في الإشعار عند تحديث المشترك */
+const VENDOR_PORTAL_CUSTOMER_FACING_AR = {
+  vendor_new: "جاري استلام طلبك",
+  vendor_accepted: "جاري تجميع طلبك",
+  vendor_preparing: "تم تجميع طلبك",
+  vendor_shipped: "جاري الشحن",
+  vendor_delivered: "تم تسليم الطلب للعميل",
+  vendor_cancelled: "ملغي",
+};
+
+const VENDOR_PORTAL_CUSTOMER_FACING_EN = {
+  vendor_new: "Receiving your order",
+  vendor_accepted: "Preparing your order",
+  vendor_preparing: "Your order has been assembled",
+  vendor_shipped: "Shipping in progress",
+  vendor_delivered: "Delivered to you",
+  vendor_cancelled: "Cancelled",
+};
+
 function isValidVendorFulfillmentStatus(s) {
   return VENDOR_FULFILLMENT_STATUSES.includes(String(s || "").trim());
 }
@@ -117,7 +136,7 @@ async function syncParentOrderStatusFromFulfillments(orderId) {
   await run(`INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`, [oid, next]);
 }
 
-async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUserInApp, statusChangedBy } = {}) {
+async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUserInApp, statusChangedBy, customerNote } = {}) {
   const fid = Number(fulfillmentId);
   if (!Number.isFinite(fid) || !isValidVendorFulfillmentStatus(newStatus)) {
     return { ok: false, error: "Invalid fulfillment or status" };
@@ -131,13 +150,24 @@ async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUser
     [fid]
   );
   if (!row) return { ok: false, error: "Not found" };
+  const noteTrim =
+    customerNote != null && String(customerNote).trim() ? String(customerNote).trim().slice(0, 2000) : null;
   await run(`UPDATE order_vendor_fulfillments SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [newStatus, fid]);
-  await run(`INSERT INTO order_vendor_fulfillment_status_history (fulfillment_id, status) VALUES (?, ?)`, [fid, newStatus]);
+  await run(`INSERT INTO order_vendor_fulfillment_status_history (fulfillment_id, status, customer_note) VALUES (?, ?, ?)`, [
+    fid,
+    newStatus,
+    noteTrim,
+  ]);
   await syncParentOrderStatusFromFulfillments(Number(row.order_id));
 
   const byAdmin = String(statusChangedBy || "").trim().toLowerCase() === "admin";
   const vname = String(row.vendor_name_ar || row.vendor_name_en || "الشركة").trim();
-  const label = VENDOR_STATUS_LABEL_AR[newStatus] || newStatus;
+  const labelAr = byAdmin
+    ? VENDOR_STATUS_LABEL_AR[newStatus] || newStatus
+    : VENDOR_PORTAL_CUSTOMER_FACING_AR[newStatus] || VENDOR_STATUS_LABEL_AR[newStatus] || newStatus;
+  const labelEn = byAdmin
+    ? String(VENDOR_STATUS_LABEL_AR[newStatus] || newStatus)
+    : VENDOR_PORTAL_CUSTOMER_FACING_EN[newStatus] || String(VENDOR_STATUS_LABEL_AR[newStatus] || newStatus);
   const ord = row.order_no != null ? String(row.order_no).trim() : "";
   const title = ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
 
@@ -146,11 +176,15 @@ async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUser
     let msgAr;
     let msgEn;
     if (byAdmin) {
-      msgAr = `أبلغتك إدارة منصة Adora رسمياً: تم تغيير حالة طلبك المرتبط بشركة «${vname}» إلى «${label}». رقم الطلب: ${ord || "—"}.`;
-      msgEn = `Adora administration officially updated your order status (vendor: ${vname}) to: ${label}. Order ref: ${ord || "—"}.`;
+      msgAr = `أبلغتك إدارة منصة Adora رسمياً: تم تغيير حالة طلبك المرتبط بشركة «${vname}» إلى «${labelAr}». رقم الطلب: ${ord || "—"}.`;
+      msgEn = `Adora administration officially updated your order status (vendor: ${vname}) to: ${labelEn}. Order ref: ${ord || "—"}.`;
     } else {
-      msgAr = `تم تغيير حالة طلبك إلى (${label}) من شركة (${vname}) — Adora`;
-      msgEn = `Your order status: ${label} — from ${vname} — Adora`;
+      msgAr = `تم تحديث حالة طلبك إلى: «${labelAr}» — من شركة «${vname}» — Adora. رقم الطلب: ${ord || "—"}.`;
+      msgEn = `Your order status: ${labelEn} — from ${vname} — Adora. Order ref: ${ord || "—"}.`;
+    }
+    if (noteTrim) {
+      msgAr += `\n\nملاحظة من الشركة: ${noteTrim}`;
+      msgEn += `\n\nNote from the seller: ${noteTrim}`;
     }
     try {
       await notifyUserInApp(uid, title, `${msgAr}\n${msgEn}`, "/");
@@ -163,8 +197,8 @@ async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUser
     const vid = Number(row.vendor_id);
     const titleOfficial = "إشعار رسمي من إدارة Adora";
     const msgPortal =
-      `تم تغيير حالة طلبك الفرعي (التنفيذ رقم ${fid}) المرتبط بطلب العميل «${ord || "#" + row.order_id}» إلى: «${label}» — وذلك بقرار من إدارة منصة Adora.\n\n` +
-      `Official notice: Adora administration updated your fulfillment #${fid} (customer order ${ord || row.order_id}) to: ${newStatus} (${label}).`;
+      `تم تغيير حالة طلبك الفرعي (التنفيذ رقم ${fid}) المرتبط بطلب العميل «${ord || "#" + row.order_id}» إلى: «${labelAr}» — وذلك بقرار من إدارة منصة Adora.\n\n` +
+      `Official notice: Adora administration updated your fulfillment #${fid} (customer order ${ord || row.order_id}) to: ${newStatus} (${labelEn}).`;
     if (Number.isFinite(vid) && vid > 0) {
       try {
         await run(
@@ -276,6 +310,8 @@ async function deleteMarketplaceVendorCompletely(vendorId) {
 module.exports = {
   VENDOR_FULFILLMENT_STATUSES,
   VENDOR_STATUS_LABEL_AR,
+  VENDOR_PORTAL_CUSTOMER_FACING_AR,
+  VENDOR_PORTAL_CUSTOMER_FACING_EN,
   isValidVendorFulfillmentStatus,
   allocateNextPublicVendorCode,
   allocateNextPublicProductCode,
