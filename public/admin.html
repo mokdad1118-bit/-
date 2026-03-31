@@ -83,6 +83,10 @@
         flex-shrink: 0;
         opacity: 0.95;
       }
+      .ac-ff-detail-scroll {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-gutter: stable;
+      }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
@@ -2056,6 +2060,61 @@
             </button>
           </nav>
         </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- Marketplace fulfillment detail (إضافة شركة → طلبات الشركات) -->
+    <div
+      id="ac-ff-detail-overlay"
+      class="hidden fixed inset-0 z-[220] flex items-end sm:items-center justify-center bg-black/55 p-0 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ac-ff-detail-title"
+    >
+      <div
+        id="ac-ff-detail-dialog"
+        class="w-full sm:max-w-2xl h-[min(92dvh,900px)] max-h-[96vh] sm:max-h-[min(90vh,880px)] flex flex-col min-h-0 rounded-t-[1.75rem] sm:rounded-2xl shadow-2xl bg-white border border-violet-100 overflow-hidden"
+        onclick="event.stopPropagation()"
+      >
+        <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-l from-violet-50 to-white shrink-0 z-10">
+          <h3 id="ac-ff-detail-title" class="font-black text-gray-900 text-base" data-en="Fulfillment details" data-ar="تفاصيل الطلب الفرعي">تفاصيل الطلب الفرعي</h3>
+          <button
+            type="button"
+            id="ac-ff-detail-close"
+            class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center"
+            aria-label="Close"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div
+          id="ac-ff-detail-scroll"
+          class="ac-ff-detail-scroll overflow-y-scroll flex-1 min-h-0 p-4 text-sm text-gray-800 space-y-4 overscroll-y-contain"
+        ></div>
+        <div class="border-t border-violet-100 p-4 space-y-3 shrink-0 bg-violet-50/50 z-10">
+          <div>
+            <label class="block text-xs font-extrabold text-violet-900 mb-1" data-en="Update fulfillment status" data-ar="تحديث حالة التنفيذ الفرعي">تحديث حالة التنفيذ الفرعي</label>
+            <select id="ac-ff-status-select" class="w-full p-2 rounded-xl border border-gray-200 text-sm font-bold"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-gray-700 mb-1" data-en="Note to customer (optional)" data-ar="ملاحظة للزبون (اختياري)">ملاحظة للزبون (اختياري)</label>
+            <textarea id="ac-ff-status-note" rows="2" maxlength="2000" class="w-full p-2 rounded-xl border border-gray-200 text-sm resize-y" placeholder="…"></textarea>
+          </div>
+          <label class="flex items-start gap-2 text-sm font-bold text-gray-800 cursor-pointer">
+            <input type="checkbox" id="ac-ff-notify-user" class="mt-1 w-4 h-4 rounded border-violet-400 text-violet-600" checked />
+            <span data-en="Notify customer in app" data-ar="إرسال إشعار للزبون في التطبيق">إرسال إشعار للزبون في التطبيق</span>
+          </label>
+          <button
+            type="button"
+            id="ac-ff-save-status"
+            class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-700 text-white font-extrabold text-sm shadow-md border-2 border-indigo-900"
+            data-en="Save status"
+            data-ar="حفظ الحالة"
+          >
+            حفظ الحالة
+          </button>
+          <p id="ac-ff-status-msg" class="text-xs text-center min-h-[1rem] text-gray-600"></p>
         </div>
       </div>
     </div>

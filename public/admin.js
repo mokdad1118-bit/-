@@ -233,6 +233,167 @@ function scheduleAdminFulfillmentsRefresh() {
   }, 350);
 }
 
+let acFfDetailOpenId = null;
+let acFfDetailShared = false;
+
+function closeAcFfDetailOverlay() {
+  const ov = document.getElementById("ac-ff-detail-overlay");
+  if (ov) ov.classList.add("hidden");
+  document.body.style.overflow = "";
+  acFfDetailOpenId = null;
+}
+
+function acFfAbsMediaUrl(u) {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("//")) return (typeof location !== "undefined" ? location.protocol : "https:") + s;
+  if (s.startsWith("/")) return (typeof location !== "undefined" ? location.origin : "") + s;
+  return s;
+}
+
+async function openAcFulfillmentDetail(ffId, shared) {
+  const id = Number(ffId);
+  if (!Number.isFinite(id)) return;
+  acFfDetailOpenId = id;
+  acFfDetailShared = !!shared;
+  const ar = getAdminLang() === "ar";
+  const overlay = document.getElementById("ac-ff-detail-overlay");
+  const scroll = document.getElementById("ac-ff-detail-scroll");
+  const title = document.getElementById("ac-ff-detail-title");
+  const sel = document.getElementById("ac-ff-status-select");
+  const note = document.getElementById("ac-ff-status-note");
+  const notifyCb = document.getElementById("ac-ff-notify-user");
+  const msg = document.getElementById("ac-ff-status-msg");
+  if (!overlay || !scroll) return;
+  if (msg) msg.textContent = "";
+  if (note) note.value = "";
+  if (notifyCb) notifyCb.checked = true;
+  scroll.innerHTML = `<p class="text-center text-gray-500 py-6">${ar ? "جاري التحميل…" : "Loading…"}</p>`;
+  overlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  const token = getToken();
+  try {
+    const data = await api(`/api/admin/order-vendor-fulfillments/${encodeURIComponent(id)}`, { token });
+    const f = data.fulfillment;
+    const cust = data.customer || {};
+    const portalAr = data.portal_status_labels_ar || {};
+    const portalEn = data.portal_status_labels_en || {};
+    const slabAr = data.status_labels_ar || {};
+    if (title) {
+      title.textContent = ar
+        ? `طلب ${f.order_no || "#" + f.order_id}`
+        : `Order ${f.order_no || "#" + f.order_id}`;
+    }
+    const vname = ar ? f.vendor_name_ar || f.vendor_name_en : f.vendor_name_en || f.vendor_name_ar;
+    const pay = String(f.payment_method || "").trim();
+    const payLab =
+      pay === "cod"
+        ? ar
+          ? "الدفع عند الاستلام"
+          : "Cash on delivery"
+        : pay === "card"
+          ? ar
+            ? "بطاقة"
+            : "Card"
+          : pay || "—";
+    let shipBlock = "";
+    if (data.shipping_structured && typeof data.shipping_structured === "object") {
+      const s = data.shipping_structured;
+      shipBlock =
+        `<div class="rounded-xl border border-gray-200 p-3 bg-gray-50/80 space-y-1 text-xs">` +
+        `<p class="font-black text-gray-900 mb-2">${ar ? "بيانات التوصيل" : "Shipping"}</p>` +
+        `<p><strong>${ar ? "الاسم" : "Name"}:</strong> ${escapeHtml(s.full_name)}</p>` +
+        `<p><strong>${ar ? "الهاتف" : "Phone"}:</strong> <a class="text-violet-700 font-bold" href="tel:${escapeHtml(String(s.phone || ""))}">${escapeHtml(String(s.phone || ""))}</a></p>` +
+        `<p><strong>${ar ? "المحافظة" : "Governorate"}:</strong> ${escapeHtml(s.governorate)}</p>` +
+        `<p><strong>${ar ? "المنطقة" : "Area"}:</strong> ${escapeHtml(s.region)}</p>` +
+        `<p><strong>${ar ? "العنوان" : "Address"}:</strong> ${escapeHtml(s.address)}</p></div>`;
+    } else if (f.shipping_address) {
+      shipBlock =
+        `<div class="rounded-xl border border-gray-200 p-3 bg-gray-50/80"><p class="font-black text-gray-900 mb-1 text-xs">${ar ? "العنوان" : "Address"}</p><pre class="whitespace-pre-wrap text-xs">${escapeHtml(f.shipping_address)}</pre></div>`;
+    }
+    const custBlock =
+      `<div class="rounded-xl border border-violet-200 p-3 bg-violet-50/40 space-y-1 text-xs">` +
+      `<p class="font-black text-violet-950 mb-2">${ar ? "بيانات الزبون" : "Customer"}</p>` +
+      `<p><strong>${ar ? "الاسم" : "Name"}:</strong> ${escapeHtml(cust.name)}</p>` +
+      `<p><strong>${ar ? "الهاتف" : "Phone"}:</strong> ` +
+      (cust.phone
+        ? `<a class="text-violet-700 font-bold" href="tel:${escapeHtml(cust.phone)}">${escapeHtml(cust.phone)}</a>`
+        : "—") +
+      `</p>` +
+      `<p><strong>${ar ? "البريد" : "Email"}:</strong> ` +
+      (cust.email
+        ? `<a class="text-violet-700 break-all" href="mailto:${escapeHtml(cust.email)}">${escapeHtml(cust.email)}</a>`
+        : "—") +
+      `</p></div>`;
+    const parentSt = f.parent_order_status || "";
+    const itemsHtml =
+      (data.items || [])
+        .map((it) => {
+          const img = it.image_url ? acFfAbsMediaUrl(it.image_url) : "";
+          const imgCell = img
+            ? `<a href="${escapeHtml(img)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-1"><img src="${escapeHtml(img)}" alt="" class="h-16 w-16 object-cover rounded-lg border border-gray-200 hover:opacity-90" /></a><div class="mt-1"><a href="${escapeHtml(img)}" target="_blank" rel="noopener" class="text-[10px] font-bold text-violet-700">${ar ? "فتح الصورة" : "Open image"}</a></div>`
+            : "";
+          const meta = [it.variant_label, it.color, it.size, it.brand].filter(Boolean).join(" · ");
+          return (
+            `<div class="rounded-xl border border-gray-100 p-3 flex gap-3">` +
+            `<div class="flex-1 min-w-0">` +
+            `<p class="font-bold text-gray-900">${escapeHtml(it.product_name)}</p>` +
+            `<p class="text-[11px] text-gray-600 mt-1">${ar ? "الكمية" : "Qty"}: ${escapeHtml(String(it.qty))} × ${ar ? "السعر" : "Price"}: ${escapeHtml(String(it.price))}</p>` +
+            (meta ? `<p class="text-[11px] text-gray-500 mt-1">${escapeHtml(meta)}</p>` : "") +
+            `</div><div class="shrink-0 text-center">${imgCell}</div></div>`
+          );
+        })
+        .join("") || `<p class="text-gray-400">${ar ? "لا بنود." : "No items."}</p>`;
+    const hist = (data.history || [])
+      .map((h) => {
+        const slab = ar
+          ? portalAr[h.status] || slabAr[h.status] || h.status
+          : portalEn[h.status] || slabAr[h.status] || h.status;
+        const nt = h.customer_note
+          ? `<div class="text-[10px] text-gray-600 mt-1">${ar ? "ملاحظة" : "Note"}: ${escapeHtml(h.customer_note)}</div>`
+          : "";
+        return (
+          `<div class="border-b border-gray-100 py-2 text-xs"><span class="font-bold">${escapeHtml(slab)}</span> ` +
+          `<span class="text-gray-400">${escapeHtml(h.created_at || "")}</span>${nt}</div>`
+        );
+      })
+      .join("");
+    const stParent = MV_F_STATUS_LABELS[f.status] || { ar: f.status, en: f.status };
+    const stNow = ar ? stParent.ar : stParent.en;
+    scroll.innerHTML =
+      `<div class="flex flex-wrap gap-2 text-xs">` +
+      `<span class="px-2 py-1 rounded-lg bg-gray-100 font-mono">${ar ? "تنفيذ" : "Fulfillment"} #${f.id}</span>` +
+      `<span class="px-2 py-1 rounded-lg bg-indigo-100 font-bold">${ar ? "شركة" : "Vendor"}: ${escapeHtml(vname || "")}</span>` +
+      `<span class="px-2 py-1 rounded-lg bg-emerald-50">${ar ? "مجموع الشركة" : "Subtotal"}: ${escapeHtml(String(f.subtotal))}</span>` +
+      `<span class="px-2 py-1 rounded-lg bg-amber-50">${ar ? "دفع" : "Pay"}: ${escapeHtml(payLab)}</span>` +
+      `</div>` +
+      `<p class="text-xs text-gray-600"><strong>${ar ? "حالة التنفيذ الفرعي" : "Fulfillment status"}:</strong> ${escapeHtml(stNow)}</p>` +
+      (parentSt
+        ? `<p class="text-xs text-gray-600"><strong>${ar ? "حالة الطلب الأب" : "Parent order status"}:</strong> ${escapeHtml(formatOrderStatusLabel(parentSt))}</p>`
+        : "") +
+      custBlock +
+      shipBlock +
+      `<div><p class="font-black text-gray-900 mb-2">${ar ? "المنتجات" : "Items"}</p>${itemsHtml}</div>` +
+      `<div><p class="font-black text-gray-900 mb-2">${ar ? "سجل الحالات" : "Status history"}</p><div class="max-h-48 overflow-y-auto">${hist || "—"}</div></div>`;
+
+    const allowed = data.allowed_statuses || [];
+    if (sel) {
+      sel.innerHTML = allowed
+        .map((st) => {
+          const lab = ar ? portalAr[st] || slabAr[st] || st : portalEn[st] || slabAr[st] || st;
+          const v = String(st).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+          const selAttr = String(f.status) === String(st) ? " selected" : "";
+          return `<option value="${v}"${selAttr}>${escapeHtml(lab)}</option>`;
+        })
+        .join("");
+    }
+  } catch (err) {
+    scroll.innerHTML = `<p class="text-red-600">${escapeHtml(err.message || String(err))}</p>`;
+    acFfDetailOpenId = null;
+  }
+}
+
 function connectAdminSocket() {
   if (typeof io === "undefined") return;
   const token = getToken();
@@ -269,8 +430,14 @@ function connectAdminSocket() {
     reconnectionDelayMax: 30000,
     randomizationFactor: 0.5,
   });
-  adminIoSocket.on("mp_fulfillment:updated", () => {
+  adminIoSocket.on("mp_fulfillment:updated", (payload) => {
     scheduleAdminFulfillmentsRefresh();
+    try {
+      const fid = payload && payload.fulfillment_id != null ? Number(payload.fulfillment_id) : NaN;
+      if (acFfDetailOpenId != null && Number.isFinite(fid) && fid === Number(acFfDetailOpenId)) {
+        openAcFulfillmentDetail(acFfDetailOpenId, acFfDetailShared).catch(() => {});
+      }
+    } catch (_e) {}
   });
 }
 
@@ -5696,6 +5863,41 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-edit-dialog")?.addEventListener("click", (ev) => ev.stopPropagation());
     document.getElementById("ac-edit-close")?.addEventListener("click", () => closeAcEditModal());
     document.getElementById("ac-edit-cancel")?.addEventListener("click", () => closeAcEditModal());
+    document.getElementById("ac-ff-detail-overlay")?.addEventListener("click", (ev) => {
+      if (ev.target === ev.currentTarget) closeAcFfDetailOverlay();
+    });
+    document.getElementById("ac-ff-detail-dialog")?.addEventListener("click", (ev) => ev.stopPropagation());
+    document.getElementById("ac-ff-detail-close")?.addEventListener("click", () => closeAcFfDetailOverlay());
+    document.getElementById("ac-ff-save-status")?.addEventListener("click", async () => {
+      const id = acFfDetailOpenId;
+      const sel = document.getElementById("ac-ff-status-select");
+      const note = document.getElementById("ac-ff-status-note");
+      const notifyCb = document.getElementById("ac-ff-notify-user");
+      const msg = document.getElementById("ac-ff-status-msg");
+      const ar = getAdminLang() === "ar";
+      if (!id || !sel) return;
+      const st = sel.value;
+      if (!st) return;
+      const token = getToken();
+      if (!token) return;
+      if (msg) msg.textContent = ar ? "جاري الحفظ…" : "Saving…";
+      try {
+        await api(`/api/admin/order-vendor-fulfillments/${encodeURIComponent(id)}/status`, {
+          method: "PUT",
+          token,
+          body: {
+            status: st,
+            customer_note: note && note.value ? note.value.trim() : "",
+            notify_user: notifyCb ? notifyCb.checked : true,
+          },
+        });
+        if (msg) msg.textContent = ar ? "تم الحفظ." : "Saved.";
+        await openAcFulfillmentDetail(id, acFfDetailShared);
+        await loadAdoraFulfillmentsTable({ shared: acFfDetailShared });
+      } catch (err) {
+        if (msg) msg.textContent = err.message || String(err);
+      }
+    });
     document.getElementById("ac-edit-company-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const t = getToken();
@@ -5745,6 +5947,24 @@ async function initAdoraCompanyAdminTab() {
     if (acRoot) {
       acRoot.addEventListener("click", (ev) => {
         if (!(ev.target instanceof Element)) return;
+        const ffOrder = ev.target.closest(".ac-ff-order-link");
+        if (ffOrder) {
+          const id = Number(ffOrder.getAttribute("data-ff-id"));
+          const shared = ffOrder.getAttribute("data-shared") === "1";
+          if (Number.isFinite(id)) {
+            openAcFulfillmentDetail(id, shared).catch((e) => alert(e.message || String(e)));
+          }
+          return;
+        }
+        const ffUp = ev.target.closest(".ac-ff-up");
+        if (ffUp) {
+          const id = Number(ffUp.getAttribute("data-id"));
+          const shared = ffUp.getAttribute("data-shared") === "1";
+          if (Number.isFinite(id)) {
+            openAcFulfillmentDetail(id, shared).catch((e) => alert(e.message || String(e)));
+          }
+          return;
+        }
         if (ev.target.closest("#ac-mp-apply")) {
           loadAcAllMarketplaceProducts().catch(() => {});
           return;
@@ -5859,32 +6079,16 @@ async function loadAdoraFulfillmentsTable(opts = {}) {
         const st = MV_F_STATUS_LABELS[r.status] || { ar: r.status, en: r.status };
         const sl = ar ? st.ar : st.en;
         const vname = ar ? r.vendor_name_ar : r.vendor_name_en;
+        const sh = shared ? "1" : "0";
         return `<tr class="border-b border-gray-100 text-sm">
-          <td class="py-2 pr-2 font-mono">${escapeHtml(r.order_no || "")}</td>
+          <td class="py-2 pr-2 font-mono"><button type="button" class="text-violet-700 font-bold underline-offset-2 hover:underline ac-ff-order-link" data-ff-id="${r.id}" data-shared="${sh}">${escapeHtml(r.order_no || "")}</button></td>
           <td class="py-2 pr-2">${escapeHtml(vname || "")}</td>
           <td class="py-2 pr-2">${escapeHtml(sl)}</td>
           <td class="py-2 pr-2">${escapeHtml(r.created_at || "")}</td>
-          <td class="py-2"><button type="button" class="text-purple-600 font-bold ac-ff-up" data-id="${r.id}">${ar ? "تحديث" : "Update"}</button></td>
+          <td class="py-2"><button type="button" class="text-purple-600 font-bold ac-ff-up" data-id="${r.id}" data-shared="${sh}">${ar ? "تفاصيل" : "Details"}</button></td>
         </tr>`;
       })
       .join("");
-    tbody.querySelectorAll(".ac-ff-up").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        const next = prompt(ar ? "الحالة الجديدة (vendor_new … vendor_delivered)" : "New status key");
-        if (!next) return;
-        try {
-          await api(`/api/admin/order-vendor-fulfillments/${id}/status`, {
-            method: "PUT",
-            token,
-            body: { status: next.trim() },
-          });
-          await loadAdoraFulfillmentsTable({ shared });
-        } catch (err) {
-          alert(err.message || String(err));
-        }
-      });
-    });
     if (!list.length) tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-gray-500">${ar ? "لا نتائج." : "No rows."}</td></tr>`;
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;

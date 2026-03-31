@@ -8,6 +8,8 @@ const {
   setVendorFulfillmentStatus,
   VENDOR_FULFILLMENT_STATUSES,
   VENDOR_STATUS_LABEL_AR,
+  VENDOR_PORTAL_CUSTOMER_FACING_AR,
+  VENDOR_PORTAL_CUSTOMER_FACING_EN,
   deleteMarketplaceVendorCompletely,
 } = require("./adora-mv-core");
 
@@ -257,6 +259,53 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
           status_label_ar: VENDOR_STATUS_LABEL_AR[r.status] || r.status,
         }))
       );
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  app.get("/api/admin/order-vendor-fulfillments/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const f = await get(
+        `SELECT f.*, o.order_no, o.user_id, o.shipping_address, o.shipping_address_json, o.created_at AS order_created_at,
+                o.payment_method, o.total_price, o.status AS parent_order_status,
+                mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en, mv.public_vendor_code
+         FROM order_vendor_fulfillments f
+         INNER JOIN orders o ON o.id = f.order_id
+         INNER JOIN marketplace_vendors mv ON mv.id = f.vendor_id
+         WHERE f.id=?`,
+        [id]
+      );
+      if (!f) return res.status(404).json({ error: "Not found" });
+      const u = await get(`SELECT id, name, phone, email FROM users WHERE id=?`, [f.user_id]);
+      const items = await all(
+        `SELECT id, product_name, qty, price, image_url, marketplace_product_id, variant_label, color, size, brand
+         FROM order_items WHERE vendor_fulfillment_id=? ORDER BY id ASC`,
+        [id]
+      );
+      const hist = await all(
+        `SELECT status, customer_note, created_at FROM order_vendor_fulfillment_status_history WHERE fulfillment_id=? ORDER BY id ASC`,
+        [id]
+      );
+      let ship = null;
+      try {
+        ship = f.shipping_address_json ? JSON.parse(f.shipping_address_json) : null;
+      } catch (_e) {
+        ship = null;
+      }
+      return res.json({
+        fulfillment: f,
+        customer: u,
+        shipping_structured: ship,
+        items,
+        history: hist,
+        allowed_statuses: VENDOR_FULFILLMENT_STATUSES,
+        status_labels_ar: VENDOR_STATUS_LABEL_AR,
+        portal_status_labels_ar: VENDOR_PORTAL_CUSTOMER_FACING_AR,
+        portal_status_labels_en: VENDOR_PORTAL_CUSTOMER_FACING_EN,
+      });
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
     }

@@ -16,6 +16,15 @@ body.vp-page {
   color: #111827;
 }
 
+/* نافذة تفاصيل الطلب: رأس ثابت + منطقة تمرير واضحة */
+#vp-order-detail-scroll.vp-order-detail-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+#vp-order-overlay .vp-order-modal-panel {
+  box-sizing: border-box;
+}
+
 .vp-container {
   max-width: 28rem;
   margin-left: auto;
