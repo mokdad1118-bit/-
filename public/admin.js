@@ -69,6 +69,17 @@ function getAdminLang() {
   return localStorage.getItem(ADMIN_LANG_KEY) || "ar";
 }
 
+function syncAdminDashSidebarOrder() {
+  const mainCol = document.getElementById("admin-dash-main");
+  const side = document.getElementById("admin-sidebar");
+  if (!mainCol || !side) return;
+  const ar = getAdminLang() === "ar";
+  mainCol.classList.remove("lg:order-2", "lg:order-none");
+  mainCol.classList.add(ar ? "lg:order-2" : "lg:order-none");
+  side.classList.remove("lg:order-1", "lg:order-none");
+  side.classList.add(ar ? "lg:order-1" : "lg:order-none");
+}
+
 function setAdminLang(lang) {
   localStorage.setItem(ADMIN_LANG_KEY, lang === "ar" ? "ar" : "en");
   applyAdminLang();
@@ -124,6 +135,7 @@ function applyAdminLang() {
   }
   const vis = document.querySelector(".tab-panel:not(.hidden)");
   if (vis?.id) updateAdminActiveSectionLabel(vis.id);
+  syncAdminDashSidebarOrder();
 }
 
 function getToken() {
@@ -408,38 +420,23 @@ function updateAdminActiveSectionLabel(tabId) {
 
 let adminSidebarUiBound = false;
 
-function closeAdminSidebar() {
-  const panel = document.getElementById("admin-sidebar");
-  const bd = document.getElementById("admin-sidebar-backdrop");
-  if (panel) {
-    panel.classList.remove("is-open");
-    panel.setAttribute("aria-hidden", "true");
-  }
-  if (bd) {
-    bd.classList.remove("is-open");
-    bd.setAttribute("aria-hidden", "true");
-  }
-  document.body.classList.remove("admin-sidebar-noscroll");
+function adminSidebarNarrowMq() {
+  return typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
 }
 
-function openAdminSidebar() {
-  const panel = document.getElementById("admin-sidebar");
-  const bd = document.getElementById("admin-sidebar-backdrop");
-  if (panel) {
-    panel.classList.add("is-open");
-    panel.setAttribute("aria-hidden", "false");
-  }
-  if (bd) {
-    bd.classList.add("is-open");
-    bd.setAttribute("aria-hidden", "false");
-  }
-  document.body.classList.add("admin-sidebar-noscroll");
+/** يغلق لوحة الأقسام على الجوال فقط (لا طبقة فوق المحتوى). */
+function closeAdminSidebar() {
+  document.getElementById("admin-sidebar")?.classList.remove("is-open-mobile");
 }
 
 function toggleAdminSidebar() {
   const panel = document.getElementById("admin-sidebar");
-  if (panel?.classList.contains("is-open")) closeAdminSidebar();
-  else openAdminSidebar();
+  if (!panel) return;
+  if (adminSidebarNarrowMq()) {
+    panel.classList.toggle("is-open-mobile");
+  } else {
+    panel.classList.toggle("is-collapsed");
+  }
 }
 
 function bindAdminSidebarOnce() {
@@ -447,7 +444,6 @@ function bindAdminSidebarOnce() {
   adminSidebarUiBound = true;
   document.getElementById("admin-sidebar-toggle")?.addEventListener("click", () => toggleAdminSidebar());
   document.getElementById("admin-sidebar-close")?.addEventListener("click", () => closeAdminSidebar());
-  document.getElementById("admin-sidebar-backdrop")?.addEventListener("click", () => closeAdminSidebar());
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-tab");
@@ -457,8 +453,7 @@ function bindAdminSidebarOnce() {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    const panel = document.getElementById("admin-sidebar");
-    if (panel?.classList.contains("is-open")) closeAdminSidebar();
+    closeAdminSidebar();
   });
 }
 
