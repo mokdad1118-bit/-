@@ -2983,6 +2983,10 @@ function sendAdminPanel(_req, res) {
 }
 app.get("/admin", sendAdminPanel);
 app.get("/admin/", sendAdminPanel);
+/** مسار قديم في HTML؛ الملفات تُقدَّم من جذر public كـ /admin.js */
+app.get("/public/admin.js", (_req, res) => {
+  res.redirect(301, "/admin.js");
+});
 
 app.get("/manifest.json", (_req, res) => {
   res.type("application/manifest+json; charset=utf-8");

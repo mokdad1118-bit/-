@@ -463,11 +463,16 @@ function bindAdminSidebarOnce() {
 }
 
 function setActiveTab(tabId) {
+  const panelEl = tabId ? document.getElementById(tabId) : null;
+  if (!panelEl || !panelEl.classList.contains("tab-panel")) {
+    console.error("[admin] setActiveTab: missing or invalid panel", tabId);
+    return;
+  }
   document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
   document.querySelectorAll(".tab-btn").forEach((b) => {
     b.classList.remove("admin-sidebar-item--active");
   });
-  document.getElementById(tabId).classList.remove("hidden");
+  panelEl.classList.remove("hidden");
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   if (btn) btn.classList.add("admin-sidebar-item--active");
   updateAdminActiveSectionLabel(tabId);
