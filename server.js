@@ -1518,7 +1518,7 @@ app.get("/api/search/suggestions", async (req, res) => {
         const { where, params } = buildMpClauses();
         const sqlHub = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
         FROM marketplace_products mp
-        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         WHERE mp.is_active = 1 ${mpHubSql} AND (${where})
         ORDER BY mp.id DESC
@@ -1548,7 +1548,7 @@ app.get("/api/search/suggestions", async (req, res) => {
       }
       const sql = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
         FROM marketplace_products mp
-        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         WHERE mp.is_active = 1 ${mpScopeExtra} AND (${where})
         ORDER BY mp.id DESC
@@ -2158,7 +2158,10 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
       if (!mpid) continue;
       const mp = await get(
-        `SELECT id, stock, name_ar, inventory_json, product_options_json FROM marketplace_products WHERE id=? AND is_active = 1`,
+        `SELECT mp.id, mp.stock, mp.name_ar, mp.inventory_json, mp.product_options_json
+         FROM marketplace_products mp
+         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
+         WHERE mp.id=? AND mp.is_active = 1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`,
         [mpid]
       );
       if (!mp) {
@@ -2511,7 +2514,7 @@ app.get("/api/offers", async (req, res) => {
               ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
               mprev.review_avg, mprev.review_count
        FROM marketplace_products mp
-       INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+       INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
        INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
        LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
        LEFT JOIN (

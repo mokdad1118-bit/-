@@ -135,6 +135,9 @@ function normalizeVendorListingStatus(raw, curRow) {
 /** منتجات البائع غير المعتمدة لا تظهر للزبائن في واجهة التطبيق */
 const MP_PUBLIC_LISTING_FILTER = `AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`;
 
+/** شركة موقوفة من الإدارة (إيقاف البوابة) لا تظهر للزبائن مع منتجاتها */
+const MP_PUBLIC_VENDOR_ACTIVE = `mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0`;
+
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.public_product_code, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id, mp.is_mp_featured, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.vendor_listing_status,
@@ -181,7 +184,7 @@ async function mergeMpHomeStripFlagProducts(result) {
 }
 
 const MP_FROM = `FROM marketplace_products mp
-      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+      INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
       INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
       LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id`;
 
@@ -195,7 +198,7 @@ async function resolveMpHomeSlotItems(placements, slot) {
     if (!Number.isFinite(tid)) continue;
     if (tt === "vendor") {
       const v = await get(
-        `SELECT id, name_ar, name_en, logo_url FROM marketplace_vendors WHERE id=? AND COALESCE(is_active,1)=1`,
+        `SELECT id, name_ar, name_en, logo_url FROM marketplace_vendors WHERE id=? AND COALESCE(is_active,1)=1 AND COALESCE(portal_suspended,0)=0`,
         [tid]
       );
       if (!v) continue;
@@ -317,7 +320,7 @@ async function fetchMarketplaceProductsByPromotionSlot(slot, limit) {
       pr.id AS promo_id, pr.priority AS promo_priority, pr.slot AS promo_slot
      FROM marketplace_product_promotions pr
      INNER JOIN marketplace_products mp ON mp.id = pr.product_id AND mp.is_active = 1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'
-     INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+     INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
      INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
      LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
      ${MP_REVIEW_JOIN_SQL}
@@ -544,7 +547,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       let sql = `SELECT id, section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order,
                         COALESCE(is_premium, 0) AS is_premium, premium_until,
                         COALESCE(premium_subscription_type, 'none') AS premium_subscription_type
-                 FROM marketplace_vendors WHERE is_active = 1`;
+                 FROM marketplace_vendors WHERE is_active = 1 AND COALESCE(portal_suspended, 0) = 0`;
       const params = [];
       if (sid != null && Number.isFinite(sid)) {
         sql += ` AND section_id = ?`;
@@ -605,7 +608,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                         mprev.review_avg, mprev.review_count
                         ${promoSelect}
                  FROM marketplace_products mp
-                 INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+                 INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
                  INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
                  LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
                  ${MP_REVIEW_JOIN_SQL}
@@ -755,10 +758,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
                 mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
                 ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en
          FROM marketplace_products mp
-         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id
-         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id
+         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
+         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
          LEFT JOIN marketplace_vendor_departments mvd ON mvd.id = mp.department_id
-         WHERE mp.id = ? AND mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND mv.is_active = 1 AND ms.is_active = 1`,
+         WHERE mp.id = ? AND mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER}`,
         [id]
       );
       if (!row) return res.status(404).json({ error: "Not found" });
@@ -773,7 +776,9 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const productId = Number(req.params.id);
       if (!Number.isFinite(productId)) return res.status(400).json({ error: "Invalid id" });
       const p = await get(
-        `SELECT id FROM marketplace_products WHERE id=? AND is_active=1 AND COALESCE(vendor_listing_status, 'published') = 'published'`,
+        `SELECT mp.id FROM marketplace_products mp
+         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
+         WHERE mp.id=? AND mp.is_active=1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`,
         [productId]
       );
       if (!p) return res.status(404).json({ error: "Not found" });
@@ -826,7 +831,9 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       let comment = req.body.comment != null ? String(req.body.comment).trim() : "";
       if (comment.length > 2000) comment = comment.slice(0, 2000);
       const p = await get(
-        `SELECT id FROM marketplace_products WHERE id=? AND is_active=1 AND COALESCE(vendor_listing_status, 'published') = 'published'`,
+        `SELECT mp.id FROM marketplace_products mp
+         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
+         WHERE mp.id=? AND mp.is_active=1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`,
         [marketplace_product_id]
       );
       if (!p) return res.status(404).json({ error: "Product not found" });
@@ -858,7 +865,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
         mprev.review_avg, mprev.review_count
         FROM marketplace_products mp
-        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1
+        INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND ${MP_PUBLIC_VENDOR_ACTIVE}
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         ${MP_REVIEW_JOIN_SQL}
         WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER}`;
