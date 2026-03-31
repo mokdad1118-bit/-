@@ -735,9 +735,7 @@
             } catch (_e) {}
         }
         function cartHasMarketplaceSelected() {
-            return getSelectedCartItems().some(
-                (it) => it.marketplaceProductId != null && Number(it.marketplaceProductId) > 0
-            );
+            return getSelectedCartItems().some((it) => effectiveMarketplaceProductId(it) != null);
         }
         function getShippingAddressSummaryForDisplay() {
             const s = getStructuredShippingFromForm();
@@ -844,9 +842,20 @@
             return b;
         }
 
+        /** معرّف منتج السوق من السطر مهما كانت الصيغة (camelCase أو snake_case من التخزين/API) */
+        function effectiveMarketplaceProductId(item) {
+            if (!item || typeof item !== 'object') return null;
+            const a = item.marketplaceProductId != null ? Number(item.marketplaceProductId) : NaN;
+            if (Number.isFinite(a) && a > 0) return a;
+            const b = item.marketplace_product_id != null ? Number(item.marketplace_product_id) : NaN;
+            if (Number.isFinite(b) && b > 0) return b;
+            return null;
+        }
+
         function getCartLineKey(item) {
-            if (item && item.marketplaceProductId != null) {
-                const mpid = Number(item.marketplaceProductId);
+            const mpEff = effectiveMarketplaceProductId(item);
+            if (item && mpEff != null) {
+                const mpid = mpEff;
                 const vo = item.variantOptions;
                 if (vo && typeof vo === 'object' && !Array.isArray(vo)) {
                     const keys = Object.keys(vo).sort();
@@ -877,6 +886,14 @@
             if (typeof it.name === 'string') {
                 const s = it.name;
                 it.name = { ar: s, en: s };
+            }
+            const mpFromSnake = it.marketplace_product_id != null ? Number(it.marketplace_product_id) : NaN;
+            if (
+                (it.marketplaceProductId == null || !Number.isFinite(Number(it.marketplaceProductId))) &&
+                Number.isFinite(mpFromSnake) &&
+                mpFromSnake > 0
+            ) {
+                it.marketplaceProductId = mpFromSnake;
             }
             if (it.unitPrice == null && it.price != null) it.unitPrice = Number(it.price);
             if (it.price == null && it.unitPrice != null) it.price = Number(it.unitPrice);
@@ -5143,6 +5160,7 @@
                 existing.variantLabel = variantLabel;
                 existing.size = line.size;
                 existing.color = line.color;
+                existing.marketplaceProductId = p.id;
             } else {
                 cartItems.push(line);
             }
@@ -5859,8 +5877,7 @@
                     const listUnit = Number(item.unitPrice != null ? item.unitPrice : item.price ?? 0);
                     const discPct = Number(item.discountPct || 0);
                     const saleUnit = saleUnitFromListAndDiscount(listUnit, discPct);
-                    const mpidRaw = item.marketplaceProductId != null ? Number(item.marketplaceProductId) : null;
-                    const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
+                    const mpid = effectiveMarketplaceProductId(item);
                     const pidRaw = item.productId ?? item.id ?? null;
                     const pid = mpid ? null : pidRaw != null && Number.isFinite(Number(pidRaw)) ? Number(pidRaw) : null;
                     const vo = item.variantOptions;
