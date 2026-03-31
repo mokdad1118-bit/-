@@ -562,6 +562,70 @@
     }
   }
 
+  function vpEscNotif(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  async function refreshAdoraOfficialNotifications() {
+    const wrap = el("vp-adora-notifs-wrap");
+    const list = el("vp-adora-notifs-list");
+    const badge = el("vp-adora-notifs-badge");
+    if (!wrap || !list) return;
+    try {
+      const data = await api("/api/vendor-portal/notifications");
+      const items = Array.isArray(data.items) ? data.items : [];
+      const unread = Number(data.unread_count || 0);
+      if (!items.length) {
+        wrap.classList.add("hidden");
+        return;
+      }
+      wrap.classList.remove("hidden");
+      if (badge) {
+        if (unread > 0) {
+          badge.classList.remove("hidden");
+          badge.textContent = unread + " جديد";
+        } else {
+          badge.classList.add("hidden");
+        }
+      }
+      list.innerHTML = items
+        .slice(0, 25)
+        .map((n) => {
+          const isUnread = Number(n.is_read) === 0;
+          const cls = isUnread ? "vp-adora-notif vp-adora-notif--unread" : "vp-adora-notif";
+          const id = Number(n.id);
+          const btn = isUnread
+            ? "<button type=\"button\" class=\"vp-notif-read-btn text-xs font-extrabold text-amber-900 border border-amber-300 rounded-lg px-2 py-1 bg-white hover:bg-amber-50\">تم الاطلاع</button>"
+            : "";
+          return (
+            "<article class=\"" +
+            cls +
+            "\" data-vp-notif-id=\"" +
+            id +
+            "\">" +
+            "<div class=\"font-extrabold text-amber-950 text-xs sm:text-sm\">" +
+            vpEscNotif(n.title) +
+            "</div>" +
+            "<div class=\"text-gray-800 whitespace-pre-wrap text-xs mt-1 leading-relaxed\">" +
+            vpEscNotif(n.message) +
+            "</div>" +
+            "<div class=\"flex flex-wrap items-center justify-between gap-2 mt-2 pt-2 border-t border-amber-100\">" +
+            "<span class=\"text-[10px] text-gray-500 font-mono\">" +
+            vpEscNotif(n.created_at || "") +
+            "</span>" +
+            btn +
+            "</div></article>"
+          );
+        })
+        .join("");
+    } catch (_e) {
+      wrap.classList.add("hidden");
+    }
+  }
+
   async function bootApp() {
     el("vp-login-card")?.classList.add("hidden");
     el("vp-app")?.classList.remove("hidden");
@@ -593,7 +657,13 @@
         /* ignore */
       }
       vpNavigate(initial);
-      await Promise.all([refreshOrders(), refreshAdList(), refreshProductsList(), loadVendorDepartments()]);
+      await Promise.all([
+        refreshOrders(),
+        refreshAdList(),
+        refreshProductsList(),
+        loadVendorDepartments(),
+        refreshAdoraOfficialNotifications(),
+      ]);
     } catch (e) {
       showErr(e.message || String(e));
       setToken(null);
@@ -674,6 +744,18 @@
       const s = btn.getAttribute("data-vp-go");
       if (s) vpNavigate(s);
     });
+  });
+
+  el("vp-adora-notifs-wrap")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest && ev.target.closest(".vp-notif-read-btn");
+    if (!btn) return;
+    const art = btn.closest("[data-vp-notif-id]");
+    const raw = art && art.getAttribute("data-vp-notif-id");
+    const id = Number(raw);
+    if (!Number.isFinite(id)) return;
+    api("/api/vendor-portal/notifications/" + encodeURIComponent(id) + "/read", { method: "PUT" })
+      .then(() => refreshAdoraOfficialNotifications())
+      .catch((err) => alert(err.message || String(err)));
   });
 
   el("vp-prod-files")?.addEventListener("change", async () => {

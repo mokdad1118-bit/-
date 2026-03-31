@@ -350,6 +350,7 @@ async function initDb() {
   await migrateProductsFeaturedHubV1();
   await migrateOffersMarketplaceVisibilityV1();
   await migrateVendorListingStatusV1();
+  await migrateVendorPortalNotificationsV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -847,6 +848,24 @@ async function migrateOffersMarketplaceVisibilityV1() {
 async function migrateVendorListingStatusV1() {
   await run(
     `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS vendor_listing_status TEXT NOT NULL DEFAULT 'published'`
+  );
+}
+
+/** إشعارات رسمية من إدارة Adora تظهر داخل بوابة البائع */
+async function migrateVendorPortalNotificationsV1() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS vendor_portal_notifications (
+      id SERIAL PRIMARY KEY,
+      vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      link_url TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vp_notif_vendor_created ON vendor_portal_notifications (vendor_id, id DESC)`
   );
 }
 

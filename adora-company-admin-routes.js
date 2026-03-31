@@ -258,7 +258,10 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
     try {
       const id = Number(req.params.id);
       const st = req.body?.status != null ? String(req.body.status).trim() : "";
-      const r = await setVendorFulfillmentStatus(id, st, { notifyUserInApp: nfy });
+      const r = await setVendorFulfillmentStatus(id, st, {
+        notifyUserInApp: nfy,
+        statusChangedBy: "admin",
+      });
       if (!r.ok) return res.status(400).json({ error: r.error });
       return res.json(r);
     } catch (_e) {

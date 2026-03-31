@@ -301,6 +301,39 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   });
 
+  app.get("/api/vendor-portal/notifications", requireMpVendorAuth, async (req, res) => {
+    try {
+      const rows = await all(
+        `SELECT id, title, message, link_url, is_read, created_at
+         FROM vendor_portal_notifications WHERE vendor_id=? ORDER BY id DESC LIMIT 100`,
+        [req.mpVendor.id]
+      );
+      const c = await get(
+        `SELECT COUNT(*)::int AS n FROM vendor_portal_notifications WHERE vendor_id=? AND COALESCE(is_read,0)=0`,
+        [req.mpVendor.id]
+      );
+      return res.json({ items: rows, unread_count: Number(c?.n || 0) });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load notifications" });
+    }
+  });
+
+  app.put("/api/vendor-portal/notifications/:id/read", requireMpVendorAuth, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const row = await get(
+        `SELECT id FROM vendor_portal_notifications WHERE id=? AND vendor_id=?`,
+        [id, req.mpVendor.id]
+      );
+      if (!row) return res.status(404).json({ error: "Not found" });
+      await run(`UPDATE vendor_portal_notifications SET is_read=1 WHERE id=?`, [id]);
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  });
+
   app.post("/api/vendor-portal/products", requireMpVendorAuth, async (req, res) => {
     try {
       if (req.mpVendor.mustChangePassword) {

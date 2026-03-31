@@ -102,7 +102,7 @@ async function syncParentOrderStatusFromFulfillments(orderId) {
   await run(`INSERT INTO order_status_history (order_id, status) VALUES (?, ?)`, [oid, next]);
 }
 
-async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUserInApp } = {}) {
+async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUserInApp, statusChangedBy } = {}) {
   const fid = Number(fulfillmentId);
   if (!Number.isFinite(fid) || !isValidVendorFulfillmentStatus(newStatus)) {
     return { ok: false, error: "Invalid fulfillment or status" };
@@ -120,16 +120,48 @@ async function setVendorFulfillmentStatus(fulfillmentId, newStatus, { notifyUser
   await run(`INSERT INTO order_vendor_fulfillment_status_history (fulfillment_id, status) VALUES (?, ?)`, [fid, newStatus]);
   await syncParentOrderStatusFromFulfillments(Number(row.order_id));
 
+  const byAdmin = String(statusChangedBy || "").trim().toLowerCase() === "admin";
+  const vname = String(row.vendor_name_ar || row.vendor_name_en || "الشركة").trim();
+  const label = VENDOR_STATUS_LABEL_AR[newStatus] || newStatus;
+  const ord = row.order_no != null ? String(row.order_no).trim() : "";
+  const title = ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
+
   const uid = Number(row.user_id);
   if (typeof notifyUserInApp === "function" && Number.isFinite(uid) && uid > 0) {
-    const vname = String(row.vendor_name_ar || row.vendor_name_en || "الشركة").trim();
-    const label = VENDOR_STATUS_LABEL_AR[newStatus] || newStatus;
-    const ord = row.order_no != null ? String(row.order_no).trim() : "";
-    const title = ord ? `تحديث طلب ${ord}` : "تحديث الطلب";
-    const msgAr = `تم تغيير حالة طلبك إلى (${label}) من شركة (${vname}) — Adora`;
-    const msgEn = `Your order status: ${label} — from ${vname} — Adora`;
-    await notifyUserInApp(uid, title, `${msgAr}\n${msgEn}`, "/");
+    let msgAr;
+    let msgEn;
+    if (byAdmin) {
+      msgAr = `أبلغتك إدارة منصة Adora رسمياً: تم تغيير حالة طلبك المرتبط بشركة «${vname}» إلى «${label}». رقم الطلب: ${ord || "—"}.`;
+      msgEn = `Adora administration officially updated your order status (vendor: ${vname}) to: ${label}. Order ref: ${ord || "—"}.`;
+    } else {
+      msgAr = `تم تغيير حالة طلبك إلى (${label}) من شركة (${vname}) — Adora`;
+      msgEn = `Your order status: ${label} — from ${vname} — Adora`;
+    }
+    try {
+      await notifyUserInApp(uid, title, `${msgAr}\n${msgEn}`, "/");
+    } catch (_e) {
+      /* لا نفشل تحديث الحالة إذا تعذر الإشعار */
+    }
   }
+
+  if (byAdmin) {
+    const vid = Number(row.vendor_id);
+    const titleOfficial = "إشعار رسمي من إدارة Adora";
+    const msgPortal =
+      `تم تغيير حالة طلبك الفرعي (التنفيذ رقم ${fid}) المرتبط بطلب العميل «${ord || "#" + row.order_id}» إلى: «${label}» — وذلك بقرار من إدارة منصة Adora.\n\n` +
+      `Official notice: Adora administration updated your fulfillment #${fid} (customer order ${ord || row.order_id}) to: ${newStatus} (${label}).`;
+    if (Number.isFinite(vid) && vid > 0) {
+      try {
+        await run(
+          `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
+          [vid, titleOfficial, msgPortal, null]
+        );
+      } catch (e) {
+        console.error("vendor_portal_notifications insert failed", e);
+      }
+    }
+  }
+
   return { ok: true, fulfillment: await get(`SELECT * FROM order_vendor_fulfillments WHERE id=?`, [fid]) };
 }
 
