@@ -276,7 +276,12 @@
             <p class="text-xs text-gray-600 leading-relaxed">
               يجمع هذا القسم كل ما يصل إلى لوحة المشترك: <strong>طلبات جديدة</strong>، <strong>تحديثات رسمية من الإدارة</strong>،
               <strong>تمييز منتج</strong> بعلامة 🔥، <strong>تمييز الشركة</strong> بنجمة ذهبية، وأي إشعارات نظام أخرى.
+              يمكنك <strong>الرد على أي إشعار</strong>؛ يصل ردك إلى لوحة تحكم الإدارة. كذلك تظهر هنا <strong>محادثاتك مع الإدارة</strong>.
             </p>
+            <div id="vp-contact-threads-wrap" class="hidden space-y-2 rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+              <p class="text-xs font-extrabold text-violet-900">محادثات مع الإدارة</p>
+              <div id="vp-contact-threads-list" class="space-y-2"></div>
+            </div>
             <div class="flex flex-wrap gap-2">
               <button type="button" id="vp-notifications-refresh" class="text-xs font-extrabold px-3 py-2 rounded-xl bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-50">
                 تحديث القائمة
@@ -383,6 +388,27 @@
         >
           إغلاق النافذة
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    id="vp-contact-overlay"
+    class="hidden fixed inset-0 z-[7000] flex items-center justify-center p-3 bg-black/50"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="vp-contact-modal-title"
+  >
+    <div class="bg-white rounded-2xl border border-violet-200 shadow-xl w-full max-w-md max-h-[88vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-100 shrink-0">
+        <h3 id="vp-contact-modal-title" class="font-black text-gray-900 text-sm">محادثة مع الإدارة</h3>
+        <button type="button" id="vp-contact-modal-close" class="text-gray-500 font-bold px-2 py-1 rounded-lg hover:bg-gray-100" aria-label="إغلاق">✕</button>
+      </div>
+      <div id="vp-contact-modal-msgs" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs min-h-[10rem] max-h-[45vh] bg-gray-50/90"></div>
+      <div class="p-3 border-t border-gray-100 space-y-2 shrink-0 bg-white">
+        <label class="text-[10px] font-bold text-gray-700 block">ردك</label>
+        <textarea id="vp-contact-modal-reply" rows="3" class="w-full text-xs border border-gray-200 rounded-xl p-2" placeholder="اكتب رسالتك…"></textarea>
+        <button type="button" id="vp-contact-modal-send" class="w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-extrabold">إرسال</button>
       </div>
     </div>
   </div>

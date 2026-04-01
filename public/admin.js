@@ -443,6 +443,12 @@ function connectAdminSocket() {
       }
     } catch (_e) {}
   });
+  adminIoSocket.on("vendor_contact:updated", () => {
+    loadVendorContactThreads().catch(() => {});
+    if (acVcOpenThreadId != null) {
+      openAcVendorContactModal(acVcOpenThreadId).catch(() => {});
+    }
+  });
 }
 
 function showError(el, message) {
@@ -5303,6 +5309,7 @@ const MV_F_STATUS_LABELS = {
 };
 
 let adoraCompaniesCache = [];
+let acVcOpenThreadId = null;
 let adoraVpProductCache = null;
 let acCompanySearchTimer = null;
 
@@ -5598,6 +5605,10 @@ function switchAdoraCompanyMainTab(key) {
   if (pane) pane.classList.remove("hidden");
   if (key === "ads") loadAdoraAdRequestsTable().catch(() => {});
   if (key === "products") switchAdoraProdSubtab("all");
+  if (key === "contact") {
+    fillAcVcVendorSelect();
+    loadVendorContactThreads().catch(() => {});
+  }
 }
 
 function switchAdoraProdSubtab(key) {
@@ -6139,6 +6150,14 @@ async function initAdoraCompanyAdminTab() {
           }
           return;
         }
+        const vcOpen = el.closest(".ac-vc-open");
+        if (vcOpen) {
+          const tid = Number(vcOpen.getAttribute("data-thread-id"));
+          if (Number.isFinite(tid)) {
+            openAcVendorContactModal(tid).catch((e) => alert(e.message || String(e)));
+          }
+          return;
+        }
         if (el.closest("#ac-mp-apply")) {
           loadAcAllMarketplaceProducts().catch(() => {});
           return;
@@ -6178,6 +6197,69 @@ async function initAdoraCompanyAdminTab() {
         }
       });
     }
+    document.getElementById("ac-vc-send")?.addEventListener("click", async () => {
+      const token = getToken();
+      const ar = getAdminLang() === "ar";
+      const title = document.getElementById("ac-vc-title")?.value?.trim() || "";
+      const message = document.getElementById("ac-vc-message")?.value?.trim() || "";
+      const broadcast = !!document.getElementById("ac-vc-broadcast")?.checked;
+      const vid = Number(document.getElementById("ac-vc-vendor")?.value);
+      const msgEl = document.getElementById("ac-vc-send-msg");
+      if (!token) return;
+      if (!title || !message) {
+        if (msgEl) msgEl.textContent = ar ? "أدخل العنوان والنص." : "Title and message required.";
+        return;
+      }
+      if (!broadcast && !Number.isFinite(vid)) {
+        if (msgEl) msgEl.textContent = ar ? "اختر شركة أو فعّل الإرسال للجميع." : "Pick a vendor or broadcast.";
+        return;
+      }
+      if (msgEl) msgEl.textContent = ar ? "جاري الإرسال…" : "Sending…";
+      try {
+        const body = broadcast ? { title, message, broadcast: true } : { title, message, vendor_id: vid };
+        const r = await api("/api/admin/vendor-contact/send", { method: "POST", token, body });
+        if (msgEl) {
+          msgEl.textContent =
+            (ar ? "تم إنشاء " : "Created ") + String(r.threads_created ?? 0) + (ar ? " محادثة." : " thread(s).");
+        }
+        const ta = document.getElementById("ac-vc-message");
+        if (ta) ta.value = "";
+        await loadVendorContactThreads();
+      } catch (e) {
+        if (msgEl) msgEl.textContent = e.message || String(e);
+      }
+    });
+    document.getElementById("ac-vc-refresh-threads")?.addEventListener("click", () =>
+      loadVendorContactThreads().catch(() => {})
+    );
+    document.getElementById("ac-vc-modal-close")?.addEventListener("click", closeAcVcModal);
+    document.getElementById("ac-vc-overlay")?.addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) closeAcVcModal();
+    });
+    document.getElementById("ac-vc-modal-send")?.addEventListener("click", async () => {
+      const token = getToken();
+      const id = acVcOpenThreadId;
+      const reply = document.getElementById("ac-vc-modal-reply")?.value?.trim() || "";
+      const errEl = document.getElementById("ac-vc-modal-err");
+      if (!token || id == null || !Number.isFinite(Number(id))) return;
+      if (!reply) {
+        if (errEl) errEl.textContent = "أدخل نص الرد.";
+        return;
+      }
+      if (errEl) errEl.textContent = "";
+      try {
+        await api(`/api/admin/vendor-contact/threads/${id}/messages`, {
+          method: "POST",
+          token,
+          body: { message: reply },
+        });
+        const ta = document.getElementById("ac-vc-modal-reply");
+        if (ta) ta.value = "";
+        await openAcVendorContactModal(id);
+      } catch (e) {
+        if (errEl) errEl.textContent = e.message || String(e);
+      }
+    });
     document.getElementById("ac-all-mp-tbody")?.addEventListener("click", (e) => {
       const openImgs = e.target.closest(".ac-mp-open-images");
       if (openImgs) {
@@ -6273,6 +6355,7 @@ async function loadAdoraCompaniesTable() {
     const list = Array.isArray(rows) ? rows : [];
     adoraCompaniesCache = list;
     applyAdoraCompaniesTableFilter();
+    fillAcVcVendorSelect();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }
@@ -6409,6 +6492,123 @@ async function loadAdoraAdRequestsTable() {
     if (!list.length) tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+  }
+}
+
+function fillAcVcVendorSelect() {
+  const sel = document.getElementById("ac-vc-vendor");
+  if (!sel) return;
+  const ar = getAdminLang() === "ar";
+  const list = Array.isArray(adoraCompaniesCache) ? adoraCompaniesCache : [];
+  sel.innerHTML =
+    `<option value="">— اختر شركة —</option>` +
+    list
+      .map((v) => {
+        const name = ar ? v.name_ar || v.name_en : v.name_en || v.name_ar;
+        const cmp = v.public_vendor_code || "";
+        const lab = `${cmp} · ${name || ""}`.trim() || String(v.id);
+        return `<option value="${Number(v.id)}">${escapeHtml(lab)}</option>`;
+      })
+      .join("");
+}
+
+async function loadVendorContactThreads() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-vc-threads-tbody");
+  const ar = getAdminLang() === "ar";
+  if (!tbody || !token) return;
+  try {
+    const rows = await api("/api/admin/vendor-contact/threads", { token });
+    const list = Array.isArray(rows) ? rows : [];
+    tbody.innerHTML = list
+      .map((r) => {
+        const vname = ar ? r.vendor_name_ar || r.vendor_name_en : r.vendor_name_en || r.vendor_name_ar;
+        const unread = Number(r.admin_unread) > 0;
+        const trClass = unread ? "border-b border-gray-100 bg-amber-50/50 font-semibold" : "border-b border-gray-100";
+        const lb = String(r.last_body || "");
+        const last = lb.slice(0, 100);
+        return `<tr class="${trClass} align-top">
+          <td class="p-2 font-mono">${r.id}</td>
+          <td class="p-2">${escapeHtml(vname || "")}<div class="text-[10px] text-gray-500 font-mono">${escapeHtml(r.public_vendor_code || "")}</div></td>
+          <td class="p-2 max-w-[10rem] break-words">${escapeHtml(r.subject || "—")}</td>
+          <td class="p-2 text-xs text-gray-600 max-w-[16rem] break-words">${escapeHtml(last)}${lb.length > 100 ? "…" : ""}</td>
+          <td class="p-2 whitespace-nowrap"><button type="button" class="px-2 py-1 rounded-lg bg-violet-600 text-white text-xs font-bold ac-vc-open" data-thread-id="${r.id}">${ar ? "فتح" : "Open"}</button></td>
+        </tr>`;
+      })
+      .join("");
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-gray-500">${ar ? "لا محادثات بعد." : "No threads yet."}</td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
+  }
+}
+
+function closeAcVcModal() {
+  acVcOpenThreadId = null;
+  const ov = document.getElementById("ac-vc-overlay");
+  if (ov) {
+    ov.classList.add("hidden");
+    ov.setAttribute("aria-hidden", "true");
+  }
+  const ta = document.getElementById("ac-vc-modal-reply");
+  if (ta) ta.value = "";
+  const er = document.getElementById("ac-vc-modal-err");
+  if (er) er.textContent = "";
+}
+
+async function openAcVendorContactModal(threadId) {
+  const token = getToken();
+  const id = Number(threadId);
+  if (!Number.isFinite(id) || !token) return;
+  acVcOpenThreadId = id;
+  const ov = document.getElementById("ac-vc-overlay");
+  const box = document.getElementById("ac-vc-modal-messages");
+  const titleEl = document.getElementById("ac-vc-modal-title");
+  const ar = getAdminLang() === "ar";
+  if (ov) {
+    ov.classList.remove("hidden");
+    ov.setAttribute("aria-hidden", "false");
+  }
+  if (box) box.innerHTML = `<p class="text-gray-500 text-xs">${ar ? "جاري التحميل…" : "Loading…"}</p>`;
+  try {
+    const data = await api(`/api/admin/vendor-contact/threads/${id}/messages`, { token });
+    const vendor = data.vendor || {};
+    const vn = ar ? vendor.name_ar || vendor.name_en : vendor.name_en || vendor.name_ar;
+    if (titleEl) titleEl.textContent = `${ar ? "محادثة" : "Thread"} #${id} — ${vn || ""}`;
+    const msgs = Array.isArray(data.messages) ? data.messages : [];
+    if (box) {
+      box.innerHTML = msgs
+        .map((m) => {
+          const who =
+            m.author === "admin"
+              ? ar
+                ? "الإدارة"
+                : "Admin"
+              : m.author === "vendor"
+                ? ar
+                  ? "المشترك"
+                  : "Vendor"
+                : ar
+                  ? "النظام"
+                  : "System";
+          const bubble =
+            m.author === "admin"
+              ? "bg-violet-100 border-violet-200 text-violet-950 ms-auto max-w-[95%]"
+              : m.author === "vendor"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-950 me-auto max-w-[95%]"
+                : "bg-gray-100 border-gray-200 text-gray-800 max-w-[95%]";
+          return `<div class="rounded-xl border p-2.5 text-xs ${bubble}">
+            <div class="font-extrabold text-[10px] opacity-80 mb-1">${escapeHtml(who)} · ${escapeHtml(m.created_at || "")}</div>
+            <div class="whitespace-pre-wrap leading-relaxed">${escapeHtml(m.body || "")}</div>
+          </div>`;
+        })
+        .join("");
+      box.scrollTop = box.scrollHeight;
+    }
+    await loadVendorContactThreads();
+  } catch (err) {
+    if (box) box.innerHTML = `<p class="text-red-600 text-xs">${escapeHtml(err.message || String(err))}</p>`;
   }
 }
 

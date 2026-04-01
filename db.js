@@ -354,6 +354,7 @@ async function initDb() {
   await migrateVendorListingPriceApprovalTierV1();
   await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
+  await migrateVendorContactMessagingV1();
   await migrateVendorPortalSuspendedV1();
   await migrateMarketplaceProductFeaturedUntilV1();
   await migrateMarketplaceVendorAppVisibilityFlagsV1();
@@ -909,6 +910,47 @@ async function migrateVendorPortalNotificationsV1() {
   `);
   await run(
     `CREATE INDEX IF NOT EXISTS idx_vp_notif_vendor_created ON vendor_portal_notifications (vendor_id, id DESC)`
+  );
+}
+
+/** محادثات الإدارة ↔ المشترك + ربط بالإشعارات */
+async function migrateVendorContactMessagingV1() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS vendor_contact_threads (
+      id SERIAL PRIMARY KEY,
+      vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+      subject TEXT NOT NULL DEFAULT '',
+      source_notification_id INTEGER NULL,
+      admin_unread INTEGER NOT NULL DEFAULT 0,
+      vendor_unread INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vendor_contact_threads_vendor ON vendor_contact_threads (vendor_id, id DESC)`
+  );
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_vendor_contact_threads_src_notif
+    ON vendor_contact_threads (source_notification_id) WHERE source_notification_id IS NOT NULL
+  `);
+  await run(`
+    CREATE TABLE IF NOT EXISTS vendor_contact_messages (
+      id SERIAL PRIMARY KEY,
+      thread_id INTEGER NOT NULL REFERENCES vendor_contact_threads(id) ON DELETE CASCADE,
+      author TEXT NOT NULL CHECK (author IN ('admin', 'vendor', 'system')),
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vendor_contact_messages_thread ON vendor_contact_messages (thread_id, id ASC)`
+  );
+  await run(
+    `ALTER TABLE vendor_portal_notifications ADD COLUMN IF NOT EXISTS reply_thread_id INTEGER REFERENCES vendor_contact_threads(id) ON DELETE SET NULL`
+  );
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vp_notif_reply_thread ON vendor_portal_notifications (reply_thread_id) WHERE reply_thread_id IS NOT NULL`
   );
 }
 

@@ -395,7 +395,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
   app.get("/api/vendor-portal/notifications", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(
-        `SELECT id, title, message, link_url, is_read, created_at
+        `SELECT id, title, message, link_url, is_read, created_at, reply_thread_id
          FROM vendor_portal_notifications WHERE vendor_id=? ORDER BY id DESC LIMIT 100`,
         [req.mpVendor.id]
       );
@@ -422,6 +422,111 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       return res.json({ ok: true });
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  function emitVendorReplyToAdmin(threadId) {
+    try {
+      const io = app.get("io");
+      if (io) io.to("admin").emit("vendor_contact:updated", { thread_id: threadId, at: Date.now() });
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+
+  app.get("/api/vendor-portal/contact/threads", ...vpGuarded, async (req, res) => {
+    try {
+      const rows = await all(
+        `SELECT t.id, t.subject, t.vendor_unread, t.updated_at,
+                (SELECT m.body FROM vendor_contact_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_body
+         FROM vendor_contact_threads t
+         WHERE t.vendor_id = ?
+         ORDER BY t.updated_at DESC NULLS LAST, t.id DESC
+         LIMIT 60`,
+        [req.mpVendor.id]
+      );
+      return res.json({ threads: rows });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load threads" });
+    }
+  });
+
+  app.get("/api/vendor-portal/contact/threads/:id/messages", ...vpGuarded, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const thread = await get(`SELECT * FROM vendor_contact_threads WHERE id=? AND vendor_id=?`, [id, req.mpVendor.id]);
+      if (!thread) return res.status(404).json({ error: "Not found" });
+      await run(`UPDATE vendor_contact_threads SET vendor_unread=0, updated_at=CURRENT_TIMESTAMP WHERE id=?`, [id]);
+      const messages = await all(
+        `SELECT id, author, body, created_at FROM vendor_contact_messages WHERE thread_id=? ORDER BY id ASC`,
+        [id]
+      );
+      return res.json({ thread, messages });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load messages" });
+    }
+  });
+
+  app.post("/api/vendor-portal/contact/threads/:id/messages", ...vpGuarded, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const body = req.body?.message != null ? String(req.body.message).trim() : "";
+      if (!body) return res.status(400).json({ error: "message required" });
+      if (body.length > 8000) return res.status(400).json({ error: "message too long" });
+      const thread = await get(`SELECT * FROM vendor_contact_threads WHERE id=? AND vendor_id=?`, [id, req.mpVendor.id]);
+      if (!thread) return res.status(404).json({ error: "Not found" });
+      await run(`INSERT INTO vendor_contact_messages (thread_id, author, body) VALUES (?, 'vendor', ?)`, [id, body]);
+      await run(
+        `UPDATE vendor_contact_threads SET admin_unread = admin_unread + 1, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        [id]
+      );
+      emitVendorReplyToAdmin(id);
+      return res.json({ ok: true, thread_id: id });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to send" });
+    }
+  });
+
+  app.post("/api/vendor-portal/notifications/:nid/reply", ...vpGuarded, async (req, res) => {
+    try {
+      const nid = Number(req.params.nid);
+      const body = req.body?.message != null ? String(req.body.message).trim() : "";
+      if (!Number.isFinite(nid)) return res.status(400).json({ error: "Invalid notification" });
+      if (!body) return res.status(400).json({ error: "message required" });
+      if (body.length > 8000) return res.status(400).json({ error: "message too long" });
+      const notif = await get(`SELECT * FROM vendor_portal_notifications WHERE id=? AND vendor_id=?`, [nid, req.mpVendor.id]);
+      if (!notif) return res.status(404).json({ error: "Not found" });
+
+      let threadId = notif.reply_thread_id != null ? Number(notif.reply_thread_id) : NaN;
+      if (Number.isFinite(threadId) && threadId > 0) {
+        const th = await get(`SELECT id FROM vendor_contact_threads WHERE id=? AND vendor_id=?`, [threadId, req.mpVendor.id]);
+        if (!th) return res.status(404).json({ error: "Thread not found" });
+        await run(`INSERT INTO vendor_contact_messages (thread_id, author, body) VALUES (?, 'vendor', ?)`, [threadId, body]);
+        await run(
+          `UPDATE vendor_contact_threads SET admin_unread = admin_unread + 1, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+          [threadId]
+        );
+      } else {
+        const insT = await run(
+          `INSERT INTO vendor_contact_threads (vendor_id, subject, source_notification_id, admin_unread, vendor_unread)
+           VALUES (?, ?, ?, 1, 0)`,
+          [req.mpVendor.id, String(notif.title || "رد على إشعار").slice(0, 200), nid]
+        );
+        threadId = Number(insT.id);
+        if (!Number.isFinite(threadId) || threadId <= 0) {
+          return res.status(500).json({ error: "Failed to create thread" });
+        }
+        const snap = `${String(notif.title || "").trim()}\n\n${String(notif.message || "").trim()}`.slice(0, 12000);
+        await run(`INSERT INTO vendor_contact_messages (thread_id, author, body) VALUES (?, 'system', ?)`, [threadId, snap]);
+        await run(`INSERT INTO vendor_contact_messages (thread_id, author, body) VALUES (?, 'vendor', ?)`, [threadId, body]);
+        await run(`UPDATE vendor_contact_threads SET updated_at=CURRENT_TIMESTAMP WHERE id=?`, [threadId]);
+        await run(`UPDATE vendor_portal_notifications SET reply_thread_id=? WHERE id=?`, [threadId, nid]);
+      }
+      emitVendorReplyToAdmin(threadId);
+      return res.json({ ok: true, thread_id: threadId });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to reply" });
     }
   });
 

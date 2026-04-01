@@ -1,6 +1,7 @@
 (function () {
   const TOKEN_KEY = "adora_mp_vendor_token";
   let lastVendorMe = null;
+  let vpContactOpenThreadId = null;
   let productImageUrls = [];
   /** { product_options: group[], inventory: { options, stock, price }[] } — نفس بنية لوحة الإدارة */
   let vpVariantState = { product_options: [], inventory: [] };
@@ -790,6 +791,22 @@
     const btn = isUnread
       ? "<button type=\"button\" class=\"vp-notif-read-btn text-xs font-extrabold text-amber-900 border border-amber-300 rounded-lg px-2 py-1 bg-white hover:bg-amber-50\">تم الاطلاع</button>"
       : "";
+    const tid = n.reply_thread_id != null ? Number(n.reply_thread_id) : NaN;
+    const hasT = Number.isFinite(tid) && tid > 0;
+    const replyBlock =
+      "<div class=\"mt-2 pt-2 border-t border-dashed border-amber-200 space-y-1.5\">" +
+      (hasT
+        ? `<button type="button" class="vp-thread-open w-full text-start text-[11px] font-extrabold text-violet-800 py-1.5 rounded-lg hover:bg-violet-50/80" data-vp-thread-id="${tid}">▸ متابعة المحادثة مع الإدارة</button>`
+        : "") +
+      "<button type=\"button\" class=\"vp-notif-toggle-reply text-[11px] font-bold text-gray-700\">✎ رد على الإشعار</button>" +
+      "<div class=\"vp-notif-reply-box hidden space-y-1\">" +
+      "<textarea class=\"vp-notif-reply-ta w-full text-xs border border-gray-200 rounded-lg p-2\" rows=\"2\" placeholder=\"اكتب ردك… يصل إلى لوحة تحكم الإدارة.\"></textarea>" +
+      "<button type=\"button\" class=\"vp-notif-send-reply text-xs font-extrabold px-3 py-1.5 rounded-lg bg-violet-600 text-white\" data-vp-notif-id=\"" +
+      nid +
+      "\" data-vp-thread-id=\"" +
+      (hasT ? String(tid) : "") +
+      "\">إرسال الرد</button>" +
+      "</div></div>";
     return (
       "<article class=\"" +
       cls +
@@ -807,8 +824,63 @@
       vpEscNotif(n.created_at || "") +
       "</span>" +
       btn +
-      "</div></article>"
+      "</div>" +
+      replyBlock +
+      "</article>"
     );
+  }
+
+  function closeVpContactModal() {
+    vpContactOpenThreadId = null;
+    el("vp-contact-overlay")?.classList.add("hidden");
+    const r = el("vp-contact-modal-reply");
+    if (r) r.value = "";
+  }
+
+  async function openVpContactThreadModal(threadId) {
+    const id = Number(threadId);
+    if (!Number.isFinite(id)) return;
+    vpContactOpenThreadId = id;
+    const ov = el("vp-contact-overlay");
+    const box = el("vp-contact-modal-msgs");
+    const rep = el("vp-contact-modal-reply");
+    if (rep) rep.value = "";
+    if (ov) ov.classList.remove("hidden");
+    if (box) box.innerHTML = "<p class=\"text-xs text-gray-500\">جاري التحميل…</p>";
+    try {
+      const data = await api("/api/vendor-portal/contact/threads/" + encodeURIComponent(id) + "/messages");
+      const msgs = Array.isArray(data.messages) ? data.messages : [];
+      if (box) {
+        box.innerHTML = msgs
+          .map((m) => {
+            const who =
+              m.author === "admin" ? "الإدارة" : m.author === "vendor" ? "أنت" : "النظام";
+            const bubble =
+              m.author === "admin"
+                ? "bg-violet-100 border-violet-200 text-violet-950 ms-auto"
+                : m.author === "vendor"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-950 me-auto"
+                  : "bg-gray-100 border-gray-200 text-gray-800";
+            return (
+              "<div class=\"rounded-xl border p-2 max-w-[95%] " +
+              bubble +
+              "\">" +
+              "<div class=\"font-extrabold text-[10px] opacity-80 mb-1\">" +
+              vpEscNotif(who) +
+              " · " +
+              vpEscNotif(m.created_at || "") +
+              "</div>" +
+              "<div class=\"whitespace-pre-wrap leading-relaxed\">" +
+              vpEscNotif(m.body || "") +
+              "</div></div>"
+            );
+          })
+          .join("");
+        box.scrollTop = box.scrollHeight;
+      }
+    } catch (e) {
+      if (box) box.innerHTML = "<p class=\"text-red-600 text-xs\">" + vpEscNotif(e.message || String(e)) + "</p>";
+    }
   }
 
   async function refreshVendorNotifications() {
@@ -820,9 +892,52 @@
     const sectionBadge = el("vp-section-notif-badge");
     if (!list) return;
     try {
-      const data = await api("/api/vendor-portal/notifications");
+      const [data, thData] = await Promise.all([
+        api("/api/vendor-portal/notifications"),
+        api("/api/vendor-portal/contact/threads").catch(() => ({ threads: [] })),
+      ]);
       const items = Array.isArray(data.items) ? data.items : [];
       const unread = Number(data.unread_count || 0);
+      const threads = Array.isArray(thData.threads) ? thData.threads : [];
+      const twrap = el("vp-contact-threads-wrap");
+      const tlist = el("vp-contact-threads-list");
+      if (twrap && tlist) {
+        if (threads.length) {
+          twrap.classList.remove("hidden");
+          tlist.innerHTML = threads
+            .map((t) => {
+              const ur = Number(t.vendor_unread) > 0;
+              const rowCls = ur
+                ? "rounded-lg border-2 border-violet-300 bg-violet-50/60 p-2.5"
+                : "rounded-lg border border-gray-200 bg-white p-2.5";
+              const lb = String(t.last_body || "").slice(0, 140);
+              return (
+                "<div class=\"" +
+                rowCls +
+                " text-xs\">" +
+                "<div class=\"flex justify-between gap-2 flex-wrap items-start\">" +
+                "<div class=\"min-w-0\"><span class=\"font-extrabold text-gray-900\">" +
+                vpEscNotif(t.subject || "محادثة") +
+                "</span> <span class=\"text-[10px] font-mono text-gray-500\">#" +
+                t.id +
+                "</span>" +
+                (ur ? " <span class=\"text-[10px] font-bold text-violet-700\">جديد</span>" : "") +
+                "</div>" +
+                "<button type=\"button\" class=\"vp-thread-open shrink-0 text-violet-700 font-extrabold text-[11px] underline\" data-vp-thread-id=\"" +
+                t.id +
+                "\">فتح</button></div>" +
+                "<p class=\"text-[10px] text-gray-600 mt-1 line-clamp-2\">" +
+                vpEscNotif(lb) +
+                (String(t.last_body || "").length > 140 ? "…" : "") +
+                "</p></div>"
+              );
+            })
+            .join("");
+        } else {
+          twrap.classList.add("hidden");
+          tlist.innerHTML = "";
+        }
+      }
       list.innerHTML = items.map((n) => vpRenderNotificationArticleHtml(n)).join("");
       list.classList.toggle("hidden", items.length === 0);
       if (empty) {
@@ -862,6 +977,7 @@
         empty.textContent = "تعذر تحميل الإشعارات. جرّب «تحديث القائمة» لاحقاً.";
       }
       if (prompt) prompt.classList.add("hidden");
+      el("vp-contact-threads-wrap")?.classList.add("hidden");
     }
   }
 
@@ -1025,6 +1141,42 @@
   });
 
   el("vp-app")?.addEventListener("click", (ev) => {
+    const tg = ev.target.closest && ev.target.closest(".vp-notif-toggle-reply");
+    if (tg) {
+      const box = tg.closest("article")?.querySelector(".vp-notif-reply-box");
+      if (box) box.classList.toggle("hidden");
+      return;
+    }
+    const send = ev.target.closest && ev.target.closest(".vp-notif-send-reply");
+    if (send) {
+      const art = send.closest("[data-vp-notif-id]");
+      const nid = Number(art && art.getAttribute("data-vp-notif-id"));
+      const tidRaw = send.getAttribute("data-vp-thread-id");
+      const tid = tidRaw != null && String(tidRaw).trim() !== "" ? Number(tidRaw) : NaN;
+      const ta = art && art.querySelector(".vp-notif-reply-ta");
+      const msg = ta && ta.value ? String(ta.value).trim() : "";
+      if (!Number.isFinite(nid) || !msg) {
+        alert("اكتب نص الرد.");
+        return;
+      }
+      const url =
+        Number.isFinite(tid) && tid > 0
+          ? "/api/vendor-portal/contact/threads/" + encodeURIComponent(tid) + "/messages"
+          : "/api/vendor-portal/notifications/" + encodeURIComponent(nid) + "/reply";
+      api(url, { method: "POST", body: JSON.stringify({ message: msg }) })
+        .then(() => {
+          if (ta) ta.value = "";
+          return refreshVendorNotifications();
+        })
+        .catch((err) => alert(err.message || String(err)));
+      return;
+    }
+    const thOpen = ev.target.closest && ev.target.closest(".vp-thread-open");
+    if (thOpen) {
+      const tid = Number(thOpen.getAttribute("data-vp-thread-id"));
+      if (Number.isFinite(tid)) openVpContactThreadModal(tid).catch((e) => alert(e.message || String(e)));
+      return;
+    }
     const btn = ev.target.closest && ev.target.closest(".vp-notif-read-btn");
     if (!btn) return;
     const art = btn.closest("[data-vp-notif-id]");
@@ -1032,6 +1184,31 @@
     const id = Number(raw);
     if (!Number.isFinite(id)) return;
     api("/api/vendor-portal/notifications/" + encodeURIComponent(id) + "/read", { method: "PUT" })
+      .then(() => refreshVendorNotifications())
+      .catch((err) => alert(err.message || String(err)));
+  });
+
+  el("vp-contact-overlay")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeVpContactModal();
+  });
+  el("vp-contact-modal-close")?.addEventListener("click", closeVpContactModal);
+  el("vp-contact-modal-send")?.addEventListener("click", () => {
+    const id = vpContactOpenThreadId;
+    const msg = el("vp-contact-modal-reply")?.value?.trim() || "";
+    if (id == null || !Number.isFinite(Number(id))) return;
+    if (!msg) {
+      alert("اكتب نص الرسالة.");
+      return;
+    }
+    api("/api/vendor-portal/contact/threads/" + encodeURIComponent(id) + "/messages", {
+      method: "POST",
+      body: JSON.stringify({ message: msg }),
+    })
+      .then(() => {
+        const r = el("vp-contact-modal-reply");
+        if (r) r.value = "";
+        return openVpContactThreadModal(id);
+      })
       .then(() => refreshVendorNotifications())
       .catch((err) => alert(err.message || String(err)));
   });

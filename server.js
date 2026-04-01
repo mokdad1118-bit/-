@@ -22,6 +22,7 @@ const { getVendorPlatformSettings } = require("./vendor-platform-settings");
 const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
 const { registerVendorPortalRoutes } = require("./vendor-portal-routes");
 const { registerAdoraCompanyAdminRoutes } = require("./adora-company-admin-routes");
+const { registerVendorContactAdminRoutes } = require("./vendor-contact-routes");
 const {
   createFulfillmentsForOrder,
   parseShippingStructured,
@@ -2105,6 +2106,8 @@ registerAdoraCompanyAdminRoutes(app, {
   requireAdmin,
   notifyUserInApp: (userId, title, message, link_url) => notifyUserInApp(app, userId, title, message, link_url),
 });
+
+registerVendorContactAdminRoutes(app, { requireAuth, requireAdmin });
 
 const ORDER_STATUS_KEYS = ["pending_receipt", "in_progress", "fulfilled", "shipping", "delivered", "cancelled"];
 

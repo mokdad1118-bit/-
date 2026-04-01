@@ -941,6 +941,7 @@
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="companies">إدارة الشركات</button>
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="ads">طلبات الإعلانات</button>
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="products">المنتجات والطلبات</button>
+              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="contact">تواصل المشتركين</button>
             </nav>
             <div id="ac-pane-add" class="ac-main-pane space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
@@ -1229,6 +1230,72 @@
               </div>
             </div>
             </div>
+            </div>
+            <div id="ac-pane-contact" class="ac-main-pane hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <h2 class="text-lg font-bold">إرسال إشعار / رسالة للمشتركين</h2>
+              <p class="text-xs text-gray-600 leading-relaxed">يُنشئ محادثة جديدة لكل شركة مستهدفة ويظهر عندها تنبيه في بوابة المشترك مع إمكانية الرد. يمكن الإرسال لشركة واحدة أو لجميع الشركات النشطة.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="md:col-span-2">
+                  <label class="text-xs font-bold block">عنوان الرسالة</label>
+                  <input id="ac-vc-title" type="text" class="mt-1 w-full p-2 rounded-xl border border-gray-200" placeholder="مثال: تحديث مهم من إدارة أدورا" maxlength="200" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-bold block">نص الرسالة</label>
+                  <textarea id="ac-vc-message" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="اكتب نص الرسالة…"></textarea>
+                </div>
+                <div>
+                  <label class="text-xs font-bold block">الشركة (إن لم يُفعّل الإرسال للجميع)</label>
+                  <select id="ac-vc-vendor" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm">
+                    <option value="">— اختر شركة —</option>
+                  </select>
+                </div>
+                <div class="flex items-end">
+                  <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
+                    <input id="ac-vc-broadcast" type="checkbox" class="rounded" />
+                    <span>إرسال لجميع الشركات النشطة</span>
+                  </label>
+                </div>
+                <div class="md:col-span-2 flex flex-wrap gap-2">
+                  <button type="button" id="ac-vc-send" class="px-4 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-bold">إرسال</button>
+                  <span id="ac-vc-send-msg" class="text-xs text-gray-600 self-center"></span>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-2">
+              <div class="flex flex-wrap justify-between gap-2">
+                <h2 class="text-lg font-bold">المحادثات والردود</h2>
+                <button type="button" id="ac-vc-refresh-threads" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold">تحديث</button>
+              </div>
+              <p class="text-xs text-gray-500">الصفوف بخط عريض = ردود جديدة من المشترك تحتاج مراجعتك. اضغط «فتح» لقراءة المحادثة والرد.</p>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[min(55vh,480px)] overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0 z-10"><tr>
+                    <th class="p-2 text-start">#</th>
+                    <th class="p-2 text-start">شركة</th>
+                    <th class="p-2 text-start">الموضوع</th>
+                    <th class="p-2 text-start">آخر رسالة</th>
+                    <th class="p-2 text-start">—</th>
+                  </tr></thead>
+                  <tbody id="ac-vc-threads-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            </div>
+            <div id="ac-vc-overlay" class="hidden fixed inset-0 z-[61] flex items-center justify-center p-4 bg-black/50" aria-hidden="true">
+              <div class="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-lg w-full max-h-[88vh] overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 shrink-0">
+                  <h3 id="ac-vc-modal-title" class="font-bold text-gray-900 text-sm truncate flex-1">محادثة</h3>
+                  <button type="button" id="ac-vc-modal-close" class="text-gray-500 font-bold px-2 py-1 rounded-lg hover:bg-gray-100">✕</button>
+                </div>
+                <div id="ac-vc-modal-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm min-h-[12rem] max-h-[45vh] bg-gray-50/80"></div>
+                <div class="p-4 border-t border-gray-100 space-y-2 shrink-0 bg-white">
+                  <label class="text-xs font-bold block">رد الإدارة</label>
+                  <textarea id="ac-vc-modal-reply" rows="3" class="w-full p-2 rounded-xl border border-gray-200 text-sm" placeholder="اكتب ردك…"></textarea>
+                  <button type="button" id="ac-vc-modal-send" class="w-full py-2.5 rounded-xl bg-purple-600 text-white text-sm font-bold">إرسال الرد</button>
+                  <p id="ac-vc-modal-err" class="text-xs text-red-600 min-h-[1rem]"></p>
+                </div>
+              </div>
             </div>
             <div id="ac-edit-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40" aria-hidden="true">
             <div id="ac-edit-dialog" class="bg-white rounded-2xl border border-gray-200 shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-4 space-y-3">
