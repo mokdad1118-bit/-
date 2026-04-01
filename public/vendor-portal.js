@@ -7,7 +7,7 @@
   let vpVariantState = { product_options: [], inventory: [] };
   const VP_MAX_VARIANT_COMBOS = 120;
 
-  const VP_SECTION_IDS = ["dashboard", "products", "add-product", "ad", "orders", "notifications", "stats"];
+  const VP_SECTION_IDS = ["dashboard", "notifications", "products", "add-product", "ad", "orders", "stats"];
   /** يطابق الخادم: فوق هذا السعر يحتاج اعتماد إداري للظهور العام */
   const VP_LISTING_APPROVAL_PRICE_ABOVE = 500000;
   /** يُلحق برسالة نجاح إضافة منتج جديد */
