@@ -7128,30 +7128,6 @@
             renderTopBrands();
         }
 
-        /** إحصائيات حية من الـ API (قاعدة PostgreSQL على السيرفر) */
-        async function syncStoreStatsFromApi() {
-            const el = document.getElementById('store-catalog-stats');
-            if (!el) return;
-            try {
-                let s;
-                try {
-                    s = await apiFetch('/api/public/stats', { requireAuth: false });
-                } catch (_e1) {
-                    s = await apiFetch('/api/stats', { requireAuth: false });
-                }
-                const p = Number(s.products ?? 0);
-                const b = Number(s.brands ?? 0);
-                const c = Number(s.categories ?? 0);
-                el.textContent = isRTL
-                    ? `من الكتالوج: ${p} منتج · ${b} علامة · ${c} قسم`
-                    : `Catalog: ${p} products · ${b} brands · ${c} categories`;
-                el.classList.remove('hidden');
-            } catch (_e) {
-                el.textContent = '';
-                el.classList.add('hidden');
-            }
-        }
-
         function renderBrandCards() {
             const container = document.getElementById('brand-scroll');
             if (!container) return;
@@ -12260,7 +12236,6 @@
                 refreshProfileAndOrders().catch(() => {});
             });
             syncBrandsFromApi().catch(() => {});
-            syncStoreStatsFromApi().catch(() => {});
             updateBrandSortButtons();
             syncFlashSaleFromApi().finally(() => {
                 renderFlashSale();
