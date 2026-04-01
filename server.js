@@ -2967,6 +2967,8 @@ app.delete("/api/admin/banners/:id", requireAuth, requireAdmin, async (req, res)
 
 app.get("/api/contact", async (_req, res) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("Pragma", "no-cache");
     const row = await get(`SELECT * FROM contact_info LIMIT 1`);
     const home_main_section_images = safeJsonParse(row?.home_main_section_images_json, null);
     const home_subcategory_slides = safeJsonParse(row?.home_subcategory_slides_json, null);

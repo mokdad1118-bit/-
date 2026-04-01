@@ -3045,6 +3045,7 @@
             }
             if (screenId === 'screen-categories') {
                 syncSearchInputsFromQuery();
+                refreshHomeLayoutFromApi().catch(() => {});
                 loadHomeFeaturedGrid().catch(() => {});
                 loadHomeNewCollectionGrid().catch(() => {});
                 loadHomeBestsellers().catch(() => {});
@@ -6830,9 +6831,29 @@
             return Array.isArray(u) && u.length ? u : [];
         }
 
+        /** تحديث ترتيب/ظهور أقسام الرئيسية من الخادم (بدون لمس صور الأقسام أو شرائح الفرعي) — يُستدعى عند فتح الرئيسية لالتقاط تغييرات لوحة التحكم */
+        async function refreshHomeLayoutFromApi() {
+            try {
+                const data = await apiFetch('/api/contact', { requireAuth: false, cache: 'no-store' });
+                if (data.home_sections_visibility && typeof data.home_sections_visibility === 'object') {
+                    cachedHomeSectionsVisibility = data.home_sections_visibility;
+                }
+                if (Array.isArray(data.home_sections_order)) {
+                    cachedHomeSectionsOrder = data.home_sections_order;
+                }
+                cachedHomeTopBannersSticky = normalizeHomeTopBannersSticky(data.home_top_banners_sticky);
+                applyHomeSectionOrder(data.home_sections_order);
+                applyHomeSectionsVisibility(data.home_sections_visibility);
+                applyHomeTopBannerStickyPlacement(cachedHomeTopBannersSticky);
+                refreshBestsellersSectionCombinedVisibility();
+            } catch (_e) {
+                /* الإبقاء على التخزين المؤقت الحالي */
+            }
+        }
+
         async function applyHomeContactFromApi() {
             try {
-                const data = await apiFetch('/api/contact', { requireAuth: false });
+                const data = await apiFetch('/api/contact', { requireAuth: false, cache: 'no-store' });
                 const img = data.home_main_section_images;
                 if (img && typeof img === 'object') {
                     const pairs = [

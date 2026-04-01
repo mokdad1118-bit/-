@@ -5080,6 +5080,7 @@ async function saveHomeLayout() {
     alert("Failed to load settings");
     return;
   }
+  const collectedOrder = collectHomeSectionsOrderFromList();
   const body = {
     address: cur.address || "",
     phones: Array.isArray(cur.phones) ? cur.phones : [],
@@ -5089,9 +5090,12 @@ async function saveHomeLayout() {
         ? cur.home_main_section_images
         : { men: "", women: "", kids: "" },
     home_sections_visibility: collectHomeSectionsVisibilityFromForm(),
-    home_sections_order: collectHomeSectionsOrderFromList(),
     home_top_banners_sticky: document.getElementById("home-top-banners-sticky")?.checked === true,
   };
+  /* لا ترسل ترتيباً فارغاً — وإلا يعيد الخادم الدمج قائمة افتراضية ويُلغى ترتيب المشرف */
+  if (collectedOrder.length) {
+    body.home_sections_order = collectedOrder;
+  }
   if (cur.home_subcategory_slides != null && typeof cur.home_subcategory_slides === "object") {
     body.home_subcategory_slides = cur.home_subcategory_slides;
   }
