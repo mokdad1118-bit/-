@@ -630,21 +630,54 @@
             background: #fff;
         }
 
-        /* شريط «عالم الأناقة لكل العائلة» — أقصر عمودياً (العرض كما هو) */
-        #home-new-collection-scroll .adora-pcard--strip .adora-pcard__media {
-            max-height: 7.5rem;
+        /* اختيارات أنيقة — نفس مقاس بطاقات «الأكثر مبيعاً» */
+        .home-compact-curated .home-product-strip {
+            gap: 0.75rem;
         }
-        #home-new-collection-scroll .adora-pcard__top {
-            padding: 0.35rem 0.45rem 0;
+        .home-compact-curated .home-product-strip .product-card,
+        .home-compact-curated .home-product-strip .adora-pcard {
+            width: 7.25rem;
+            min-width: 7.25rem;
+            max-width: 7.25rem;
+            flex: 0 0 7.25rem;
         }
-        #home-new-collection-scroll .adora-pcard--strip .adora-pcard__body {
-            padding: 0.45rem 0.5rem 0.45rem;
+        .home-compact-curated .home-product-strip .adora-pcard--strip .adora-pcard__top {
+            padding: 0.4rem 0.4rem 0;
         }
-        #home-new-collection-scroll .adora-pcard__rating-row {
-            margin-top: 0.2rem;
+        .home-compact-curated .home-product-strip .adora-pcard--strip .adora-pcard__media {
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 3 / 4;
+            max-height: 7.35rem;
         }
-        #home-new-collection-scroll .adora-pcard__prices {
-            margin-top: 0.3rem;
+        .home-compact-curated .home-product-strip .adora-pcard--strip .adora-pcard__media-inner img {
+            object-fit: cover;
+            object-position: center;
+        }
+
+        /* عالم الأناقة لكل العائلة — نفس مقاس بطاقات «الأكثر مبيعاً» */
+        #home-new-collection-grid.home-product-strip {
+            gap: 0.75rem;
+        }
+        #home-new-collection-grid.home-product-strip .product-card,
+        #home-new-collection-grid.home-product-strip .adora-pcard {
+            width: 7.25rem;
+            min-width: 7.25rem;
+            max-width: 7.25rem;
+            flex: 0 0 7.25rem;
+        }
+        #home-new-collection-grid .adora-pcard--strip .adora-pcard__top {
+            padding: 0.4rem 0.4rem 0;
+        }
+        #home-new-collection-grid .adora-pcard--strip .adora-pcard__media {
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 3 / 4;
+            max-height: 7.35rem;
+        }
+        #home-new-collection-grid .adora-pcard--strip .adora-pcard__media-inner img {
+            object-fit: cover;
+            object-position: center;
         }
 
         /* صف واحد من بطاقات المنتج داخل الشريط */
@@ -5449,33 +5482,35 @@
 
         <div id="banner-slot-below_flash" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_flash"></div>
 
-        <div class="px-4 py-4 space-y-3 mt-3 home-compact-curated" data-adora-section="curated" data-home-order-key="curated">
-            <div class="flex flex-col items-center text-center gap-1 px-1">
-                <h3 class="adora-glow-title" data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</h3>
-                <p class="text-xs text-purple-700 font-semibold" data-en="Hand-picked styles from Adora" data-ar="تشكيلة مختارة من أدورا">تشكيلة مختارة من أدورا</p>
-                <button type="button" onclick="navigateToListingAll()" class="mt-2 text-purple-600 text-xs font-semibold inline-flex items-center gap-1" data-en="View all" data-ar="عرض الكل">
-                    <span>View all</span>
-                    <i class="fas fa-arrow-right text-[10px]"></i>
-                </button>
-            </div>
-            <div class="adora-scroll-strip home-featured-scroll -mx-1 px-1 pb-1.5 min-h-[100px]" data-adora-section="home_featured">
-                <div id="home-featured-grid">
-                    <p class="text-center text-gray-400 text-sm py-6 px-4 w-[min(100%,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+        <div class="px-4 pb-5 pt-2 mt-3 home-compact-curated" data-adora-section="curated" data-home-order-key="curated">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 px-4 py-4 space-y-3">
+                <div class="flex flex-col items-center text-center gap-1 mb-1 px-1">
+                    <h3 class="adora-glow-title" data-en="Curated picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</h3>
+                    <p class="text-[11px] text-gray-500 w-full max-w-md" data-en="Hand-picked styles from Adora" data-ar="تشكيلة مختارة من أدورا">تشكيلة مختارة من أدورا</p>
+                    <button type="button" onclick="navigateToListingAll()" class="mt-2 text-purple-600 text-xs font-semibold inline-flex items-center gap-1" data-en="View all" data-ar="عرض الكل">
+                        <span>View all</span>
+                        <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+                <div class="adora-scroll-strip home-featured-scroll -mx-1 px-1 pb-1 min-h-[152px]" data-adora-section="home_featured">
+                    <div id="home-featured-grid">
+                        <p class="text-center text-gray-400 text-sm py-8 px-4 w-[min(100%,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="banner-slot-below_curated" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_curated"></div>
 
-        <div class="px-4 pt-3 pb-1" data-adora-section="promo_collection" data-home-order-key="promo_collection">
-            <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-3 sm:p-4 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
-                <div class="relative z-10 space-y-2">
+        <div class="px-4 pb-5 pt-2 mt-3" data-adora-section="promo_collection" data-home-order-key="promo_collection">
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-4 text-white relative overflow-hidden shadow-lg shadow-purple-600/20">
+                <div class="relative z-10 space-y-3">
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div class="space-y-0.5">
-                            <p class="text-[11px] sm:text-xs font-semibold text-white/90 tracking-wide" data-en="Adora | Adora" data-ar="Adora | أدورا">Adora | أدورا</p>
-                            <h2 class="text-base sm:text-lg font-bold leading-tight" data-en="Style for the whole family ✨" data-ar="عالم الأناقة لكل العائلة ✨">عالم الأناقة لكل العائلة ✨</h2>
+                        <div class="flex flex-col items-center text-center sm:items-start sm:text-start gap-1 mb-1 px-1 flex-1 min-w-0">
+                            <p class="text-[11px] font-semibold text-white/90 tracking-wide w-full max-w-md" data-en="Adora | Adora" data-ar="Adora | أدورا">Adora | أدورا</p>
+                            <h2 class="text-base sm:text-lg font-extrabold leading-tight text-white drop-shadow-sm w-full max-w-md" data-en="Style for the whole family ✨" data-ar="عالم الأناقة لكل العائلة ✨">عالم الأناقة لكل العائلة ✨</h2>
                         </div>
-                        <button type="button" onclick="navigateToListingNewCollection()" class="shrink-0 bg-white text-purple-600 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg active:scale-95 transition-transform self-start" data-en="View all" data-ar="عرض الكل">View all</button>
+                        <button type="button" onclick="navigateToListingNewCollection()" class="shrink-0 bg-white text-purple-600 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg active:scale-95 transition-transform self-center sm:self-start" data-en="View all" data-ar="عرض الكل">View all</button>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Men')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">👔 <span data-en="Men" data-ar="رجال">رجال</span></button>
@@ -5483,9 +5518,9 @@
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Kids')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧒 <span data-en="Kids" data-ar="أطفال">أطفال</span></button>
                         <button type="button" onclick="navigateToListingNewCollectionCategory('Games')" class="flex-1 min-w-[calc(50%-0.25rem)] sm:min-w-0 sm:flex-none px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-xs sm:text-sm font-bold active:scale-95 transition-transform">🧸 <span data-en="Games" data-ar="ألعاب">ألعاب</span></button>
                     </div>
-                    <div id="home-new-collection-scroll" class="adora-scroll-strip adora-scroll-strip--on-gradient min-h-[72px] pb-0.5">
+                    <div id="home-new-collection-scroll" class="adora-scroll-strip adora-scroll-strip--on-gradient min-h-[152px] pb-1">
                         <div id="home-new-collection-grid">
-                            <p class="text-center text-white/80 text-xs py-3 px-4 w-[min(100vw-2rem,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
+                            <p class="text-center text-white/80 text-sm py-8 px-4 w-[min(100vw-2rem,22rem)]" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
                         </div>
                     </div>
                 </div>
