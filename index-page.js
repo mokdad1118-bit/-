@@ -4456,7 +4456,11 @@
             const wrap = document.getElementById('marketplace-vendors-strip-wrap');
             if (!wrap) return;
             try {
-                const rows = await apiFetch('/api/marketplace/vendors', { requireAuth: false });
+                let url = '/api/marketplace/vendors';
+                if (marketplaceBrowseSectionId != null && Number.isFinite(marketplaceBrowseSectionId)) {
+                    url += `?section_id=${encodeURIComponent(marketplaceBrowseSectionId)}`;
+                }
+                const rows = await apiFetch(url, { requireAuth: false });
                 marketplaceBrowseVendorsCache = Array.isArray(rows) ? rows : [];
             } catch (_e) {
                 marketplaceBrowseVendorsCache = [];
@@ -4469,6 +4473,29 @@
             if (!screen || screen.dataset.adoraMpVStripBound === '1') return;
             screen.dataset.adoraMpVStripBound = '1';
             screen.addEventListener('click', (e) => {
+                const secBtn = e.target.closest('[data-mp-browse-section-id]');
+                if (secBtn && screen.contains(secBtn)) {
+                    e.preventDefault();
+                    const raw = secBtn.getAttribute('data-mp-browse-section-id');
+                    if (raw === '' || raw == null) {
+                        marketplaceBrowseSectionId = null;
+                    } else {
+                        const n = Number(raw);
+                        if (!Number.isFinite(n)) return;
+                        marketplaceBrowseSectionId = marketplaceBrowseSectionId === n ? null : n;
+                    }
+                    marketplaceBrowseVendorId = null;
+                    const si = document.getElementById('marketplace-search-input');
+                    if (si) {
+                        si.value = '';
+                        resetAdoraSearchTypingForInput(si);
+                    }
+                    syncAdoraAnimatedSearchVisibility();
+                    renderMarketplaceSectionsStrip();
+                    loadMarketplaceVendorsStrip().catch(() => {});
+                    refreshMarketplaceProductList().catch(() => {});
+                    return;
+                }
                 const vbtn = e.target.closest('[data-mp-browse-vendor-id]');
                 if (!vbtn || !screen.contains(vbtn)) return;
                 e.preventDefault();
@@ -4476,7 +4503,6 @@
                 if (!Number.isFinite(vid)) return;
                 if (marketplaceBrowseVendorId === vid) {
                     marketplaceBrowseVendorId = null;
-                    marketplaceBrowseSectionId = null;
                 } else {
                     marketplaceBrowseVendorId = vid;
                     marketplaceBrowseSectionId = null;
@@ -4488,6 +4514,7 @@
                     syncAdoraAnimatedSearchVisibility();
                 }
                 renderMarketplaceVendorsStrip();
+                renderMarketplaceSectionsStrip();
                 refreshMarketplaceProductList().catch(() => {});
             });
         }
@@ -4608,15 +4635,67 @@
                 }
             }
             syncAdoraAnimatedSearchVisibility();
+            await loadMarketplaceSectionsStrip();
             await loadMarketplaceVendorsStrip();
             await refreshMarketplaceProductList();
+        }
+
+        function renderMarketplaceSectionsStrip() {
+            const wrap = document.getElementById('marketplace-sections-strip-wrap');
+            const row = document.getElementById('marketplace-sections-row');
+            if (!wrap || !row) return;
+            const list = Array.isArray(marketplaceBrowseSectionsCache) ? marketplaceBrowseSectionsCache : [];
+            if (!list.length) {
+                wrap.classList.add('hidden');
+                row.innerHTML = '';
+                return;
+            }
+            wrap.classList.remove('hidden');
+            const loc = isRTL ? 'ar' : 'en';
+            const allLabel = isRTL ? 'الكل' : 'All';
+            const allSel = marketplaceBrowseSectionId == null;
+            const allChip = `<button type="button" data-mp-browse-section-id="" class="mp-section-chip${
+                allSel ? ' mp-section-chip--selected' : ''
+            }"><span class="truncate">${escapeHtml(allLabel)}</span></button>`;
+            const chips = list
+                .map((s) => {
+                    const id = Number(s.id);
+                    if (!Number.isFinite(id)) return '';
+                    const name = String(loc === 'ar' ? s.name_ar || s.name_en : s.name_en || s.name_ar || '').trim();
+                    const imgRaw = s.card_image_url ? String(s.card_image_url).trim() : '';
+                    const sel = marketplaceBrowseSectionId === id;
+                    const thumb = imgRaw
+                        ? `<span class="mp-section-chip-thumb"><img src="${escapeHtml(absoluteMediaUrl(imgRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                        : '';
+                    return `<button type="button" data-mp-browse-section-id="${id}" class="mp-section-chip${
+                        sel ? ' mp-section-chip--selected' : ''
+                    }">${thumb}<span class="truncate min-w-0">${escapeHtml(name || '—')}</span></button>`;
+                })
+                .join('');
+            row.innerHTML = allChip + chips;
+        }
+
+        async function loadMarketplaceSectionsStrip() {
+            const wrap = document.getElementById('marketplace-sections-strip-wrap');
+            const row = document.getElementById('marketplace-sections-row');
+            if (!wrap || !row) return;
+            try {
+                const rows = await apiFetch('/api/marketplace/sections', { requireAuth: false });
+                marketplaceBrowseSectionsCache = Array.isArray(rows) ? rows : [];
+            } catch (_e) {
+                marketplaceBrowseSectionsCache = [];
+            }
+            renderMarketplaceSectionsStrip();
         }
 
         async function loadMarketplaceHomeEntrance() {
             const img = document.getElementById('marketplace-home-entrance-img');
             const tEl = document.getElementById('marketplace-home-entrance-title');
             const sEl = document.getElementById('marketplace-home-entrance-subtitle');
-            if (!tEl || !sEl) return;
+            if (!tEl || !sEl) {
+                loadMarketplaceHomeSectionsStrip().catch(() => {});
+                return;
+            }
             try {
                 const d = await apiFetch('/api/marketplace/entrance', { requireAuth: false });
                 const loc = isRTL ? 'ar' : 'en';
@@ -4649,6 +4728,42 @@
                     img.removeAttribute('src');
                     img.hidden = true;
                 }
+            }
+            loadMarketplaceHomeSectionsStrip().catch(() => {});
+        }
+
+        async function loadMarketplaceHomeSectionsStrip() {
+            const wrap = document.getElementById('marketplace-home-sections-wrap');
+            const scroll = document.getElementById('marketplace-home-sections-scroll');
+            if (!wrap || !scroll) return;
+            try {
+                const rows = await apiFetch('/api/marketplace/sections', { requireAuth: false });
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) {
+                    wrap.classList.add('hidden');
+                    scroll.innerHTML = '';
+                    return;
+                }
+                wrap.classList.remove('hidden');
+                const loc = isRTL ? 'ar' : 'en';
+                scroll.innerHTML = list
+                    .map((s) => {
+                        const id = Number(s.id);
+                        if (!Number.isFinite(id)) return '';
+                        const name = String(loc === 'ar' ? s.name_ar || s.name_en : s.name_en || s.name_ar || '').trim();
+                        const imgRaw = s.card_image_url ? String(s.card_image_url).trim() : '';
+                        const inner = imgRaw
+                            ? `<img src="${escapeHtml(absoluteMediaUrl(imgRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                            : `<span class="flex h-full w-full items-center justify-center text-violet-600 text-lg font-black">${escapeHtml((name || '?').charAt(0))}</span>`;
+                        return `<button type="button" class="mp-home-sec-chip" onclick="openMarketplaceBrowse({ section_id: ${id} })">
+                            <span class="mp-home-sec-thumb">${inner}</span>
+                            <span class="mp-home-sec-label" dir="auto">${escapeHtml(name || '—')}</span>
+                        </button>`;
+                    })
+                    .join('');
+            } catch (_e) {
+                wrap.classList.add('hidden');
+                scroll.innerHTML = '';
             }
         }
 
