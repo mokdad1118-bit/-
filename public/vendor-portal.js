@@ -26,7 +26,9 @@
       btn.setAttribute("aria-current", on ? "page" : "false");
     });
     if (id === "notifications") {
-      refreshVendorNotifications().catch(() => {});
+      api("/api/vendor-portal/notifications/read-all", { method: "PUT" })
+        .then(() => refreshVendorNotifications())
+        .catch(() => refreshVendorNotifications());
     }
     try {
       history.replaceState(null, "", "#" + id);
@@ -956,6 +958,7 @@
     const list = el("vp-notifications-list");
     const empty = el("vp-notifications-empty");
     const navBadge = el("vp-nav-notif-badge");
+    const dashBadge = el("vp-dash-notif-badge");
     const sectionBadge = el("vp-section-notif-badge");
     if (!list) return;
     try {
@@ -1024,6 +1027,7 @@
         }
       };
       setBadge(navBadge);
+      setBadge(dashBadge);
       setBadge(sectionBadge);
     } catch (_e) {
       list.innerHTML = "";

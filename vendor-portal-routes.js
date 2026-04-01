@@ -401,8 +401,11 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         [req.mpVendor.id]
       );
       const c = await get(
-        `SELECT COUNT(*)::int AS n FROM vendor_portal_notifications WHERE vendor_id=? AND COALESCE(is_read,0)=0`,
-        [req.mpVendor.id]
+        `SELECT
+           (SELECT COUNT(*)::int FROM vendor_portal_notifications WHERE vendor_id=? AND COALESCE(is_read,0)=0) +
+           (SELECT COUNT(*)::int FROM vendor_contact_threads WHERE vendor_id=? AND COALESCE(vendor_unread,0)>0)
+         AS n`,
+        [req.mpVendor.id, req.mpVendor.id]
       );
       return res.json({ items: rows, unread_count: Number(c?.n || 0) });
     } catch (_e) {
@@ -423,6 +426,22 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       return res.json({ ok: true });
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  /** عند فتح قسم الإشعارات: تصفير العداد (إشعارات + محادثات غير مقروءة) */
+  app.put("/api/vendor-portal/notifications/read-all", ...vpGuarded, async (req, res) => {
+    try {
+      await run(`UPDATE vendor_portal_notifications SET is_read=1 WHERE vendor_id=? AND COALESCE(is_read,0)=0`, [
+        req.mpVendor.id,
+      ]);
+      await run(
+        `UPDATE vendor_contact_threads SET vendor_unread=0, updated_at=CURRENT_TIMESTAMP WHERE vendor_id=? AND COALESCE(vendor_unread,0)>0`,
+        [req.mpVendor.id]
+      );
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to mark all read" });
     }
   });
 
