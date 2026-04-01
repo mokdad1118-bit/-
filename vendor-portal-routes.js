@@ -21,6 +21,7 @@ const {
   getMarketplaceProductMappedAdminById,
   findMarketplaceProductDuplicate,
 } = require("./marketplace-routes");
+const { isWebPushConfigured } = require("./push-notify");
 
 const REQUEST_TYPES = ["general_ad", "featured_product", "search_boost", "home_featured"];
 
@@ -787,6 +788,45 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       return res.json(rows);
     } catch (_e) {
       return res.status(500).json({ error: "Failed" });
+    }
+  });
+
+  app.post("/api/vendor-portal/push/subscribe", ...vpGuarded, async (req, res) => {
+    try {
+      if (!isWebPushConfigured()) {
+        return res.status(503).json({ error: "Push not configured on server" });
+      }
+      const sub = req.body?.subscription;
+      if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
+        return res.status(400).json({ error: "Invalid subscription" });
+      }
+      const endpoint = String(sub.endpoint).slice(0, 2500);
+      const p256dh = String(sub.keys.p256dh).slice(0, 500);
+      const auth = String(sub.keys.auth).slice(0, 200);
+      await run(
+        `INSERT INTO vendor_push_subscriptions (vendor_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)
+         ON CONFLICT (endpoint) DO UPDATE SET vendor_id = EXCLUDED.vendor_id, p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth`,
+        [req.mpVendor.id, endpoint, p256dh, auth]
+      );
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/vendor-portal/push/unsubscribe", ...vpGuarded, async (req, res) => {
+    try {
+      const endpoint = req.body?.endpoint;
+      if (!endpoint || typeof endpoint !== "string") {
+        return res.status(400).json({ error: "endpoint required" });
+      }
+      await run(`DELETE FROM vendor_push_subscriptions WHERE vendor_id=? AND endpoint=?`, [
+        req.mpVendor.id,
+        String(endpoint).slice(0, 2500),
+      ]);
+      return res.json({ ok: true });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to remove subscription" });
     }
   });
 }

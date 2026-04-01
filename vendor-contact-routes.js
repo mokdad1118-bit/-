@@ -2,6 +2,7 @@
  * تواصل الإدارة مع شركات المشتركين — محادثات ثنائية الاتجاه مرتبطة بإشعارات البوابة
  */
 const { get, all, run } = require("./db");
+const { notifyVendorPortalPush } = require("./push-notify");
 
 function registerVendorContactAdminRoutes(app, { requireAuth, requireAdmin }) {
   function emitVendorContactToAdmin() {
@@ -12,6 +13,21 @@ function registerVendorContactAdminRoutes(app, { requireAuth, requireAdmin }) {
       /* ignore */
     }
   }
+
+  app.get("/api/admin/vendor-contact/unread-summary", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const row = await get(
+        `SELECT COUNT(*)::int AS thread_count, COALESCE(SUM(admin_unread), 0)::int AS message_total
+         FROM vendor_contact_threads WHERE COALESCE(admin_unread, 0) > 0`
+      );
+      return res.json({
+        threads_with_unread: Number(row?.thread_count ?? 0),
+        admin_unread_messages: Number(row?.message_total ?? 0),
+      });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load unread summary" });
+    }
+  });
 
   app.get("/api/admin/vendor-contact/threads", requireAuth, requireAdmin, async (_req, res) => {
     try {
@@ -66,6 +82,11 @@ function registerVendorContactAdminRoutes(app, { requireAuth, requireAdmin }) {
         [id]
       );
       emitVendorContactToAdmin();
+      notifyVendorPortalPush(thread.vendor_id, {
+        title: "رسالة من إدارة أدورا",
+        body,
+        url: "/vendor-portal.html#notifications",
+      }).catch((e) => console.error("[Adora] vendor portal push:", e.message || e));
       return res.json({ ok: true });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to send" });
@@ -110,6 +131,11 @@ function registerVendorContactAdminRoutes(app, { requireAuth, requireAdmin }) {
            VALUES (?, ?, ?, NULL, 0, ?)`,
           [vid, title, `${preview}\n\n[محادثة مع الإدارة — يمكنك الرد من هذا الإشعار.]`, tid]
         );
+        notifyVendorPortalPush(vid, {
+          title,
+          body: message.length > 300 ? message.slice(0, 300) + "…" : message,
+          url: "/vendor-portal.html#notifications",
+        }).catch((e) => console.error("[Adora] vendor portal push:", e.message || e));
         count++;
       }
       emitVendorContactToAdmin();

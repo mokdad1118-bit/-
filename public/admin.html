@@ -941,7 +941,10 @@
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="companies">إدارة الشركات</button>
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="ads">طلبات الإعلانات</button>
               <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="products">المنتجات والطلبات</button>
-              <button type="button" role="tab" class="ac-main-tab px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70" data-ac-main="contact">تواصل المشتركين</button>
+              <button type="button" role="tab" class="ac-main-tab relative px-3 py-2.5 rounded-xl text-sm font-bold transition text-gray-600 hover:bg-white/70 inline-flex items-center gap-1.5" data-ac-main="contact">
+                <span>تواصل المشتركين</span>
+                <span id="admin-ac-vc-tab-badge" class="hidden w-2 h-2 rounded-full bg-red-600 shrink-0 ring-2 ring-white" title="رسائل جديدة من المشتركين" aria-hidden="true"></span>
+              </button>
             </nav>
             <div id="ac-pane-add" class="ac-main-pane space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
@@ -2162,8 +2165,9 @@
             <button type="button" data-tab="tab-vendor-subscriptions" class="tab-btn admin-sidebar-item">
               <i class="fas fa-file-signature"></i><span class="admin-sidebar-label" data-en="Join requests" data-ar="طلبات الاشتراك">طلبات الاشتراك</span>
             </button>
-            <button type="button" data-tab="tab-adora-company" class="tab-btn admin-sidebar-item">
+            <button type="button" data-tab="tab-adora-company" class="tab-btn admin-sidebar-item relative">
               <i class="fas fa-building"></i><span class="admin-sidebar-label" data-en="Add company" data-ar="إضافة شركة">إضافة شركة</span>
+              <span id="admin-vc-sidebar-badge" class="hidden absolute top-0.5 start-0.5 min-w-[1.125rem] h-[1.125rem] px-0.5 rounded-full bg-red-600 text-white text-[9px] font-black leading-none flex items-center justify-center z-[1]" aria-hidden="true"></span>
             </button>
             <button type="button" data-tab="tab-offers" class="tab-btn admin-sidebar-item">
               <i class="fas fa-tags"></i><span class="admin-sidebar-label" data-en="Elegant picks" data-ar="اختيارات أنيقة">اختيارات أنيقة</span>

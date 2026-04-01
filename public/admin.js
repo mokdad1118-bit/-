@@ -443,7 +443,11 @@ function connectAdminSocket() {
       }
     } catch (_e) {}
   });
+  adminIoSocket.on("connect", () => {
+    refreshAdminVendorContactUnread().catch(() => {});
+  });
   adminIoSocket.on("vendor_contact:updated", () => {
+    refreshAdminVendorContactUnread().catch(() => {});
     loadVendorContactThreads().catch(() => {});
     if (acVcOpenThreadId != null) {
       openAcVendorContactModal(acVcOpenThreadId).catch(() => {});
@@ -755,6 +759,7 @@ function setActiveTab(tabId) {
   }
   if (tabId === "tab-adora-company") {
     initAdoraCompanyAdminTab().catch(() => {});
+    refreshAdminVendorContactUnread().catch(() => {});
   }
 }
 
@@ -6344,6 +6349,7 @@ async function initAdoraCompanyAdminTab() {
   }
   connectAdminSocket();
   await loadAdoraCompaniesTable();
+  await refreshAdminVendorContactUnread();
 }
 
 async function loadAdoraCompaniesTable() {
@@ -6495,6 +6501,31 @@ async function loadAdoraAdRequestsTable() {
   }
 }
 
+async function refreshAdminVendorContactUnread() {
+  const token = getToken();
+  const side = document.getElementById("admin-vc-sidebar-badge");
+  const tabDot = document.getElementById("admin-ac-vc-tab-badge");
+  if (!token || (!side && !tabDot)) return;
+  try {
+    const d = await api("/api/admin/vendor-contact/unread-summary", { token });
+    const n = Number(d.threads_with_unread || 0);
+    if (side) {
+      if (n > 0) {
+        side.textContent = n > 99 ? "99+" : String(n);
+        side.classList.remove("hidden");
+      } else {
+        side.textContent = "";
+        side.classList.add("hidden");
+      }
+    }
+    if (tabDot) {
+      tabDot.classList.toggle("hidden", n <= 0);
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+}
+
 function fillAcVcVendorSelect() {
   const sel = document.getElementById("ac-vc-vendor");
   if (!sel) return;
@@ -6522,7 +6553,7 @@ async function loadVendorContactThreads() {
     const list = Array.isArray(rows) ? rows : [];
     tbody.innerHTML = list
       .map((r) => {
-        const vname = ar ? r.vendor_name_ar || r.vendor_name_en : r.vendor_name_en || r.vendor_name_ar;
+        const vname = ar ? r.name_ar || r.name_en : r.name_en || r.name_ar;
         const unread = Number(r.admin_unread) > 0;
         const trClass = unread ? "border-b border-gray-100 bg-amber-50/50 font-semibold" : "border-b border-gray-100";
         const lb = String(r.last_body || "");
@@ -6539,6 +6570,7 @@ async function loadVendorContactThreads() {
     if (!list.length) {
       tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-gray-500">${ar ? "لا محادثات بعد." : "No threads yet."}</td></tr>`;
     }
+    await refreshAdminVendorContactUnread();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }

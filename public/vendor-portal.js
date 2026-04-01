@@ -125,6 +125,75 @@
 
   const el = (id) => document.getElementById(id);
 
+  const VP_VAPID_FP_KEY = "adora_vp_vapid_fp";
+
+  function vpUrlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  /** تسجيل Web Push لرسائل الإدارة على الجوال (نفس sw.js والمفاتيح العامة للتطبيق) */
+  async function vpTryRegisterWebPush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const t = localStorage.getItem(TOKEN_KEY);
+    if (!t) return;
+    let reg;
+    try {
+      await navigator.serviceWorker.register("/sw.js");
+      reg = await navigator.serviceWorker.ready;
+    } catch (_e) {
+      return;
+    }
+    let keyRes;
+    try {
+      keyRes = await fetch("/api/push/vapid-public-key");
+    } catch (_e) {
+      return;
+    }
+    if (!keyRes.ok) return;
+    const keyJson = await keyRes.json().catch(() => ({}));
+    if (!keyJson.ok || !keyJson.publicKey) return;
+    const pubKey = String(keyJson.publicKey).trim();
+    const fp = pubKey.slice(0, 48);
+    const prevFp = localStorage.getItem(VP_VAPID_FP_KEY);
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && prevFp && prevFp !== fp) {
+      try {
+        const j = sub.toJSON();
+        if (j.endpoint) {
+          await api("/api/vendor-portal/push/unsubscribe", {
+            method: "POST",
+            body: JSON.stringify({ endpoint: j.endpoint }),
+          }).catch(() => {});
+        }
+        await sub.unsubscribe();
+      } catch (_e) {
+        /* ignore */
+      }
+      sub = null;
+    }
+    try {
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vpUrlBase64ToUint8Array(pubKey),
+        });
+      }
+      const json = sub.toJSON ? sub.toJSON() : sub;
+      await api("/api/vendor-portal/push/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ subscription: json }),
+      });
+      localStorage.setItem(VP_VAPID_FP_KEY, fp);
+    } catch (_e) {
+      /* إذن مرفوض أو السيرفر بدون VAPID */
+    }
+  }
+
   function vpGenId(prefix) {
     return prefix + "_" + Math.random().toString(36).slice(2, 10);
   }
@@ -1005,6 +1074,7 @@
         loadVendorDepartments(),
         refreshVendorNotifications(),
       ]);
+      vpTryRegisterWebPush().catch(() => {});
     } catch (e) {
       showErr(e.message || String(e));
       setToken(null);

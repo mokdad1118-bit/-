@@ -355,6 +355,7 @@ async function initDb() {
   await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
   await migrateVendorContactMessagingV1();
+  await migrateVendorPortalPushSubscriptionsV1();
   await migrateVendorPortalSuspendedV1();
   await migrateMarketplaceProductFeaturedUntilV1();
   await migrateMarketplaceVendorAppVisibilityFlagsV1();
@@ -951,6 +952,23 @@ async function migrateVendorContactMessagingV1() {
   );
   await run(
     `CREATE INDEX IF NOT EXISTS idx_vp_notif_reply_thread ON vendor_portal_notifications (reply_thread_id) WHERE reply_thread_id IS NOT NULL`
+  );
+}
+
+/** Web Push لبوابة البائع (منفصل عن اشتراكات مستخدمي التطبيق) */
+async function migrateVendorPortalPushSubscriptionsV1() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS vendor_push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vendor_push_subscriptions_vendor ON vendor_push_subscriptions (vendor_id)`
   );
 }
 

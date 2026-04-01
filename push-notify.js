@@ -68,9 +68,14 @@ async function removeDeadSubscription(endpoint) {
   await run(`DELETE FROM push_subscriptions WHERE endpoint=?`, [endpoint]);
 }
 
-async function sendWebPushToSubscriptions(subscriptionRows, payload) {
+async function removeDeadVendorPushSubscription(endpoint) {
+  await run(`DELETE FROM vendor_push_subscriptions WHERE endpoint=?`, [endpoint]);
+}
+
+async function sendWebPushToSubscriptions(subscriptionRows, payload, onDeadEndpoint) {
   if (!ensureWebPushConfigured() || !subscriptionRows.length) return;
   const body = JSON.stringify(payload);
+  const onDead = typeof onDeadEndpoint === "function" ? onDeadEndpoint : removeDeadSubscription;
   await Promise.all(
     subscriptionRows.map(async (row) => {
       const sub = {
@@ -83,7 +88,7 @@ async function sendWebPushToSubscriptions(subscriptionRows, payload) {
       } catch (err) {
         const code = err && err.statusCode;
         if (code === 404 || code === 410) {
-          await removeDeadSubscription(row.endpoint).catch(() => {});
+          await onDead(row.endpoint).catch(() => {});
         } else {
           const bodySnippet =
             err && err.body != null ? String(err.body).slice(0, 500) : err && err.message ? String(err.message) : String(err);
@@ -159,10 +164,43 @@ async function notifyInAppRow(row, targetUserId) {
   }
 }
 
+async function getVendorPushSubscriptionRows(vendorId) {
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid) || vid <= 0) return [];
+  return all(`SELECT endpoint, p256dh, auth FROM vendor_push_subscriptions WHERE vendor_id=?`, [vid]);
+}
+
+/**
+ * إشعار Web Push لأجهزة مسجّلة من بوابة البائع (عند رسالة من الإدارة).
+ */
+async function notifyVendorPortalPush(vendorId, { title, body, url }) {
+  if (!isWebPushConfigured()) return;
+  const rows = await getVendorPushSubscriptionRows(vendorId);
+  if (!rows.length) return;
+  const base = getPublicAssetBase();
+  const iconPath = "/icons/adora-icon.svg";
+  const icon = base ? `${base}${iconPath}` : iconPath;
+  const openPath =
+    typeof url === "string" && url.trim()
+      ? resolvePushOpenUrl(url.trim())
+      : "/vendor-portal.html#notifications";
+  const payload = {
+    title: (title != null && String(title).trim() ? String(title).trim() : "أدورا").slice(0, 120),
+    body: String(body || "").slice(0, 500),
+    tag: `adora-vendor-${vendorId}-${Date.now()}`,
+    url: openPath,
+    icon,
+    badge: icon,
+  };
+  await sendWebPushToSubscriptions(rows, payload, removeDeadVendorPushSubscription);
+}
+
 module.exports = {
   isWebPushConfigured,
   ensureWebPushConfigured,
   sanitizeHttpsUrl,
   notifyInAppRow,
+  notifyVendorPortalPush,
   removeDeadSubscription,
+  removeDeadVendorPushSubscription,
 };
