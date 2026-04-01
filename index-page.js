@@ -9816,7 +9816,7 @@
                                     ${
                                         logo
                                             ? `<img src="${escapeHtml(logo)}" class="top-brand-minimal-logo-img" alt="">`
-                                            : `<span class="text-xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`
+                                            : `<span class="text-3xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`
                                     }
                                 </span>
                                 <span class="top-brand-minimal-name" dir="auto">${escapeHtml(name)}</span>
@@ -9856,7 +9856,7 @@
                                     ${
                                         b.logo
                                             ? `<img src="${escapeHtml(b.logo)}" class="top-brand-minimal-logo-img" alt="">`
-                                            : `<span class="text-xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`
+                                            : `<span class="text-3xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`
                                     }
                                 </span>
                                 <span class="top-brand-minimal-name">${escapeHtml(b.name)}</span>
@@ -10033,10 +10033,10 @@
                             '<span class="mp-vendor-premium-star" aria-hidden="true">★</span>';
                         const logo = logoRaw
                             ? `<span class="home-mp-premium-vendor-logo">${star}<img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                            : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-xl sm:text-2xl">${escapeHtml((name || '?').charAt(0))}</span></span>`;
-                        return `<button type="button" class="flex flex-col items-center gap-2 shrink-0 min-w-[6.75rem] sm:min-w-[7.35rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
+                            : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-3xl">${escapeHtml((name || '?').charAt(0))}</span></span>`;
+                        return `<button type="button" class="flex flex-col items-center gap-2 shrink-0 min-w-[7.75rem] sm:min-w-[8rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
                         <div class="flex items-center justify-center">${logo}</div>
-                        <span class="text-xs sm:text-sm font-semibold text-gray-800 text-center leading-snug line-clamp-2 max-w-[7.5rem] sm:max-w-[8.25rem]" dir="auto">${escapeHtml(name || '—')}</span>
+                        <span class="text-sm font-extrabold text-gray-800 text-center leading-snug line-clamp-2 max-w-[8.25rem]" dir="auto">${escapeHtml(name || '—')}</span>
                         </button>`;
                     })
                     .join('');

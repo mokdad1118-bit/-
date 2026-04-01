@@ -1999,11 +1999,12 @@
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
-            width: 5.75rem;
+            /* عرض يضاهي بطاقة شركة الشريط (mp-vendor-strip-card max 118px) */
+            width: 7.75rem;
         }
         @media (min-width: 400px) {
             .top-brand-slot {
-                width: 6.25rem;
+                width: 8rem;
             }
         }
         .top-brand-minimal-btn {
@@ -2025,17 +2026,11 @@
         }
         .top-brand-minimal-logo {
             position: relative;
-            width: 4.5rem;
-            height: 4.5rem;
+            width: 7.375rem;
+            height: 7.375rem;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        @media (min-width: 400px) {
-            .top-brand-minimal-logo {
-                width: 4.875rem;
-                height: 4.875rem;
-            }
         }
         .top-brand-minimal-logo .mp-vendor-premium-star {
             top: 2px;
@@ -2059,16 +2054,17 @@
             display: block;
         }
         .top-brand-minimal-name {
-            font-size: 0.6875rem;
-            font-weight: 700;
+            font-size: 0.875rem;
+            font-weight: 800;
             color: #111827;
-            line-height: 1.25;
+            line-height: 1.2;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             word-break: break-word;
             width: 100%;
+            text-align: center;
         }
         .top-brand-slot .top-brand-slot-meta {
             display: flex;
@@ -2309,11 +2305,12 @@
             right: 6px;
         }
 
+        /* نفس مقياس شعار شركة الشريط (.brand-strip-card.mp-vendor-strip-card → عرض البطاقة حتى 118px) */
         .home-mp-premium-vendor-logo {
             position: relative;
-            width: 6.125rem;
-            height: 6.125rem;
-            border-radius: 1.125rem;
+            width: 7.375rem;
+            height: 7.375rem;
+            border-radius: 1.625rem;
             overflow: hidden;
             flex-shrink: 0;
             background: #fff;
@@ -2321,14 +2318,6 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22), inset 0 0 0 1px rgba(251, 191, 36, 0.4);
-        }
-
-        @media (min-width: 400px) {
-            .home-mp-premium-vendor-logo {
-                width: 6.75rem;
-                height: 6.75rem;
-                border-radius: 1.2rem;
-            }
         }
 
         .home-mp-premium-vendor-logo img {
@@ -5421,7 +5410,7 @@
                 <h2 class="adora-glow-title text-base sm:text-lg" data-en="Featured marketplace companies" data-ar="شركات مميزة">شركات مميزة</h2>
                 <p class="text-[11px] text-gray-500 font-medium" data-en="Premium partners in the company marketplace" data-ar="شركاء مميزون في سوق الشركات">شركاء مميزون في سوق الشركات</p>
             </div>
-            <div id="home-mp-premium-vendors-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-1 min-h-[8.5rem] sm:min-h-[9.25rem]"></div>
+            <div id="home-mp-premium-vendors-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-1 min-h-[10.5rem] sm:min-h-[11rem]"></div>
         </div>
 
         <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_brands"></div>
