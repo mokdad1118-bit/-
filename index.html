@@ -825,11 +825,13 @@
             }
         }
 
-        /** شارة منتج السوق المميز — أسفل يسار مربع الصورة */
+        /** شارة منتج السوق المميز — أعلى يمين مربع الصورة */
         .adora-mp-hot-badge {
             position: absolute;
-            bottom: 0.4rem;
-            left: 0.4rem;
+            top: 0.4rem;
+            right: 0.4rem;
+            bottom: auto;
+            left: auto;
             z-index: 4;
             display: inline-flex;
             align-items: center;
@@ -847,7 +849,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.65);
             line-height: 1;
             pointer-events: none;
-            transform-origin: bottom left;
+            transform-origin: top right;
             animation: adoraMpHotBadgePulse 2.1s ease-in-out infinite;
         }
 
@@ -888,10 +890,14 @@
         .adora-pcard:hover .adora-pcard__media-inner img {
             transform: scale(1.03);
         }
+        /* مفضلة: أسفل يسار الصورة (يسار الشاشة) */
         .adora-pcard__wish {
             position: absolute;
-            top: 0.4rem;
-            inset-inline-start: 0.4rem;
+            top: auto;
+            bottom: 0.4rem;
+            left: 0.4rem;
+            right: auto;
+            inset-inline-start: auto;
             z-index: 20;
             width: 2.125rem;
             height: 2.125rem;
@@ -908,8 +914,8 @@
         .adora-pcard--mini .adora-pcard__wish {
             width: 1.75rem;
             height: 1.75rem;
-            top: 0.35rem;
-            inset-inline-start: 0.35rem;
+            bottom: 0.35rem;
+            left: 0.35rem;
         }
         .adora-pcard__wish .wl-i-fill {
             display: none;
@@ -921,6 +927,7 @@
         .adora-pcard__wish.active .wl-i-fill {
             display: inline;
         }
+        /* إضافة للسلة: أسفل يمين الصورة */
         .adora-pcard__add {
             position: absolute;
             z-index: 21;
@@ -938,8 +945,11 @@
             font-weight: 600;
             line-height: 1;
             padding: 0;
-            bottom: -0.4rem;
-            inset-inline-start: 0.5rem;
+            top: auto;
+            bottom: 0.4rem;
+            right: 0.4rem;
+            left: auto;
+            inset-inline-start: auto;
             transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
         }
         .adora-pcard--mini .adora-pcard__add {
@@ -947,8 +957,8 @@
             height: 1.85rem;
             font-size: 1.05rem;
             border-radius: 0.45rem;
-            bottom: -0.32rem;
-            inset-inline-start: 0.4rem;
+            bottom: 0.35rem;
+            right: 0.35rem;
         }
         .adora-pcard__add:hover:not(:disabled) {
             background: #f5f3ff;
