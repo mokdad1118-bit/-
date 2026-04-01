@@ -2246,17 +2246,30 @@
             const cfg = await loadPublicAppConfig();
             const hasG = !!cfg.google_oauth_client_id;
             const hasA = !!cfg.apple_oauth_client_id;
-            const signupWrap = document.getElementById('auth-oauth-signup-wrap');
-            const loginWrap = document.getElementById('auth-oauth-login-wrap');
+            const introS = document.getElementById('auth-oauth-intro-signup');
+            const offS = document.getElementById('auth-oauth-off-hint-signup');
+            const offL = document.getElementById('auth-oauth-off-hint-login');
+            const slotS = document.getElementById('auth-google-slot-signup');
+            const slotL = document.getElementById('auth-google-slot-login');
+
             if (!hasG && !hasA) {
-                signupWrap?.classList.add('hidden');
-                loginWrap?.classList.add('hidden');
+                introS?.classList.add('hidden');
+                offS?.classList.remove('hidden');
+                offL?.classList.remove('hidden');
+                slotS?.classList.add('hidden');
+                slotL?.classList.add('hidden');
+                document.getElementById('auth-apple-btn-signup')?.classList.add('hidden');
+                document.getElementById('auth-apple-btn-login')?.classList.add('hidden');
                 return;
             }
-            signupWrap?.classList.remove('hidden');
-            loginWrap?.classList.remove('hidden');
+
+            introS?.classList.remove('hidden');
+            offS?.classList.add('hidden');
+            offL?.classList.add('hidden');
 
             if (hasG) {
+                slotS?.classList.remove('hidden');
+                slotL?.classList.remove('hidden');
                 try {
                     await loadGoogleIdentityScript();
                     if (!__adoraGsiInitialized) {
@@ -2271,8 +2284,6 @@
                             locale: isRTL ? 'ar' : 'en',
                         });
                     }
-                    const slotS = document.getElementById('auth-google-slot-signup');
-                    const slotL = document.getElementById('auth-google-slot-login');
                     if (slotS && slotS.getAttribute('data-adora-g') !== '1') {
                         slotS.innerHTML = '';
                         google.accounts.id.renderButton(slotS, {
@@ -2298,12 +2309,18 @@
                 } catch (_e) {
                     /* ignore — OAuth optional */
                 }
+            } else {
+                slotS?.classList.add('hidden');
+                slotL?.classList.add('hidden');
             }
 
             if (hasA) {
                 document.getElementById('auth-apple-btn-signup')?.classList.remove('hidden');
                 document.getElementById('auth-apple-btn-login')?.classList.remove('hidden');
                 adoraEnsureAppleIdInit().catch(() => {});
+            } else {
+                document.getElementById('auth-apple-btn-signup')?.classList.add('hidden');
+                document.getElementById('auth-apple-btn-login')?.classList.add('hidden');
             }
         }
 
