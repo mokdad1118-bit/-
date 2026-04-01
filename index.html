@@ -4227,6 +4227,17 @@
         .adora-auth-primary-btn:active {
             transform: scale(0.98);
         }
+        .adora-auth-apple-btn {
+            background: #000 !important;
+            color: #fff !important;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+            transition: transform 0.18s ease, opacity 0.2s ease;
+        }
+        .adora-auth-apple-btn:active {
+            transform: scale(0.98);
+            opacity: 0.92;
+        }
         .adora-auth-ghost-btn {
             color: rgba(255, 255, 255, 0.55) !important;
         }
@@ -4492,6 +4503,17 @@
                 <div id="auth-message" class="hidden text-sm text-center font-semibold leading-snug"></div>
 
                 <div id="auth-login-screen" class="space-y-4 hidden">
+                    <div id="auth-oauth-login-wrap" class="hidden space-y-3">
+                        <div id="auth-google-slot-login" class="flex justify-center min-h-[44px] items-center"></div>
+                        <button type="button" id="auth-apple-btn-login" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign in with Apple" data-ar="تسجيل الدخول مع Apple">
+                            <i class="fab fa-apple text-lg"></i><span>Apple</span>
+                        </button>
+                        <div class="flex items-center gap-2 opacity-75 pt-1">
+                            <hr class="flex-1 border-white/20" />
+                            <span class="text-[11px] text-violet-200/90 whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد/الهاتف">أو بالبريد/الهاتف</span>
+                            <hr class="flex-1 border-white/20" />
+                        </div>
+                    </div>
                     <form id="auth-form-login" class="space-y-3">
                         <div class="auth-field-enter" style="animation-delay: 0.05s">
                             <label class="text-sm font-semibold adora-auth-label" data-en="Phone or email" data-ar="الهاتف أو البريد">Phone or email</label>
@@ -4512,6 +4534,18 @@
                 </div>
 
                 <div id="auth-signup-screen" class="space-y-4">
+                    <div id="auth-oauth-signup-wrap" class="hidden space-y-3">
+                        <p class="text-[11px] text-center text-violet-200/90 leading-relaxed" data-en="Quick sign-up with Google or Apple — we save your name, email and profile photo when available." data-ar="تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.">تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.</p>
+                        <div id="auth-google-slot-signup" class="flex justify-center min-h-[44px] items-center"></div>
+                        <button type="button" id="auth-apple-btn-signup" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign up with Apple" data-ar="إنشاء حساب مع Apple">
+                            <i class="fab fa-apple text-lg"></i><span>Apple</span>
+                        </button>
+                        <div class="flex items-center gap-2 opacity-75 pt-1">
+                            <hr class="flex-1 border-white/20" />
+                            <span class="text-[11px] text-violet-200/90 whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد الإلكتروني">أو بالبريد الإلكتروني</span>
+                            <hr class="flex-1 border-white/20" />
+                        </div>
+                    </div>
                     <form id="auth-form-signup" class="space-y-3">
                         <div class="auth-field-enter" style="animation-delay: 0.05s">
                             <label class="text-sm font-semibold adora-auth-label" data-en="Name" data-ar="الاسم">Name</label>
@@ -5989,8 +6023,9 @@
             </div>
             
             <div class="flex items-center gap-4">
-                <div class="relative">
-                    <div id="profile-avatar-placeholder" class="w-20 h-20 rounded-full bg-gradient-to-br from-violet-200 to-purple-300 border-4 border-purple-50 flex items-center justify-center text-purple-800 font-bold text-2xl" aria-hidden="true">?</div>
+                <div class="relative w-20 h-20 shrink-0 rounded-full border-4 border-purple-50 overflow-hidden bg-gradient-to-br from-violet-200 to-purple-300">
+                    <img id="profile-avatar-img" src="" alt="" class="hidden w-full h-full object-cover" width="80" height="80" referrerpolicy="no-referrer" />
+                    <div id="profile-avatar-placeholder" class="w-full h-full flex items-center justify-center text-purple-800 font-bold text-2xl" aria-hidden="true">?</div>
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-gray-900" id="profile-user-name"></h2>

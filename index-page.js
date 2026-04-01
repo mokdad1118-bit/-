@@ -1818,7 +1818,28 @@
             return data;
         }
 
-        let _cachedServerAppDownloadUrl;
+        let _cachedPublicConfig = null;
+
+        async function loadPublicAppConfig() {
+            if (_cachedPublicConfig) return _cachedPublicConfig;
+            try {
+                const raw = await apiFetch('/api/public-config', { requireAuth: false });
+                _cachedPublicConfig = {
+                    app_download_url: String(raw.app_download_url || '').trim(),
+                    google_oauth_client_id: String(raw.google_oauth_client_id || '').trim(),
+                    apple_oauth_client_id: String(raw.apple_oauth_client_id || '').trim(),
+                    apple_oauth_redirect_uri: String(raw.apple_oauth_redirect_uri || '').trim(),
+                };
+            } catch (_e) {
+                _cachedPublicConfig = {
+                    app_download_url: '',
+                    google_oauth_client_id: '',
+                    apple_oauth_client_id: '',
+                    apple_oauth_redirect_uri: '',
+                };
+            }
+            return _cachedPublicConfig;
+        }
 
         async function resolveAppDownloadUrl() {
             try {
@@ -1828,15 +1849,8 @@
             } catch (_e) {}
             const fromConst = String(typeof ADORA_APP_DOWNLOAD_URL !== 'undefined' ? ADORA_APP_DOWNLOAD_URL : '').trim();
             if (fromConst) return fromConst;
-            if (_cachedServerAppDownloadUrl !== undefined) return _cachedServerAppDownloadUrl;
-            try {
-                const cfg = await apiFetch('/api/public-config', { requireAuth: false });
-                _cachedServerAppDownloadUrl = String(cfg.app_download_url || '').trim();
-                return _cachedServerAppDownloadUrl;
-            } catch (_e) {
-                _cachedServerAppDownloadUrl = '';
-                return '';
-            }
+            const cfg = await loadPublicAppConfig();
+            return cfg.app_download_url || '';
         }
 
         let adoraParticleModal = { start() {}, stop() {} };
@@ -2074,6 +2088,7 @@
             setAuthMode(mode);
             if (mode === 'signup') resetSignupEmailOtpUi();
             adoraParticleModal.start();
+            ensureAdoraAuthOauthButtons().catch(() => {});
         }
 
         function closeAuthModal() {
@@ -2123,6 +2138,175 @@
             if (typeof nextFn === 'function') await nextFn();
         }
 
+        async function afterAuthLoginSuccess() {
+            await refreshProfileAndOrders();
+            if (pendingOrderPayload) {
+                const payload = pendingOrderPayload;
+                pendingOrderPayload = null;
+                const source = pendingOrderSource;
+                pendingOrderSource = null;
+                const created = await sendOrderToSystem(payload, source);
+                if (source === 'whatsapp' && created) {
+                    await openWhatsAppWithOrder(created);
+                }
+            }
+            await runPostAuthOnboarding();
+            consumeProductDeepLink();
+            consumeMarketplaceDeepLink();
+        }
+
+        let __adoraGsiInitialized = false;
+        let __adoraAppleInited = false;
+
+        function loadGoogleIdentityScript() {
+            return new Promise((resolve, reject) => {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                    resolve();
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = 'https://accounts.google.com/gsi/client';
+                s.async = true;
+                s.defer = true;
+                s.onload = () => resolve();
+                s.onerror = () => reject(new Error('Google script'));
+                document.head.appendChild(s);
+            });
+        }
+
+        function loadAppleAuthScript() {
+            return new Promise((resolve, reject) => {
+                if (typeof AppleID !== 'undefined' && AppleID.auth) {
+                    resolve();
+                    return;
+                }
+                const s = document.createElement('script');
+                s.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+                s.async = true;
+                s.defer = true;
+                s.onload = () => resolve();
+                s.onerror = () => reject(new Error('Apple script'));
+                document.head.appendChild(s);
+            });
+        }
+
+        async function adoraFinishOAuthWithToken(provider, idToken, appleDisplayName) {
+            if (!idToken) return;
+            const body = { provider, id_token: idToken };
+            if (appleDisplayName) body.name = appleDisplayName;
+            try {
+                const data = await apiFetchAuthSignup('/api/auth/oauth', body);
+                setStoredJwtToken(data.token);
+                await completeAuthTransitionToApp(afterAuthLoginSuccess);
+            } catch (e) {
+                openAuthModal(
+                    'login',
+                    isRTL ? `تعذر إكمال الدخول: ${e.message}` : `Sign-in failed: ${e.message}`
+                );
+            }
+        }
+
+        async function adoraEnsureAppleIdInit() {
+            const cfg = await loadPublicAppConfig();
+            if (!cfg.apple_oauth_client_id) return false;
+            await loadAppleAuthScript();
+            if (!__adoraAppleInited) {
+                __adoraAppleInited = true;
+                AppleID.auth.init({
+                    clientId: cfg.apple_oauth_client_id,
+                    scope: 'name email',
+                    redirectURI: cfg.apple_oauth_redirect_uri || window.location.origin,
+                    usePopup: true,
+                });
+            }
+            return true;
+        }
+
+        async function adoraAppleSignIn() {
+            try {
+                if (!(await adoraEnsureAppleIdInit())) return;
+                const res = await AppleID.auth.signIn();
+                const id_token = res.authorization && res.authorization.id_token;
+                let name = '';
+                if (res.user && res.user.name) {
+                    const fn = res.user.name.firstName || '';
+                    const ln = res.user.name.lastName || '';
+                    name = `${fn} ${ln}`.trim();
+                }
+                await adoraFinishOAuthWithToken('apple', id_token, name);
+            } catch (e) {
+                const code = e && (e.error || e.detail);
+                if (code === 'popup_closed_by_user') return;
+                const msg = (e && e.message) || String(e);
+                openAuthModal('signup', isRTL ? `Apple: ${msg}` : `Apple: ${msg}`);
+            }
+        }
+
+        async function ensureAdoraAuthOauthButtons() {
+            const cfg = await loadPublicAppConfig();
+            const hasG = !!cfg.google_oauth_client_id;
+            const hasA = !!cfg.apple_oauth_client_id;
+            const signupWrap = document.getElementById('auth-oauth-signup-wrap');
+            const loginWrap = document.getElementById('auth-oauth-login-wrap');
+            if (!hasG && !hasA) {
+                signupWrap?.classList.add('hidden');
+                loginWrap?.classList.add('hidden');
+                return;
+            }
+            signupWrap?.classList.remove('hidden');
+            loginWrap?.classList.remove('hidden');
+
+            if (hasG) {
+                try {
+                    await loadGoogleIdentityScript();
+                    if (!__adoraGsiInitialized) {
+                        __adoraGsiInitialized = true;
+                        google.accounts.id.initialize({
+                            client_id: cfg.google_oauth_client_id,
+                            callback: (resp) => {
+                                const cred = resp && resp.credential;
+                                if (cred) void adoraFinishOAuthWithToken('google', cred);
+                            },
+                            ux_mode: 'popup',
+                            locale: isRTL ? 'ar' : 'en',
+                        });
+                    }
+                    const slotS = document.getElementById('auth-google-slot-signup');
+                    const slotL = document.getElementById('auth-google-slot-login');
+                    if (slotS && slotS.getAttribute('data-adora-g') !== '1') {
+                        slotS.innerHTML = '';
+                        google.accounts.id.renderButton(slotS, {
+                            theme: 'outline',
+                            size: 'large',
+                            width: 280,
+                            text: 'continue_with',
+                            shape: 'pill',
+                        });
+                        slotS.setAttribute('data-adora-g', '1');
+                    }
+                    if (slotL && slotL.getAttribute('data-adora-g') !== '1') {
+                        slotL.innerHTML = '';
+                        google.accounts.id.renderButton(slotL, {
+                            theme: 'outline',
+                            size: 'large',
+                            width: 280,
+                            text: 'signin_with',
+                            shape: 'pill',
+                        });
+                        slotL.setAttribute('data-adora-g', '1');
+                    }
+                } catch (_e) {
+                    /* ignore — OAuth optional */
+                }
+            }
+
+            if (hasA) {
+                document.getElementById('auth-apple-btn-signup')?.classList.remove('hidden');
+                document.getElementById('auth-apple-btn-login')?.classList.remove('hidden');
+                adoraEnsureAppleIdInit().catch(() => {});
+            }
+        }
+
         async function handleLogin() {
             const phone = document.getElementById('auth-phone-login').value.trim();
             const password = document.getElementById('auth-password-login').value;
@@ -2133,22 +2317,7 @@
                     body: { phone, password },
                 });
                 setStoredJwtToken(data.token);
-                await completeAuthTransitionToApp(async () => {
-                    await refreshProfileAndOrders();
-                    if (pendingOrderPayload) {
-                        const payload = pendingOrderPayload;
-                        pendingOrderPayload = null;
-                        const source = pendingOrderSource;
-                        pendingOrderSource = null;
-                        const created = await sendOrderToSystem(payload, source);
-                        if (source === 'whatsapp' && created) {
-                            await openWhatsAppWithOrder(created);
-                        }
-                    }
-                    await runPostAuthOnboarding();
-                    consumeProductDeepLink();
-                    consumeMarketplaceDeepLink();
-                });
+                await completeAuthTransitionToApp(afterAuthLoginSuccess);
             } catch (e) {
                 openAuthModal('login', isRTL ? `فشل تسجيل الدخول: ${e.message}` : `Login failed: ${e.message}`);
             }
@@ -2285,6 +2454,7 @@
             window.handleSignupSendCode = handleSignupSendCode;
             window.handleSignupVerifyCode = handleSignupVerifyCode;
             window.handleSignupResendCode = handleSignupResendCode;
+            window.adoraAppleSignIn = adoraAppleSignIn;
         } catch (_e) {}
 
         function disconnectAppSocket() {
@@ -2392,11 +2562,25 @@
 
             const data = await apiFetch('/api/profile', { requireAuth: true });
             if (profileNameEl) profileNameEl.textContent = data.user.name || '';
+            const avImg = document.getElementById('profile-avatar-img');
             const avEl = document.getElementById('profile-avatar-placeholder');
-            if (avEl) {
+            const avUrl = data.user && data.user.avatar_url ? String(data.user.avatar_url).trim() : '';
+            const safeAv = avUrl && /^https:\/\//i.test(avUrl) ? avUrl : '';
+            if (avImg && avEl) {
+                if (safeAv) {
+                    avImg.src = safeAv;
+                    avImg.classList.remove('hidden');
+                    avEl.classList.add('hidden');
+                } else {
+                    avImg.removeAttribute('src');
+                    avImg.classList.add('hidden');
+                    avEl.classList.remove('hidden');
+                    const nm = String(data.user.name || '').trim();
+                    avEl.textContent = nm ? nm.charAt(0).toUpperCase() : isRTL ? '؟' : '?';
+                }
+            } else if (avEl) {
                 const nm = String(data.user.name || '').trim();
-                const ch = nm ? nm.charAt(0).toUpperCase() : isRTL ? '؟' : '?';
-                avEl.textContent = ch;
+                avEl.textContent = nm ? nm.charAt(0).toUpperCase() : isRTL ? '؟' : '?';
             }
             if (profilePhoneEl) {
                 const sub = [data.user.phone, data.user.email].filter(Boolean).join(' · ');

@@ -321,6 +321,7 @@ async function initDb() {
 
   await migrateUsersColumns();
   await migrateUsersEmailAndPendingSignups();
+  await migrateUsersOAuthV1();
   await migrateOrderItemsColumns();
   await migrateOrderItemsBrandColumn();
   await migrateProductsInventoryJson();
@@ -499,6 +500,19 @@ async function migrateUsersEmailAndPendingSignups() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT pending_email_signups_email_unique UNIQUE (email_normalized)
     )
+  `);
+}
+
+/** Google / Apple — صورة الملف، وربط الحساب بـ provider + subject */
+async function migrateUsersOAuthV1() {
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider TEXT`);
+  await run(`ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_sub TEXT`);
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oauth_provider_sub
+    ON users (oauth_provider, oauth_sub)
+    WHERE oauth_provider IS NOT NULL AND TRIM(oauth_provider) <> ''
+      AND oauth_sub IS NOT NULL AND TRIM(oauth_sub) <> ''
   `);
 }
 

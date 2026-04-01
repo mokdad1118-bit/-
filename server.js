@@ -10,6 +10,7 @@ const { arabicSearchQueryVariants, sqlLikePrefixParam, sqlLikeContainsParam } = 
 const http = require("http");
 const { Server } = require("socket.io");
 const { signToken, requireAuth, requireAdmin, verifyToken, optionalAuth } = require("./auth");
+const { getPublicOAuthConfig, handleOAuthSignIn } = require("./auth-oauth");
 const { isWebPushConfigured, sanitizeHttpsUrl, notifyInAppRow } = require("./push-notify");
 const {
   registerMarketplaceRoutes,
@@ -707,6 +708,45 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.post("/api/auth/logout", (req, res) => res.json({ ok: true }));
 
+/** تسجيل دخول / إنشاء حساب عبر Google أو Apple — التحقق من id_token على الخادم */
+app.post("/api/auth/oauth", async (req, res) => {
+  try {
+    const provider = String(req.body?.provider || "")
+      .toLowerCase()
+      .trim();
+    const idToken = String(req.body?.id_token || "").trim();
+    if (!idToken) return res.status(400).json({ error: "Missing id_token" });
+    if (provider !== "google" && provider !== "apple") {
+      return res.status(400).json({ error: "Invalid provider" });
+    }
+    const nameExtra = String(req.body?.name || "").trim();
+    const user = await handleOAuthSignIn(provider, idToken, nameExtra);
+    const now = new Date().toISOString();
+    await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [now, user.id]);
+    const payload = {
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      notifications_enabled: user.notifications_enabled,
+      credentials_acknowledged: user.credentials_acknowledged,
+    };
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      phone: user.phone,
+      email: user.email,
+    });
+    return res.json({ token, user: payload });
+  } catch (err) {
+    if (err.code === "CONFLICT") return res.status(409).json({ error: err.message });
+    if (err.code === "NOT_CONFIGURED") return res.status(503).json({ error: err.message });
+    console.error("[auth] oauth:", err?.message || err);
+    return res.status(401).json({ error: "OAuth sign-in failed" });
+  }
+});
+
 /** ÙØ­Øµ ØµØ­Ø© Ù„Ù„Ù†Ø´Ø± (Ù…ÙˆØ§Ø²Ù†ØŒ DockerØŒ Ù…Ø±Ø§Ù‚Ø¨Ø©) */
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -727,6 +767,7 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/public-config", (_req, res) => {
   res.json({
     app_download_url: String(process.env.ADORA_APP_DOWNLOAD_URL || "").trim(),
+    ...getPublicOAuthConfig(),
   });
 });
 
@@ -756,7 +797,7 @@ app.get("/api/stats", sendPublicStatsJson);
 async function loadUserProfileBundle(userId) {
   await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [new Date().toISOString(), userId]);
   const user = await get(
-    `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at
+    `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at, avatar_url
      FROM users WHERE id=?`,
     [userId]
   );
@@ -824,7 +865,7 @@ app.put("/api/profile", requireAuth, async (req, res) => {
     }
     await run(`UPDATE users SET name=?, phone=?, email=? WHERE id=?`, [n, nextPhone, nextEmail, req.user.id]);
     const user = await get(
-      `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at FROM users WHERE id=?`,
+      `SELECT id, name, phone, email, role, created_at, notifications_enabled, notifications_snoozed_until, credentials_acknowledged, last_activity_at, avatar_url FROM users WHERE id=?`,
       [req.user.id]
     );
     const token = signToken({
@@ -1001,6 +1042,7 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
     const rows = await all(
       `SELECT u.id, u.name, u.phone, u.email, u.role, u.created_at, u.last_activity_at,
         u.notifications_enabled, u.notifications_snoozed_until,
+        u.avatar_url, u.oauth_provider,
         (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count,
         (SELECT MAX(o.created_at) FROM orders o WHERE o.user_id = u.id) AS last_order_at
        FROM users u

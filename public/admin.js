@@ -3908,17 +3908,19 @@ function renderUsersTable() {
   const f = getAdminFilter();
   const filtered = f
     ? adminUsersCache.filter((u) =>
-        `${u.name} ${u.phone || ""} ${u.email || ""} ${u.role || ""}`.toLowerCase().includes(f)
+        `${u.name} ${u.phone || ""} ${u.email || ""} ${u.role || ""} ${u.oauth_provider || ""}`
+          .toLowerCase()
+          .includes(f)
       )
     : adminUsersCache;
   if (!adminUsersCache.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-gray-500">${
       ar ? "لا يوجد مستخدمون مسجّلون بعد (بعد التسجيل في التطبيق يظهرون هنا)." : "No registered app users yet — they appear after sign-up in the app."
     }</td></tr>`;
     return;
   }
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-500">${ar ? "لا نتائج تطابق البحث." : "No matches for this search."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-gray-500">${ar ? "لا نتائج تطابق البحث." : "No matches for this search."}</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered
@@ -3937,12 +3939,22 @@ function renderUsersTable() {
       const waCell = wa
         ? `<a href="${escapeHtml(waHref)}" target="_blank" rel="noopener noreferrer" class="text-green-600 font-semibold text-xs"><i class="fab fa-whatsapp"></i> WA</a>`
         : "—";
+      const op = String(u.oauth_provider || "").toLowerCase();
+      const signInLabel =
+        op === "google" ? "Google" : op === "apple" ? "Apple" : ar ? "بريد/هاتف" : "Email / phone";
+      const av = u.avatar_url && /^https:\/\//i.test(String(u.avatar_url))
+        ? `<img src="${escapeHtml(u.avatar_url)}" alt="" class="w-9 h-9 rounded-full object-cover border border-gray-200" referrerpolicy="no-referrer" />`
+        : `<span class="inline-flex w-9 h-9 rounded-full bg-violet-100 text-violet-700 text-xs font-bold items-center justify-center">${escapeHtml(
+            (u.name || "?").trim().charAt(0).toUpperCase() || "?"
+          )}</span>`;
       return `
         <tr>
+          <td class="py-2 align-middle">${av}</td>
           <td class="py-2 font-semibold">${escapeHtml(u.name)}</td>
           <td class="py-2 font-mono text-xs">${escapeHtml(u.email || "—")}</td>
           <td class="py-2 font-mono text-xs">${escapeHtml(u.phone || "—")}</td>
           <td class="py-2 text-xs text-gray-600">${escapeHtml(u.role || "user")}</td>
+          <td class="py-2 text-xs text-gray-600">${escapeHtml(signInLabel)}</td>
           <td class="py-2 text-xs">${escapeHtml(pushLabel)}</td>
           <td class="py-2 whitespace-nowrap">${escapeHtml(reg)}</td>
           <td class="py-2">${u.order_count ?? 0}</td>
