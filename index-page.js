@@ -2710,7 +2710,10 @@
                 if (ta) ta.value = '';
                 setSiteRatingStarCount(0);
                 siteRatingSelected = 0;
-                showToast(isRTL ? 'شكراً على تقييمك' : 'Thanks for your feedback');
+                showToast(isRTL ? 'شكراً لملاحظتك، تم الإرسال' : 'Thank you — your message was sent.', {
+                    variant: 'feedback-sent',
+                    duration: 1000,
+                });
             } catch (e) {
                 showToast(e.message || (isRTL ? 'تعذر الإرسال' : 'Could not send'));
             }
@@ -4274,7 +4277,10 @@
                     body: { note, banner_id: Number.isFinite(bid) ? bid : null },
                 });
                 closeCustomerFeedbackBannerModal();
-                alert(isRTL ? 'شكراً، تم إرسال ملاحظتك.' : 'Thanks, your note was sent.');
+                showToast(isRTL ? 'شكراً لملاحظتك، تم الإرسال' : 'Thank you — your message was sent.', {
+                    variant: 'feedback-sent',
+                    duration: 1000,
+                });
             } catch (e) {
                 alert(e.message || String(e));
             }
@@ -11328,20 +11334,24 @@
             }
         }
 
-        // Toast System — opts: { duration?: number, variant?: 'sort-done' }
+        // Toast System — opts: { duration?: number, variant?: 'sort-done' | 'feedback-sent' }
         function showToast(message, opts) {
             const toast = document.getElementById('toast');
             const msgEl = document.getElementById('toast-message');
             if (!toast || !msgEl) return;
             const duration = opts && typeof opts.duration === 'number' ? opts.duration : 2500;
-            const sortDone = opts && opts.variant === 'sort-done';
+            const v = opts && opts.variant;
+            const violetLight = v === 'sort-done' || v === 'feedback-sent';
+            const feedbackSent = v === 'feedback-sent';
             msgEl.textContent = message;
-            toast.classList.toggle('toast--sort-done', sortDone);
+            toast.classList.toggle('toast--sort-done', violetLight);
+            toast.classList.toggle('toast--feedback-sent', feedbackSent);
             toast.classList.add('show');
             if (toast._adoraToastTimer) clearTimeout(toast._adoraToastTimer);
             toast._adoraToastTimer = setTimeout(() => {
                 toast.classList.remove('show');
                 toast.classList.remove('toast--sort-done');
+                toast.classList.remove('toast--feedback-sent');
                 toast._adoraToastTimer = null;
             }, duration);
         }

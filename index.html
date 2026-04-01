@@ -1826,7 +1826,7 @@
             opacity: 0;
             pointer-events: none;
             transition: all 0.3s ease;
-            z-index: 100;
+            z-index: 25050;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
@@ -1853,6 +1853,16 @@
         }
         .toast.toast--sort-done .toast-leading-icon {
             display: none;
+        }
+        /* رسالة إرسال الملاحظة/التقييم — نص أطول، وسط */
+        .toast.toast--sort-done.toast--feedback-sent {
+            max-width: min(92vw, 22rem);
+            padding: 0.625rem 1.125rem;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.35;
+            font-size: 0.8125rem;
+            border-radius: 1rem;
         }
         
         .toast.show {
