@@ -4166,6 +4166,23 @@
         .adora-auth-muted {
             color: rgba(196, 181, 253, 0.75) !important;
         }
+        /* تلميحات OAuth — ألوان صريحة (لا تعتمد على Tailwind المُقتطع) */
+        .adora-auth-glass .adora-auth-oauth-hint {
+            color: #fefce8 !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+            font-weight: 600;
+            line-height: 1.55;
+        }
+        .adora-auth-glass .adora-auth-oauth-intro {
+            color: rgba(237, 233, 254, 0.95) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+            font-weight: 600;
+            line-height: 1.55;
+        }
+        .adora-auth-glass .adora-auth-oauth-divider-label {
+            color: rgba(255, 255, 255, 0.88) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
         .adora-auth-input {
             width: 100%;
             margin-top: 0.25rem;
@@ -4504,14 +4521,14 @@
 
                 <div id="auth-login-screen" class="space-y-4 hidden">
                     <div id="auth-oauth-login-wrap" class="space-y-3">
-                        <p id="auth-oauth-off-hint-login" class="text-[11px] text-center text-amber-100/90 leading-relaxed" data-en="Quick sign-in with Google or Apple will appear here after GOOGLE_CLIENT_ID / APPLE_CLIENT_ID are set on the API server (Render)." data-ar="يظهر تسجيل الدخول السريع عبر Google أو Apple هنا بعد ضبط GOOGLE_CLIENT_ID و APPLE_CLIENT_ID على خادم الـ API (مثل Render). يمكنك استخدام البريد أو الهاتف أدناه.">يظهر تسجيل الدخول السريع عبر Google أو Apple هنا بعد ضبط المعرفات على خادم الـ API. يمكنك استخدام البريد أو الهاتف أدناه.</p>
+                        <p id="auth-oauth-off-hint-login" class="adora-auth-oauth-hint text-[11px] text-center leading-relaxed" data-en="Google and Apple sign-in will show here once your site admin enables it on the server. You can sign in with email or phone below." data-ar="سيظهر تسجيل الدخول عبر Google وApple هنا بعد تفعيله من إعدادات الخادم. يمكنك تسجيل الدخول بالبريد أو الهاتف أدناه.">سيظهر تسجيل الدخول عبر Google وApple هنا بعد تفعيله من إعدادات الخادم. يمكنك تسجيل الدخول بالبريد أو الهاتف أدناه.</p>
                         <div id="auth-google-slot-login" class="hidden flex justify-center min-h-[44px] items-center"></div>
                         <button type="button" id="auth-apple-btn-login" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign in with Apple" data-ar="تسجيل الدخول مع Apple">
                             <i class="fab fa-apple text-lg"></i><span>Apple</span>
                         </button>
                         <div class="flex items-center gap-2 opacity-75 pt-1">
                             <hr class="flex-1 border-white/20" />
-                            <span class="text-[11px] text-violet-200/90 whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد/الهاتف">أو بالبريد/الهاتف</span>
+                            <span class="adora-auth-oauth-divider-label text-[11px] whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد/الهاتف">أو بالبريد/الهاتف</span>
                             <hr class="flex-1 border-white/20" />
                         </div>
                     </div>
@@ -4536,15 +4553,15 @@
 
                 <div id="auth-signup-screen" class="space-y-4">
                     <div id="auth-oauth-signup-wrap" class="space-y-3">
-                        <p id="auth-oauth-intro-signup" class="hidden text-[11px] text-center text-violet-200/90 leading-relaxed" data-en="Quick sign-up with Google or Apple — we save your name, email and profile photo when available." data-ar="تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.">تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.</p>
-                        <p id="auth-oauth-off-hint-signup" class="text-[11px] text-center text-amber-100/90 leading-relaxed" data-en="Google / Apple buttons appear after the API server has GOOGLE_CLIENT_ID or APPLE_CLIENT_ID. You can sign up with email below." data-ar="تظهر أزرار Google وApple بعد إضافة GOOGLE_CLIENT_ID أو APPLE_CLIENT_ID في متغيرات بيئة الخادم. يمكنك التسجيل بالبريد أدناه.">تظهر أزرار Google وApple بعد ضبط المعرفات على الخادم. يمكنك التسجيل بالبريد أدناه.</p>
+                        <p id="auth-oauth-intro-signup" class="hidden adora-auth-oauth-intro text-[11px] text-center leading-relaxed" data-en="Quick sign-up with Google or Apple — we save your name, email and profile photo when available." data-ar="تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.">تسجيل سريع عبر Google أو Apple — نحفظ الاسم والبريد والصورة عند توفرها.</p>
+                        <p id="auth-oauth-off-hint-signup" class="adora-auth-oauth-hint text-[11px] text-center leading-relaxed" data-en="Google and Apple buttons will appear here once your site admin enables them on the server. You can create an account with email below." data-ar="ستظهر أزرار Google وApple هنا بعد تفعيلها من إعدادات الخادم. يمكنك إنشاء الحساب بالبريد الإلكتروني أدناه.">ستظهر أزرار Google وApple هنا بعد تفعيلها من إعدادات الخادم. يمكنك إنشاء الحساب بالبريد الإلكتروني أدناه.</p>
                         <div id="auth-google-slot-signup" class="hidden flex justify-center min-h-[44px] items-center"></div>
                         <button type="button" id="auth-apple-btn-signup" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign up with Apple" data-ar="إنشاء حساب مع Apple">
                             <i class="fab fa-apple text-lg"></i><span>Apple</span>
                         </button>
                         <div class="flex items-center gap-2 opacity-75 pt-1">
                             <hr class="flex-1 border-white/20" />
-                            <span class="text-[11px] text-violet-200/90 whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد الإلكتروني">أو بالبريد الإلكتروني</span>
+                            <span class="adora-auth-oauth-divider-label text-[11px] whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد الإلكتروني">أو بالبريد الإلكتروني</span>
                             <hr class="flex-1 border-white/20" />
                         </div>
                     </div>
@@ -6885,6 +6902,6 @@
     </div>
 
     <script src="/vendor/panzoom.min.js"></script>
-    <script src="/index-page.js?v=oauth-ui2"></script>
+    <script src="/index-page.js?v=oauth-ui3"></script>
 </body>
 </html>
