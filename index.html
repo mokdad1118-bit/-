@@ -1939,27 +1939,143 @@
         }
 
         .home-compact-flash .flash-sale-scroll .adora-pcard--flash {
-            width: 10.5rem;
-            min-width: 10.5rem;
-            max-width: 10.5rem;
-            flex: 0 0 10.5rem;
+            width: 9rem;
+            min-width: 9rem;
+            max-width: 9rem;
+            flex: 0 0 9rem;
         }
-        /* صورة بعرض البطاقة (كان max-height: 5.25rem يضيّق المساحة ويُظهر فراغاً حول الصورة) */
+        /* بطاقة أصغر؛ الصورة تبقى بعرض البطاقة */
         .home-compact-flash .adora-pcard--flash .adora-pcard__top {
-            padding: 0.35rem 0.35rem 0;
+            padding: 0.3rem 0.3rem 0;
         }
         .home-compact-flash .adora-pcard--flash .adora-pcard__media {
             width: 100%;
             max-width: 100%;
             aspect-ratio: 3 / 4;
-            max-height: 9.5rem;
+            max-height: 8.125rem;
         }
         .home-compact-flash .adora-pcard--flash .adora-pcard__media-inner img {
             object-fit: cover;
             object-position: center;
         }
+        .home-compact-flash .adora-pcard--flash .adora-pcard__body {
+            padding: 0.45rem 0.4rem 0.4rem;
+        }
         .home-compact-flash .adora-pcard--flash .adora-pcard__title {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
+        }
+        .home-compact-flash .adora-pcard--flash .adora-pcard__rating-row {
+            margin-top: 0.12rem;
+        }
+        .home-compact-flash .adora-pcard--flash .adora-pcard__prices {
+            margin-top: 0.25rem;
+        }
+
+        /* الأكثر مبيعاً — بطاقة أكبر قليلاً وصورة متناسقة */
+        #home-bestsellers-scroll .home-bestseller-card {
+            width: 7.25rem;
+            min-width: 7.25rem;
+            max-width: 7.25rem;
+            flex: 0 0 7.25rem;
+        }
+        #home-bestsellers-scroll .home-bestseller-card .adora-pcard--mini .adora-pcard__top {
+            padding: 0.4rem 0.4rem 0;
+        }
+        #home-bestsellers-scroll .home-bestseller-card .adora-pcard--mini .adora-pcard__media {
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 3 / 4;
+            max-height: 7.35rem;
+        }
+        #home-bestsellers-scroll .home-bestseller-card .adora-pcard--mini .adora-pcard__media-inner img {
+            object-fit: cover;
+            object-position: center;
+        }
+
+        /* العلامات المميزة — شعار نظيف بدون صندوق، الاسم تحته */
+        .top-brand-slot {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            width: 5.75rem;
+        }
+        @media (min-width: 400px) {
+            .top-brand-slot {
+                width: 6.25rem;
+            }
+        }
+        .top-brand-minimal-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            text-align: center;
+        }
+        .top-brand-minimal-btn:active {
+            opacity: 0.88;
+        }
+        .top-brand-minimal-logo {
+            position: relative;
+            width: 4.5rem;
+            height: 4.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (min-width: 400px) {
+            .top-brand-minimal-logo {
+                width: 4.875rem;
+                height: 4.875rem;
+            }
+        }
+        .top-brand-minimal-logo .mp-vendor-premium-star {
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            font-size: 8px;
+            border-radius: 5px;
+            z-index: 2;
+        }
+        body[dir="rtl"] .top-brand-minimal-logo .mp-vendor-premium-star {
+            left: auto;
+            right: 2px;
+        }
+        .top-brand-minimal-logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+        .top-brand-minimal-name {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.25;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+            width: 100%;
+        }
+        .top-brand-slot .top-brand-slot-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            justify-content: center;
+            width: 100%;
         }
         .home-compact-flash .adora-pcard--flash .adora-pcard__wish,
         .home-compact-flash .adora-pcard--flash .adora-pcard__add {
@@ -2195,9 +2311,9 @@
 
         .home-mp-premium-vendor-logo {
             position: relative;
-            width: 4.75rem;
-            height: 4.75rem;
-            border-radius: 1rem;
+            width: 6.125rem;
+            height: 6.125rem;
+            border-radius: 1.125rem;
             overflow: hidden;
             flex-shrink: 0;
             background: #fff;
@@ -2209,9 +2325,9 @@
 
         @media (min-width: 400px) {
             .home-mp-premium-vendor-logo {
-                width: 5.25rem;
-                height: 5.25rem;
-                border-radius: 1.1rem;
+                width: 6.75rem;
+                height: 6.75rem;
+                border-radius: 1.2rem;
             }
         }
 
@@ -5305,7 +5421,7 @@
                 <h2 class="adora-glow-title text-base sm:text-lg" data-en="Featured marketplace companies" data-ar="شركات مميزة">شركات مميزة</h2>
                 <p class="text-[11px] text-gray-500 font-medium" data-en="Premium partners in the company marketplace" data-ar="شركاء مميزون في سوق الشركات">شركاء مميزون في سوق الشركات</p>
             </div>
-            <div id="home-mp-premium-vendors-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-1 min-h-[7.5rem] sm:min-h-[8rem]"></div>
+            <div id="home-mp-premium-vendors-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-1 min-h-[8.5rem] sm:min-h-[9.25rem]"></div>
         </div>
 
         <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_brands"></div>
@@ -5402,7 +5518,7 @@
                         <i class="fas fa-arrow-right text-[10px]"></i>
                     </button>
                 </div>
-                <div id="home-bestsellers-scroll" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 min-h-[140px]">
+                <div id="home-bestsellers-scroll" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 min-h-[152px]">
                     <p class="text-sm text-gray-400 py-8 px-2" data-en="Loading…" data-ar="جاري التحميل…">جاري التحميل…</p>
                 </div>
             </div>

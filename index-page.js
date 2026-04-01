@@ -9807,17 +9807,21 @@
                 const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
                 const premStar =
                     Number(v.is_premium_active) === 1
-                        ? `<span class="mp-vendor-premium-star" style="top:4px;left:4px;width:20px;height:20px;font-size:10px;border-radius:6px" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
+                        ? `<span class="mp-vendor-premium-star" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
                         : '';
-                return `                        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
-                            <button type="button" class="top-brand-card mp-top-vendor-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-mp-vendor-id="${Number(v.id)}">
-                                <div class="mp-top-vendor-logo-wrap w-[4.25rem] h-[4.25rem] rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-md ring-2 ring-emerald-200/70 p-1">
+                return `                        <div class="top-brand-slot">
+                            <button type="button" class="top-brand-minimal-btn mp-top-vendor-card" data-mp-vendor-id="${Number(v.id)}">
+                                <span class="top-brand-minimal-logo">
                                     ${premStar}
-                                    ${logo ? `<img src="${escapeHtml(logo)}" class="max-w-full max-h-full w-auto h-auto object-contain" alt="">` : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
-                                </div>
-                                <h4 class="font-bold text-gray-900 text-sm leading-snug line-clamp-2">${escapeHtml(name)}</h4>
+                                    ${
+                                        logo
+                                            ? `<img src="${escapeHtml(logo)}" class="top-brand-minimal-logo-img" alt="">`
+                                            : `<span class="text-xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`
+                                    }
+                                </span>
+                                <span class="top-brand-minimal-name" dir="auto">${escapeHtml(name)}</span>
                             </button>
-                            <div class="flex flex-wrap gap-1"><span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-100 bg-white text-emerald-800">${escapeHtml(chip)}</span></div>
+                            <div class="top-brand-slot-meta"><span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200/60 text-emerald-800">${escapeHtml(chip)}</span></div>
                         </div>`;
             };
             const mpBlock = mpTop.map(mpTopVendorBlockHtml).filter(Boolean).join('');
@@ -9846,14 +9850,18 @@
                                   return `<button type="button" class="top-brand-cat-chip shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-100 bg-white text-purple-700 hover:bg-purple-50 transition" data-brand-name="${nameEnc}" data-main-cat="${cat}">${escapeHtml(t)}</button>`;
                               })
                               .join('');
-                          return `                        <div class="w-36 flex-shrink-0 flex flex-col gap-2">
-                            <button type="button" class="top-brand-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-brand-name="${nameEnc}">
-                                <div class="w-14 h-14 rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-sm ring-1 ring-black/5">
-                                    ${b.logo ? `<img src="${escapeHtml(b.logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`}
-                                </div>
-                                <h4 class="font-bold text-gray-900 truncate">${escapeHtml(b.name)}</h4>
+                          return `                        <div class="top-brand-slot">
+                            <button type="button" class="top-brand-minimal-btn" data-brand-name="${nameEnc}">
+                                <span class="top-brand-minimal-logo">
+                                    ${
+                                        b.logo
+                                            ? `<img src="${escapeHtml(b.logo)}" class="top-brand-minimal-logo-img" alt="">`
+                                            : `<span class="text-xl font-bold text-purple-600">${escapeHtml(String(b.name || '').charAt(0))}</span>`
+                                    }
+                                </span>
+                                <span class="top-brand-minimal-name">${escapeHtml(b.name)}</span>
                             </button>
-                            <div class="flex flex-wrap gap-1">${chips}</div>
+                            <div class="top-brand-slot-meta">${chips}</div>
                         </div>`;
                       })
                       .join('')
@@ -10026,9 +10034,9 @@
                         const logo = logoRaw
                             ? `<span class="home-mp-premium-vendor-logo">${star}<img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
                             : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-xl sm:text-2xl">${escapeHtml((name || '?').charAt(0))}</span></span>`;
-                        return `<button type="button" class="flex flex-col items-center gap-2 shrink-0 min-w-[5.75rem] sm:min-w-[6.25rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
+                        return `<button type="button" class="flex flex-col items-center gap-2 shrink-0 min-w-[6.75rem] sm:min-w-[7.35rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
                         <div class="flex items-center justify-center">${logo}</div>
-                        <span class="text-xs sm:text-[13px] font-semibold text-gray-800 text-center leading-snug line-clamp-2 max-w-[6.5rem] sm:max-w-[7rem]" dir="auto">${escapeHtml(name || '—')}</span>
+                        <span class="text-xs sm:text-sm font-semibold text-gray-800 text-center leading-snug line-clamp-2 max-w-[7.5rem] sm:max-w-[8.25rem]" dir="auto">${escapeHtml(name || '—')}</span>
                         </button>`;
                     })
                     .join('');
@@ -10101,7 +10109,7 @@
                     const addClk = canCart ? `onclick="event.stopPropagation(); quickAddMarketplaceProductToCart(${id},event)"` : `onclick="event.stopPropagation()"`;
                     const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
                     const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0 w-[6.5rem]">
+                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0">
                         <div class="adora-pcard adora-pcard--mini product-card">
                         <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${id});}">
                         <div class="adora-pcard__top">
@@ -10140,7 +10148,7 @@
                     const addClk = canCart ? `onclick="event.stopPropagation(); quickAddCatalogProductToCart(${pid},event)"` : `onclick="event.stopPropagation()"`;
                     const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
                     const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0 w-[6.5rem]">
+                    pieces.push(`<div class="home-bestseller-card adora-pcv flex-shrink-0">
                         <div class="adora-pcard adora-pcard--mini product-card">
                         <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail(${pid});}">
                         <div class="adora-pcard__top">
@@ -11696,7 +11704,9 @@
                     } catch (_) {}
                     return;
                 }
-                const btn = e.target.closest('.brand-strip-card[data-brand-name], .top-brand-card[data-brand-name]');
+                const btn = e.target.closest(
+                    '.brand-strip-card[data-brand-name], .top-brand-card[data-brand-name], .top-brand-minimal-btn[data-brand-name]'
+                );
                 if (!btn || !shell.contains(btn)) return;
                 const enc = btn.getAttribute('data-brand-name');
                 if (!enc) return;
