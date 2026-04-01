@@ -3046,6 +3046,8 @@
                 loadHomeFeaturedGrid().catch(() => {});
                 loadHomeNewCollectionGrid().catch(() => {});
                 loadHomeBestsellers().catch(() => {});
+                loadHomeMpPremiumVendors().catch(() => {});
+                loadHomeMpFeaturedMarketplaceProducts().catch(() => {});
                 injectHomeBanners().catch(() => {});
                 refreshAdoraHomeSubcategoryCounts().catch(() => {});
                 loadMarketplaceHomeEntrance().catch(() => {});
@@ -3242,6 +3244,8 @@
                     loadHomeFeaturedGrid(),
                     loadHomeNewCollectionGrid(),
                     loadHomeBestsellers(),
+                    loadHomeMpPremiumVendors(),
+                    loadHomeMpFeaturedMarketplaceProducts(),
                     refreshAdoraHomeSubcategoryCounts(),
                     loadMarketplaceHomeEntrance(),
                     loadPartnerCtaConfig(),
@@ -3832,6 +3836,7 @@
             marketplaceBrowsePreset = opts && typeof opts === 'object' ? opts : {};
             navigateTo('screen-marketplace');
         }
+        window.openMarketplaceBrowse = openMarketplaceBrowse;
 
         let partnerCtaConfig = null;
 
@@ -4303,6 +4308,10 @@
                         showHomePromo && Number(p.is_home_featured_promo) === 1
                             ? `<span class="absolute top-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-fuchsia-600 text-white px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'رئيسية' : 'Home'}</span>`
                             : '';
+                    const mpFeat =
+                        Number(p.is_mp_featured_effective) === 1
+                            ? `<span class="absolute bottom-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                            : '';
                     const listP = Number(p.price ?? 0);
                     const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
                     const saleP = p.final_price != null ? Number(p.final_price) : disc > 0 && disc < 100 ? listP * (1 - disc / 100) : listP;
@@ -4317,7 +4326,7 @@
                         <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start active:scale-[0.98] transition-transform" onclick="openMarketplaceProductDetail(${pid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${pid});}">
                         <div class="adora-pcard__top">
                         <div class="adora-pcard__media">
-                            <div class="adora-pcard__media-inner">${homeAd}<img src="${escapeHtml(img0)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
+                            <div class="adora-pcard__media-inner relative">${homeAd}${mpFeat}<img src="${escapeHtml(img0)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
                             <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${pid},this)">${adoraPcardWishIconsHtml()}</button>
                             <button type="button" class="adora-pcard__add"${addDis} aria-label="Add to cart" onclick="quickAddMarketplaceProductToCart(${pid},event)">+</button>
                         </div>
@@ -4424,7 +4433,11 @@
                 const logo = logoRaw
                     ? `<span class="mp-vendor-logo-box"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
                     : `<span class="mp-vendor-logo-box mp-vendor-logo-box--placeholder">${escapeHtml((name || '?').charAt(0))}</span>`;
-                return `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name" dir="auto">${escapeHtml(name || '—')}</span></button>`;
+                const star =
+                    Number(v.is_premium_active) === 1
+                        ? `<span class="text-amber-500 text-[11px] leading-none shrink-0" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
+                        : '';
+                return `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name inline-flex items-center gap-0.5 justify-center" dir="auto">${escapeHtml(name || '—')}${star}</span></button>`;
             };
             const parts = list.map(buildChip).filter(Boolean);
             const mid = Math.ceil(parts.length / 2);
@@ -4712,7 +4725,7 @@
                     const listP = Number(p.price || 0);
                     const saleP = disc > 0 && disc < 100 ? finalP : listP;
                     const featBadge =
-                        Number(p.is_mp_featured) === 1
+                        Number(p.is_mp_featured_effective) === 1
                             ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
                             : '';
                     const inWish = isWishlistEntry('mp', mid);
@@ -6389,7 +6402,9 @@
             comprehensive_market: true,
             main_categories: true,
             brands: true,
+            mp_premium_vendors: true,
             top_brands: true,
+            mp_featured_marketplace_products: true,
             flash_sale: true,
             curated: true,
             home_featured: true,
@@ -6404,8 +6419,10 @@
             'home_subcat_overlay',
             'banner_below_categories',
             'brands',
+            'mp_premium_vendors',
             'banner_below_brands',
             'top_brands',
+            'mp_featured_marketplace_products',
             'banner_below_top_brands',
             'flash_sale',
             'banner_below_flash',
@@ -6765,6 +6782,8 @@
                 applyHomeSectionsVisibility(data.home_sections_visibility);
                 applyHomeTopBannerStickyPlacement(cachedHomeTopBannersSticky);
                 refreshBestsellersSectionCombinedVisibility();
+                loadHomeMpPremiumVendors().catch(() => {});
+                loadHomeMpFeaturedMarketplaceProducts().catch(() => {});
             } catch (_e) {
                 cachedHomeSectionsVisibility = null;
                 cachedHomeSectionsOrder = null;
@@ -6773,6 +6792,8 @@
                 applyHomeSectionsVisibility(null);
                 applyHomeTopBannerStickyPlacement(false);
                 refreshBestsellersSectionCombinedVisibility();
+                loadHomeMpPremiumVendors().catch(() => {});
+                loadHomeMpFeaturedMarketplaceProducts().catch(() => {});
             }
         }
 
@@ -8259,11 +8280,16 @@
             const addDis = canCart ? '' : ' disabled';
             const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
             const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
+            const featBadge =
+                Number(p.is_mp_featured_effective) === 1
+                    ? `<span class="absolute bottom-1.5 left-1.5 rtl:left-auto rtl:right-1.5 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                    : '';
             return `<div class="adora-pcard adora-pcv adora-pcard--strip product-card home-compact-product-card">
                 <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                 <div class="adora-pcard__top">
                 <div class="adora-pcard__media">
-                    <div class="adora-pcard__media-inner">
+                    <div class="adora-pcard__media-inner relative">
+                        ${featBadge}
                         <img src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                     </div>
                     <button type="button" class="adora-pcard__wish wishlist-btn${wishActive}" aria-label="Wishlist" onclick="wishlistCardToggle(event,'mp',${mid},this)">${adoraPcardWishIconsHtml()}</button>
@@ -9877,6 +9903,76 @@
             } catch (_e) {
                 grid.className = '';
                 grid.innerHTML = `<p class="text-center text-red-200 text-xs py-4 px-3 w-[min(100vw-2rem,22rem)]">${isRTL ? 'تعذر التحميل' : 'Load failed'}</p>`;
+            }
+        }
+
+        async function loadHomeMpPremiumVendors() {
+            const scroll = document.getElementById('home-mp-premium-vendors-scroll');
+            const section = document.getElementById('home-mp-premium-vendors-section');
+            if (!scroll || !section) return;
+            const vis = mergeHomeSectionsVisibility(cachedHomeSectionsVisibility);
+            if (vis.mp_premium_vendors === false) {
+                section.classList.add('hidden');
+                return;
+            }
+            scroll.innerHTML = `<p class="text-xs text-gray-400 py-3 w-full text-center">${isRTL ? 'جاري التحميل…' : 'Loading…'}</p>`;
+            try {
+                const rows = await apiFetch('/api/marketplace/home/featured-vendors', { requireAuth: false });
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) {
+                    scroll.innerHTML = '';
+                    section.classList.add('hidden');
+                    return;
+                }
+                section.classList.remove('hidden');
+                const loc = isRTL ? 'ar' : 'en';
+                scroll.innerHTML = list
+                    .map((v) => {
+                        const name = String(loc === 'ar' ? v.name_ar || v.name_en : v.name_en || v.name_ar || '').trim();
+                        const vid = Number(v.id);
+                        if (!Number.isFinite(vid)) return '';
+                        const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
+                        const logo = logoRaw
+                            ? `<span class="w-11 h-11 rounded-full overflow-hidden border border-amber-200/80 shadow-sm shrink-0 bg-white flex items-center justify-center"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                            : `<span class="w-11 h-11 rounded-full border border-amber-200/80 bg-amber-50 text-amber-700 font-bold text-sm flex items-center justify-center shrink-0">${escapeHtml((name || '?').charAt(0))}</span>`;
+                        const star =
+                            '<span class="absolute -top-0.5 -right-0.5 rtl:right-auto rtl:-left-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white border border-amber-300 shadow-sm text-amber-500 text-xs leading-none" aria-hidden="true">★</span>';
+                        return `<button type="button" class="flex flex-col items-center gap-1.5 shrink-0 min-w-[4.5rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
+                        <div class="relative flex items-center justify-center">${logo}${star}</div>
+                        <span class="text-[11px] font-semibold text-gray-800 text-center leading-tight line-clamp-2 max-w-[5.5rem]" dir="auto">${escapeHtml(name || '—')}</span>
+                        </button>`;
+                    })
+                    .join('');
+            } catch (_e) {
+                scroll.innerHTML = '';
+                section.classList.add('hidden');
+            }
+        }
+
+        async function loadHomeMpFeaturedMarketplaceProducts() {
+            const grid = document.getElementById('home-mp-featured-products-grid');
+            const section = document.getElementById('home-mp-featured-products-section');
+            if (!grid || !section) return;
+            const vis = mergeHomeSectionsVisibility(cachedHomeSectionsVisibility);
+            if (vis.mp_featured_marketplace_products === false) {
+                section.classList.add('hidden');
+                return;
+            }
+            grid.className = 'home-product-strip';
+            grid.innerHTML = adoraSkeletonHomeStripHtml(6);
+            try {
+                const rows = await apiFetch('/api/marketplace/home/featured-products', { requireAuth: false });
+                const list = Array.isArray(rows) ? rows : [];
+                if (!list.length) {
+                    grid.innerHTML = '';
+                    section.classList.add('hidden');
+                    return;
+                }
+                section.classList.remove('hidden');
+                grid.innerHTML = list.map((p) => renderMpProductCardHomeCompact(p)).join('');
+            } catch (_e) {
+                grid.innerHTML = '';
+                section.classList.add('hidden');
             }
         }
 
@@ -11973,6 +12069,8 @@
             loadCartFromStorage();
             loadHomeFeaturedGrid().catch(() => {});
             loadHomeNewCollectionGrid().catch(() => {});
+            loadHomeMpPremiumVendors().catch(() => {});
+            loadHomeMpFeaturedMarketplaceProducts().catch(() => {});
             loadMarketplaceHomeEntrance().catch(() => {});
             loadPartnerCtaConfig().catch(() => {});
             loadMarketplaceHomeHighlights().catch(() => {});

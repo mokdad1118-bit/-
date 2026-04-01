@@ -355,6 +355,7 @@ async function initDb() {
   await migrateMpHomeStripVisibilityAndYmalV1();
   await migrateVendorPortalNotificationsV1();
   await migrateVendorPortalSuspendedV1();
+  await migrateMarketplaceProductFeaturedUntilV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -914,6 +915,11 @@ async function migrateVendorPortalSuspendedV1() {
   await run(
     `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS portal_suspended INTEGER NOT NULL DEFAULT 0`
   );
+}
+
+/** انتهاء تمييز منتج السوق (اختياري) — بعدها لا يُعامل كمميز في البحث والواجهة */
+async function migrateMarketplaceProductFeaturedUntilV1() {
+  await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS mp_featured_until TIMESTAMPTZ`);
 }
 
 async function migrateAdoraFeedbackBannersSignupPhoneSlidesV1() {

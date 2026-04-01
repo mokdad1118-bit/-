@@ -651,7 +651,7 @@
                     <p class="text-[10px] text-gray-500 mt-0.5" data-en="Higher = this company’s products sort first in marketplace search." data-ar="كلما زاد الرقم ظهرت منتجات هذه الشركة أولاً في بحث السوق الشامل.">كلما زاد الرقم ظهرت منتجات هذه الشركة أولاً في بحث السوق الشامل.</p>
                   </div>
                   <div><label class="text-xs font-bold">حصص منتجات مدفوعة (+ فوق المجاني)</label><input id="mp-v-paid-slots" type="number" min="0" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
-                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-premium" class="rounded" /><label for="mp-v-premium" class="text-sm font-bold">متجر مميز (ظهور أولاً)</label></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-premium" class="rounded" /><label for="mp-v-premium" class="text-sm font-bold">شركة مميزة (نجمة + أولوية ترتيب)</label></div>
                   <div><label class="text-xs font-bold">نوع الاشتراك المميز</label><select id="mp-v-premium-type" class="mt-1 w-full p-2 rounded-xl border border-gray-200"><option value="none">بدون</option><option value="permanent">دائم</option><option value="monthly">شهري</option><option value="weekly">أسبوعي</option></select></div>
                   <div><label class="text-xs font-bold">انتهاء الظهور المميز (تاريخ/وقت)</label><input id="mp-v-premium-until" type="datetime-local" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div class="space-y-1">
@@ -772,7 +772,8 @@
                   </div>
                   <div><label class="text-xs font-bold">ترتيب</label><input id="mp-p-sort" type="number" class="mt-1 w-full p-2 rounded-xl border border-gray-200" value="0" /></div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-offer" class="rounded" /><label for="mp-p-offer" class="text-sm font-bold">عرض ترويجي</label></div>
-                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured" class="rounded" /><label for="mp-p-featured" class="text-sm font-bold" data-en="Show in «Featured» marketplace grid & search boost" data-ar="إظهار في تبويب/شبكة المنتجات المميزة داخل السوق (وأولوية بالبحث)">إظهار في تبويب/شبكة المنتجات المميزة داخل السوق (وأولوية بالبحث)</label></div>
+                  <div class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured" class="rounded" /><label for="mp-p-featured" class="text-sm font-bold" data-en="Featured marketplace product (badge, home strip, search priority)" data-ar="منتج مميز في السوق (شارة، شريط الرئيسية، أولوية بحث)">منتج مميز في السوق (شارة، شريط الرئيسية، أولوية بحث)</label></div>
+                  <div><label class="text-xs font-bold" data-en="Featured until (optional)" data-ar="انتهاء التمييز (اختياري)">انتهاء التمييز (اختياري)</label><input id="mp-p-featured-until" type="datetime-local" class="mt-1 w-full p-2 rounded-xl border border-gray-200" /></div>
                   <div class="md:col-span-2 rounded-xl border border-violet-100 bg-violet-50/50 p-3 space-y-2">
                     <p class="text-xs font-bold text-gray-800" data-en="Featured hub (مميز) tab in app" data-ar="تبويب مميز في التطبيق">تبويب مميز في التطبيق</p>
                     <label class="flex items-center gap-2"><input type="checkbox" id="mp-p-featured-hub" class="rounded" /><span class="text-sm font-bold" data-en="Show in Featured hub" data-ar="إظهار في تبويب مميز">إظهار في تبويب مميز</span></label>

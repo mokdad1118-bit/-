@@ -1790,6 +1790,16 @@ function mpFillProductForm(p) {
   document.getElementById("mp-p-sort").value = p ? String(p.sort_order ?? 0) : "0";
   document.getElementById("mp-p-offer").checked = p && Number(p.is_offer) === 1;
   document.getElementById("mp-p-featured").checked = p && Number(p.is_mp_featured) === 1;
+  const mpFu = document.getElementById("mp-p-featured-until");
+  if (mpFu) {
+    if (p && p.mp_featured_until) {
+      const d = new Date(p.mp_featured_until);
+      if (!Number.isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, "0");
+        mpFu.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } else mpFu.value = "";
+    } else mpFu.value = "";
+  }
   const mpFh = document.getElementById("mp-p-featured-hub");
   if (mpFh) mpFh.checked = p && Number(p.featured_hub_enabled) === 1;
   const mpFhs = document.getElementById("mp-p-featured-hub-section");
@@ -2377,6 +2387,11 @@ function bindMarketplaceAdminListeners() {
       inventory,
       is_offer: document.getElementById("mp-p-offer").checked ? 1 : 0,
       is_mp_featured: document.getElementById("mp-p-featured").checked ? 1 : 0,
+      mp_featured_until: (() => {
+        const raw = document.getElementById("mp-p-featured-until")?.value?.trim();
+        if (!document.getElementById("mp-p-featured").checked) return null;
+        return raw ? new Date(raw).toISOString() : null;
+      })(),
       featured_hub_enabled: document.getElementById("mp-p-featured-hub")?.checked ? 1 : 0,
       featured_hub_section: (document.getElementById("mp-p-featured-hub-section")?.value || "").trim() || null,
       show_in_offers_tab: document.getElementById("mp-p-show-offers")?.checked ? 1 : 0,
@@ -4746,7 +4761,9 @@ const HOME_SECTION_VIS_KEYS_FALLBACK = [
   "comprehensive_market",
   "main_categories",
   "brands",
+  "mp_premium_vendors",
   "top_brands",
+  "mp_featured_marketplace_products",
   "flash_sale",
   "curated",
   "home_featured",
