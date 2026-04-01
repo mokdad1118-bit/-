@@ -5576,6 +5576,8 @@ function openAcEditCompanyModal(row) {
   if (eab) eab.checked = Number(row.show_in_app_brands_section) !== 0;
   const etb = document.getElementById("ac-edit-show-top-brands");
   if (etb) etb.checked = Number(row.show_in_app_top_brands_section) === 1;
+  const epr = document.getElementById("ac-edit-is-premium");
+  if (epr) epr.checked = Number(row.is_premium) === 1;
   ov.classList.remove("hidden");
   ov.setAttribute("aria-hidden", "false");
 }
@@ -5619,7 +5621,7 @@ async function loadAcAllMarketplaceProducts() {
   const token = getToken();
   const tbody = document.getElementById("ac-all-mp-tbody");
   const ar = getAdminLang() === "ar";
-  const colSpan = 10;
+  const colSpan = 12;
   if (!tbody) return;
   if (!token) {
     tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-amber-700 text-sm">${
@@ -5678,6 +5680,10 @@ async function loadAcAllMarketplaceProducts() {
         const activeNow = Number(p.is_active) === 1 ? 1 : 0;
         const toggleLab = ar ? (activeNow ? "إيقاف" : "تفعيل") : activeNow ? "Deactivate" : "Activate";
         const nextAct = activeNow ? 0 : 1;
+        const qFeat = Number(p.is_mp_featured) === 1;
+        const qSearch = Number(p.search_priority_boost) === 1;
+        const featLabel = ar ? "جعل هذا المنتج مميزًا" : "Featured product";
+        const searchLabel = ar ? "أولوية البحث" : "Search priority";
         return `<tr class="border-b border-gray-100">
           <td class="p-2 font-mono text-xs">${p.id}</td>
           ${imgsCell}
@@ -5688,6 +5694,18 @@ async function loadAcAllMarketplaceProducts() {
           <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
           <td class="p-2 text-xs font-bold">${escapeHtml(stLab)}</td>
           <td class="p-2">${act}</td>
+          <td class="p-2 align-top">
+            <label class="flex items-start gap-1.5 text-[10px] font-bold leading-snug cursor-pointer">
+              <input type="checkbox" class="ac-mp-qf-featured rounded mt-0.5 shrink-0" data-mp-product-id="${p.id}" ${qFeat ? "checked" : ""} />
+              <span class="text-gray-800">${escapeHtml(featLabel)}</span>
+            </label>
+          </td>
+          <td class="p-2 align-top">
+            <label class="flex items-start gap-1.5 text-[10px] font-bold leading-snug cursor-pointer">
+              <input type="checkbox" class="ac-mp-qf-search rounded mt-0.5 shrink-0" data-mp-product-id="${p.id}" ${qSearch ? "checked" : ""} />
+              <span class="text-gray-800">${ar ? escapeHtml("اجعل هذا المنتج يظهر في أولوية البحث") : escapeHtml(searchLabel)}</span>
+            </label>
+          </td>
           <td class="p-2 space-y-1">
             <button type="button" class="text-xs px-2 py-1 rounded-lg bg-violet-100 text-violet-800 font-bold ac-vp-open-product" data-mp-product-id="${p.id}">${escapeHtml(btnLab)}</button>
             <button type="button" class="block w-full text-xs px-2 py-1 rounded-lg font-bold ac-mp-toggle-active ${activeNow ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"}" data-mp-product-id="${p.id}" data-next-active="${nextAct}">${escapeHtml(toggleLab)}</button>
@@ -5725,7 +5743,7 @@ function fillAdoraVendorProductPanel(p) {
   acStrip("ac-vp-strip-flash", "show_in_flash_sale_strip");
   acStrip("ac-vp-strip-curated", "show_in_curated_strip");
   acStrip("ac-vp-strip-promo", "show_in_promo_collection_strip");
-  acStrip("ac-vp-strip-bestsellers", "show_in_bestsellers_strip");
+  acStrip("ac-vp-mp-bestsellers-market", "show_in_bestsellers_strip");
   acStrip("ac-vp-ymal", "show_in_you_may_also_like");
   const fh = Number(p.featured_hub_enabled) === 1;
   const fhc = document.getElementById("ac-vp-fh");
@@ -5890,15 +5908,17 @@ async function saveAdoraVendorProductVisibility() {
     show_in_flash_sale_strip: document.getElementById("ac-vp-strip-flash")?.checked ? 1 : 0,
     show_in_curated_strip: document.getElementById("ac-vp-strip-curated")?.checked ? 1 : 0,
     show_in_promo_collection_strip: document.getElementById("ac-vp-strip-promo")?.checked ? 1 : 0,
-    show_in_bestsellers_strip: document.getElementById("ac-vp-strip-bestsellers")?.checked ? 1 : 0,
+    show_in_bestsellers_strip: document.getElementById("ac-vp-mp-bestsellers-market")?.checked ? 1 : 0,
     show_in_you_may_also_like: document.getElementById("ac-vp-ymal")?.checked ? 1 : 0,
     vendor_listing_status: (document.getElementById("ac-vp-listing-status")?.value || "published").trim(),
+    search_priority_boost: Number(p.search_priority_boost) === 1 ? 1 : 0,
   };
   try {
     const updated = await api(`/api/admin/marketplace/products/${p.id}`, { method: "PUT", token, body });
     adoraVpProductCache = updated;
     fillAdoraVendorProductPanel(updated);
-    if (msg) msg.textContent = ar ? "تم الحفظ." : "Saved.";
+    if (msg) msg.textContent = ar ? "تم حفظ التعديلات." : "Changes saved.";
+    alert(ar ? "تم حفظ التعديلات بنجاح." : "Changes saved successfully.");
     loadAcAllMarketplaceProducts().catch(() => {});
   } catch (e) {
     if (msg) msg.textContent = e.message || String(e);
@@ -6063,6 +6083,7 @@ async function initAdoraCompanyAdminTab() {
         portal_suspended: document.getElementById("ac-edit-portal-suspended")?.checked ? 1 : 0,
         show_in_app_brands_section: document.getElementById("ac-edit-show-app-brands")?.checked ? 1 : 0,
         show_in_app_top_brands_section: document.getElementById("ac-edit-show-top-brands")?.checked ? 1 : 0,
+        is_premium: document.getElementById("ac-edit-is-premium")?.checked ? 1 : 0,
       };
       const np = document.getElementById("ac-edit-pass")?.value;
       if (np && String(np).length >= 6) payload.portal_password = np;
@@ -6195,6 +6216,34 @@ async function initAdoraCompanyAdminTab() {
         const m = document.getElementById("ac-vp-msg");
         if (m) m.textContent = err.message || String(err);
       });
+    });
+    document.getElementById("ac-all-mp-tbody")?.addEventListener("change", async (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      if (!t.classList.contains("ac-mp-qf-featured") && !t.classList.contains("ac-mp-qf-search")) return;
+      const tr = t.closest("tr");
+      const token = getToken();
+      if (!tr || !token) {
+        t.checked = !t.checked;
+        return;
+      }
+      const id = Number(t.getAttribute("data-mp-product-id"));
+      if (!Number.isFinite(id)) {
+        t.checked = !t.checked;
+        return;
+      }
+      const featEl = tr.querySelector(".ac-mp-qf-featured");
+      const srchEl = tr.querySelector(".ac-mp-qf-search");
+      const body = {
+        is_mp_featured: featEl && featEl.checked ? 1 : 0,
+        search_priority_boost: srchEl && srchEl.checked ? 1 : 0,
+      };
+      try {
+        await api(`/api/admin/marketplace/products/${id}/quick-flags`, { method: "PUT", token, body });
+      } catch (err) {
+        t.checked = !t.checked;
+        alert(err.message || String(err));
+      }
     });
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));

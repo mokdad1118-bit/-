@@ -158,7 +158,7 @@ const MP_ORDER_PRODUCT_FEATURED = `(CASE WHEN ${MP_SQL_PRODUCT_FEATURED_OK} THEN
 const MP_SELECT_LIST = `mp.id, mp.section_id, mp.vendor_id, mp.public_product_code, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
       mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
       mp.department_id, mp.is_mp_featured, mp.mp_featured_until, mp.featured_hub_enabled, mp.featured_hub_section, mp.show_in_offers_tab, mp.show_in_marketplace_tab, mp.vendor_listing_status,
-      mp.show_in_flash_sale_strip, mp.show_in_curated_strip, mp.show_in_promo_collection_strip, mp.show_in_bestsellers_strip, mp.show_in_you_may_also_like,
+      mp.show_in_flash_sale_strip, mp.show_in_curated_strip, mp.show_in_promo_collection_strip, mp.show_in_bestsellers_strip, mp.show_in_you_may_also_like, mp.search_priority_boost,
       mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
       mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
       ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en`;
@@ -669,7 +669,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
 
       let sql = `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
                         mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.inventory_json, mp.product_options_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
-                        mp.department_id, mp.is_mp_featured, mp.mp_featured_until,
+                        mp.department_id, mp.is_mp_featured, mp.mp_featured_until, mp.search_priority_boost,
                         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
                         mvd.name_ar AS department_name_ar, mvd.name_en AS department_name_en,
                         ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
@@ -752,10 +752,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       else if (sort === "bestsellers") orderBody = "mp.sales_count DESC, mp.created_at DESC";
 
       const searchVendorBoost = q ? `COALESCE(mv.search_priority, 0) DESC, ` : "";
+      const productSearchBoost = q ? `COALESCE(mp.search_priority_boost, 0) DESC, ` : "";
       const vendorPremiumFirst = `${MP_ORDER_VENDOR_PREMIUM} ASC, `;
       const orderSql = promoSlot
-        ? `${vendorPremiumFirst}${searchVendorBoost}${MP_ORDER_PRODUCT_FEATURED} ASC, (CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
-        : `${vendorPremiumFirst}${searchVendorBoost}${MP_ORDER_PRODUCT_FEATURED} ASC, ${orderBody}`;
+        ? `${vendorPremiumFirst}${productSearchBoost}${searchVendorBoost}${MP_ORDER_PRODUCT_FEATURED} ASC, (CASE WHEN pr.id IS NOT NULL THEN 0 ELSE 1 END) ASC, pr.priority DESC NULLS LAST, ${orderBody}`
+        : `${vendorPremiumFirst}${productSearchBoost}${searchVendorBoost}${MP_ORDER_PRODUCT_FEATURED} ASC, ${orderBody}`;
       sql += ` ORDER BY ${orderSql} LIMIT 200`;
 
       const rows = await all(sql, params);
@@ -929,7 +930,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
 
       const baseSelect = `SELECT mp.id, mp.section_id, mp.vendor_id, mp.name_ar, mp.name_en, mp.description_ar, mp.description_en,
         mp.price, mp.discount_percent, mp.stock, mp.images_json, mp.is_offer, mp.sort_order, mp.sales_count, mp.created_at,
-        mp.is_mp_featured, mp.mp_featured_until,
+        mp.is_mp_featured, mp.mp_featured_until, mp.search_priority_boost,
         mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en,
         ms.slug AS section_slug, ms.name_ar AS section_name_ar, ms.name_en AS section_name_en,
         mprev.review_avg, mprev.review_count
@@ -978,7 +979,10 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
 
       let bestsellers = [];
       if (boost) {
-        bestsellers = await all(`${baseSelect} ORDER BY mp.sales_count DESC, mp.created_at DESC LIMIT 12`, []);
+        bestsellers = await all(
+          `${baseSelect} AND COALESCE(mp.show_in_bestsellers_strip, 0) = 1 ORDER BY mp.sales_count DESC, mp.created_at DESC LIMIT 12`,
+          []
+        );
       }
 
       const offers = await all(`${baseSelect} AND mp.is_offer = 1 ORDER BY mp.created_at DESC LIMIT 12`, []);
@@ -1458,6 +1462,38 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
     }
   });
 
+  app.put("/api/admin/marketplace/products/:id/quick-flags", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const cur = await get(`SELECT * FROM marketplace_products WHERE id=?`, [id]);
+      if (!cur) return res.status(404).json({ error: "Not found" });
+      const b = req.body || {};
+      if (!Object.prototype.hasOwnProperty.call(b, "is_mp_featured") && !Object.prototype.hasOwnProperty.call(b, "search_priority_boost")) {
+        return res.status(400).json({ error: "is_mp_featured and/or search_priority_boost required" });
+      }
+      let is_mp_featured = Number(cur.is_mp_featured) === 1 ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(b, "is_mp_featured")) {
+        is_mp_featured = Number(b.is_mp_featured) === 1 ? 1 : 0;
+      }
+      let mp_featured_until = cur.mp_featured_until;
+      if (Object.prototype.hasOwnProperty.call(b, "is_mp_featured") && !is_mp_featured) {
+        mp_featured_until = null;
+      }
+      let search_priority_boost = Number(cur.search_priority_boost) === 1 ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(b, "search_priority_boost")) {
+        search_priority_boost = Number(b.search_priority_boost) === 1 ? 1 : 0;
+      }
+      await run(
+        `UPDATE marketplace_products SET is_mp_featured=?, mp_featured_until=?, search_priority_boost=? WHERE id=?`,
+        [is_mp_featured, mp_featured_until, search_priority_boost, id]
+      );
+      return res.json(await getMarketplaceProductMappedAdminById(id));
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to update product flags" });
+    }
+  });
+
   app.post("/api/admin/marketplace/products", requireAuth, requireAdmin, async (req, res) => {
     try {
       const b = req.body || {};
@@ -1507,6 +1543,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const show_in_promo_collection_strip = Number(b.show_in_promo_collection_strip) === 1 ? 1 : 0;
       const show_in_bestsellers_strip = Number(b.show_in_bestsellers_strip) === 1 ? 1 : 0;
       const show_in_you_may_also_like = Number(b.show_in_you_may_also_like) === 1 ? 1 : 0;
+      const search_priority_boost = Number(b.search_priority_boost) === 1 ? 1 : 0;
       const settings = await getVendorPlatformSettings();
       const dup = await findMarketplaceProductDuplicate(
         vendor_id,
@@ -1527,8 +1564,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const public_product_code = await allocateNextPublicProductCode();
       const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, { vendor_listing_status: "published" });
       const ins = await run(
-        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, mp_featured_until, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status, show_in_flash_sale_strip, show_in_curated_strip, show_in_promo_collection_strip, show_in_bestsellers_strip, show_in_you_may_also_like)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO marketplace_products (section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock, images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code, is_mp_featured, mp_featured_until, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status, show_in_flash_sale_strip, show_in_curated_strip, show_in_promo_collection_strip, show_in_bestsellers_strip, show_in_you_may_also_like, search_priority_boost)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           section_id,
           vendor_id,
@@ -1561,6 +1598,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           show_in_promo_collection_strip,
           show_in_bestsellers_strip,
           show_in_you_may_also_like,
+          search_priority_boost,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -1651,6 +1689,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const show_in_promo_collection_strip = pickMpStrip("show_in_promo_collection_strip");
       const show_in_bestsellers_strip = pickMpStrip("show_in_bestsellers_strip");
       const show_in_you_may_also_like = pickMpStrip("show_in_you_may_also_like");
+      const search_priority_boost =
+        b.search_priority_boost != null
+          ? Number(b.search_priority_boost) === 1
+            ? 1
+            : 0
+          : Number(cur.search_priority_boost) === 1
+            ? 1
+            : 0;
       const vendor_listing_status = normalizeVendorListingStatus(b.vendor_listing_status, cur);
       const discount_percent =
         b.discount_percent !== undefined
@@ -1685,7 +1731,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         `UPDATE marketplace_products SET section_id=?, vendor_id=?, department_id=?, name_ar=?, name_en=?, description_ar=?, description_en=?,
          price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?, is_offer=?, sort_order=?, is_active=?, sku=?, barcode=?, is_mp_featured=?, mp_featured_until=?,
          featured_hub_enabled=?, featured_hub_section=?, show_in_offers_tab=?, show_in_marketplace_tab=?, vendor_listing_status=?,
-         show_in_flash_sale_strip=?, show_in_curated_strip=?, show_in_promo_collection_strip=?, show_in_bestsellers_strip=?, show_in_you_may_also_like=? WHERE id=?`,
+         show_in_flash_sale_strip=?, show_in_curated_strip=?, show_in_promo_collection_strip=?, show_in_bestsellers_strip=?, show_in_you_may_also_like=?, search_priority_boost=? WHERE id=?`,
         [
           section_id,
           vendor_id,
@@ -1717,6 +1763,7 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           show_in_promo_collection_strip,
           show_in_bestsellers_strip,
           show_in_you_may_also_like,
+          search_priority_boost,
           id,
         ]
       );

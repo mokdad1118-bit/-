@@ -1082,6 +1082,8 @@
                     <th class="p-2 text-start">مخزون</th>
                     <th class="p-2 text-start">النشر</th>
                     <th class="p-2 text-start">نشط</th>
+                    <th class="p-2 text-start max-w-[7rem]" data-ar="مميز" data-en="Featured">مميز 🔥</th>
+                    <th class="p-2 text-start max-w-[7rem]" data-ar="بحث" data-en="Search boost">أولوية بحث</th>
                     <th class="p-2 text-start">إجراءات</th>
                   </tr></thead>
                   <tbody id="ac-all-mp-tbody"></tbody>
@@ -1119,12 +1121,15 @@
                   <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-show-offers" class="rounded" /><span data-en="Show in «Our offers» tab" data-ar="إظهار في تبويب عروضنا">إظهار في تبويب عروضنا</span></label>
                   <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-featured" class="rounded" /><span data-en="Featured marketplace grid tab" data-ar="إظهار في تبويب/شبكة المنتجات المميزة داخل السوق">إظهار في تبويب/شبكة المنتجات المميزة داخل السوق</span></label>
                   <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-fh" class="rounded" /><span data-en="Featured hub strip" data-ar="الظهور في المحور المميز">الظهور في المحور المميز</span></label>
+                  <div class="rounded-lg border border-amber-200 bg-amber-50/90 p-2 space-y-1.5 text-sm">
+                    <p class="text-xs font-bold text-amber-950" data-en="Marketplace bestsellers section" data-ar="قسم الأكثر مبيعاً في السوق الشامل">قسم الأكثر مبيعاً في السوق الشامل</p>
+                    <label class="flex items-start gap-2 font-bold"><input type="checkbox" id="ac-vp-mp-bestsellers-market" class="rounded mt-0.5 shrink-0" /><span data-en="Show this product in the «Bestsellers» row inside the marketplace (only checked products appear there)" data-ar="إظهار هذا المنتج في صف «الأكثر مبيعاً» داخل السوق الشامل (يظهر فقط المنتجات المفعّلة هنا)">إظهار هذا المنتج في صف «الأكثر مبيعاً» داخل السوق الشامل</span></label>
+                  </div>
                   <div class="rounded-lg border border-gray-200 bg-white/80 p-2 space-y-2 text-sm">
                     <p class="text-xs font-bold text-gray-700" data-en="Home strips + suggestions" data-ar="شرائط الرئيسية والاقتراحات">شرائط الرئيسية والاقتراحات</p>
                     <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-strip-flash" class="rounded" /><span data-ar="قسم عروض لفترة محدودة">قسم عروض لفترة محدودة</span></label>
                     <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-strip-curated" class="rounded" /><span data-ar="قسم اختيارات أنيقة">قسم اختيارات أنيقة</span></label>
                     <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-strip-promo" class="rounded" /><span data-ar="قسم عالم الأناقة لكل العائلة">قسم عالم الأناقة لكل العائلة</span></label>
-                    <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-strip-bestsellers" class="rounded" /><span data-ar="قسم الأكثر مبيعاً">قسم الأكثر مبيعاً</span></label>
                     <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="ac-vp-ymal" class="rounded" /><span data-ar="قد يعجبك أيضاً (صفحات المنتجات)">قد يعجبك أيضاً (صفحات المنتجات)</span></label>
                   </div>
                   <div>
@@ -1278,6 +1283,10 @@
                   <label class="flex items-start gap-2 text-sm font-bold cursor-pointer">
                     <input id="ac-edit-show-top-brands" type="checkbox" class="rounded mt-0.5 shrink-0" />
                     <span data-en="Show company in home «Featured brands» section" data-ar="إظهار الشركة في قسم «العلامات المميزة»">إظهار الشركة في قسم «العلامات المميزة»</span>
+                  </label>
+                  <label class="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input id="ac-edit-is-premium" type="checkbox" class="rounded mt-0.5 shrink-0" />
+                    <span data-en="Mark this company as premium (star)" data-ar="جعل هذه الشركة مميزة بعلامة النجمة">جعل هذه الشركة مميزة بعلامة النجمة</span>
                   </label>
                 </div>
                 <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-3">

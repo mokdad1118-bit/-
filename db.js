@@ -357,6 +357,7 @@ async function initDb() {
   await migrateVendorPortalSuspendedV1();
   await migrateMarketplaceProductFeaturedUntilV1();
   await migrateMarketplaceVendorAppVisibilityFlagsV1();
+  await migrateMarketplaceProductSearchPriorityBoostV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -930,6 +931,13 @@ async function migrateMarketplaceVendorAppVisibilityFlagsV1() {
   );
   await run(
     `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS show_in_app_top_brands_section INTEGER NOT NULL DEFAULT 0`
+  );
+}
+
+/** أولوية إضافية في نتائج بحث السوق الشامل (من لوحة إدارة شركات المشتركين) */
+async function migrateMarketplaceProductSearchPriorityBoostV1() {
+  await run(
+    `ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS search_priority_boost INTEGER NOT NULL DEFAULT 0`
   );
 }
 

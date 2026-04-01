@@ -181,9 +181,13 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       if (Object.prototype.hasOwnProperty.call(b, "show_in_app_top_brands_section")) {
         show_in_app_top_brands_section = Number(b.show_in_app_top_brands_section) === 1 ? 1 : 0;
       }
+      let is_premium = Number(cur.is_premium) === 1 ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(b, "is_premium")) {
+        is_premium = Number(b.is_premium) === 1 ? 1 : 0;
+      }
       await run(
         `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=?,
-         show_in_app_brands_section=?, show_in_app_top_brands_section=? WHERE id=?`,
+         show_in_app_brands_section=?, show_in_app_top_brands_section=?, is_premium=? WHERE id=?`,
         [
           name_ar,
           name_en,
@@ -195,6 +199,7 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
           portal_suspended,
           show_in_app_brands_section,
           show_in_app_top_brands_section,
+          is_premium,
           id,
         ]
       );

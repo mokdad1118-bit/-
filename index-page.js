@@ -4312,7 +4312,7 @@
                             : '';
                     const mpFeat =
                         Number(p.is_mp_featured_effective) === 1
-                            ? `<span class="absolute bottom-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                            ? `<span class="absolute bottom-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
                             : '';
                     const listP = Number(p.price ?? 0);
                     const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
@@ -4806,7 +4806,7 @@
                     const saleP = disc > 0 && disc < 100 ? finalP : listP;
                     const featBadge =
                         Number(p.is_mp_featured_effective) === 1
-                            ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                            ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
                             : '';
                     const inWish = isWishlistEntry('mp', mid);
                     const canCart = Number(p.stock || 0) > 0;
@@ -8378,7 +8378,7 @@
             const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
             const featBadge =
                 Number(p.is_mp_featured_effective) === 1
-                    ? `<span class="absolute bottom-1.5 left-1.5 rtl:left-auto rtl:right-1.5 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]">${isRTL ? 'مميز' : 'Featured'}</span>`
+                    ? `<span class="absolute bottom-1.5 left-1.5 rtl:left-auto rtl:right-1.5 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
                     : '';
             return `<div class="adora-pcard adora-pcv adora-pcard--strip product-card home-compact-product-card">
                 <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
