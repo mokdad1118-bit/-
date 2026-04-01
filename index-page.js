@@ -1207,6 +1207,8 @@
         let marketplaceBrowseSectionId = null;
         let mpAppHomePlacements = null;
         let mpAppHomePlacementsPromise = null;
+        /** شركات السوق العامة (مع أعلام الظهور في الشرائط) — تُحمَّل مع العلامات */
+        let mpVendorsDirectoryCache = [];
         let marketplaceBrowseSectionsCache = [];
         let marketplaceBrowseVendorsCache = [];
         let marketplaceDetailQty = 1;
@@ -7152,6 +7154,12 @@
             } catch (_e) {
                 apiBrandsList = [];
             }
+            try {
+                const mv = await apiFetch('/api/marketplace/vendors', { requireAuth: false });
+                mpVendorsDirectoryCache = Array.isArray(mv) ? mv : [];
+            } catch (_e) {
+                mpVendorsDirectoryCache = [];
+            }
             await ensureMpAppHomePlacements();
             renderBrandCards();
             renderTopBrands();
@@ -7187,21 +7195,31 @@
             const mpVen = Array.isArray(mpAppHomePlacements?.brands_strip)
                 ? mpAppHomePlacements.brands_strip.filter((x) => x && x.kind === 'mp_vendor')
                 : [];
-            const mpHtml = mpVen
-                .map((v) => {
-                    const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
-                    if (!name) return '';
-                    const logo = v.logo_url ? String(v.logo_url).trim() : '';
-                    const logoHtml = logo
-                        ? `<img src="${escapeHtml(logo)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-                        : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
-                    return `<button type="button" class="brand-strip-card mp-vendor-strip-card" data-mp-vendor-id="${Number(v.id)}" title="${escapeHtml(isRTL ? 'شركة في السوق الشامل' : 'Marketplace vendor')}">
+            const mpVendorStripCardFromRow = (v) => {
+                const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
+                if (!name) return '';
+                const logo = v.logo_url ? String(v.logo_url).trim() : '';
+                const logoHtml = logo
+                    ? `<img src="${escapeHtml(logo)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                    : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+                return `<button type="button" class="brand-strip-card mp-vendor-strip-card" data-mp-vendor-id="${Number(v.id)}" title="${escapeHtml(isRTL ? 'شركة في السوق الشامل' : 'Marketplace vendor')}">
                             <div class="brand-strip-logo">${logoHtml}</div>
                             <div class="brand-strip-name">${escapeHtml(name)}</div>
                         </button>`;
-                })
-                .filter(Boolean)
-                .join('');
+            };
+            const mpHtml = mpVen.map(mpVendorStripCardFromRow).filter(Boolean).join('');
+            const seenStripIds = new Set(
+                mpVen.map((x) => Number(x.id)).filter((n) => Number.isFinite(n))
+            );
+            const extraStrip = (Array.isArray(mpVendorsDirectoryCache) ? mpVendorsDirectoryCache : [])
+                .filter(
+                    (v) =>
+                        Number(v.show_in_app_brands_section) === 1 &&
+                        Number.isFinite(Number(v.id)) &&
+                        !seenStripIds.has(Number(v.id))
+                )
+                .sort((a, b) => (Number(a.sort_order) - Number(b.sort_order)) || Number(a.id) - Number(b.id));
+            const mpHtmlExtra = extraStrip.map(mpVendorStripCardFromRow).filter(Boolean).join('');
             const rows = apiBrandsList.map((b) => ({
                 key: String(b.id),
                 name: String(b.name || '').trim(),
@@ -7209,7 +7227,7 @@
                 selling: Number(b.product_count || 0),
                 popular: (Number(b.is_top_brand) ? 1000 : 0) + Number(b.product_count || 0),
             }));
-            if (!mpHtml && !rows.length) {
+            if (!mpHtml && !mpHtmlExtra && !rows.length) {
                 container.innerHTML = `<p class="text-xs text-gray-500 px-2">${isRTL ? 'لا توجد علامات تجارية لعرضها حالياً.' : 'No brands to show yet.'}</p>`;
                 return;
             }
@@ -7227,7 +7245,7 @@
                         </button>`;
                 })
                 .join('');
-            container.innerHTML = mpHtml + catHtml;
+            container.innerHTML = mpHtml + mpHtmlExtra + catHtml;
         }
 
         function sortBrands(key) {
@@ -9839,13 +9857,12 @@
             const mpTop = Array.isArray(mpAppHomePlacements?.top_brands_strip)
                 ? mpAppHomePlacements.top_brands_strip.filter((x) => x && x.kind === 'mp_vendor')
                 : [];
-            const mpBlock = mpTop
-                .map((v) => {
-                    const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
-                    if (!name) return '';
-                    const logo = v.logo_url ? String(v.logo_url).trim() : '';
-                    const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
-                    return `                        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
+            const mpTopVendorBlockHtml = (v) => {
+                const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
+                if (!name) return '';
+                const logo = v.logo_url ? String(v.logo_url).trim() : '';
+                const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
+                return `                        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
                             <button type="button" class="top-brand-card mp-top-vendor-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-mp-vendor-id="${Number(v.id)}">
                                 <div class="w-[4.25rem] h-[4.25rem] rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-md ring-2 ring-emerald-200/70">
                                     ${logo ? `<img src="${escapeHtml(logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
@@ -9854,9 +9871,18 @@
                             </button>
                             <div class="flex flex-wrap gap-1"><span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-100 bg-white text-emerald-800">${escapeHtml(chip)}</span></div>
                         </div>`;
-                })
-                .filter(Boolean)
-                .join('');
+            };
+            const mpBlock = mpTop.map(mpTopVendorBlockHtml).filter(Boolean).join('');
+            const seenTopIds = new Set(mpTop.map((x) => Number(x.id)).filter((n) => Number.isFinite(n)));
+            const extraTop = (Array.isArray(mpVendorsDirectoryCache) ? mpVendorsDirectoryCache : [])
+                .filter(
+                    (v) =>
+                        Number(v.show_in_app_top_brands_section) === 1 &&
+                        Number.isFinite(Number(v.id)) &&
+                        !seenTopIds.has(Number(v.id))
+                )
+                .sort((a, b) => (Number(a.sort_order) - Number(b.sort_order)) || Number(a.id) - Number(b.id));
+            const mpBlockExtra = extraTop.map(mpTopVendorBlockHtml).filter(Boolean).join('');
             const tops = apiBrandsList.filter((b) => Number(b.is_top_brand));
             const catBlock = tops.length
                 ? tops
@@ -9884,8 +9910,8 @@
                       })
                       .join('')
                 : '';
-            if (mpBlock || catBlock) {
-                container.innerHTML = mpBlock + catBlock;
+            if (mpBlock || mpBlockExtra || catBlock) {
+                container.innerHTML = mpBlock + mpBlockExtra + catBlock;
                 return;
             }
             container.innerHTML = `<p class="text-xs text-gray-500 px-1 py-4 leading-relaxed">${

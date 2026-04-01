@@ -356,6 +356,7 @@ async function initDb() {
   await migrateVendorPortalNotificationsV1();
   await migrateVendorPortalSuspendedV1();
   await migrateMarketplaceProductFeaturedUntilV1();
+  await migrateMarketplaceVendorAppVisibilityFlagsV1();
   await mergeCategorySubcategoriesWithDefaults();
 
   const admin = await get(`SELECT id FROM users WHERE role='admin' LIMIT 1`);
@@ -920,6 +921,16 @@ async function migrateVendorPortalSuspendedV1() {
 /** انتهاء تمييز منتج السوق (اختياري) — بعدها لا يُعامل كمميز في البحث والواجهة */
 async function migrateMarketplaceProductFeaturedUntilV1() {
   await run(`ALTER TABLE marketplace_products ADD COLUMN IF NOT EXISTS mp_featured_until TIMESTAMPTZ`);
+}
+
+/** ظهور شركة السوق في شريط «الشركات المتاحة» و«العلامات المميزة» بالتطبيق */
+async function migrateMarketplaceVendorAppVisibilityFlagsV1() {
+  await run(
+    `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS show_in_app_brands_section INTEGER NOT NULL DEFAULT 1`
+  );
+  await run(
+    `ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS show_in_app_top_brands_section INTEGER NOT NULL DEFAULT 0`
+  );
 }
 
 async function migrateAdoraFeedbackBannersSignupPhoneSlidesV1() {

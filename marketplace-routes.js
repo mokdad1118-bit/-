@@ -575,7 +575,9 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       let sql = `SELECT id, section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order,
                         COALESCE(is_premium, 0) AS is_premium, premium_until,
                         COALESCE(premium_subscription_type, 'none') AS premium_subscription_type,
-                        (CASE WHEN COALESCE(is_premium,0) = 1 AND (premium_until IS NULL OR premium_until > CURRENT_TIMESTAMP) THEN 1 ELSE 0 END) AS is_premium_active
+                        (CASE WHEN COALESCE(is_premium,0) = 1 AND (premium_until IS NULL OR premium_until > CURRENT_TIMESTAMP) THEN 1 ELSE 0 END) AS is_premium_active,
+                        COALESCE(show_in_app_brands_section, 1) AS show_in_app_brands_section,
+                        COALESCE(show_in_app_top_brands_section, 0) AS show_in_app_top_brands_section
                  FROM marketplace_vendors WHERE is_active = 1 AND COALESCE(portal_suspended, 0) = 0`;
       const params = [];
       if (sid != null && Number.isFinite(sid)) {
@@ -1132,11 +1134,14 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         ? String(b.premium_subscription_type).trim()
         : "none";
       const search_priority = Math.max(0, Math.min(1000, Math.floor(Number(b.search_priority) || 0)));
+      const show_in_app_brands_section = Number(b.show_in_app_brands_section) === 0 ? 0 : 1;
+      const show_in_app_top_brands_section = Number(b.show_in_app_top_brands_section) === 1 ? 1 : 0;
       const public_vendor_code = await allocateNextPublicVendorCode();
       const ins = await run(
         `INSERT INTO marketplace_vendors (section_id, name_ar, name_en, vendor_type, logo_url, cover_image_url, sort_order, is_active,
-          paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority, public_vendor_code)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?, ?)`,
+          paid_product_slots, is_premium, premium_until, premium_subscription_type, search_priority,
+          show_in_app_brands_section, show_in_app_top_brands_section, public_vendor_code)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::timestamptz, ?, ?, ?, ?, ?)`,
         [
           section_id,
           name_ar,
@@ -1151,6 +1156,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           premium_until,
           premium_subscription_type,
           search_priority,
+          show_in_app_brands_section,
+          show_in_app_top_brands_section,
           public_vendor_code,
         ]
       );
@@ -1195,9 +1202,26 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         b.search_priority != null
           ? Math.max(0, Math.min(1000, Math.floor(Number(b.search_priority) || 0)))
           : cur.search_priority ?? 0;
+      const show_in_app_brands_section =
+        b.show_in_app_brands_section != null
+          ? Number(b.show_in_app_brands_section) === 0
+            ? 0
+            : 1
+          : Number(cur.show_in_app_brands_section) === 0
+            ? 0
+            : 1;
+      const show_in_app_top_brands_section =
+        b.show_in_app_top_brands_section != null
+          ? Number(b.show_in_app_top_brands_section) === 1
+            ? 1
+            : 0
+          : Number(cur.show_in_app_top_brands_section) === 1
+            ? 1
+            : 0;
       await run(
         `UPDATE marketplace_vendors SET section_id=?, name_ar=?, name_en=?, vendor_type=?, logo_url=?, cover_image_url=?, sort_order=?, is_active=?,
-         paid_product_slots=?, is_premium=?, premium_until=?::timestamptz, premium_subscription_type=?, search_priority=?
+         paid_product_slots=?, is_premium=?, premium_until=?::timestamptz, premium_subscription_type=?, search_priority=?,
+         show_in_app_brands_section=?, show_in_app_top_brands_section=?
          WHERE id=?`,
         [
           section_id,
@@ -1213,6 +1237,8 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           premium_until,
           premium_subscription_type,
           search_priority,
+          show_in_app_brands_section,
+          show_in_app_top_brands_section,
           id,
         ]
       );
@@ -1410,6 +1436,25 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       return res.json(mapped);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to load product" });
+    }
+  });
+
+  app.put("/api/admin/marketplace/products/:id/is-active", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+      const cur = await get(`SELECT id, vendor_id, is_active FROM marketplace_products WHERE id=?`, [id]);
+      if (!cur) return res.status(404).json({ error: "Not found" });
+      const ia = Number(req.body?.is_active) === 0 ? 0 : 1;
+      const settings = await getVendorPlatformSettings();
+      if (Number(cur.is_active) === 0 && ia === 1) {
+        const quota = await assertMarketplaceProductQuota(cur.vendor_id, settings, true);
+        if (!quota.ok) return res.status(400).json({ error: quota.error });
+      }
+      await run(`UPDATE marketplace_products SET is_active=? WHERE id=?`, [ia, id]);
+      return res.json(await getMarketplaceProductMappedAdminById(id));
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to update product activation" });
     }
   });
 

@@ -1494,6 +1494,10 @@ function mpFillVendorForm(v) {
     } else pu.value = "";
   }
   document.getElementById("mp-v-active").checked = !v || Number(v.is_active) !== 0;
+  const sab = document.getElementById("mp-v-show-app-brands");
+  if (sab) sab.checked = !v || Number(v.show_in_app_brands_section) !== 0;
+  const stb = document.getElementById("mp-v-show-top-brands");
+  if (stb) stb.checked = !!(v && Number(v.show_in_app_top_brands_section) === 1);
   const lf = document.getElementById("mp-v-logo-file");
   const cf = document.getElementById("mp-v-cover-file");
   if (lf) lf.value = "";
@@ -2152,6 +2156,8 @@ function bindMarketplaceAdminListeners() {
       is_premium: document.getElementById("mp-v-premium").checked ? 1 : 0,
       premium_subscription_type: document.getElementById("mp-v-premium-type").value || "none",
       premium_until,
+      show_in_app_brands_section: document.getElementById("mp-v-show-app-brands")?.checked ? 1 : 0,
+      show_in_app_top_brands_section: document.getElementById("mp-v-show-top-brands")?.checked ? 1 : 0,
     };
     if (!Number.isFinite(body.section_id)) {
       alert(getAdminLang() === "ar" ? "اختر القسم." : "Choose section.");
@@ -5443,6 +5449,8 @@ function resetAdoraVendorProductPanel() {
   const v = document.getElementById("ac-vp-vendor");
   if (c) c.value = "";
   if (v) v.value = "";
+  const hid = document.getElementById("ac-vp-product-id");
+  if (hid) hid.value = "";
   const msg = document.getElementById("ac-vp-msg");
   if (msg) msg.textContent = "";
   adoraVpProductCache = null;
@@ -5534,6 +5542,10 @@ function openAcEditCompanyModal(row) {
   }
   const susp = document.getElementById("ac-edit-portal-suspended");
   if (susp) susp.checked = Number(row.portal_suspended) === 1;
+  const eab = document.getElementById("ac-edit-show-app-brands");
+  if (eab) eab.checked = Number(row.show_in_app_brands_section) !== 0;
+  const etb = document.getElementById("ac-edit-show-top-brands");
+  if (etb) etb.checked = Number(row.show_in_app_top_brands_section) === 1;
   ov.classList.remove("hidden");
   ov.setAttribute("aria-hidden", "false");
 }
@@ -5577,9 +5589,10 @@ async function loadAcAllMarketplaceProducts() {
   const token = getToken();
   const tbody = document.getElementById("ac-all-mp-tbody");
   const ar = getAdminLang() === "ar";
+  const colSpan = 10;
   if (!tbody) return;
   if (!token) {
-    tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-amber-700 text-sm">${
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-amber-700 text-sm">${
       ar ? "يجب تسجيل الدخول كمشرف لتفعيل البحث." : "Admin login required to search."
     }</td></tr>`;
     return;
@@ -5597,7 +5610,7 @@ async function loadAcAllMarketplaceProducts() {
     const rows = await api(path, { token });
     const list = Array.isArray(rows) ? rows : [];
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-gray-500">${ar ? "لا منتجات." : "No products."}</td></tr>`;
       return;
     }
     tbody.innerHTML = list
@@ -5618,26 +5631,42 @@ async function loadAcAllMarketplaceProducts() {
                 ? "منشور"
                 : "Live";
         const btnLab = ar ? "حالة النشر" : "Listing";
+        const imgs = Array.isArray(p.images) ? p.images : [];
+        const thumb = imgs.length ? String(imgs[0] || "").trim() : "";
+        const thumbCell = thumb
+          ? `<td class="p-2 w-14"><button type="button" class="ac-mp-prod-thumb block rounded-lg border border-gray-200 overflow-hidden w-12 h-12 p-0 bg-gray-50" data-img-url="${escapeHtml(thumb)}" title="${ar ? "عرض الصورة" : "View image"}"><img src="${escapeHtml(thumb)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></button></td>`
+          : `<td class="p-2 text-gray-400 text-xs">—</td>`;
+        const vName = ar ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
+        const vCell = `<div class="font-semibold text-gray-800 max-w-[10rem] truncate" title="${escapeHtml(vName || "")}">${escapeHtml(vName || "—")}</div><div class="text-[10px] font-mono text-gray-500">#${p.vendor_id}</div>`;
+        const activeNow = Number(p.is_active) === 1 ? 1 : 0;
+        const toggleLab = ar ? (activeNow ? "إيقاف" : "تفعيل") : activeNow ? "Deactivate" : "Activate";
+        const nextAct = activeNow ? 0 : 1;
         return `<tr class="border-b border-gray-100">
           <td class="p-2 font-mono text-xs">${p.id}</td>
+          ${thumbCell}
           <td class="p-2 font-mono text-xs">${escapeHtml(p.public_product_code || "—")}</td>
-          <td class="p-2">${p.vendor_id}</td>
+          <td class="p-2 text-xs">${vCell}</td>
           <td class="p-2 max-w-[200px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
           <td class="p-2">${escapeHtml(String(p.price ?? ""))}</td>
           <td class="p-2">${escapeHtml(String(p.stock ?? 0))}</td>
           <td class="p-2 text-xs font-bold">${escapeHtml(stLab)}</td>
           <td class="p-2">${act}</td>
-          <td class="p-2"><button type="button" class="text-xs px-2 py-1 rounded-lg bg-violet-100 text-violet-800 font-bold ac-vp-open-product" data-mp-product-id="${p.id}">${escapeHtml(btnLab)}</button></td>
+          <td class="p-2 space-y-1">
+            <button type="button" class="text-xs px-2 py-1 rounded-lg bg-violet-100 text-violet-800 font-bold ac-vp-open-product" data-mp-product-id="${p.id}">${escapeHtml(btnLab)}</button>
+            <button type="button" class="block w-full text-xs px-2 py-1 rounded-lg font-bold ac-mp-toggle-active ${activeNow ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"}" data-mp-product-id="${p.id}" data-next-active="${nextAct}">${escapeHtml(toggleLab)}</button>
+          </td>
         </tr>`;
       })
       .join("");
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="9" class="p-3 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
   }
 }
 
 function fillAdoraVendorProductPanel(p) {
   adoraVpProductCache = p;
+  const hid = document.getElementById("ac-vp-product-id");
+  if (hid) hid.value = p && p.id != null ? String(p.id) : "";
   const panel = document.getElementById("ac-vp-panel");
   const sum = document.getElementById("ac-vp-summary");
   if (!panel || !sum) return;
@@ -5754,14 +5783,46 @@ async function searchAdoraVendorProduct() {
 
 async function saveAdoraVendorProductVisibility() {
   const token = getToken();
-  const p = adoraVpProductCache;
   const msg = document.getElementById("ac-vp-msg");
   const ar = getAdminLang() === "ar";
-  if (!token || !p) {
+  const AC_VP_HUB_SECTIONS = new Set([
+    "clothes",
+    "electronics",
+    "phones",
+    "shoes",
+    "accessories",
+    "bedding",
+    "medical",
+    "used",
+  ]);
+  if (!token) {
+    if (msg) msg.textContent = ar ? "يجب تسجيل الدخول كمشرف." : "Admin login required.";
+    return;
+  }
+  let p = adoraVpProductCache;
+  const pid = Number(document.getElementById("ac-vp-product-id")?.value?.trim());
+  if (!p || !p.id) {
+    if (Number.isFinite(pid) && pid > 0) {
+      try {
+        p = await api(`/api/admin/marketplace/products/${pid}`, { token });
+        adoraVpProductCache = p;
+      } catch (e) {
+        if (msg) msg.textContent = e.message || String(e);
+        return;
+      }
+    }
+  }
+  if (!p || !p.id) {
     if (msg) msg.textContent = ar ? "ابحث عن منتج أولاً." : "Search a product first.";
     return;
   }
   const fhOn = !!document.getElementById("ac-vp-fh")?.checked;
+  let featured_hub_section = null;
+  if (fhOn) {
+    let sec = String(document.getElementById("ac-vp-fh-section")?.value || "clothes").trim();
+    if (!AC_VP_HUB_SECTIONS.has(sec)) sec = "clothes";
+    featured_hub_section = sec;
+  }
   const body = {
     section_id: p.section_id,
     vendor_id: p.vendor_id,
@@ -5783,7 +5844,7 @@ async function saveAdoraVendorProductVisibility() {
     barcode: p.barcode || "",
     is_mp_featured: document.getElementById("ac-vp-featured")?.checked ? 1 : 0,
     featured_hub_enabled: fhOn ? 1 : 0,
-    featured_hub_section: fhOn ? document.getElementById("ac-vp-fh-section")?.value : null,
+    featured_hub_section: featured_hub_section,
     show_in_offers_tab: document.getElementById("ac-vp-show-offers")?.checked ? 1 : 0,
     show_in_marketplace_tab: document.getElementById("ac-vp-show-marketplace")?.checked ? 1 : 0,
     show_in_flash_sale_strip: document.getElementById("ac-vp-strip-flash")?.checked ? 1 : 0,
@@ -5960,6 +6021,8 @@ async function initAdoraCompanyAdminTab() {
         portal_username: document.getElementById("ac-edit-user")?.value?.trim().toLowerCase(),
         logo_url,
         portal_suspended: document.getElementById("ac-edit-portal-suspended")?.checked ? 1 : 0,
+        show_in_app_brands_section: document.getElementById("ac-edit-show-app-brands")?.checked ? 1 : 0,
+        show_in_app_top_brands_section: document.getElementById("ac-edit-show-top-brands")?.checked ? 1 : 0,
       };
       const np = document.getElementById("ac-edit-pass")?.value;
       if (np && String(np).length >= 6) payload.portal_password = np;
@@ -6044,6 +6107,28 @@ async function initAdoraCompanyAdminTab() {
       });
     }
     document.getElementById("ac-all-mp-tbody")?.addEventListener("click", (e) => {
+      const thumbBtn = e.target.closest(".ac-mp-prod-thumb");
+      if (thumbBtn) {
+        const u = thumbBtn.getAttribute("data-img-url");
+        if (u) window.open(u, "_blank", "noopener,noreferrer");
+        return;
+      }
+      const tog = e.target.closest(".ac-mp-toggle-active");
+      if (tog) {
+        const id = Number(tog.getAttribute("data-mp-product-id"));
+        const nextRaw = Number(tog.getAttribute("data-next-active"));
+        const nextAct = nextRaw === 0 ? 0 : 1;
+        const tkn = getToken();
+        if (!Number.isFinite(id) || !tkn) return;
+        api(`/api/admin/marketplace/products/${id}/is-active`, {
+          method: "PUT",
+          token: tkn,
+          body: { is_active: nextAct },
+        })
+          .then(() => loadAcAllMarketplaceProducts().catch(() => {}))
+          .catch((err) => alert(err.message || String(err)));
+        return;
+      }
       const btn = e.target.closest(".ac-vp-open-product");
       if (!btn) return;
       const id = Number(btn.getAttribute("data-mp-product-id"));

@@ -666,6 +666,11 @@
                     <label class="text-[11px] font-semibold text-gray-600" data-en="Upload cover" data-ar="رفع غلاف">رفع غلاف</label>
                     <input type="file" id="mp-v-cover-file" accept="image/*" class="block w-full text-sm" />
                   </div>
+                  <div class="md:col-span-2 flex flex-col gap-2 rounded-xl border border-indigo-100 bg-indigo-50/30 p-3">
+                    <p class="text-xs font-bold text-gray-800" data-en="App home visibility" data-ar="الظهور في التطبيق">الظهور في التطبيق</p>
+                    <label class="flex items-start gap-2 text-sm font-bold"><input type="checkbox" id="mp-v-show-app-brands" checked class="rounded mt-0.5 shrink-0" /><span data-en="Show in home «Available brands» strip" data-ar="إظهار في شريط «الشركات المتاحة» بالرئيسية">إظهار في شريط «الشركات المتاحة» بالرئيسية</span></label>
+                    <label class="flex items-start gap-2 text-sm font-bold"><input type="checkbox" id="mp-v-show-top-brands" class="rounded mt-0.5 shrink-0" /><span data-en="Show in home «Featured brands» section" data-ar="إظهار في قسم «العلامات المميزة» بالرئيسية">إظهار في قسم «العلامات المميزة» بالرئيسية</span></label>
+                  </div>
                   <div class="flex items-center gap-2"><input type="checkbox" id="mp-v-active" checked class="rounded" /><label for="mp-v-active" class="text-sm font-bold">نشط</label></div>
                   <div class="md:col-span-2"><button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white font-bold">حفظ</button></div>
                 </form>
@@ -1069,14 +1074,15 @@
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50 sticky top-0"><tr>
                     <th class="p-2 text-start">ID</th>
+                    <th class="p-2 text-start">صورة</th>
                     <th class="p-2 text-start">الرمز</th>
-                    <th class="p-2 text-start">vendor</th>
+                    <th class="p-2 text-start">الشركة</th>
                     <th class="p-2 text-start">الاسم</th>
                     <th class="p-2 text-start">السعر</th>
                     <th class="p-2 text-start">مخزون</th>
                     <th class="p-2 text-start">النشر</th>
                     <th class="p-2 text-start">نشط</th>
-                    <th class="p-2 text-start">إجراء</th>
+                    <th class="p-2 text-start">إجراءات</th>
                   </tr></thead>
                   <tbody id="ac-all-mp-tbody"></tbody>
                 </table>
@@ -1098,6 +1104,7 @@
                 <button type="button" id="ac-vp-reset" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-800 text-sm font-bold border border-gray-200" data-en="Clear & close panel" data-ar="مسح البحث وإغلاق اللوحة">مسح البحث وإغلاق اللوحة</button>
               </div>
               <div id="ac-vp-panel" class="hidden space-y-3 border border-violet-100 rounded-xl p-3 bg-violet-50/30">
+                <input type="hidden" id="ac-vp-product-id" value="" />
                 <div id="ac-vp-summary" class="text-sm font-semibold text-gray-800"></div>
                 <div>
                   <label class="text-xs font-bold block" data-en="Listing status (portal moderation)" data-ar="حالة نشر المنتج (مراجعة البوابة)">حالة نشر المنتج (مراجعة البوابة)</label>
@@ -1261,6 +1268,17 @@
                 <div>
                   <label class="text-xs font-bold">كلمة مرور جديدة (اختياري)</label>
                   <input id="ac-edit-pass" type="password" class="mt-1 w-full p-2 rounded-xl border border-gray-200" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على الحالية" />
+                </div>
+                <div class="rounded-xl border border-violet-100 bg-violet-50/40 p-3 space-y-2">
+                  <p class="text-xs font-bold text-gray-800">الظهور في التطبيق</p>
+                  <label class="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input id="ac-edit-show-app-brands" type="checkbox" class="rounded mt-0.5 shrink-0" />
+                    <span data-en="Show company in home «Available brands» strip" data-ar="إظهار الشركة في شريط «الشركات المتاحة» بالرئيسية">إظهار الشركة في شريط «الشركات المتاحة» بالرئيسية</span>
+                  </label>
+                  <label class="flex items-start gap-2 text-sm font-bold cursor-pointer">
+                    <input id="ac-edit-show-top-brands" type="checkbox" class="rounded mt-0.5 shrink-0" />
+                    <span data-en="Show company in home «Featured brands» section" data-ar="إظهار الشركة في قسم «العلامات المميزة»">إظهار الشركة في قسم «العلامات المميزة»</span>
+                  </label>
                 </div>
                 <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
                   <label class="flex items-start gap-2 text-sm font-bold text-gray-800 cursor-pointer">

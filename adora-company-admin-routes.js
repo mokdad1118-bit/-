@@ -173,9 +173,30 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       if (Object.prototype.hasOwnProperty.call(b, "portal_suspended")) {
         portal_suspended = Number(b.portal_suspended) === 1 ? 1 : 0;
       }
+      let show_in_app_brands_section = Number(cur.show_in_app_brands_section) === 0 ? 0 : 1;
+      if (Object.prototype.hasOwnProperty.call(b, "show_in_app_brands_section")) {
+        show_in_app_brands_section = Number(b.show_in_app_brands_section) === 0 ? 0 : 1;
+      }
+      let show_in_app_top_brands_section = Number(cur.show_in_app_top_brands_section) === 1 ? 1 : 0;
+      if (Object.prototype.hasOwnProperty.call(b, "show_in_app_top_brands_section")) {
+        show_in_app_top_brands_section = Number(b.show_in_app_top_brands_section) === 1 ? 1 : 0;
+      }
       await run(
-        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=? WHERE id=?`,
-        [name_ar, name_en, product_quota, owner_name, subscription_ends_at || null, portal_username || null, logo_url, portal_suspended, id]
+        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=?,
+         show_in_app_brands_section=?, show_in_app_top_brands_section=? WHERE id=?`,
+        [
+          name_ar,
+          name_en,
+          product_quota,
+          owner_name,
+          subscription_ends_at || null,
+          portal_username || null,
+          logo_url,
+          portal_suspended,
+          show_in_app_brands_section,
+          show_in_app_top_brands_section,
+          id,
+        ]
       );
       if (b.portal_password != null && String(b.portal_password).length >= 6) {
         const hash = await bcrypt.hash(String(b.portal_password), 10);
