@@ -4312,7 +4312,7 @@
                             : '';
                     const mpFeat =
                         Number(p.is_mp_featured_effective) === 1
-                            ? `<span class="absolute bottom-1 left-1 rtl:left-auto rtl:right-1 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
+                            ? `<span class="adora-mp-hot-badge" dir="auto"><span class="adora-mp-hot-emoji" aria-hidden="true">🔥</span>${isRTL ? 'مميز' : 'Hot'}</span>`
                             : '';
                     const listP = Number(p.price ?? 0);
                     const disc = Math.min(100, Math.max(0, Number(p.discount_percent ?? 0)));
@@ -4432,14 +4432,14 @@
                 const sel = marketplaceBrowseVendorId != null && marketplaceBrowseVendorId === vid;
                 const cls = `mp-vendor-chip${sel ? ' mp-vendor-chip--selected' : ''}`;
                 const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
-                const logo = logoRaw
-                    ? `<span class="mp-vendor-logo-box"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                    : `<span class="mp-vendor-logo-box mp-vendor-logo-box--placeholder">${escapeHtml((name || '?').charAt(0))}</span>`;
-                const star =
+                const premiumStar =
                     Number(v.is_premium_active) === 1
-                        ? `<span class="text-amber-500 text-[11px] leading-none shrink-0" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
+                        ? `<span class="mp-vendor-premium-star" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
                         : '';
-                return `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name inline-flex items-center gap-0.5 justify-center" dir="auto">${escapeHtml(name || '—')}${star}</span></button>`;
+                const logo = logoRaw
+                    ? `<span class="mp-vendor-logo-box">${premiumStar}<img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                    : `<span class="mp-vendor-logo-box mp-vendor-logo-box--placeholder">${premiumStar}${escapeHtml((name || '?').charAt(0))}</span>`;
+                return `<button type="button" data-mp-browse-vendor-id="${vid}" class="${cls}">${logo}<span class="mp-vendor-chip-name" dir="auto">${escapeHtml(name || '—')}</span></button>`;
             };
             const parts = list.map(buildChip).filter(Boolean);
             const mid = Math.ceil(parts.length / 2);
@@ -4806,7 +4806,7 @@
                     const saleP = disc > 0 && disc < 100 ? finalP : listP;
                     const featBadge =
                         Number(p.is_mp_featured_effective) === 1
-                            ? `<span class="absolute bottom-2 left-2 rtl:left-auto rtl:right-2 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
+                            ? `<span class="adora-mp-hot-badge" dir="auto"><span class="adora-mp-hot-emoji" aria-hidden="true">🔥</span>${isRTL ? 'مميز' : 'Hot'}</span>`
                             : '';
                     const inWish = isWishlistEntry('mp', mid);
                     const canCart = Number(p.stock || 0) > 0;
@@ -7162,9 +7162,13 @@
                 const name = String((isRTL ? v.name_ar || v.name_en : v.name_en || v.name_ar) || '').trim();
                 if (!name) return '';
                 const logo = v.logo_url ? String(v.logo_url).trim() : '';
+                const premiumStar =
+                    Number(v.is_premium_active) === 1
+                        ? `<span class="mp-vendor-premium-star" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
+                        : '';
                 const logoHtml = logo
-                    ? `<img src="${escapeHtml(logo)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-                    : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+                    ? `${premiumStar}<img src="${escapeHtml(logo)}" alt="" class="w-full h-full" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+                    : `${premiumStar}<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
                 return `<button type="button" class="brand-strip-card mp-vendor-strip-card" data-mp-vendor-id="${Number(v.id)}" title="${escapeHtml(isRTL ? 'شركة في السوق الشامل' : 'Marketplace vendor')}">
                             <div class="brand-strip-logo">${logoHtml}</div>
                             <div class="brand-strip-name">${escapeHtml(name)}</div>
@@ -8378,7 +8382,7 @@
             const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
             const featBadge =
                 Number(p.is_mp_featured_effective) === 1
-                    ? `<span class="absolute bottom-1.5 left-1.5 rtl:left-auto rtl:right-1.5 text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-md shadow-sm z-[2]" dir="auto">🔥 ${isRTL ? 'مميز' : 'Hot'}</span>`
+                    ? `<span class="adora-mp-hot-badge" dir="auto"><span class="adora-mp-hot-emoji" aria-hidden="true">🔥</span>${isRTL ? 'مميز' : 'Hot'}</span>`
                     : '';
             return `<div class="adora-pcard adora-pcv adora-pcard--strip product-card home-compact-product-card">
                 <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer text-start" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
@@ -9825,10 +9829,15 @@
                 if (!name) return '';
                 const logo = v.logo_url ? String(v.logo_url).trim() : '';
                 const chip = isRTL ? 'السوق الشامل' : 'Marketplace';
+                const premStar =
+                    Number(v.is_premium_active) === 1
+                        ? `<span class="mp-vendor-premium-star" style="top:4px;left:4px;width:20px;height:20px;font-size:10px;border-radius:6px" title="${isRTL ? 'شركة مميزة' : 'Featured company'}" aria-hidden="true">★</span>`
+                        : '';
                 return `                        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
                             <button type="button" class="top-brand-card mp-top-vendor-card cursor-pointer text-start border-0 bg-transparent p-0 w-full" data-mp-vendor-id="${Number(v.id)}">
-                                <div class="w-[4.25rem] h-[4.25rem] rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-md ring-2 ring-emerald-200/70">
-                                    ${logo ? `<img src="${escapeHtml(logo)}" class="w-full h-full object-cover" alt="">` : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
+                                <div class="mp-top-vendor-logo-wrap w-[4.25rem] h-[4.25rem] rounded-2xl bg-gray-100 mb-2 overflow-hidden flex items-center justify-center shadow-md ring-2 ring-emerald-200/70 p-1">
+                                    ${premStar}
+                                    ${logo ? `<img src="${escapeHtml(logo)}" class="max-w-full max-h-full w-auto h-auto object-contain" alt="">` : `<span class="text-2xl font-bold text-emerald-600">${escapeHtml(name.charAt(0))}</span>`}
                                 </div>
                                 <h4 class="font-bold text-gray-900 text-sm leading-snug line-clamp-2">${escapeHtml(name)}</h4>
                             </button>
@@ -10036,13 +10045,13 @@
                         const vid = Number(v.id);
                         if (!Number.isFinite(vid)) return '';
                         const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
-                        const logo = logoRaw
-                            ? `<span class="w-11 h-11 rounded-full overflow-hidden border border-amber-200/80 shadow-sm shrink-0 bg-white flex items-center justify-center"><img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                            : `<span class="w-11 h-11 rounded-full border border-amber-200/80 bg-amber-50 text-amber-700 font-bold text-sm flex items-center justify-center shrink-0">${escapeHtml((name || '?').charAt(0))}</span>`;
                         const star =
-                            '<span class="absolute -top-0.5 -right-0.5 rtl:right-auto rtl:-left-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white border border-amber-300 shadow-sm text-amber-500 text-xs leading-none" aria-hidden="true">★</span>';
+                            '<span class="mp-vendor-premium-star" style="width:20px;height:20px;font-size:10px;border-radius:6px;top:4px;left:4px" aria-hidden="true">★</span>';
+                        const logo = logoRaw
+                            ? `<span class="home-mp-premium-vendor-logo">${star}<img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
+                            : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-sm">${escapeHtml((name || '?').charAt(0))}</span></span>`;
                         return `<button type="button" class="flex flex-col items-center gap-1.5 shrink-0 min-w-[4.5rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
-                        <div class="relative flex items-center justify-center">${logo}${star}</div>
+                        <div class="flex items-center justify-center">${logo}</div>
                         <span class="text-[11px] font-semibold text-gray-800 text-center leading-tight line-clamp-2 max-w-[5.5rem]" dir="auto">${escapeHtml(name || '—')}</span>
                         </button>`;
                     })

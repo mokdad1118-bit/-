@@ -10,6 +10,15 @@ const {
   deleteMarketplaceVendorCompletely,
 } = require("./adora-mv-core");
 
+/** شركة مميزة «فعّالة» حسب is_premium و premium_until */
+function vendorPremiumEffectiveAt(isPremium, premiumUntil, nowMs = Date.now()) {
+  if (Number(isPremium) !== 1) return false;
+  if (premiumUntil == null || String(premiumUntil).trim() === "") return true;
+  const t = new Date(String(premiumUntil)).getTime();
+  if (Number.isNaN(t)) return true;
+  return t > nowMs;
+}
+
 function safeJsonParse(raw, fallback) {
   if (raw == null || raw === "") return fallback;
   /** PostgreSQL قد يُرجِع JSON/JSONB ككائن/مصفوفة جاهزة — JSON.parse عليها يفشل ويُعاد fallback خاطئ */
@@ -215,7 +224,9 @@ async function resolveMpHomeSlotItems(placements, slot) {
     if (!Number.isFinite(tid)) continue;
     if (tt === "vendor") {
       const v = await get(
-        `SELECT id, name_ar, name_en, logo_url FROM marketplace_vendors WHERE id=? AND COALESCE(is_active,1)=1 AND COALESCE(portal_suspended,0)=0`,
+        `SELECT id, name_ar, name_en, logo_url, is_premium, premium_until,
+          (CASE WHEN COALESCE(is_premium,0) = 1 AND (premium_until IS NULL OR premium_until > CURRENT_TIMESTAMP) THEN 1 ELSE 0 END) AS is_premium_active
+         FROM marketplace_vendors WHERE id=? AND COALESCE(is_active,1)=1 AND COALESCE(portal_suspended,0)=0`,
         [tid]
       );
       if (!v) continue;
@@ -229,6 +240,7 @@ async function resolveMpHomeSlotItems(placements, slot) {
           name_ar: v.name_ar,
           name_en: v.name_en,
           logo_url: v.logo_url || "",
+          is_premium_active: Number(v.is_premium_active) === 1 ? 1 : 0,
         });
       } else {
         const prows = await all(
@@ -1246,6 +1258,23 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           id,
         ]
       );
+      const wasPremiumEff = vendorPremiumEffectiveAt(cur.is_premium, cur.premium_until);
+      const nowPremiumEff = vendorPremiumEffectiveAt(is_premium, premium_until);
+      if (nowPremiumEff && !wasPremiumEff) {
+        try {
+          await run(
+            `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
+            [
+              id,
+              "تمييز شركة — أدورا غروب",
+              `تم جعل شركتكم رقم ${id} مميزة داخل تطبيق أدورا غروب بعلامة النجمة الصفراء.\n\nYour company (#${id}) is now featured in the Adora Group app with the yellow star badge.`,
+              null,
+            ]
+          );
+        } catch (e) {
+          console.error("vendor_portal_notifications insert failed (vendor premium)", e);
+        }
+      }
       return res.json(await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [id]));
     } catch (err) {
       return res.status(500).json({ error: "Failed to update vendor" });

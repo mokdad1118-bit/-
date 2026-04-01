@@ -13,6 +13,14 @@ const {
   deleteMarketplaceVendorCompletely,
 } = require("./adora-mv-core");
 
+function vendorPremiumEffectiveAt(isPremium, premiumUntil, nowMs = Date.now()) {
+  if (Number(isPremium) !== 1) return false;
+  if (premiumUntil == null || String(premiumUntil).trim() === "") return true;
+  const t = new Date(String(premiumUntil)).getTime();
+  if (Number.isNaN(t)) return true;
+  return t > nowMs;
+}
+
 function subscriptionHealth(subEnds) {
   if (!subEnds) return { key: "unknown", color: "gray" };
   const t = new Date(subEnds).getTime();
@@ -203,6 +211,23 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
           id,
         ]
       );
+      const wasPremiumEff = vendorPremiumEffectiveAt(cur.is_premium, cur.premium_until);
+      const nowPremiumEff = vendorPremiumEffectiveAt(is_premium, cur.premium_until);
+      if (nowPremiumEff && !wasPremiumEff) {
+        try {
+          await run(
+            `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
+            [
+              id,
+              "تمييز شركة — أدورا غروب",
+              `تم جعل شركتكم رقم ${id} مميزة داخل تطبيق أدورا غروب بعلامة النجمة الصفراء.\n\nYour company (#${id}) is now featured in the Adora Group app with the yellow star badge.`,
+              null,
+            ]
+          );
+        } catch (e) {
+          console.error("vendor_portal_notifications insert failed (adora company premium)", e);
+        }
+      }
       if (b.portal_password != null && String(b.portal_password).length >= 6) {
         const hash = await bcrypt.hash(String(b.portal_password), 10);
         await run(`UPDATE marketplace_vendors SET portal_password_hash=?, must_change_portal_password=1 WHERE id=?`, [

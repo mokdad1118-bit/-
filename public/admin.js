@@ -5709,6 +5709,7 @@ async function loadAcAllMarketplaceProducts() {
           <td class="p-2 space-y-1">
             <button type="button" class="text-xs px-2 py-1 rounded-lg bg-violet-100 text-violet-800 font-bold ac-vp-open-product" data-mp-product-id="${p.id}">${escapeHtml(btnLab)}</button>
             <button type="button" class="block w-full text-xs px-2 py-1 rounded-lg font-bold ac-mp-toggle-active ${activeNow ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"}" data-mp-product-id="${p.id}" data-next-active="${nextAct}">${escapeHtml(toggleLab)}</button>
+            <button type="button" class="block w-full text-xs px-2 py-1.5 rounded-lg font-bold ac-mp-qf-save bg-amber-50 text-amber-950 border border-amber-200 hover:bg-amber-100" data-mp-product-id="${p.id}">${ar ? "حفظ التعديلات" : "Save changes"}</button>
           </td>
         </tr>`;
       })
@@ -6208,6 +6209,27 @@ async function initAdoraCompanyAdminTab() {
           .catch((err) => alert(err.message || String(err)));
         return;
       }
+      const qfSave = e.target.closest(".ac-mp-qf-save");
+      if (qfSave) {
+        const id = Number(qfSave.getAttribute("data-mp-product-id"));
+        const tr = qfSave.closest("tr");
+        const token = getToken();
+        if (!Number.isFinite(id) || !tr || !token) return;
+        const featEl = tr.querySelector(".ac-mp-qf-featured");
+        const srchEl = tr.querySelector(".ac-mp-qf-search");
+        const body = {
+          is_mp_featured: featEl && featEl.checked ? 1 : 0,
+          search_priority_boost: srchEl && srchEl.checked ? 1 : 0,
+        };
+        qfSave.disabled = true;
+        api(`/api/admin/marketplace/products/${id}/quick-flags`, { method: "PUT", token, body })
+          .then(() => loadAcAllMarketplaceProducts().catch(() => {}))
+          .catch((err) => alert(err.message || String(err)))
+          .finally(() => {
+            qfSave.disabled = false;
+          });
+        return;
+      }
       const btn = e.target.closest(".ac-vp-open-product");
       if (!btn) return;
       const id = Number(btn.getAttribute("data-mp-product-id"));
@@ -6216,34 +6238,6 @@ async function initAdoraCompanyAdminTab() {
         const m = document.getElementById("ac-vp-msg");
         if (m) m.textContent = err.message || String(err);
       });
-    });
-    document.getElementById("ac-all-mp-tbody")?.addEventListener("change", async (e) => {
-      const t = e.target;
-      if (!(t instanceof HTMLInputElement)) return;
-      if (!t.classList.contains("ac-mp-qf-featured") && !t.classList.contains("ac-mp-qf-search")) return;
-      const tr = t.closest("tr");
-      const token = getToken();
-      if (!tr || !token) {
-        t.checked = !t.checked;
-        return;
-      }
-      const id = Number(t.getAttribute("data-mp-product-id"));
-      if (!Number.isFinite(id)) {
-        t.checked = !t.checked;
-        return;
-      }
-      const featEl = tr.querySelector(".ac-mp-qf-featured");
-      const srchEl = tr.querySelector(".ac-mp-qf-search");
-      const body = {
-        is_mp_featured: featEl && featEl.checked ? 1 : 0,
-        search_priority_boost: srchEl && srchEl.checked ? 1 : 0,
-      };
-      try {
-        await api(`/api/admin/marketplace/products/${id}/quick-flags`, { method: "PUT", token, body });
-      } catch (err) {
-        t.checked = !t.checked;
-        alert(err.message || String(err));
-      }
     });
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
