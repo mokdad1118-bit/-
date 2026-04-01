@@ -886,8 +886,6 @@
   async function refreshVendorNotifications() {
     const list = el("vp-notifications-list");
     const empty = el("vp-notifications-empty");
-    const prompt = el("vp-dashboard-notif-prompt");
-    const promptLine = el("vp-notif-prompt-line");
     const navBadge = el("vp-nav-notif-badge");
     const sectionBadge = el("vp-section-notif-badge");
     if (!list) return;
@@ -947,17 +945,6 @@
             "لا توجد إشعارات بعد. عند وصول طلب جديد أو إشعار من النظام سيظهر هنا.";
         }
       }
-      if (prompt && promptLine) {
-        if (items.length === 0) {
-          prompt.classList.add("hidden");
-        } else {
-          prompt.classList.remove("hidden");
-          promptLine.textContent =
-            unread > 0
-              ? `لديك ${unread} إشعار غير مقروء — اضغط «فتح الإشعارات» لعرض كل الرسائل (طلبات، تحديثات، تمييز منتجات 🔥، تمييز الشركة…).`
-              : "سجل كامل للإشعارات: طلبات، تحديثات الإدارة، تمييز منتجاتكم أو شركتكم. افتح القسم لمراجعته.";
-        }
-      }
       const setBadge = (badgeEl) => {
         if (!badgeEl) return;
         if (unread > 0) {
@@ -976,7 +963,6 @@
         empty.classList.remove("hidden");
         empty.textContent = "تعذر تحميل الإشعارات. جرّب «تحديث القائمة» لاحقاً.";
       }
-      if (prompt) prompt.classList.add("hidden");
       el("vp-contact-threads-wrap")?.classList.add("hidden");
     }
   }
