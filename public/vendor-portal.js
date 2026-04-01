@@ -14,6 +14,18 @@
   const VP_MSG_AFTER_ADD_CHECK_APP =
     "\n\nيرجى الدخول إلى التطبيق والتأكد بأن مواصفات منتجك (الصور، الخيارات، الوصف، السعر…) تظهر كما وصفتها.";
 
+  /** نفس منطق التطبيق: الواجهة على Netlify والـ API على Render — من adora-config.js */
+  function vpApiOrigin() {
+    const c = typeof window.ADORA_API_BASE === "string" ? window.ADORA_API_BASE.trim().replace(/\/+$/, "") : "";
+    return c;
+  }
+
+  function vpApiUrl(path) {
+    const p = String(path || "").startsWith("/") ? String(path) : "/" + String(path);
+    const o = vpApiOrigin();
+    return o ? o + p : p;
+  }
+
   function vpNavigate(section) {
     const id = VP_SECTION_IDS.includes(section) ? section : "dashboard";
     VP_SECTION_IDS.forEach((s) => {
@@ -92,7 +104,7 @@
     const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
     const t = localStorage.getItem(TOKEN_KEY);
     if (t) headers.Authorization = "Bearer " + t;
-    return fetch(path, { ...opts, headers }).then(async (r) => {
+    return fetch(vpApiUrl(path), { ...opts, headers }).then(async (r) => {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         if (j.code === "PORTAL_SUSPENDED" || j.code === "VENDOR_INACTIVE") {
@@ -110,7 +122,7 @@
     const t = localStorage.getItem(TOKEN_KEY);
     const fd = new FormData();
     fd.append("file", file);
-    const r = await fetch("/api/vendor-portal/upload/image", {
+    const r = await fetch(vpApiUrl("/api/vendor-portal/upload/image"), {
       method: "POST",
       headers: t ? { Authorization: "Bearer " + t } : {},
       body: fd,
@@ -150,9 +162,19 @@
     } catch (_e) {
       return;
     }
+    if (window.Notification && Notification.permission === "default") {
+      try {
+        await Notification.requestPermission();
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+    if (window.Notification && Notification.permission !== "granted") {
+      return;
+    }
     let keyRes;
     try {
-      keyRes = await fetch("/api/push/vapid-public-key");
+      keyRes = await fetch(vpApiUrl("/api/push/vapid-public-key"), { credentials: "omit", mode: "cors" });
     } catch (_e) {
       return;
     }
@@ -1089,7 +1111,7 @@
   }
 
   function postJsonNoAuth(path, body) {
-    return fetch(path, {
+    return fetch(vpApiUrl(path), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

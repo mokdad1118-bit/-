@@ -195,12 +195,44 @@ async function notifyVendorPortalPush(vendorId, { title, body, url }) {
   await sendWebPushToSubscriptions(rows, payload, removeDeadVendorPushSubscription);
 }
 
+/** اشتراكات Push لكل حسابات admin — لإشعارات تشغيلية (رد مشترك) بغض النظر عن تفضيلات الإشعار العامة */
+async function getAdminPushSubscriptionRows() {
+  return all(
+    `SELECT ps.endpoint, ps.p256dh, ps.auth
+     FROM push_subscriptions ps
+     INNER JOIN users u ON u.id = ps.user_id
+     WHERE COALESCE(u.role, '') = 'admin'`
+  );
+}
+
+/** إشعار للمشرفين عند رد بائع على محادثة الإدارة */
+async function notifyAdminsVendorContactPush({ title, body, url }) {
+  if (!isWebPushConfigured()) return;
+  const rows = await getAdminPushSubscriptionRows();
+  if (!rows.length) return;
+  const base = getPublicAssetBase();
+  const iconPath = "/icons/adora-icon.svg";
+  const icon = base ? `${base}${iconPath}` : iconPath;
+  const openPath =
+    typeof url === "string" && url.trim() ? resolvePushOpenUrl(url.trim()) : "/admin";
+  const payload = {
+    title: (title != null && String(title).trim() ? String(title).trim() : "أدورا").slice(0, 120),
+    body: String(body || "").slice(0, 500),
+    tag: `adora-admin-vc-${Date.now()}`,
+    url: openPath,
+    icon,
+    badge: icon,
+  };
+  await sendWebPushToSubscriptions(rows, payload);
+}
+
 module.exports = {
   isWebPushConfigured,
   ensureWebPushConfigured,
   sanitizeHttpsUrl,
   notifyInAppRow,
   notifyVendorPortalPush,
+  notifyAdminsVendorContactPush,
   removeDeadSubscription,
   removeDeadVendorPushSubscription,
 };

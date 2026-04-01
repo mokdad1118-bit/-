@@ -196,12 +196,22 @@ async function isStoredTokenAdmin(token) {
   }
 }
 
+/** طلبات الـ API نحو Render عند فتح لوحة الإدارة من Netlify (adora-config.js) */
+function getAdminApiUrl(path) {
+  const p = String(path || "").startsWith("/") ? String(path) : "/" + String(path);
+  const base =
+    typeof window.ADORA_API_BASE === "string" && window.ADORA_API_BASE.trim()
+      ? window.ADORA_API_BASE.trim().replace(/\/$/, "")
+      : "";
+  return base ? base + p : p;
+}
+
 async function api(path, { method = "GET", token, body, isFormData = false } = {}) {
   const headers = {};
   if (!isFormData && body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(path, {
+  const res = await fetch(getAdminApiUrl(path), {
     method,
     headers: isFormData ? (token ? { Authorization: `Bearer ${token}` } : {}) : headers,
     body: isFormData ? body : body ? JSON.stringify(body) : undefined,
@@ -215,7 +225,85 @@ async function api(path, { method = "GET", token, body, isFormData = false } = {
   return data;
 }
 
+const ADMIN_VAPID_FP_KEY = "adora_admin_vapid_fp";
+
+function adminUrlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+/** تسجيل Web Push للمشرف (ردود المشتركين على الجهاز) — يحتاج VAPID على السيرفر وسماح المتصفح */
+async function registerAdminWebPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  const token = getToken();
+  if (!token) return;
+  let reg;
+  try {
+    await navigator.serviceWorker.register("/sw.js");
+    reg = await navigator.serviceWorker.ready;
+  } catch (_e) {
+    return;
+  }
+  if (window.Notification && Notification.permission === "default") {
+    try {
+      await Notification.requestPermission();
+    } catch (_e) {
+      /* ignore */
+    }
+  }
+  if (window.Notification && Notification.permission !== "granted") return;
+
+  const keyUrl = getAdminApiUrl("/api/push/vapid-public-key");
+  let keyRes;
+  try {
+    keyRes = await fetch(keyUrl, { credentials: "omit", mode: "cors" });
+  } catch (_e) {
+    return;
+  }
+  if (!keyRes.ok) return;
+  const keyJson = await keyRes.json().catch(() => ({}));
+  if (!keyJson.ok || !keyJson.publicKey) return;
+  const pubKey = String(keyJson.publicKey).trim();
+  const fp = pubKey.slice(0, 48);
+  const prevFp = localStorage.getItem(ADMIN_VAPID_FP_KEY);
+  let sub = await reg.pushManager.getSubscription();
+  if (sub && prevFp && prevFp !== fp) {
+    try {
+      const j = sub.toJSON();
+      if (j.endpoint) {
+        await api("/api/push/unsubscribe", {
+          method: "POST",
+          token,
+          body: { endpoint: j.endpoint },
+        }).catch(() => {});
+      }
+      await sub.unsubscribe();
+    } catch (_e) {
+      /* ignore */
+    }
+    sub = null;
+  }
+  try {
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: adminUrlBase64ToUint8Array(pubKey),
+      });
+    }
+    const json = sub.toJSON ? sub.toJSON() : sub;
+    await api("/api/push/subscribe", { method: "POST", token, body: { subscription: json } });
+    localStorage.setItem(ADMIN_VAPID_FP_KEY, fp);
+  } catch (_e) {
+    /* إذن مرفوض أو اشتراك فاشل */
+  }
+}
+
 let adminIoSocket = null;
+let adminSocketIoScriptLoading = false;
 let adminMpFfRefreshTimer = null;
 
 function scheduleAdminFulfillmentsRefresh() {
@@ -399,7 +487,25 @@ async function openAcFulfillmentDetail(ffId, shared) {
 }
 
 function connectAdminSocket() {
-  if (typeof io === "undefined") return;
+  if (typeof io === "undefined") {
+    const base =
+      typeof window.ADORA_API_BASE === "string" && window.ADORA_API_BASE.trim()
+        ? window.ADORA_API_BASE.trim().replace(/\/$/, "")
+        : "";
+    if (!base || adminSocketIoScriptLoading) return;
+    adminSocketIoScriptLoading = true;
+    const s = document.createElement("script");
+    s.src = base + "/socket.io/socket.io.js";
+    s.onload = () => {
+      adminSocketIoScriptLoading = false;
+      connectAdminSocket();
+    };
+    s.onerror = () => {
+      adminSocketIoScriptLoading = false;
+    };
+    document.head.appendChild(s);
+    return;
+  }
   const token = getToken();
   if (!token) return;
   if (adminIoSocket && adminIoSocket.connected) return;
@@ -412,7 +518,9 @@ function connectAdminSocket() {
   const rawOrigin =
     typeof window.ADORA_API_ORIGIN === "string" && window.ADORA_API_ORIGIN.trim()
       ? window.ADORA_API_ORIGIN.trim()
-      : window.location.origin;
+      : typeof window.ADORA_API_BASE === "string" && window.ADORA_API_BASE.trim()
+        ? window.ADORA_API_BASE.trim()
+        : window.location.origin;
   const socketUrl = String(rawOrigin).replace(/\/$/, "");
   const norm = (o) => String(o || "").replace(/\/$/, "");
   const forcePollingOnly =
@@ -5264,6 +5372,7 @@ async function bootstrapAuthed() {
   setActiveTab("tab-products");
   hideError(document.getElementById("auth-error"));
   applyAdminLang();
+  void registerAdminWebPush().catch(() => {});
 }
 
 async function init() {

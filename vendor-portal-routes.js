@@ -21,7 +21,7 @@ const {
   getMarketplaceProductMappedAdminById,
   findMarketplaceProductDuplicate,
 } = require("./marketplace-routes");
-const { isWebPushConfigured } = require("./push-notify");
+const { isWebPushConfigured, notifyAdminsVendorContactPush } = require("./push-notify");
 
 const REQUEST_TYPES = ["general_ad", "featured_product", "search_boost", "home_featured"];
 
@@ -454,6 +454,15 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
     }
   }
 
+  function pushNotifyAdminsVendorReply(threadId, bodyPreview) {
+    const b = String(bodyPreview || "").trim();
+    notifyAdminsVendorContactPush({
+      title: "رد من مشترك — أدورا",
+      body: b.length > 220 ? b.slice(0, 220) + "…" : b || "رسالة جديدة في تواصل المشتركين",
+      url: "/admin",
+    }).catch((e) => console.error("[Adora] admin vendor-contact push:", e.message || e));
+  }
+
   app.get("/api/vendor-portal/contact/threads", ...vpGuarded, async (req, res) => {
     try {
       const rows = await all(
@@ -502,6 +511,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         [id]
       );
       emitVendorReplyToAdmin(id);
+      pushNotifyAdminsVendorReply(id, body);
       return res.json({ ok: true, thread_id: id });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to send" });
@@ -544,6 +554,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         await run(`UPDATE vendor_portal_notifications SET reply_thread_id=? WHERE id=?`, [threadId, nid]);
       }
       emitVendorReplyToAdmin(threadId);
+      pushNotifyAdminsVendorReply(threadId, body);
       return res.json({ ok: true, thread_id: threadId });
     } catch (_e) {
       return res.status(500).json({ error: "Failed to reply" });

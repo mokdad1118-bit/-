@@ -2136,19 +2136,19 @@
 
         .mp-vendor-premium-star {
             position: absolute;
-            top: 5px;
-            left: 5px;
+            top: 6px;
+            left: 6px;
             z-index: 3;
-            width: 22px;
-            height: 22px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 12px;
             line-height: 1;
             color: #713f12;
             background: linear-gradient(145deg, #fef08a, #facc15 45%, #eab308);
-            border-radius: 7px;
+            border-radius: 8px;
             box-shadow:
                 0 2px 10px rgba(234, 179, 8, 0.55),
                 0 0 0 2px rgba(255, 255, 255, 0.95),
@@ -2158,18 +2158,31 @@
             animation: adoraPremiumStarPulse 2.4s ease-in-out infinite;
         }
 
+        body[dir="rtl"] .mp-vendor-premium-star {
+            left: auto;
+            right: 6px;
+        }
+
         .home-mp-premium-vendor-logo {
             position: relative;
-            width: 2.75rem;
-            height: 2.75rem;
-            border-radius: 12px;
+            width: 4.75rem;
+            height: 4.75rem;
+            border-radius: 1rem;
             overflow: hidden;
             flex-shrink: 0;
             background: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2), inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22), inset 0 0 0 1px rgba(251, 191, 36, 0.4);
+        }
+
+        @media (min-width: 400px) {
+            .home-mp-premium-vendor-logo {
+                width: 5.25rem;
+                height: 5.25rem;
+                border-radius: 1.1rem;
+            }
         }
 
         .home-mp-premium-vendor-logo img {
@@ -5262,7 +5275,7 @@
                 <h2 class="adora-glow-title text-base sm:text-lg" data-en="Featured marketplace companies" data-ar="شركات مميزة">شركات مميزة</h2>
                 <p class="text-[11px] text-gray-500 font-medium" data-en="Premium partners in the company marketplace" data-ar="شركاء مميزون في سوق الشركات">شركاء مميزون في سوق الشركات</p>
             </div>
-            <div id="home-mp-premium-vendors-scroll" class="flex gap-3 overflow-x-auto no-scrollbar pb-1 min-h-[5.25rem]"></div>
+            <div id="home-mp-premium-vendors-scroll" class="flex gap-4 overflow-x-auto no-scrollbar pb-1 min-h-[7.5rem] sm:min-h-[8rem]"></div>
         </div>
 
         <div id="banner-slot-below_brands" class="px-4 mt-2 space-y-1" data-adora-section="banners" data-home-order-key="banner_below_brands"></div>

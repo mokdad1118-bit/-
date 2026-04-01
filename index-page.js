@@ -10046,13 +10046,13 @@
                         if (!Number.isFinite(vid)) return '';
                         const logoRaw = v.logo_url ? String(v.logo_url).trim() : '';
                         const star =
-                            '<span class="mp-vendor-premium-star" style="width:20px;height:20px;font-size:10px;border-radius:6px;top:4px;left:4px" aria-hidden="true">★</span>';
+                            '<span class="mp-vendor-premium-star" aria-hidden="true">★</span>';
                         const logo = logoRaw
                             ? `<span class="home-mp-premium-vendor-logo">${star}<img src="${escapeHtml(absoluteMediaUrl(logoRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`
-                            : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-sm">${escapeHtml((name || '?').charAt(0))}</span></span>`;
-                        return `<button type="button" class="flex flex-col items-center gap-1.5 shrink-0 min-w-[4.5rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
+                            : `<span class="home-mp-premium-vendor-logo">${star}<span class="text-amber-800 font-bold text-xl sm:text-2xl">${escapeHtml((name || '?').charAt(0))}</span></span>`;
+                        return `<button type="button" class="flex flex-col items-center gap-2 shrink-0 min-w-[5.75rem] sm:min-w-[6.25rem] active:scale-95 transition-transform" onclick="openMarketplaceBrowse({ vendor_id: ${vid} })">
                         <div class="flex items-center justify-center">${logo}</div>
-                        <span class="text-[11px] font-semibold text-gray-800 text-center leading-tight line-clamp-2 max-w-[5.5rem]" dir="auto">${escapeHtml(name || '—')}</span>
+                        <span class="text-xs sm:text-[13px] font-semibold text-gray-800 text-center leading-snug line-clamp-2 max-w-[6.5rem] sm:max-w-[7rem]" dir="auto">${escapeHtml(name || '—')}</span>
                         </button>`;
                     })
                     .join('');
