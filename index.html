@@ -1818,6 +1818,31 @@
             transition: all 0.3s ease;
             z-index: 100;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: min(90vw, 20rem);
+        }
+
+        /* ترتيب الشركات — لمحة خفيفة بلون الموقع (~نصف ثانية) */
+        .toast.toast--sort-done {
+            background: linear-gradient(145deg, rgba(250, 245, 255, 0.97), rgba(243, 232, 255, 0.98));
+            border: 1px solid rgba(196, 181, 253, 0.65);
+            color: #5b21b6;
+            box-shadow:
+                0 10px 36px rgba(124, 58, 237, 0.14),
+                0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            transition:
+                opacity 0.18s ease,
+                transform 0.18s ease;
+        }
+        .toast.toast--sort-done .toast-leading-icon {
+            display: none;
         }
         
         .toast.show {
@@ -6739,7 +6764,7 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast">
-        <i class="fas fa-check-circle text-green-400 text-xl"></i>
+        <i class="toast-leading-icon fas fa-check-circle text-green-400 text-xl" aria-hidden="true"></i>
         <span id="toast-message">Added to cart</span>
     </div>
 

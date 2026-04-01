@@ -7195,15 +7195,7 @@
             brandSortKey = key;
             updateBrandSortButtons();
             renderBrandCards();
-            const msg =
-                key === 'selling'
-                    ? isRTL
-                        ? 'تم ترتيب حسب الأكثر مبيعاً'
-                        : 'Sorted by best sellers'
-                    : isRTL
-                      ? 'تم ترتيب حسب الأكثر شعبية'
-                      : 'Sorted by popularity';
-            showToast(msg);
+            showToast('(✅ Done)', { variant: 'sort-done', duration: 500 });
         }
 
         function openBrandStore(brandName, mainCategoryOpt) {
@@ -11315,13 +11307,22 @@
             }
         }
 
-        // Toast System
-        function showToast(message) {
+        // Toast System — opts: { duration?: number, variant?: 'sort-done' }
+        function showToast(message, opts) {
             const toast = document.getElementById('toast');
             const msgEl = document.getElementById('toast-message');
+            if (!toast || !msgEl) return;
+            const duration = opts && typeof opts.duration === 'number' ? opts.duration : 2500;
+            const sortDone = opts && opts.variant === 'sort-done';
             msgEl.textContent = message;
+            toast.classList.toggle('toast--sort-done', sortDone);
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
+            if (toast._adoraToastTimer) clearTimeout(toast._adoraToastTimer);
+            toast._adoraToastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.remove('toast--sort-done');
+                toast._adoraToastTimer = null;
+            }, duration);
         }
 
         function adoraAllowNativeTextInteraction(target) {
