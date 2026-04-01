@@ -219,8 +219,8 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
             `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
             [
               id,
-              "تمييز شركة — أدورا غروب",
-              `تم جعل شركتكم رقم ${id} مميزة داخل تطبيق أدورا غروب بعلامة النجمة الصفراء.\n\nYour company (#${id}) is now featured in the Adora Group app with the yellow star badge.`,
+              "نجمة مميزة — أدورا غروب",
+              `تم إضافة علامة النجمة الذهبية النابضة لشركتكم (رقم ${id}) داخل تطبيق أدورا غروب — تظهر بجانب شعاركم للزبائن.\n\nA pulsing gold star badge was added for your company (#${id}) in the Adora Group app.`,
               null,
             ]
           );

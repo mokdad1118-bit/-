@@ -51,6 +51,10 @@
               <button type="button" class="vp-nav-item" data-vp-nav="add-product"><i class="fas fa-circle-plus"></i><span>إضافة منتج</span></button>
               <button type="button" class="vp-nav-item" data-vp-nav="ad"><i class="fas fa-bullhorn"></i><span>طلب إعلان</span></button>
               <button type="button" class="vp-nav-item" data-vp-nav="orders"><i class="fas fa-truck-fast"></i><span>الطلبات</span></button>
+              <button type="button" class="vp-nav-item vp-nav-item--notif relative" data-vp-nav="notifications">
+                <i class="fas fa-bell"></i><span>الإشعارات</span>
+                <span id="vp-nav-notif-badge" class="vp-nav-notif-badge hidden" aria-live="polite">0</span>
+              </button>
               <button type="button" class="vp-nav-item" data-vp-nav="stats"><i class="fas fa-chart-column"></i><span>الإحصائيات</span></button>
             </nav>
             <div class="pt-3 mt-2 border-t border-violet-100">
@@ -85,17 +89,18 @@
             </div>
           </div>
 
-          <div id="vp-adora-notifs-wrap" class="hidden w-full">
-            <div class="vp-card vp-adora-notifs p-4 sm:p-5 space-y-3 border-2 border-amber-200/80 bg-gradient-to-b from-amber-50/90 to-white">
-              <div class="flex items-center justify-between gap-2 flex-wrap">
-                <h3 class="font-black text-amber-950 text-sm sm:text-base flex items-center gap-2">
-                  <i class="fas fa-landmark text-amber-700"></i>
-                  إشعارات رسمية من إدارة Adora
-                </h3>
-                <span id="vp-adora-notifs-badge" class="hidden text-xs font-extrabold bg-amber-600 text-white px-2.5 py-1 rounded-full"></span>
+          <div id="vp-dashboard-notif-prompt" class="hidden w-full">
+            <div class="vp-card p-3 sm:p-4 border-2 border-violet-200/90 bg-gradient-to-b from-violet-50/95 to-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-extrabold text-violet-950 text-sm flex items-center gap-2">
+                  <i class="fas fa-bell text-violet-600"></i>
+                  مركز الإشعارات
+                </p>
+                <p id="vp-notif-prompt-line" class="text-[11px] text-gray-700 mt-1 leading-relaxed">—</p>
               </div>
-              <p class="text-[11px] text-amber-900/80 leading-relaxed">تظهر هنا عند قيام إدارة المنصة بتعديل حالة أحد طلباتك الفرعية.</p>
-              <div id="vp-adora-notifs-list" class="space-y-2 text-sm"></div>
+              <button type="button" class="shrink-0 py-2.5 px-4 rounded-xl bg-violet-600 text-white text-xs font-extrabold shadow-md border-2 border-violet-900" data-vp-go="notifications">
+                فتح الإشعارات
+              </button>
             </div>
           </div>
 
@@ -116,6 +121,7 @@
               <button type="button" class="vp-dash-tile" data-vp-go="products"><i class="fas fa-boxes-stacked text-violet-600"></i><span>عرض منتجاتي</span></button>
               <button type="button" class="vp-dash-tile" data-vp-go="add-product"><i class="fas fa-circle-plus text-emerald-600"></i><span>إضافة منتج</span></button>
               <button type="button" class="vp-dash-tile" data-vp-go="orders"><i class="fas fa-truck-fast text-indigo-600"></i><span>الطلبات</span></button>
+              <button type="button" class="vp-dash-tile" data-vp-go="notifications"><i class="fas fa-bell text-amber-600"></i><span>الإشعارات</span></button>
               <button type="button" class="vp-dash-tile" data-vp-go="ad"><i class="fas fa-bullhorn text-blue-600"></i><span>طلب إعلان</span></button>
             </div>
           </section>
@@ -259,6 +265,27 @@
               <h2 class="font-black text-gray-900 text-lg">الطلبات الفرعية</h2>
             </div>
             <div id="vp-orders" class="space-y-2 text-sm"></div>
+          </section>
+
+          <section id="vp-section-notifications" class="vp-section hidden vp-card p-4 sm:p-5 space-y-4">
+            <div class="vp-card-header flex-wrap gap-2">
+              <i class="fas fa-bell text-amber-600"></i>
+              <h2 class="font-black text-gray-900 text-lg">الإشعارات</h2>
+              <span id="vp-section-notif-badge" class="vp-section-notif-badge hidden text-xs font-extrabold bg-amber-600 text-white px-2.5 py-1 rounded-full" aria-live="polite">0</span>
+            </div>
+            <p class="text-xs text-gray-600 leading-relaxed">
+              يجمع هذا القسم كل ما يصل إلى لوحة المشترك: <strong>طلبات جديدة</strong>، <strong>تحديثات رسمية من الإدارة</strong>،
+              <strong>تمييز منتج</strong> بعلامة 🔥، <strong>تمييز الشركة</strong> بنجمة ذهبية، وأي إشعارات نظام أخرى.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" id="vp-notifications-refresh" class="text-xs font-extrabold px-3 py-2 rounded-xl bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-50">
+                تحديث القائمة
+              </button>
+            </div>
+            <div id="vp-notifications-list" class="space-y-2 text-sm min-h-[2rem]"></div>
+            <p id="vp-notifications-empty" class="hidden text-sm text-gray-500 text-center py-10 leading-relaxed">
+              لا توجد إشعارات بعد. عند وصول طلب جديد أو إشعار من النظام سيظهر هنا.
+            </p>
           </section>
 
           <section id="vp-section-ad" class="vp-section hidden vp-card p-4 sm:p-5 space-y-4">

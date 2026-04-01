@@ -19,6 +19,28 @@ function vendorPremiumEffectiveAt(isPremium, premiumUntil, nowMs = Date.now()) {
   return t > nowMs;
 }
 
+/** منتج مميز 🔥 «فعّال» حسب is_mp_featured و mp_featured_until */
+function mpProductFeaturedEffectiveAt(isFeatured, until, nowMs = Date.now()) {
+  if (Number(isFeatured) !== 1) return false;
+  if (until == null || String(until).trim() === "") return true;
+  const t = new Date(String(until)).getTime();
+  if (Number.isNaN(t)) return true;
+  return t > nowMs;
+}
+
+async function notifyVendorPortal(vendorId, title, message) {
+  const vid = Number(vendorId);
+  if (!Number.isFinite(vid) || vid <= 0) return;
+  try {
+    await run(
+      `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
+      [vid, title, message, null]
+    );
+  } catch (e) {
+    console.error("vendor_portal_notifications insert failed", e);
+  }
+}
+
 function safeJsonParse(raw, fallback) {
   if (raw == null || raw === "") return fallback;
   /** PostgreSQL قد يُرجِع JSON/JSONB ككائن/مصفوفة جاهزة — JSON.parse عليها يفشل ويُعاد fallback خاطئ */
@@ -1261,19 +1283,11 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
       const wasPremiumEff = vendorPremiumEffectiveAt(cur.is_premium, cur.premium_until);
       const nowPremiumEff = vendorPremiumEffectiveAt(is_premium, premium_until);
       if (nowPremiumEff && !wasPremiumEff) {
-        try {
-          await run(
-            `INSERT INTO vendor_portal_notifications (vendor_id, title, message, link_url, is_read) VALUES (?, ?, ?, ?, 0)`,
-            [
-              id,
-              "تمييز شركة — أدورا غروب",
-              `تم جعل شركتكم رقم ${id} مميزة داخل تطبيق أدورا غروب بعلامة النجمة الصفراء.\n\nYour company (#${id}) is now featured in the Adora Group app with the yellow star badge.`,
-              null,
-            ]
-          );
-        } catch (e) {
-          console.error("vendor_portal_notifications insert failed (vendor premium)", e);
-        }
+        await notifyVendorPortal(
+          id,
+          "نجمة مميزة — أدورا غروب",
+          `تم إضافة علامة النجمة الذهبية النابضة لشركتكم (رقم ${id}) داخل تطبيق أدورا غروب — تظهر بجانب شعاركم للزبائن.\n\nA pulsing gold star badge was added for your company (#${id}) in the Adora Group app.`
+        );
       }
       return res.json(await get(`SELECT * FROM marketplace_vendors WHERE id=?`, [id]));
     } catch (err) {
@@ -1517,6 +1531,17 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
         `UPDATE marketplace_products SET is_mp_featured=?, mp_featured_until=?, search_priority_boost=? WHERE id=?`,
         [is_mp_featured, mp_featured_until, search_priority_boost, id]
       );
+      const wasFeat = mpProductFeaturedEffectiveAt(cur.is_mp_featured, cur.mp_featured_until);
+      const nowFeat = mpProductFeaturedEffectiveAt(is_mp_featured, mp_featured_until);
+      if (nowFeat && !wasFeat) {
+        const code = cur.public_product_code != null ? String(cur.public_product_code).trim() : "";
+        const codeBit = code ? ` (${code})` : "";
+        await notifyVendorPortal(
+          Number(cur.vendor_id),
+          "تمييز منتج — أدورا غروب",
+          `لقد تم إضافة علامة التمييز 🔥 إلى منتجك رقم ${id}${codeBit} داخل تطبيق أدورا غروب.\n\nThe featured 🔥 badge was added to your product #${id}${codeBit} in the Adora Group app.`
+        );
+      }
       return res.json(await getMarketplaceProductMappedAdminById(id));
     } catch (_e) {
       return res.status(500).json({ error: "Failed to update product flags" });
@@ -1630,6 +1655,15 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           search_priority_boost,
         ]
       );
+      if (mpProductFeaturedEffectiveAt(is_mp_featured, mp_featured_until)) {
+        const code = public_product_code ? String(public_product_code).trim() : "";
+        const codeBit = code ? ` (${code})` : "";
+        await notifyVendorPortal(
+          vendor_id,
+          "تمييز منتج — أدورا غروب",
+          `لقد تم إضافة علامة التمييز 🔥 إلى منتجك رقم ${ins.id}${codeBit} داخل تطبيق أدورا غروب.\n\nThe featured 🔥 badge was added to your product #${ins.id}${codeBit} in the Adora Group app.`
+        );
+      }
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
       return res.status(201).json(mapped);
     } catch (err) {
@@ -1796,6 +1830,18 @@ function registerMarketplaceRoutes(app, { requireAuth, requireAdmin }) {
           id,
         ]
       );
+      const wasFeat = mpProductFeaturedEffectiveAt(cur.is_mp_featured, cur.mp_featured_until);
+      const nowFeat = mpProductFeaturedEffectiveAt(is_mp_featured, mp_featured_until);
+      if (nowFeat && !wasFeat) {
+        const code =
+          cur.public_product_code != null ? String(cur.public_product_code).trim() : "";
+        const codeBit = code ? ` (${code})` : "";
+        await notifyVendorPortal(
+          vendor_id,
+          "تمييز منتج — أدورا غروب",
+          `لقد تم إضافة علامة التمييز 🔥 إلى منتجك رقم ${id}${codeBit} داخل تطبيق أدورا غروب.\n\nThe featured 🔥 badge was added to your product #${id}${codeBit} in the Adora Group app.`
+        );
+      }
       return res.json(await getMarketplaceProductMappedAdminById(id));
     } catch (err) {
       return res.status(500).json({ error: "Failed to update product" });

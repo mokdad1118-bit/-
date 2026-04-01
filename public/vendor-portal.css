@@ -385,6 +385,44 @@ body.vp-page {
   box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
 }
 
+.vp-portal-notif {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 0.75rem 0.85rem;
+  background: #fff;
+}
+
+.vp-portal-notif--unread {
+  border-color: rgba(217, 119, 6, 0.55);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
+}
+
+.vp-nav-item--notif {
+  position: relative;
+}
+
+.vp-nav-notif-badge {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.28rem;
+  font-size: 0.6rem;
+  font-weight: 900;
+  line-height: 1.125rem;
+  text-align: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ea580c, #f59e0b);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(234, 88, 12, 0.45);
+  pointer-events: none;
+}
+
+.vp-section-notif-badge {
+  margin-inline-start: auto;
+}
+
 .vp-hero-title {
   color: #5b21b6;
   letter-spacing: -0.02em;
@@ -697,19 +735,19 @@ body.vp-page {
     padding: 1rem 1rem;
   }
 
-  #vp-adora-notifs-wrap {
+  #vp-dashboard-notif-prompt,
+  #vp-section-notifications {
     width: 100%;
     min-width: 0;
   }
 
-  .vp-adora-notifs,
-  .vp-adora-notifs * {
+  #vp-notifications-list,
+  #vp-notifications-list * {
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
   }
 
-  .vp-adora-notifs p,
-  .vp-adora-notifs h3 {
+  #vp-notifications-list .vp-portal-notif {
     white-space: normal !important;
     word-break: normal !important;
     overflow-wrap: break-word !important;

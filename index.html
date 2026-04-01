@@ -756,6 +756,25 @@
             -webkit-user-drag: none;
         }
 
+        @keyframes adoraMpHotBadgePulse {
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow:
+                    0 2px 12px rgba(245, 158, 11, 0.5),
+                    0 0 0 2px rgba(255, 255, 255, 0.95),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+            }
+            50% {
+                transform: scale(1.06);
+                box-shadow:
+                    0 4px 22px rgba(234, 88, 12, 0.65),
+                    0 0 0 2px rgba(255, 255, 255, 1),
+                    0 0 24px rgba(251, 191, 36, 0.55),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            }
+        }
+
         /** شارة منتج السوق المميز — أسفل يسار مربع الصورة */
         .adora-mp-hot-badge {
             position: absolute;
@@ -778,12 +797,31 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.65);
             line-height: 1;
             pointer-events: none;
+            transform-origin: bottom left;
+            animation: adoraMpHotBadgePulse 2.1s ease-in-out infinite;
         }
 
         .adora-mp-hot-badge .adora-mp-hot-emoji {
             font-size: 0.65rem;
             line-height: 1;
             filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+            animation: adoraMpHotEmojiFlicker 1.6s ease-in-out infinite;
+        }
+
+        @keyframes adoraMpHotEmojiFlicker {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            40% {
+                transform: scale(1.12);
+                opacity: 0.92;
+            }
+            55% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
         .adora-pcard--strip .adora-pcard__media {
             aspect-ratio: 3 / 4;
@@ -2077,6 +2115,25 @@
             padding: 4px;
         }
 
+        @keyframes adoraPremiumStarPulse {
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow:
+                    0 2px 10px rgba(234, 179, 8, 0.5),
+                    0 0 0 2px rgba(255, 255, 255, 0.95),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            }
+            50% {
+                transform: scale(1.12);
+                box-shadow:
+                    0 4px 18px rgba(245, 158, 11, 0.75),
+                    0 0 0 2px rgba(255, 255, 255, 1),
+                    0 0 20px rgba(250, 204, 21, 0.65),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            }
+        }
+
         .mp-vendor-premium-star {
             position: absolute;
             top: 5px;
@@ -2097,6 +2154,8 @@
                 0 0 0 2px rgba(255, 255, 255, 0.95),
                 inset 0 1px 0 rgba(255, 255, 255, 0.7);
             pointer-events: none;
+            transform-origin: center;
+            animation: adoraPremiumStarPulse 2.4s ease-in-out infinite;
         }
 
         .home-mp-premium-vendor-logo {
