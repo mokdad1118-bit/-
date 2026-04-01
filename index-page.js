@@ -4521,7 +4521,7 @@
                     const offerTop = sponsored ? 'top-10' : 'top-2';
                     const ratingHtml = `<div class="adora-pcard__rating-row">${adoraPcardRatingHtml(p)}</div>`;
                     const priceHtml = adoraPcardPriceRowHtml({ disc, listP, saleP });
-                    return `<div class="adora-pcard adora-pcv active:scale-[0.99] transition-transform">
+                    return `<div class="adora-pcard adora-pcv product-card active:scale-[0.99] transition-transform">
                             <div role="button" tabindex="0" class="adora-pcard__hit cursor-pointer" onclick="openMarketplaceProductDetail(${mid})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMarketplaceProductDetail(${mid});}">
                             <div class="adora-pcard__top">
                             <div class="adora-pcard__media">

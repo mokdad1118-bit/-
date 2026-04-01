@@ -942,6 +942,93 @@
             background: linear-gradient(145deg, #faf5ff 0%, #fff 55%);
             border-color: rgba(124, 58, 237, 0.12);
         }
+
+        /* توحيد بطاقات المنتج: شبكات عمودين + صور بمقاس ثابت (بدون تمدد مبالغ) */
+        #listing-products-grid,
+        #marketplace-products-grid,
+        #offers-products-grid,
+        #wishlist-products-grid,
+        #featured-hub-products-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: stretch;
+        }
+
+        .adora-pcard.adora-pcv {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .adora-pcard.adora-pcv .adora-pcard__hit {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+        }
+
+        /* بطاقة شبكة كاملة (سوق بدون strip): مساحة صورة ثابتة */
+        #listing-products-grid .adora-pcard.adora-pcv:not(.adora-pcard--strip):not(.adora-pcard--mini):not(.adora-pcard--highlight) .adora-pcard__media,
+        #marketplace-products-grid .adora-pcard.adora-pcv:not(.adora-pcard--strip):not(.adora-pcard--mini):not(.adora-pcard--highlight) .adora-pcard__media,
+        #offers-products-grid .adora-pcard.adora-pcv:not(.adora-pcard--strip):not(.adora-pcard--mini):not(.adora-pcard--highlight) .adora-pcard__media,
+        #wishlist-products-grid .adora-pcard.adora-pcv:not(.adora-pcard--strip):not(.adora-pcard--mini):not(.adora-pcard--highlight) .adora-pcard__media,
+        #featured-hub-products-grid .adora-pcard.adora-pcv:not(.adora-pcard--strip):not(.adora-pcard--mini):not(.adora-pcard--highlight) .adora-pcard__media {
+            aspect-ratio: auto;
+            height: 10.75rem;
+            min-height: 10.75rem;
+            max-height: 10.75rem;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        /* نفس الشبكات — نمط strip المضغوط */
+        #listing-products-grid .adora-pcard--strip .adora-pcard__media,
+        #marketplace-products-grid .adora-pcard--strip .adora-pcard__media,
+        #offers-products-grid .adora-pcard--strip .adora-pcard__media,
+        #wishlist-products-grid .adora-pcard--strip .adora-pcard__media,
+        #featured-hub-products-grid .adora-pcard--strip .adora-pcard__media {
+            aspect-ratio: auto;
+            height: 9rem;
+            min-height: 9rem;
+            max-height: 9rem;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .adora-pcard.adora-pcv:not(.adora-pcard--mini) .adora-pcard__body {
+            flex: 1 1 auto;
+            min-height: 4.5rem;
+            min-width: 0;
+        }
+
+        /* شريط أفقي: عرض ثابت للبطاقة */
+        .home-product-strip .product-card,
+        .home-product-strip .adora-pcard {
+            width: 10.5rem;
+            min-width: 10.5rem;
+            max-width: 10.5rem;
+            flex: 0 0 10.5rem;
+        }
+
+        .flash-sale-scroll .adora-pcard {
+            width: 10.5rem;
+            min-width: 10.5rem;
+            max-width: 10.5rem;
+            flex: 0 0 10.5rem;
+        }
+
+        /* «قد يعجبك أيضاً» (شريط أفقي): نفس ارتفاع صورة بطاقة الـ strip */
+        .product-detail-related-scroll .adora-pcard--strip .adora-pcard__media {
+            aspect-ratio: auto;
+            height: 9rem;
+            min-height: 9rem;
+            max-height: 9rem;
+            width: 100%;
+            max-width: 100%;
+        }
+
         /* «قد يعجبك أيضاً» — نفس عرض الشريط والهوامش مع محتوى الصفحة */
         .product-detail-related-scroll {
             margin-inline: -1.25rem;
