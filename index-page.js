@@ -4695,7 +4695,6 @@
             const tEl = document.getElementById('marketplace-home-entrance-title');
             const sEl = document.getElementById('marketplace-home-entrance-subtitle');
             if (!tEl || !sEl) {
-                loadMarketplaceHomeSectionsStrip().catch(() => {});
                 return;
             }
             try {
@@ -4730,42 +4729,6 @@
                     img.removeAttribute('src');
                     img.hidden = true;
                 }
-            }
-            loadMarketplaceHomeSectionsStrip().catch(() => {});
-        }
-
-        async function loadMarketplaceHomeSectionsStrip() {
-            const wrap = document.getElementById('marketplace-home-sections-wrap');
-            const scroll = document.getElementById('marketplace-home-sections-scroll');
-            if (!wrap || !scroll) return;
-            try {
-                const rows = await apiFetch('/api/marketplace/sections', { requireAuth: false });
-                const list = Array.isArray(rows) ? rows : [];
-                if (!list.length) {
-                    wrap.classList.add('hidden');
-                    scroll.innerHTML = '';
-                    return;
-                }
-                wrap.classList.remove('hidden');
-                const loc = isRTL ? 'ar' : 'en';
-                scroll.innerHTML = list
-                    .map((s) => {
-                        const id = Number(s.id);
-                        if (!Number.isFinite(id)) return '';
-                        const name = String(loc === 'ar' ? s.name_ar || s.name_en : s.name_en || s.name_ar || '').trim();
-                        const imgRaw = s.card_image_url ? String(s.card_image_url).trim() : '';
-                        const inner = imgRaw
-                            ? `<img src="${escapeHtml(absoluteMediaUrl(imgRaw))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-                            : `<span class="flex h-full w-full items-center justify-center text-violet-600 text-lg font-black">${escapeHtml((name || '?').charAt(0))}</span>`;
-                        return `<button type="button" class="mp-home-sec-chip" onclick="openMarketplaceBrowse({ section_id: ${id} })">
-                            <span class="mp-home-sec-thumb">${inner}</span>
-                            <span class="mp-home-sec-label" dir="auto">${escapeHtml(name || '—')}</span>
-                        </button>`;
-                    })
-                    .join('');
-            } catch (_e) {
-                wrap.classList.add('hidden');
-                scroll.innerHTML = '';
             }
         }
 

@@ -5457,6 +5457,36 @@ function resetAdoraVendorProductPanel() {
   document.getElementById("ac-vp-panel")?.classList.add("hidden");
 }
 
+function closeAcMpProductImagesModal() {
+  const ov = document.getElementById("ac-mp-images-overlay");
+  if (ov) {
+    ov.classList.add("hidden");
+    ov.setAttribute("aria-hidden", "true");
+  }
+  const body = document.getElementById("ac-mp-images-body");
+  if (body) body.innerHTML = "";
+}
+
+function openAcMpProductImagesModal(urls) {
+  const list = Array.isArray(urls) ? urls.map((u) => String(u || "").trim()).filter(Boolean) : [];
+  const ov = document.getElementById("ac-mp-images-overlay");
+  const body = document.getElementById("ac-mp-images-body");
+  const ar = getAdminLang() === "ar";
+  if (!ov || !body) return;
+  if (!list.length) {
+    body.innerHTML = `<p class="text-sm text-gray-500">${ar ? "لا صور لهذا المنتج." : "No images for this product."}</p>`;
+  } else {
+    body.innerHTML = list
+      .map(
+        (u) =>
+          `<a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer" class="block rounded-xl border border-gray-200 overflow-hidden bg-gray-50 hover:opacity-95"><img src="${escapeHtml(u)}" alt="" class="w-full h-auto max-h-[50vh] object-contain mx-auto" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></a>`
+      )
+      .join("");
+  }
+  ov.classList.remove("hidden");
+  ov.setAttribute("aria-hidden", "false");
+}
+
 function buildVendorPortalLoginUrl(portalUsername) {
   const u = String(portalUsername || "").trim();
   if (!u) return "";
@@ -5632,10 +5662,17 @@ async function loadAcAllMarketplaceProducts() {
                 : "Live";
         const btnLab = ar ? "حالة النشر" : "Listing";
         const imgs = Array.isArray(p.images) ? p.images : [];
-        const thumb = imgs.length ? String(imgs[0] || "").trim() : "";
-        const thumbCell = thumb
-          ? `<td class="p-2 w-14"><button type="button" class="ac-mp-prod-thumb block rounded-lg border border-gray-200 overflow-hidden w-12 h-12 p-0 bg-gray-50" data-img-url="${escapeHtml(thumb)}" title="${ar ? "عرض الصورة" : "View image"}"><img src="${escapeHtml(thumb)}" alt="" class="w-full h-full object-cover" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></button></td>`
-          : `<td class="p-2 text-gray-400 text-xs">—</td>`;
+        const urls = imgs.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 12);
+        let imgsEnc = "";
+        try {
+          imgsEnc = encodeURIComponent(JSON.stringify(urls));
+        } catch (_e) {
+          imgsEnc = "";
+        }
+        const imgsCell =
+          urls.length > 0
+            ? `<td class="p-2 align-top"><button type="button" class="ac-mp-open-images text-xs font-bold text-violet-700 hover:underline text-start" data-imgs="${escapeHtml(imgsEnc)}">${ar ? `صور المنتج (${urls.length})` : `Product images (${urls.length})`}</button></td>`
+            : `<td class="p-2 text-gray-400 text-xs">—</td>`;
         const vName = ar ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
         const vCell = `<div class="font-semibold text-gray-800 max-w-[10rem] truncate" title="${escapeHtml(vName || "")}">${escapeHtml(vName || "—")}</div><div class="text-[10px] font-mono text-gray-500">#${p.vendor_id}</div>`;
         const activeNow = Number(p.is_active) === 1 ? 1 : 0;
@@ -5643,7 +5680,7 @@ async function loadAcAllMarketplaceProducts() {
         const nextAct = activeNow ? 0 : 1;
         return `<tr class="border-b border-gray-100">
           <td class="p-2 font-mono text-xs">${p.id}</td>
-          ${thumbCell}
+          ${imgsCell}
           <td class="p-2 font-mono text-xs">${escapeHtml(p.public_product_code || "—")}</td>
           <td class="p-2 text-xs">${vCell}</td>
           <td class="p-2 max-w-[200px] truncate" title="${escapeHtml(name)}">${escapeHtml(name)}</td>
@@ -5831,10 +5868,13 @@ async function saveAdoraVendorProductVisibility() {
     name_en: p.name_en,
     description_ar: p.description_ar || "",
     description_en: p.description_en || "",
-    price: p.price,
+    price: Number.isFinite(Number(p.price)) ? Number(p.price) : 0,
     discount_percent: p.discount_percent != null ? p.discount_percent : 0,
-    stock: p.stock,
-    images: Array.isArray(p.images) ? p.images : [],
+    stock: Math.max(0, Math.floor(Number(p.stock) || 0)),
+    images: (Array.isArray(p.images) ? p.images : [])
+      .map((x) => String(x || "").trim())
+      .filter(Boolean)
+      .slice(0, 12),
     product_options: Array.isArray(p.product_options) ? p.product_options : [],
     inventory: Array.isArray(p.inventory) ? p.inventory : [],
     is_offer: p.is_offer != null ? p.is_offer : 0,
@@ -6050,6 +6090,15 @@ async function initAdoraCompanyAdminTab() {
         const raw = ev.target;
         const el = raw instanceof Element ? raw : raw && raw.parentElement;
         if (!(el instanceof Element)) return;
+        if (el.closest("#ac-vp-save")) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          saveAdoraVendorProductVisibility().catch((e) => {
+            const m = document.getElementById("ac-vp-msg");
+            if (m) m.textContent = e.message || String(e);
+          });
+          return;
+        }
         const ffOrder = el.closest(".ac-ff-order-link");
         if (ffOrder) {
           const id = Number(ffOrder.getAttribute("data-ff-id"));
@@ -6085,6 +6134,7 @@ async function initAdoraCompanyAdminTab() {
             const m = document.getElementById("ac-vp-msg");
             if (m) m.textContent = e.message || String(e);
           });
+          return;
         }
       });
       acRoot.addEventListener("keydown", (ev) => {
@@ -6107,10 +6157,18 @@ async function initAdoraCompanyAdminTab() {
       });
     }
     document.getElementById("ac-all-mp-tbody")?.addEventListener("click", (e) => {
-      const thumbBtn = e.target.closest(".ac-mp-prod-thumb");
-      if (thumbBtn) {
-        const u = thumbBtn.getAttribute("data-img-url");
-        if (u) window.open(u, "_blank", "noopener,noreferrer");
+      const openImgs = e.target.closest(".ac-mp-open-images");
+      if (openImgs) {
+        const raw = openImgs.getAttribute("data-imgs");
+        let urls = [];
+        if (raw) {
+          try {
+            urls = JSON.parse(decodeURIComponent(raw));
+          } catch (_err) {
+            urls = [];
+          }
+        }
+        openAcMpProductImagesModal(Array.isArray(urls) ? urls : []);
         return;
       }
       const tog = e.target.closest(".ac-mp-toggle-active");
@@ -6141,12 +6199,10 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
-    document.getElementById("ac-vp-save")?.addEventListener("click", () => {
-      saveAdoraVendorProductVisibility().catch((e) => {
-        const m = document.getElementById("ac-vp-msg");
-        if (m) m.textContent = e.message || String(e);
-      });
+    document.getElementById("ac-mp-images-overlay")?.addEventListener("click", (ev) => {
+      if (ev.target === ev.currentTarget) closeAcMpProductImagesModal();
     });
+    document.getElementById("ac-mp-images-close")?.addEventListener("click", () => closeAcMpProductImagesModal());
     switchAdoraCompanyMainTab("add");
   }
   if (secSel && secSel.options.length <= 1) {

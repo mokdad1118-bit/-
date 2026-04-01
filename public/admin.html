@@ -1074,7 +1074,7 @@
                 <table class="min-w-full text-sm">
                   <thead class="bg-gray-50 sticky top-0"><tr>
                     <th class="p-2 text-start">ID</th>
-                    <th class="p-2 text-start">صورة</th>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Images" data-ar="صور">صور</th>
                     <th class="p-2 text-start">الرمز</th>
                     <th class="p-2 text-start">الشركة</th>
                     <th class="p-2 text-start">الاسم</th>
@@ -2198,6 +2198,34 @@
             إغلاق النافذة
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- صور منتج السوق (تبويب شركات المشتركين — جدول جميع المنتجات) -->
+    <div
+      id="ac-mp-images-overlay"
+      class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+      aria-hidden="true"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ac-mp-images-title"
+        onclick="event.stopPropagation()"
+      >
+        <div class="flex justify-between items-center gap-2 px-4 py-3 border-b border-gray-100 shrink-0">
+          <h3 id="ac-mp-images-title" class="text-base font-bold" data-en="Product images" data-ar="صور المنتج">صور المنتج</h3>
+          <button
+            type="button"
+            id="ac-mp-images-close"
+            class="text-gray-600 font-bold px-3 py-1 rounded-lg hover:bg-gray-100 text-lg leading-none"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div id="ac-mp-images-body" class="overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
       </div>
     </div>
 
