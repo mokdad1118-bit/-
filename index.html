@@ -1939,11 +1939,24 @@
         }
 
         .home-compact-flash .flash-sale-scroll .adora-pcard--flash {
-            min-width: 7.5rem;
-            max-width: 9.5rem;
+            width: 10.5rem;
+            min-width: 10.5rem;
+            max-width: 10.5rem;
+            flex: 0 0 10.5rem;
+        }
+        /* صورة بعرض البطاقة (كان max-height: 5.25rem يضيّق المساحة ويُظهر فراغاً حول الصورة) */
+        .home-compact-flash .adora-pcard--flash .adora-pcard__top {
+            padding: 0.35rem 0.35rem 0;
         }
         .home-compact-flash .adora-pcard--flash .adora-pcard__media {
-            max-height: 5.25rem;
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 3 / 4;
+            max-height: 9.5rem;
+        }
+        .home-compact-flash .adora-pcard--flash .adora-pcard__media-inner img {
+            object-fit: cover;
+            object-position: center;
         }
         .home-compact-flash .adora-pcard--flash .adora-pcard__title {
             font-size: 0.65rem;
