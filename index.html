@@ -4686,6 +4686,106 @@
             0%, 100% { opacity: 0.45; transform: translateY(0) scale(1); }
             45% { opacity: 0.95; transform: translateY(2px) scale(1.08); }
         }
+        /* بوابة الدخول: نجوم الخلفية أوضح بلون بنفسجي أغمق */
+        .auth-gate-screen .auth-cosmos-stars::before,
+        .auth-gate-screen .auth-cosmos-stars::after {
+            opacity: 1;
+        }
+        .auth-gate-screen .auth-cosmos-stars::before {
+            background-image:
+                radial-gradient(1.8px 1.8px at 11% 17%, rgba(49, 21, 96, 0.95), transparent),
+                radial-gradient(1.4px 1.4px at 27% 61%, rgba(76, 29, 149, 0.9), transparent),
+                radial-gradient(1.6px 1.6px at 44% 33%, rgba(49, 21, 96, 0.92), transparent),
+                radial-gradient(1.3px 1.3px at 63% 74%, rgba(91, 33, 182, 0.95), transparent),
+                radial-gradient(2px 2px at 78% 22%, rgba(49, 21, 96, 0.98), transparent),
+                radial-gradient(1.3px 1.3px at 89% 56%, rgba(76, 29, 149, 0.88), transparent),
+                radial-gradient(1.5px 1.5px at 18% 84%, rgba(91, 33, 182, 0.9), transparent),
+                radial-gradient(1.3px 1.3px at 51% 11%, rgba(49, 21, 96, 0.94), transparent),
+                radial-gradient(1.6px 1.6px at 36% 48%, rgba(76, 29, 149, 0.88), transparent),
+                radial-gradient(1.3px 1.3px at 71% 91%, rgba(49, 21, 96, 0.9), transparent),
+                radial-gradient(1.5px 1.5px at 84% 39%, rgba(91, 33, 182, 0.92), transparent),
+                radial-gradient(1.3px 1.3px at 5% 42%, rgba(76, 29, 149, 0.86), transparent),
+                radial-gradient(1.7px 1.7px at 96% 68%, rgba(49, 21, 96, 0.95), transparent);
+        }
+        .auth-gate-screen .auth-cosmos-stars::after {
+            background-image:
+                radial-gradient(1.4px 1.4px at 19% 29%, rgba(76, 29, 149, 0.9), transparent),
+                radial-gradient(1.7px 1.7px at 48% 63%, rgba(49, 21, 96, 0.95), transparent),
+                radial-gradient(1.3px 1.3px at 66% 18%, rgba(91, 33, 182, 0.88), transparent),
+                radial-gradient(1.5px 1.5px at 31% 79%, rgba(49, 21, 96, 0.92), transparent),
+                radial-gradient(1.3px 1.3px at 56% 41%, rgba(76, 29, 149, 0.9), transparent),
+                radial-gradient(1.8px 1.8px at 74% 58%, rgba(49, 21, 96, 0.96), transparent),
+                radial-gradient(1.3px 1.3px at 92% 14%, rgba(91, 33, 182, 0.85), transparent),
+                radial-gradient(1.5px 1.5px at 8% 73%, rgba(76, 29, 149, 0.9), transparent),
+                radial-gradient(1.3px 1.3px at 41% 88%, rgba(49, 21, 96, 0.88), transparent),
+                radial-gradient(1.6px 1.6px at 59% 7%, rgba(91, 33, 182, 0.92), transparent);
+        }
+        /* نجوم تدور دائرياً حول شعار Adora والجملة التعريفية */
+        .auth-gate-hero-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0 1rem;
+            min-height: min(220px, 38vh);
+            width: 100%;
+        }
+        .auth-gate-orbit-stars {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            --orbit-r: min(124px, 31vw);
+            width: calc(var(--orbit-r) * 2);
+            height: calc(var(--orbit-r) * 2);
+            margin-left: calc(-1 * var(--orbit-r));
+            margin-top: calc(-1 * var(--orbit-r));
+            pointer-events: none;
+            z-index: 0;
+            animation: authGateOrbitSpin 20s linear infinite;
+        }
+        .auth-gate-orbit-stars--inner {
+            --orbit-r: min(86px, 22vw);
+            animation: authGateOrbitSpin 14s linear infinite reverse;
+            opacity: 0.92;
+        }
+        @keyframes authGateOrbitSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .auth-gate-orbit-dot {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 0;
+            height: 0;
+            transform: rotate(calc(var(--a) * 1deg)) translateY(calc(-1 * var(--orbit-r)));
+        }
+        .auth-gate-orbit-dot::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            left: -4px;
+            top: -4px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #7c3aed, #4c1d95 55%, #312065 100%);
+            box-shadow:
+                0 0 10px rgba(76, 29, 149, 0.75),
+                0 0 4px rgba(49, 21, 96, 0.9);
+        }
+        .auth-gate-orbit-stars--inner .auth-gate-orbit-dot::after {
+            width: 6px;
+            height: 6px;
+            left: -3px;
+            top: -3px;
+            box-shadow: 0 0 8px rgba(76, 29, 149, 0.65);
+        }
+        .auth-gate-hero-inner {
+            position: relative;
+            z-index: 1;
+        }
         @media (prefers-reduced-motion: reduce) {
             .auth-gate-screen .auth-mobile-viewport::before,
             #auth-modal .auth-mobile-viewport::before {
@@ -4697,6 +4797,10 @@
                 animation: none !important;
                 opacity: 0.75 !important;
                 transform: none !important;
+            }
+            .auth-gate-orbit-stars {
+                animation: none !important;
+                transform: rotate(18deg) !important;
             }
         }
         .auth-gate-screen .auth-mobile-frame {
@@ -5075,8 +5179,34 @@
         <div class="auth-mobile-frame flex flex-col items-center justify-between text-center w-full flex-1 min-h-0 relative z-[2]">
             <div class="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto min-h-0 py-6">
                 <div class="auth-gate-hero auth-card-enter w-full flex flex-col items-center px-2">
-                    <div class="auth-gate-hero-logo mb-1">Adora</div>
-                    <p class="auth-gate-tagline text-sm px-3 text-center leading-relaxed font-semibold mb-2 max-w-sm" dir="auto" data-en="Adora — a world of products at your fingertips 🌍" data-ar="Adora — عالم من المنتجات بين يديك 🌍">Adora — عالم من المنتجات بين يديك 🌍</p>
+                    <div class="auth-gate-hero-wrap">
+                        <div class="auth-gate-orbit-stars auth-gate-orbit-stars--outer" aria-hidden="true">
+                            <span class="auth-gate-orbit-dot" style="--a: 0"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 36"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 72"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 108"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 144"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 180"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 216"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 252"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 288"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 324"></span>
+                        </div>
+                        <div class="auth-gate-orbit-stars auth-gate-orbit-stars--inner" aria-hidden="true">
+                            <span class="auth-gate-orbit-dot" style="--a: 22"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 67"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 112"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 157"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 202"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 247"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 292"></span>
+                            <span class="auth-gate-orbit-dot" style="--a: 337"></span>
+                        </div>
+                        <div class="auth-gate-hero-inner flex flex-col items-center w-full">
+                            <div class="auth-gate-hero-logo mb-1">Adora</div>
+                            <p class="auth-gate-tagline text-sm px-3 text-center leading-relaxed font-semibold mb-2 max-w-sm" dir="auto" data-en="Adora — a world of products at your fingertips 🌍" data-ar="Adora — عالم من المنتجات بين يديك 🌍">Adora — عالم من المنتجات بين يديك 🌍</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="w-full max-w-sm space-y-3 pb-4">
