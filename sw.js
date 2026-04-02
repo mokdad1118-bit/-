@@ -20,6 +20,32 @@ const ADORA_PUSH_ICON = "/icons/adora-icon.png";
 const ADORA_PUSH_BADGE = "/icons/adora-badge.png";
 const ADORA_PUSH_IMAGE = "/icons/adora-image.png";
 
+/**
+ * روابط مطلقة (https + النطاق) — iOS/Safari لا يعرض icon/image للـ Web Push من مسارات نسبية.
+ * إن أرسل الخادم https لنطاق الـ API بينما الأيقونات على نطاق الـ PWA، نعيد ربط /icons/* لأصل التطبيق.
+ */
+function adoraAbsNotificationAssetUrl(u, fallbackPath) {
+  const origin = self.location.origin;
+  const fb = fallbackPath || ADORA_PUSH_ICON;
+  if (u == null || String(u).trim() === "") {
+    return origin + (fb.startsWith("/") ? fb : `/${fb}`);
+  }
+  const t = String(u).trim();
+  if (!/^https?:\/\//i.test(t)) {
+    return origin + (t.startsWith("/") ? t : `/${t}`);
+  }
+  try {
+    const parsed = new URL(t);
+    const path = parsed.pathname || "";
+    if (path.startsWith("/icons/") && parsed.origin !== origin) {
+      return origin + path + parsed.search;
+    }
+  } catch (_e) {
+    /* ignore */
+  }
+  return t;
+}
+
 self.addEventListener("push", (event) => {
   let data = {
     title: "Adora",
@@ -40,9 +66,9 @@ self.addEventListener("push", (event) => {
   const richImage = data.image != null && String(data.image).trim() ? String(data.image).trim() : ADORA_PUSH_IMAGE;
   const options = {
     body: (data.body || "").slice(0, 500),
-    icon,
-    badge: data.badge || ADORA_PUSH_BADGE,
-    image: richImage,
+    icon: adoraAbsNotificationAssetUrl(icon, ADORA_PUSH_ICON),
+    badge: adoraAbsNotificationAssetUrl(data.badge || ADORA_PUSH_BADGE, ADORA_PUSH_BADGE),
+    image: adoraAbsNotificationAssetUrl(richImage, ADORA_PUSH_IMAGE),
     data: { url: typeof data.url === "string" && data.url ? data.url : "/" },
     tag: data.tag || "adora",
     renotify: true,
