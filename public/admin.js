@@ -17,6 +17,8 @@ const TX = {
     brandNameRequired: "Brand name required.",
     brandSaved: "Brand saved.",
     loginRequired: "Session missing. Please log in again.",
+    sessionExpiredHint:
+      "Session expired or the token is no longer valid. Sign in again. If this happens right after a server redeploy, ensure JWT_SECRET on the host matches the value used when the token was issued.",
     adminOnlyLogin:
       "Admin panel: sign in with an admin account only. The seeded admin is phone 0000000000 (password set at first DB init — often admin123). App user accounts cannot add brands or products here.",
     categoryNameRequired: "Category name required.",
@@ -45,6 +47,8 @@ const TX = {
     brandNameRequired: "اسم العلامة مطلوب.",
     brandSaved: "تم حفظ العلامة.",
     loginRequired: "انتهت الجلسة. سجّل الدخول من جديد.",
+    sessionExpiredHint:
+      "انتهت صلاحية الجلسة أو الرمز لم يعد مقبولاً. سجّل الدخول من جديد. إذا حدث ذلك بعد نشر السيرفر، تأكد أن قيمة JWT_SECRET ثابتة ولم تتغيّر.",
     adminOnlyLogin:
       "لوحة المشرفين: سجّل الدخول بحساب يملك دور admin فقط. الحساب الافتراضي عند أول تشغيل: هاتف 0000000000 وكلمة المرور الافتراضية غالباً admin123. حسابات تطبيق الزبائن لا تستطيع الإضافة هنا.",
     categoryNameRequired: "اسم القسم مطلوب.",
@@ -189,9 +193,18 @@ function isAdminRole(role) {
 async function isStoredTokenAdmin(token) {
   if (!token) return false;
   try {
-    const bundle = await api("/api/profile", { token });
+    const bundle = await api("/api/profile", { token, noSessionRecovery: true });
     return !!(bundle.user && isAdminRole(bundle.user.role));
-  } catch {
+  } catch (e) {
+    const m = String(e?.message || "");
+    if (m === "Invalid token" || m === "Unauthorized") {
+      try {
+        sessionStorage.setItem("adora_admin_session_hint", adminT("sessionExpiredHint"));
+      } catch (_e) {
+        /* ignore */
+      }
+      clearToken();
+    }
     return false;
   }
 }
@@ -206,7 +219,7 @@ function getAdminApiUrl(path) {
   return base ? base + p : p;
 }
 
-async function api(path, { method = "GET", token, body, isFormData = false } = {}) {
+async function api(path, { method = "GET", token, body, isFormData = false, noSessionRecovery = false } = {}) {
   const headers = {};
   if (!isFormData && body !== undefined) headers["Content-Type"] = "application/json";
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -220,6 +233,21 @@ async function api(path, { method = "GET", token, body, isFormData = false } = {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = data.error || `Request failed (${res.status})`;
+    const authExpired =
+      !noSessionRecovery &&
+      res.status === 401 &&
+      token &&
+      (msg === "Invalid token" || msg === "Unauthorized");
+    if (authExpired) {
+      try {
+        sessionStorage.setItem("adora_admin_session_hint", adminT("sessionExpiredHint"));
+      } catch (_e) {
+        /* ignore */
+      }
+      clearToken();
+      location.reload();
+      throw new Error(adminT("loginRequired"));
+    }
     throw new Error(msg);
   }
   return data;
@@ -5395,12 +5423,24 @@ async function init() {
 
   if (token) {
     const ok = await isStoredTokenAdmin(token);
+    try {
+      const hint = sessionStorage.getItem("adora_admin_session_hint");
+      if (hint) {
+        sessionStorage.removeItem("adora_admin_session_hint");
+        showError(document.getElementById("auth-error"), hint);
+      }
+    } catch (_e) {
+      /* ignore */
+    }
     if (!ok) {
       clearToken();
       authPanel.classList.remove("hidden");
       dashPanel.classList.add("hidden");
       btnLogout.classList.add("hidden");
-      showError(document.getElementById("auth-error"), adminT("adminOnlyLogin"));
+      const errEl = document.getElementById("auth-error");
+      if (!errEl || !String(errEl.textContent || "").trim()) {
+        showError(errEl, adminT("adminOnlyLogin"));
+      }
     } else {
       authPanel.classList.add("hidden");
       dashPanel.classList.remove("hidden");

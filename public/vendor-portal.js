@@ -110,6 +110,19 @@
         if (j.code === "PORTAL_SUSPENDED" || j.code === "VENDOR_INACTIVE") {
           vpRevokePortalSession();
         }
+        if (
+          r.status === 401 &&
+          t &&
+          (j.error === "Invalid token" || j.error === "Unauthorized")
+        ) {
+          vpRevokePortalSession();
+          const ve = el("vp-err");
+          if (ve) {
+            ve.textContent =
+              "انتهت صلاحية الجلسة أو الرمز غير صالح. سجّل الدخول من جديد. (تأكد أن JWT_SECRET على السيرفر ثابت بعد النشر.)";
+            ve.classList.remove("hidden");
+          }
+        }
         const err = new Error(j.error || r.statusText);
         err.code = j.code;
         throw err;
@@ -131,6 +144,19 @@
     if (!r.ok) {
       if (j.code === "PORTAL_SUSPENDED" || j.code === "VENDOR_INACTIVE") {
         vpRevokePortalSession();
+      }
+      if (
+        r.status === 401 &&
+        t &&
+        (j.error === "Invalid token" || j.error === "Unauthorized")
+      ) {
+        vpRevokePortalSession();
+        const ve = el("vp-err");
+        if (ve) {
+          ve.textContent =
+            "انتهت صلاحية الجلسة أو الرمز غير صالح. سجّل الدخول من جديد. (تأكد أن JWT_SECRET على السيرفر ثابت بعد النشر.)";
+          ve.classList.remove("hidden");
+        }
       }
       throw new Error(j.error || r.statusText);
     }
