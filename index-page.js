@@ -2342,20 +2342,16 @@
             const cfg = await loadPublicAppConfig();
             const hasG = !!cfg.google_oauth_client_id;
             const hasA = !!cfg.apple_oauth_client_id;
-            const introS = document.getElementById('auth-oauth-intro-signup');
             const slotS = document.getElementById('auth-google-slot-signup');
             const slotL = document.getElementById('auth-google-slot-login');
 
             if (!hasG && !hasA) {
-                introS?.classList.add('hidden');
                 slotS?.classList.add('hidden');
                 slotL?.classList.add('hidden');
                 document.getElementById('auth-apple-btn-signup')?.classList.add('hidden');
                 document.getElementById('auth-apple-btn-login')?.classList.add('hidden');
                 return;
             }
-
-            introS?.classList.remove('hidden');
 
             if (hasG) {
                 slotS?.classList.remove('hidden');
