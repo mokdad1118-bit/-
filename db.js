@@ -321,6 +321,7 @@ async function initDb() {
 
   await migrateUsersColumns();
   await migrateUsersEmailAndPendingSignups();
+  await migratePendingPasswordResetsV1();
   await migrateUsersOAuthV1();
   await migrateOrderItemsColumns();
   await migrateOrderItemsBrandColumn();
@@ -504,6 +505,20 @@ async function migrateUsersEmailAndPendingSignups() {
       resend_count INTEGER NOT NULL DEFAULT 1,
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT pending_email_signups_email_unique UNIQUE (email_normalized)
+    )
+  `);
+}
+
+/** OTP بريد لإعادة تعيين كلمة المرور (6 أرقام، صلاحية محددة في الخادم) */
+async function migratePendingPasswordResetsV1() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS pending_password_resets (
+      email_normalized TEXT PRIMARY KEY,
+      otp_hash TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      last_sent_at TIMESTAMPTZ NOT NULL,
+      resend_count INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
 }

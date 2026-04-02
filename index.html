@@ -5013,6 +5013,7 @@
                             <hr class="flex-1 border-white/20" />
                         </div>
                     </div>
+                    <div id="auth-login-form-block">
                     <form id="auth-form-login" class="space-y-3">
                         <div class="auth-field-enter" style="animation-delay: 0.05s">
                             <label class="text-sm font-semibold adora-auth-label" data-en="Phone or email" data-ar="الهاتف أو البريد">Phone or email</label>
@@ -5028,8 +5029,51 @@
                         </button>
                     </form>
                     <p class="text-center pt-1">
+                        <button type="button" onclick="showAuthForgotPasswordFlow()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 block w-full" data-en="Forgot password?" data-ar="نسيت كلمة المرور؟">نسيت كلمة المرور؟</button>
+                    </p>
+                    <p class="text-center pt-1">
                         <button type="button" onclick="setAuthMode('signup')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="No account? Create one" data-ar="ليس لديك حساب؟ أنشئ حساباً">ليس لديك حساب؟ أنشئ حساباً</button>
                     </p>
+                    </div>
+
+                    <div id="auth-forgot-flow" class="space-y-4 hidden">
+                        <div id="auth-forgot-step-email" class="space-y-3">
+                            <p class="text-sm text-white/95 leading-relaxed text-center" data-en="Enter your account email. We will send a 6-digit code (valid 5 minutes)." data-ar="أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).">أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).</p>
+                            <div>
+                                <label class="text-sm font-semibold adora-auth-label" data-en="Email" data-ar="البريد الإلكتروني">البريد الإلكتروني</label>
+                                <input id="auth-forgot-email" type="email" class="adora-auth-input" inputmode="email" autocomplete="email" data-en-placeholder="you@example.com" data-ar-placeholder="you@example.com" placeholder="" />
+                            </div>
+                            <button type="button" onclick="handleForgotPasswordRequestCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
+                                <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
+                            </button>
+                            <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="w-full py-2 text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
+                        </div>
+                        <div id="auth-forgot-step-otp" class="space-y-3 hidden">
+                            <p class="text-sm text-white/95 leading-relaxed text-center" data-en="Enter the code and your new password." data-ar="أدخل الرمز وكلمة المرور الجديدة.">أدخل الرمز وكلمة المرور الجديدة.</p>
+                            <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-forgot-otp-email-display"></p>
+                            <div>
+                                <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
+                                <input id="auth-forgot-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold adora-auth-label" data-en="New password" data-ar="كلمة المرور الجديدة">كلمة المرور الجديدة</label>
+                                <input id="auth-forgot-new-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
+                            </div>
+                            <div>
+                                <label class="text-sm font-semibold adora-auth-label" data-en="Confirm new password" data-ar="تأكيد كلمة المرور">تأكيد كلمة المرور</label>
+                                <input id="auth-forgot-confirm-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
+                            </div>
+                            <button type="button" onclick="handleForgotPasswordConfirm()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
+                                <span data-en="Reset password & sign in" data-ar="تغيير كلمة المرور والدخول">تغيير كلمة المرور والدخول</span>
+                            </button>
+                            <div class="flex flex-col items-center gap-2">
+                                <button type="button" id="auth-forgot-resend-btn" onclick="handleForgotPasswordResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                                    <span id="auth-forgot-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
+                                </button>
+                                <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="text-xs text-white/80 hover:text-white" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="auth-signup-screen" class="space-y-4">
@@ -7406,6 +7450,6 @@
     </div>
 
     <script src="/vendor/panzoom.min.js"></script>
-    <script src="/index-page.js?v=pull-refresh-network1"></script>
+    <script src="/index-page.js?v=resend-otp-forgot1"></script>
 </body>
 </html>

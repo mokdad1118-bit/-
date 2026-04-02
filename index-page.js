@@ -2039,6 +2039,93 @@
             tick();
         }
 
+        let __adoraForgotResendTimer = null;
+
+        function stopForgotResendCountdown() {
+            if (__adoraForgotResendTimer) {
+                clearTimeout(__adoraForgotResendTimer);
+                __adoraForgotResendTimer = null;
+            }
+        }
+
+        function startForgotResendCountdown(sec) {
+            const btn = document.getElementById('auth-forgot-resend-btn');
+            const label = document.getElementById('auth-forgot-resend-label');
+            stopForgotResendCountdown();
+            let s = Math.max(0, Number(sec) || 0);
+            const tick = () => {
+                if (btn) btn.disabled = s > 0;
+                if (label) {
+                    label.textContent =
+                        s > 0
+                            ? isRTL
+                                ? `إعادة الإرسال خلال ${s} ث`
+                                : `Resend in ${s}s`
+                            : isRTL
+                              ? 'إعادة إرسال الرمز'
+                              : 'Resend code';
+                }
+                if (s <= 0) {
+                    __adoraForgotResendTimer = null;
+                    return;
+                }
+                s -= 1;
+                __adoraForgotResendTimer = setTimeout(tick, 1000);
+            };
+            tick();
+        }
+
+        function resetAuthForgotPasswordUi() {
+            const block = document.getElementById('auth-login-form-block');
+            const forgot = document.getElementById('auth-forgot-flow');
+            const stepEmail = document.getElementById('auth-forgot-step-email');
+            const stepOtp = document.getElementById('auth-forgot-step-otp');
+            if (block) block.classList.remove('hidden');
+            if (forgot) forgot.classList.add('hidden');
+            if (stepEmail) stepEmail.classList.remove('hidden');
+            if (stepOtp) stepOtp.classList.add('hidden');
+            stopForgotResendCountdown();
+            ['auth-forgot-email', 'auth-forgot-otp-code', 'auth-forgot-new-password', 'auth-forgot-confirm-password'].forEach(
+                (id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                }
+            );
+            const btn = document.getElementById('auth-forgot-resend-btn');
+            const label = document.getElementById('auth-forgot-resend-label');
+            if (btn) btn.disabled = false;
+            if (label) {
+                const ar = label.getAttribute('data-ar');
+                const en = label.getAttribute('data-en');
+                label.textContent = isRTL ? ar || 'إعادة إرسال الرمز' : en || 'Resend code';
+            }
+        }
+
+        function showAuthForgotPasswordFlow() {
+            const block = document.getElementById('auth-login-form-block');
+            const forgot = document.getElementById('auth-forgot-flow');
+            const stepEmail = document.getElementById('auth-forgot-step-email');
+            const stepOtp = document.getElementById('auth-forgot-step-otp');
+            const msgEl = document.getElementById('auth-message');
+            if (!block || !forgot || !stepEmail || !stepOtp) return;
+            block.classList.add('hidden');
+            forgot.classList.remove('hidden');
+            stepEmail.classList.remove('hidden');
+            stepOtp.classList.add('hidden');
+            stopForgotResendCountdown();
+            ['auth-forgot-email', 'auth-forgot-otp-code', 'auth-forgot-new-password', 'auth-forgot-confirm-password'].forEach(
+                (id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                }
+            );
+            if (msgEl) msgEl.classList.add('hidden');
+        }
+
+        function cancelAuthForgotPasswordFlow() {
+            resetAuthForgotPasswordUi();
+        }
+
         function resetSignupEmailOtpUi(opts) {
             const forLoginTab = opts && opts.forLoginTab === true;
             const form = document.getElementById('auth-form-signup');
@@ -2066,6 +2153,8 @@
             const formSignup = document.getElementById('auth-form-signup');
 
             if (!loginScreen || !signupScreen || !formSignup) return;
+
+            resetAuthForgotPasswordUi();
 
             const isLogin = mode === 'login';
             if (hLogin) hLogin.classList.toggle('hidden', !isLogin);
@@ -2473,11 +2562,111 @@
             }
         }
 
+        async function handleForgotPasswordRequestCode() {
+            const email = document.getElementById('auth-forgot-email')?.value.trim() || '';
+            const msgEl = document.getElementById('auth-message');
+            const showMsg = (t) => {
+                if (msgEl) {
+                    msgEl.textContent = t;
+                    msgEl.classList.remove('hidden');
+                }
+            };
+            if (msgEl) msgEl.classList.add('hidden');
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showMsg(isRTL ? 'أدخل بريداً إلكترونياً صالحاً' : 'Enter a valid email address');
+                return;
+            }
+            try {
+                await apiFetchAuthSignup('/api/auth/password-reset/request-code', { email });
+                const stepEmail = document.getElementById('auth-forgot-step-email');
+                const stepOtp = document.getElementById('auth-forgot-step-otp');
+                const disp = document.getElementById('auth-forgot-otp-email-display');
+                if (stepEmail) stepEmail.classList.add('hidden');
+                if (stepOtp) stepOtp.classList.remove('hidden');
+                if (disp) disp.textContent = email;
+                document.getElementById('auth-forgot-otp-code')?.focus();
+                startForgotResendCountdown(60);
+                showMsg(
+                    isRTL
+                        ? 'إن وُجد حساب بهذا البريد، ستصلك رسالة تحتوي الرمز. صلاحية الرمز 5 دقائق.'
+                        : 'If an account exists for this email, you will receive a code. It expires in 5 minutes.'
+                );
+            } catch (e) {
+                const wait = e.retry_after_sec;
+                if (wait != null) startForgotResendCountdown(wait);
+                showMsg(e.message || String(e));
+            }
+        }
+
+        async function handleForgotPasswordResendCode() {
+            const email = document.getElementById('auth-forgot-email')?.value.trim() || '';
+            const msgEl = document.getElementById('auth-message');
+            if (!email) return;
+            try {
+                await apiFetchAuthSignup('/api/auth/password-reset/resend-code', { email });
+                if (msgEl) {
+                    msgEl.textContent = isRTL ? 'تم إرسال رمز جديد' : 'A new code was sent';
+                    msgEl.classList.remove('hidden');
+                }
+                startForgotResendCountdown(60);
+            } catch (e) {
+                const wait = e.retry_after_sec;
+                if (wait != null) startForgotResendCountdown(wait);
+                if (msgEl) {
+                    msgEl.textContent = e.message || String(e);
+                    msgEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        async function handleForgotPasswordConfirm() {
+            const email = document.getElementById('auth-forgot-email')?.value.trim() || '';
+            const code = document.getElementById('auth-forgot-otp-code')?.value.trim().replace(/\s/g, '') || '';
+            const np = document.getElementById('auth-forgot-new-password')?.value || '';
+            const cp = document.getElementById('auth-forgot-confirm-password')?.value || '';
+            const msgEl = document.getElementById('auth-message');
+            const showMsg = (t) => {
+                if (msgEl) {
+                    msgEl.textContent = t;
+                    msgEl.classList.remove('hidden');
+                }
+            };
+            if (!code || code.length < 4) {
+                showMsg(isRTL ? 'أدخل رمز التحقق' : 'Enter the verification code');
+                return;
+            }
+            if (!np || np.length < 6) {
+                showMsg(isRTL ? 'كلمة المرور 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+                return;
+            }
+            if (np !== cp) {
+                showMsg(isRTL ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
+                return;
+            }
+            try {
+                const data = await apiFetchAuthSignup('/api/auth/password-reset/confirm', {
+                    email,
+                    code,
+                    new_password: np,
+                });
+                setStoredJwtToken(data.token);
+                resetAuthForgotPasswordUi();
+                await completeAuthTransitionToApp(afterAuthLoginSuccess);
+            } catch (e) {
+                showMsg(e.message || String(e));
+            }
+        }
+
         try {
             window.resetSignupEmailOtpUi = resetSignupEmailOtpUi;
             window.handleSignupSendCode = handleSignupSendCode;
             window.handleSignupVerifyCode = handleSignupVerifyCode;
             window.handleSignupResendCode = handleSignupResendCode;
+            window.showAuthForgotPasswordFlow = showAuthForgotPasswordFlow;
+            window.cancelAuthForgotPasswordFlow = cancelAuthForgotPasswordFlow;
+            window.handleForgotPasswordRequestCode = handleForgotPasswordRequestCode;
+            window.handleForgotPasswordResendCode = handleForgotPasswordResendCode;
+            window.handleForgotPasswordConfirm = handleForgotPasswordConfirm;
             window.adoraAppleSignIn = adoraAppleSignIn;
         } catch (_e) {}
 

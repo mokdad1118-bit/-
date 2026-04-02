@@ -19,7 +19,11 @@ const {
 } = require("./marketplace-routes");
 const { registerVendorPlatformRoutes } = require("./vendor-platform-routes");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
-const { isEmailTransportConfigured, sendSignupOtpEmail } = require("./email-signup-mail");
+const {
+  isEmailTransportConfigured,
+  sendSignupOtpEmail,
+  sendPasswordResetOtpEmail,
+} = require("./email-signup-mail");
 const { registerVendorPortalRoutes } = require("./vendor-portal-routes");
 const { registerAdoraCompanyAdminRoutes } = require("./adora-company-admin-routes");
 const { registerVendorContactAdminRoutes } = require("./vendor-contact-routes");
@@ -499,7 +503,8 @@ app.post("/api/auth/signup/send-code", async (req, res) => {
   try {
     if (!isEmailTransportConfigured()) {
       return res.status(503).json({
-        error: "Email delivery is not configured on the server (EMAIL_HOST, EMAIL_USER, EMAIL_PASS)",
+        error:
+          "Email delivery is not configured (set RESEND_API_KEY; in production also RESEND_FROM / EMAIL_FROM for a verified domain).",
       });
     }
     const name = String(req.body?.name || "").trim();
@@ -574,7 +579,10 @@ app.post("/api/auth/signup/send-code", async (req, res) => {
 app.post("/api/auth/signup/resend-code", async (req, res) => {
   try {
     if (!isEmailTransportConfigured()) {
-      return res.status(503).json({ error: "Email delivery is not configured on the server" });
+      return res.status(503).json({
+        error:
+          "Email delivery is not configured (set RESEND_API_KEY; in production also RESEND_FROM / EMAIL_FROM).",
+      });
     }
     const email = String(req.body?.email || "").trim();
     if (!email) return res.status(400).json({ error: "Missing email" });
@@ -677,6 +685,187 @@ app.post("/api/auth/signup/verify", async (req, res) => {
   } catch (err) {
     console.error("[auth] signup/verify:", err?.message || err);
     return res.status(500).json({ error: "Failed to complete signup" });
+  }
+});
+
+const PW_RESET_EMAIL_ERR =
+  "Email delivery is not configured (set RESEND_API_KEY; in production also RESEND_FROM / EMAIL_FROM).";
+
+/** طلب رمز إعادة تعيين كلمة المرور — بريد مسجّل فقط؛ الاستجابة موحّدة لعدم كشف وجود الحساب */
+app.post("/api/auth/password-reset/request-code", async (req, res) => {
+  try {
+    if (!isEmailTransportConfigured()) {
+      return res.status(503).json({ error: PW_RESET_EMAIL_ERR });
+    }
+    const email = String(req.body?.email || "").trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+    const norm = email.toLowerCase();
+    const user = await get(
+      `SELECT id, name, email FROM users WHERE LOWER(TRIM(email)) = ? AND email IS NOT NULL AND TRIM(email) <> ''`,
+      [norm]
+    );
+    const expiresSec = Math.floor(SIGNUP_OTP_TTL_MS / 1000);
+    if (!user) {
+      return res.json({ ok: true, expires_in_sec: expiresSec });
+    }
+
+    const row = await get(`SELECT last_sent_at FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+    const nowMs = Date.now();
+    if (row && row.last_sent_at) {
+      const last = new Date(row.last_sent_at).getTime();
+      if (last > nowMs - SIGNUP_SEND_COOLDOWN_MS) {
+        const retry_after_sec = Math.ceil((SIGNUP_SEND_COOLDOWN_MS - (nowMs - last)) / 1000);
+        return res.status(429).json({
+          error: "Please wait before requesting another code",
+          retry_after_sec,
+        });
+      }
+    }
+
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+    const otpHash = hashEmailOtp(code);
+    const expiresAt = new Date(nowMs + SIGNUP_OTP_TTL_MS).toISOString();
+    const lastSent = new Date(nowMs).toISOString();
+
+    await run(
+      `INSERT INTO pending_password_resets (email_normalized, otp_hash, expires_at, last_sent_at, resend_count)
+       VALUES (?, ?, ?, ?, 1)
+       ON CONFLICT (email_normalized) DO UPDATE SET
+         otp_hash = EXCLUDED.otp_hash,
+         expires_at = EXCLUDED.expires_at,
+         last_sent_at = EXCLUDED.last_sent_at,
+         resend_count = pending_password_resets.resend_count + 1`,
+      [norm, otpHash, expiresAt, lastSent]
+    );
+
+    try {
+      await sendPasswordResetOtpEmail({ to: email, code, name: user.name });
+    } catch (mailErr) {
+      console.error("[auth] password-reset email:", mailErr?.message || mailErr);
+      await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+      return res.status(502).json({ error: "Failed to send reset email. Try again later." });
+    }
+
+    return res.json({ ok: true, expires_in_sec: expiresSec });
+  } catch (err) {
+    console.error("[auth] password-reset/request-code:", err?.message || err);
+    return res.status(500).json({ error: "Failed to send reset code" });
+  }
+});
+
+app.post("/api/auth/password-reset/resend-code", async (req, res) => {
+  try {
+    if (!isEmailTransportConfigured()) {
+      return res.status(503).json({ error: PW_RESET_EMAIL_ERR });
+    }
+    const email = String(req.body?.email || "").trim();
+    if (!email) return res.status(400).json({ error: "Missing email" });
+    const norm = email.toLowerCase();
+    const row = await get(`SELECT * FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+    if (!row) return res.status(404).json({ error: "No pending password reset for this email" });
+    const nowMs = Date.now();
+    if (new Date(row.expires_at).getTime() < nowMs) {
+      await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+      return res.status(410).json({ error: "Code expired. Please request a new code." });
+    }
+    const last = new Date(row.last_sent_at).getTime();
+    if (last > nowMs - SIGNUP_RESEND_COOLDOWN_MS) {
+      const retry_after_sec = Math.ceil((SIGNUP_RESEND_COOLDOWN_MS - (nowMs - last)) / 1000);
+      return res.status(429).json({ error: "Please wait before resending", retry_after_sec });
+    }
+
+    const user = await get(
+      `SELECT id, name, email FROM users WHERE LOWER(TRIM(email)) = ? AND email IS NOT NULL AND TRIM(email) <> ''`,
+      [norm]
+    );
+    if (!user) {
+      await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+      return res.status(404).json({ error: "No pending password reset for this email" });
+    }
+
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, "0");
+    const otpHash = hashEmailOtp(code);
+    const expiresAt = new Date(nowMs + SIGNUP_OTP_TTL_MS).toISOString();
+    const lastSent = new Date(nowMs).toISOString();
+    await run(
+      `UPDATE pending_password_resets SET otp_hash=?, expires_at=?, last_sent_at=?, resend_count = resend_count + 1 WHERE email_normalized=?`,
+      [otpHash, expiresAt, lastSent, norm]
+    );
+    try {
+      await sendPasswordResetOtpEmail({ to: email, code, name: user.name });
+    } catch (mailErr) {
+      console.error("[auth] password-reset resend:", mailErr?.message || mailErr);
+      return res.status(502).json({ error: "Failed to send email. Try again later." });
+    }
+    return res.json({ ok: true, expires_in_sec: Math.floor(SIGNUP_OTP_TTL_MS / 1000) });
+  } catch (err) {
+    console.error("[auth] password-reset/resend:", err?.message || err);
+    return res.status(500).json({ error: "Failed to resend code" });
+  }
+});
+
+/** تأكيد الرمز وتعيين كلمة مرور جديدة — يعيد جلسة مثل تسجيل الدخول */
+app.post("/api/auth/password-reset/confirm", async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim();
+    const code = String(req.body?.code || "").trim().replace(/\s/g, "");
+    const newPassword = String(req.body?.new_password || "");
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: "Missing email, code, or new password" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters" });
+    }
+    const norm = email.toLowerCase();
+    const row = await get(`SELECT * FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+    if (!row) {
+      return res.status(404).json({ error: "No pending password reset for this email" });
+    }
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+      return res.status(410).json({ error: "Code expired. Please request a new code." });
+    }
+    if (!verifyEmailOtp(code, row.otp_hash)) {
+      return res.status(401).json({ error: "Invalid verification code" });
+    }
+
+    const user = await get(`SELECT * FROM users WHERE LOWER(TRIM(email)) = ?`, [norm]);
+    if (!user) {
+      await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await run(`UPDATE users SET password_hash=? WHERE id=?`, [hash, user.id]);
+    await run(`DELETE FROM pending_password_resets WHERE email_normalized=?`, [norm]);
+    const now = new Date().toISOString();
+    await run(`UPDATE users SET last_activity_at=? WHERE id=?`, [now, user.id]);
+
+    const fresh = await get(
+      `SELECT id, name, phone, email, role, credentials_acknowledged, notifications_enabled FROM users WHERE id=?`,
+      [user.id]
+    );
+    const token = signToken({
+      id: fresh.id,
+      role: fresh.role,
+      phone: fresh.phone,
+      email: fresh.email,
+    });
+    const payload = {
+      id: fresh.id,
+      name: fresh.name,
+      phone: fresh.phone,
+      email: fresh.email,
+      role: fresh.role,
+      notifications_enabled: fresh.notifications_enabled,
+      credentials_acknowledged: fresh.credentials_acknowledged,
+    };
+    return res.json({ token, user: payload });
+  } catch (err) {
+    console.error("[auth] password-reset/confirm:", err?.message || err);
+    return res.status(500).json({ error: "Failed to reset password" });
   }
 });
 

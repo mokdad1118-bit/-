@@ -31,3 +31,8 @@ services:
       # انسخ من Cloudinary Dashboard → API Keys (صيغة URL أو المفاتيح المنفصلة)
       - key: CLOUDINARY_URL
         sync: false
+      # OTP بالبريد (التسجيل + نسيت كلمة المرور): https://resend.com — في الإنتاج عيّن RESEND_FROM من نطاق موثّق
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
