@@ -1207,6 +1207,10 @@
         let marketplaceBrowseSectionId = null;
         let mpAppHomePlacements = null;
         let mpAppHomePlacementsPromise = null;
+        function invalidateMpAppHomePlacements() {
+            mpAppHomePlacements = null;
+            mpAppHomePlacementsPromise = null;
+        }
         /** شركات السوق العامة (مع أعلام الظهور في الشرائط) — تُحمَّل مع العلامات */
         let mpVendorsDirectoryCache = [];
         let marketplaceBrowseSectionsCache = [];
@@ -1810,6 +1814,7 @@
                 body: fetchBody,
             };
             if (cache !== undefined) fetchOpts.cache = cache;
+            else fetchOpts.cache = 'no-store';
             const res = await fetch(`${getApiOrigin()}${pathname}`, fetchOpts);
 
             const data = await res.json().catch(() => ({}));
@@ -3224,6 +3229,7 @@
             }
             if (sid === 'screen-categories') {
                 syncSearchInputsFromQuery();
+                invalidateMpAppHomePlacements();
                 await Promise.all([
                     injectHomeBanners(),
                     loadHomeFeaturedGrid(),
@@ -3235,6 +3241,15 @@
                     loadMarketplaceHomeEntrance(),
                     loadPartnerCtaConfig(),
                     loadMarketplaceHomeHighlights(),
+                    syncBrandsFromApi()
+                        .then(() => {
+                            updateBrandSortButtons();
+                        })
+                        .catch(() => {}),
+                    syncFlashSaleFromApi().finally(() => {
+                        renderFlashSale();
+                        initFlashCountdown();
+                    }),
                 ]);
                 bindVendorJoinPageFormOnce();
                 bindAppAdPageFormOnce();
