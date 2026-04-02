@@ -5723,9 +5723,81 @@ function switchAdoraCompanyMainTab(key) {
   if (pane) pane.classList.remove("hidden");
   if (key === "ads") loadAdoraAdRequestsTable().catch(() => {});
   if (key === "products") switchAdoraProdSubtab("all");
+  if (key === "add") loadSubscriberCustomerCorrespondence().catch(() => {});
   if (key === "contact") {
     fillAcVcVendorSelect();
     loadVendorContactThreads().catch(() => {});
+  }
+}
+
+async function loadSubscriberCustomerCorrespondence() {
+  const token = getToken();
+  const tbody = document.getElementById("ac-correspondence-tbody");
+  const ar = getAdminLang() === "ar";
+  const colSpan = 8;
+  if (!tbody) return;
+  if (!token) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-amber-700 text-sm">${
+      ar ? "يجب تسجيل الدخول." : "Login required."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-gray-500 text-sm">${
+    ar ? "جاري التحميل…" : "Loading…"
+  }</td></tr>`;
+  try {
+    const rows = await api("/api/admin/adora-companies/subscriber-customer-messages?limit=250", { token });
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-gray-500 text-sm">${
+        ar ? "لا توجد مراسلات مسجّلة بعد." : "No logged messages yet."
+      }</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list
+      .map((m) => {
+        const cmp = escapeHtml(m.public_vendor_code || "—");
+        const cname = escapeHtml(ar ? m.company_name_ar || m.company_name_en || "—" : m.company_name_en || m.company_name_ar || "—");
+        const sub = escapeHtml(m.subscriber_name || "—");
+        const custLines = [
+          m.customer_name && String(m.customer_name).trim(),
+          m.customer_phone && String(m.customer_phone).trim(),
+          m.customer_email && String(m.customer_email).trim(),
+        ].filter(Boolean);
+        const cust =
+          custLines.length > 0
+            ? custLines.map((x) => escapeHtml(x)).join("<br/>")
+            : escapeHtml("—");
+        const msg = escapeHtml(m.message_to_customer || "");
+        const ord = escapeHtml(m.order_no || (m.order_id != null ? `#${m.order_id}` : "—"));
+        const notified = Number(m.notified) === 1 ? (ar ? "نعم" : "Yes") : ar ? "لا" : "No";
+        let dt = "—";
+        if (m.created_at) {
+          try {
+            dt = new Date(m.created_at).toLocaleString(ar ? "ar" : "en", {
+              dateStyle: "short",
+              timeStyle: "short",
+            });
+          } catch (_e) {
+            dt = String(m.created_at);
+          }
+        }
+        return `<tr class="border-t border-gray-100 align-top">
+          <td class="p-2 font-mono text-xs whitespace-nowrap">${cmp}</td>
+          <td class="p-2">${cname}</td>
+          <td class="p-2">${sub}</td>
+          <td class="p-2 text-xs">${cust}</td>
+          <td class="p-2 text-xs"><div class="whitespace-pre-wrap max-w-[14rem]">${msg}</div></td>
+          <td class="p-2 font-mono text-xs whitespace-nowrap">${ord}</td>
+          <td class="p-2 text-xs whitespace-nowrap">${notified}</td>
+          <td class="p-2 text-xs whitespace-nowrap text-gray-600">${escapeHtml(dt)}</td>
+        </tr>`;
+      })
+      .join("");
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-3 text-center text-red-600 text-sm">${escapeHtml(
+      err.message || String(err)
+    )}</td></tr>`;
   }
 }
 
@@ -6442,6 +6514,9 @@ async function initAdoraCompanyAdminTab() {
     document.getElementById("ac-load-fulfillments")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: false }).catch(() => {}));
     document.getElementById("ac-load-fulfillments-shared")?.addEventListener("click", () => loadAdoraFulfillmentsTable({ shared: true }).catch(() => {}));
     document.getElementById("ac-load-adreq")?.addEventListener("click", () => loadAdoraAdRequestsTable());
+    document.getElementById("ac-correspondence-refresh")?.addEventListener("click", () =>
+      loadSubscriberCustomerCorrespondence().catch(() => {})
+    );
     document.getElementById("ac-mp-images-overlay")?.addEventListener("click", (ev) => {
       if (ev.target === ev.currentTarget) closeAcMpProductImagesModal();
     });
@@ -6462,6 +6537,7 @@ async function initAdoraCompanyAdminTab() {
   }
   connectAdminSocket();
   await loadAdoraCompaniesTable();
+  await loadSubscriberCustomerCorrespondence().catch(() => {});
   await refreshAdminVendorContactUnread();
 }
 

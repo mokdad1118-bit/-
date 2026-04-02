@@ -367,6 +367,50 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         customerNote: customerNote || undefined,
       });
       if (!r.ok) return res.status(400).json({ error: r.error || "Invalid status" });
+      if (customerNote) {
+        try {
+          const ordJoin = await get(
+            `SELECT o.id AS order_id, o.order_no, o.user_id
+             FROM order_vendor_fulfillments f
+             INNER JOIN orders o ON o.id = f.order_id
+             WHERE f.id = ?`,
+            [id]
+          );
+          const vend = await get(
+            `SELECT id, public_vendor_code, name_ar, name_en, owner_name FROM marketplace_vendors WHERE id = ?`,
+            [f.vendor_id]
+          );
+          let cust = null;
+          if (ordJoin?.user_id) {
+            cust = await get(`SELECT id, name, phone, email FROM users WHERE id = ?`, [ordJoin.user_id]);
+          }
+          await run(
+            `INSERT INTO vendor_subscriber_customer_messages (
+              fulfillment_id, order_id, vendor_id, public_vendor_code, company_name_ar, company_name_en, subscriber_name,
+              customer_user_id, customer_name, customer_phone, customer_email, order_no, status_sent, message_to_customer, notified
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              id,
+              ordJoin.order_id,
+              f.vendor_id,
+              vend?.public_vendor_code != null ? String(vend.public_vendor_code).trim() || null : null,
+              vend?.name_ar != null ? String(vend.name_ar).trim() || null : null,
+              vend?.name_en != null ? String(vend.name_en).trim() || null : null,
+              vend?.owner_name != null ? String(vend.owner_name).trim() || null : null,
+              cust?.id != null ? Number(cust.id) : null,
+              cust?.name != null ? String(cust.name).trim() || null : null,
+              cust?.phone != null ? String(cust.phone).trim() || null : null,
+              cust?.email != null ? String(cust.email).trim() || null : null,
+              ordJoin?.order_no != null ? String(ordJoin.order_no).trim() || null : null,
+              st,
+              customerNote,
+              wantNotify ? 1 : 0,
+            ]
+          );
+        } catch (e) {
+          console.error("vendor_subscriber_customer_messages insert failed", e);
+        }
+      }
       const io = app.get("io");
       const syncRow = await get(
         `SELECT f.order_id, o.user_id, o.order_no, o.status FROM order_vendor_fulfillments f INNER JOIN orders o ON o.id = f.order_id WHERE f.id=?`,

@@ -1002,6 +1002,28 @@
                 </div>
               </form>
             </div>
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <div class="flex flex-wrap justify-between items-center gap-2">
+                <h2 class="text-lg font-bold" data-en="Subscriber — customer messages" data-ar="مراسلات المشترك مع الزبون">مراسلات المشترك مع الزبون</h2>
+                <button type="button" id="ac-correspondence-refresh" class="px-3 py-2 rounded-xl bg-gray-100 text-sm font-bold" data-en="Refresh" data-ar="تحديث">تحديث</button>
+              </div>
+              <p class="text-xs text-gray-600 leading-relaxed" data-en="Notes that subscribers enter in «Note to customer (optional)» when saving order status in the vendor portal are logged here for admins." data-ar="الملاحظات التي يكتبها المشترك في حقل «ملاحظة للزبون (اختياري)» عند حفظ حالة الطلب في بوابة الشركة تُسجَّل هنا لاطلاع الإدارة.">الملاحظات التي يكتبها المشترك في حقل «ملاحظة للزبون (اختياري)» عند حفظ حالة الطلب في بوابة الشركة تُسجَّل هنا لاطلاع الإدارة.</p>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[min(60vh,480px)] overflow-y-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 sticky top-0 z-10"><tr>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Company #" data-ar="رقم الشركة">رقم الشركة</th>
+                    <th class="p-2 text-start min-w-[100px]" data-en="Company name" data-ar="اسم الشركة">اسم الشركة</th>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Subscriber name" data-ar="اسم المشترك">اسم المشترك</th>
+                    <th class="p-2 text-start min-w-[140px]" data-en="Customer" data-ar="بيانات الزبون">بيانات الزبون</th>
+                    <th class="p-2 text-start min-w-[180px]" data-en="Message to customer" data-ar="الرسالة للزبون">الرسالة للزبون</th>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Order" data-ar="الطلب">الطلب</th>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Notify sent" data-ar="إشعار">إشعار</th>
+                    <th class="p-2 text-start whitespace-nowrap" data-en="Date" data-ar="التاريخ">التاريخ</th>
+                  </tr></thead>
+                  <tbody id="ac-correspondence-tbody"></tbody>
+                </table>
+              </div>
+            </div>
             </div>
             <div id="ac-pane-companies" class="ac-main-pane hidden space-y-4">
             <div class="bg-white rounded-2xl border border-gray-200 p-4">

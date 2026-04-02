@@ -421,6 +421,20 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
     }
   });
 
+  /** مراسلات المشترك مع الزبون (ملاحظة من حقل «ملاحظة للزبون» في البوابة) */
+  app.get("/api/admin/adora-companies/subscriber-customer-messages", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const lim = Math.min(500, Math.max(1, Math.floor(Number(req.query.limit) || 200)));
+      const rows = await all(
+        `SELECT m.* FROM vendor_subscriber_customer_messages m ORDER BY m.id DESC LIMIT ?`,
+        [lim]
+      );
+      return res.json(rows);
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed" });
+    }
+  });
+
   app.get("/api/admin/vendor-ad-requests", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const rows = await all(

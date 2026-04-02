@@ -1096,6 +1096,32 @@ async function migrateAdoraMultiVendorProgramFullV1() {
   )`);
   await run(`CREATE INDEX IF NOT EXISTS idx_vendor_ad_requests_vendor ON vendor_ad_requests (vendor_id)`);
 
+  await run(`CREATE TABLE IF NOT EXISTS vendor_subscriber_customer_messages (
+    id SERIAL PRIMARY KEY,
+    fulfillment_id INTEGER REFERENCES order_vendor_fulfillments(id) ON DELETE SET NULL,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    vendor_id INTEGER NOT NULL REFERENCES marketplace_vendors(id) ON DELETE CASCADE,
+    public_vendor_code TEXT,
+    company_name_ar TEXT,
+    company_name_en TEXT,
+    subscriber_name TEXT,
+    customer_user_id INTEGER,
+    customer_name TEXT,
+    customer_phone TEXT,
+    customer_email TEXT,
+    order_no TEXT,
+    status_sent TEXT,
+    message_to_customer TEXT NOT NULL,
+    notified INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vscm_vendor ON vendor_subscriber_customer_messages (vendor_id)`
+  );
+  await run(
+    `CREATE INDEX IF NOT EXISTS idx_vscm_created ON vendor_subscriber_customer_messages (created_at DESC)`
+  );
+
   try {
     const vrows = await all(
       `SELECT id FROM marketplace_vendors WHERE public_vendor_code IS NULL OR TRIM(COALESCE(public_vendor_code,'')) = '' ORDER BY id ASC`
