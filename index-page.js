@@ -2550,9 +2550,7 @@
         async function refreshProfileAndOrders() {
             const profileNameEl = document.getElementById('profile-user-name');
             const profilePhoneEl = document.getElementById('profile-user-phone');
-            const ordersList = document.getElementById('profile-orders-list');
             const ordersSection = document.getElementById('profile-orders-section');
-            const ordersEmpty = document.getElementById('profile-orders-empty');
             const ordersBadge = document.getElementById('profile-orders-count-badge');
 
             const token = getStoredJwtToken();
@@ -2626,32 +2624,13 @@
                 registerAdoraPushSubscription().catch(() => {});
             }
 
-            if (ordersList) {
-                if (!data.orders || data.orders.length === 0) {
-                    ordersList.innerHTML = '';
-                    ordersList.classList.add('hidden');
-                    if (ordersEmpty) ordersEmpty.classList.remove('hidden');
-                    if (ordersBadge) ordersBadge.classList.add('hidden');
+            if (ordersBadge) {
+                const n = Array.isArray(data.orders) ? data.orders.length : 0;
+                if (n === 0) {
+                    ordersBadge.classList.add('hidden');
                 } else {
-                    if (ordersEmpty) ordersEmpty.classList.add('hidden');
-                    const n = data.orders.length;
-                    if (ordersBadge) {
-                        ordersBadge.textContent = n > 99 ? '99+' : String(n);
-                        ordersBadge.classList.remove('hidden');
-                    }
-                    ordersList.classList.remove('hidden');
-                    ordersList.innerHTML = data.orders.map((o) => {
-                        const label = getOrderStatusLabel(o.status);
-                        return `<button type="button" onclick="openOrderTrackingFromId(${o.id})" class="w-full bg-gray-50 rounded-2xl p-3 border border-gray-100 hover:bg-gray-100 transition text-start">
-                                  <div class="flex items-center justify-between gap-3">
-                                      <div class="min-w-0">
-                                          <div class="text-xs text-gray-500">${escapeHtml(o.order_no || '')}</div>
-                                          <div class="text-sm font-bold text-gray-900">${label}</div>
-                                      </div>
-                                      <i class="fas fa-chevron-right text-gray-300 shrink-0 rtl:rotate-180"></i>
-                                  </div>
-                                </button>`;
-                    }).join('');
+                    ordersBadge.textContent = n > 99 ? '99+' : String(n);
+                    ordersBadge.classList.remove('hidden');
                 }
             }
             refreshSideMenuHeader().catch(() => {});
@@ -11077,6 +11056,39 @@
             </div>`;
         }
 
+        async function profileOpenOrdersModal() {
+            if (!getStoredJwtToken()) {
+                openAuthModal('login', isRTL ? 'سجّل الدخول لعرض طلباتك' : 'Log in to view your orders');
+                return;
+            }
+            await openOrdersListModal();
+        }
+        try {
+            window.profileOpenOrdersModal = profileOpenOrdersModal;
+        } catch (_e) {}
+
+        function ordersModalEmptyStateHtml() {
+            const title = isRTL ? 'لا توجد طلبات بعد' : 'No orders yet';
+            const desc = isRTL ? 'اكتشف تشكيلتنا وابدأ أول طلب لك بسهولة.' : 'Browse our collection and place your first order.';
+            const cta = isRTL ? 'اذهب للتسوق' : 'Go shopping';
+            const closeHint = isRTL ? 'أو أغلق النافذة للمتابعة لاحقاً' : 'Or close to continue later';
+            return `<div class="flex flex-col items-center justify-center py-8 px-2 sm:px-4 text-center">
+                <div class="relative mb-5">
+                    <div class="absolute inset-0 rounded-full bg-violet-400/20 blur-xl scale-150" aria-hidden="true"></div>
+                    <div class="relative w-[88px] h-[88px] rounded-[28px] bg-gradient-to-br from-violet-100 via-white to-purple-50 border border-violet-100/80 shadow-inner flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-[2.25rem] text-violet-500/90"></i>
+                    </div>
+                </div>
+                <p class="text-gray-900 font-bold text-[1.05rem] mb-1.5 tracking-tight">${escapeHtml(title)}</p>
+                <p class="text-sm text-gray-500 leading-relaxed max-w-[260px] mb-6">${escapeHtml(desc)}</p>
+                <button type="button" onclick="closeOrdersListModal(); navigateTo('screen-categories');" class="w-full max-w-[280px] py-3.5 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-white font-bold text-sm shadow-lg shadow-violet-500/25 hover:shadow-violet-500/35 active:scale-[0.98] transition flex items-center justify-center gap-2">
+                    <i class="fas fa-store text-sm opacity-95"></i>
+                    <span>${escapeHtml(cta)}</span>
+                </button>
+                <p class="text-[11px] text-gray-400 mt-5 max-w-[240px] leading-relaxed">${escapeHtml(closeHint)}</p>
+            </div>`;
+        }
+
         async function openOrdersListModal() {
             const modal = document.getElementById('orders-list-modal');
             const body = document.getElementById('orders-list-modal-body');
@@ -11087,7 +11099,7 @@
             try {
                 const orders = await apiFetch('/api/orders', { requireAuth: true });
                 if (!Array.isArray(orders) || orders.length === 0) {
-                    body.innerHTML = `<p class="text-center text-gray-500 py-8">${isRTL ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>`;
+                    body.innerHTML = ordersModalEmptyStateHtml();
                     return;
                 }
                 const orderPieces = orders.map((o) => {

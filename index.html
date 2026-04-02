@@ -6583,20 +6583,17 @@
         </div>
 
         <div class="p-4 space-y-3 pb-32">
-            <div id="profile-orders-section" class="w-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="p-4 flex items-center gap-4 border-b border-gray-50">
-                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-xl shrink-0">
-                        <i class="fas fa-shopping-bag"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-gray-900" data-en="My Orders" data-ar="طلباتي">My Orders</h3>
-                        <p id="profile-orders-subtitle" class="text-xs text-gray-500 mt-0.5" data-en="Tap an order to see items and status" data-ar="اضغط على طلب لعرض المحتوى والحالة">Tap an order to see items and status</p>
-                    </div>
-                    <span id="profile-orders-count-badge" class="shrink-0 bg-purple-600 text-white text-xs font-bold min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center hidden">0</span>
+            <button type="button" id="profile-orders-section" onclick="profileOpenOrdersModal()" class="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition active:scale-[0.99] text-start">
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-xl shrink-0">
+                    <i class="fas fa-shopping-bag"></i>
                 </div>
-                <p id="profile-orders-empty" class="hidden px-4 pb-4 pt-1 text-sm text-gray-500" data-en="No orders yet" data-ar="لا توجد طلبات بعد">No orders yet</p>
-                <div id="profile-orders-list" class="px-4 pb-4 space-y-2 hidden"></div>
-            </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-gray-900" data-en="My Orders" data-ar="طلباتي">My Orders</h3>
+                    <p id="profile-orders-subtitle" class="text-xs text-gray-500 mt-0.5" data-en="View all orders in a window" data-ar="عرض جميع الطلبات في نافذة">عرض جميع الطلبات في نافذة</p>
+                </div>
+                <span id="profile-orders-count-badge" class="shrink-0 bg-purple-600 text-white text-xs font-bold min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center hidden">0</span>
+                <i class="fas fa-chevron-right text-gray-300 shrink-0 rtl:rotate-180" aria-hidden="true"></i>
+            </button>
 
             <button type="button" id="profile-messages-row" onclick="openAppBroadcastsModal()" class="hidden w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 hover:shadow-md transition active:scale-95">
                 <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center text-violet-600 text-xl relative">
@@ -7120,17 +7117,20 @@
     </aside>
 
     <!-- Orders list (from API) -->
-    <div id="orders-list-modal" class="fixed inset-0 z-[82] hidden bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeOrdersListModal()">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl flex flex-col" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
-                <h2 class="text-lg font-bold text-gray-900 min-w-0 flex-1" data-en="My orders" data-ar="طلباتي">طلباتي</h2>
-                <button type="button" class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-200 active:scale-95 transition" onclick="closeOrdersListModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-                    <i class="fas fa-times text-lg text-gray-700"></i>
+    <div id="orders-list-modal" class="fixed inset-0 z-[82] hidden bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeOrdersListModal()">
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] overflow-hidden shadow-2xl shadow-black/20 flex flex-col ring-1 ring-black/5" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100/90 shrink-0 bg-gradient-to-b from-gray-50/80 to-white">
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-lg font-bold text-gray-900 tracking-tight" data-en="My orders" data-ar="طلباتي">طلباتي</h2>
+                    <p class="text-[11px] text-gray-500 mt-0.5" data-en="Track and manage your purchases" data-ar="تتبّع ومتابعة مشترياتك">تتبّع ومتابعة مشترياتك</p>
+                </div>
+                <button type="button" class="orders-modal-close-btn w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-95 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/40" onclick="closeOrdersListModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-[15px] text-gray-600"></i>
                 </button>
             </div>
-            <div id="orders-list-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3"></div>
-            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
-                <button type="button" class="w-full py-3.5 rounded-2xl bg-gray-100 text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.99] transition" onclick="closeOrdersListModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            <div id="orders-list-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3 bg-gray-50/40"></div>
+            <div class="shrink-0 border-t border-gray-100/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-800 font-bold text-sm shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.99] transition" onclick="closeOrdersListModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
             </div>
         </div>
     </div>
@@ -7406,6 +7406,6 @@
     </div>
 
     <script src="/vendor/panzoom.min.js"></script>
-    <script src="/index-page.js?v=oauth-ui3"></script>
+    <script src="/index-page.js?v=orders-modal-profile1"></script>
 </body>
 </html>
