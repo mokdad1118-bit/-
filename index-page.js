@@ -4968,7 +4968,6 @@
                     try {
                         const cq = new URLSearchParams();
                         cq.set('q', q);
-                        cq.set('in_marketplace_tab', '1');
                         cq.set('merge_marketplace', '0');
                         const cr = await apiFetch(`/api/products?${cq.toString()}`, { requireAuth: false });
                         catList = Array.isArray(cr) ? cr : [];
@@ -4992,7 +4991,7 @@
                     return;
                 }
                 const loc = isRTL ? 'ar' : 'en';
-                const mpPieces = arr.map((p) => {
+                const renderMpSearchCardHtml = (p) => {
                     const mid = Number(p.id);
                     const title = loc === 'ar' ? p.name_ar || p.name_en : p.name_en || p.name_ar;
                     const vendor = loc === 'ar' ? p.vendor_name_ar || p.vendor_name_en : p.vendor_name_en || p.vendor_name_ar;
@@ -5035,16 +5034,50 @@
                             </div>
                             </div>
                             <div class="adora-pcard__body">
-                                <h3 class="adora-pcard__title">${escapeHtml(title)}</h3>
-                                ${vendorHtml}
-                                ${ratingHtml}
-                                ${priceHtml}
+                            <h3 class="adora-pcard__title">${escapeHtml(title)}</h3>
+                            ${vendorHtml}
+                            ${ratingHtml}
+                            ${priceHtml}
                             </div>
                             </div>
                         </div>`;
-                });
-                const catPieces = catList.map((p) => renderProductCardHtml(p, { compact: true }));
-                adoraInsertAdjacentHtmlChunked(grid, [...mpPieces, ...catPieces], 8);
+                };
+                let combinedPieces;
+                if (!narrow && q && catList.length) {
+                    const merged = [
+                        ...arr.map((p) => ({ src: 'mp', p })),
+                        ...catList.map((p) => ({ src: 'cat', p })),
+                    ];
+                    merged.sort((a, b) => {
+                        const sa =
+                            a.src === 'mp'
+                                ? Number(a.p.is_mp_featured_effective) === 1
+                                    ? 1
+                                    : 0
+                                : Number(a.p.is_featured) === 1
+                                  ? 1
+                                  : 0;
+                        const sb =
+                            b.src === 'mp'
+                                ? Number(b.p.is_mp_featured_effective) === 1
+                                    ? 1
+                                    : 0
+                                : Number(b.p.is_featured) === 1
+                                  ? 1
+                                  : 0;
+                        if (sb !== sa) return sb - sa;
+                        return (Number(b.p.id) || 0) - (Number(a.p.id) || 0);
+                    });
+                    combinedPieces = merged.map(({ src, p }) =>
+                        src === 'mp' ? renderMpSearchCardHtml(p) : renderProductCardHtml(p, { compact: true })
+                    );
+                } else {
+                    combinedPieces = [
+                        ...arr.map((p) => renderMpSearchCardHtml(p)),
+                        ...catList.map((p) => renderProductCardHtml(p, { compact: true })),
+                    ];
+                }
+                adoraInsertAdjacentHtmlChunked(grid, combinedPieces, 8);
             } catch (e) {
                 grid.innerHTML = `<p class="col-span-2 text-center text-red-500 py-10 text-sm">${escapeHtml(e.message || (isRTL ? 'تعذر التحميل' : 'Failed to load'))}</p>`;
             }
@@ -6059,6 +6092,25 @@
                 const s = String(c).toLowerCase();
                 return n.some((x) => s.includes(x.toLowerCase()));
             });
+        }
+
+        /** ترتيب بحث: مميز أولاً (كتالوج: is_featured، سوق: is_mp_featured_effective) */
+        function adoraProductSearchFeaturedScore(p) {
+            if (!p) return 0;
+            if (p.adora_listing_kind === 'marketplace') {
+                return Number(p.is_mp_featured_effective) === 1 ? 1 : 0;
+            }
+            return Number(p.is_featured) === 1 ? 1 : 0;
+        }
+
+        function adoraSortProductsFeaturedFirst(arr) {
+            const list = Array.isArray(arr) ? arr.slice() : [];
+            list.sort((a, b) => {
+                const d = adoraProductSearchFeaturedScore(b) - adoraProductSearchFeaturedScore(a);
+                if (d !== 0) return d;
+                return (Number(b.id) || 0) - (Number(a.id) || 0);
+            });
+            return list;
         }
 
         function applyClientSideListingFilters(products) {
@@ -7649,11 +7701,6 @@
                 const sq = listingSearchQuery && String(listingSearchQuery).trim();
                 if (sq) {
                     params.set('q', sq);
-                    if (listingBrandName) params.set('brand', listingBrandName);
-                    if (listingNewCollectionOnly) {
-                        params.set('new_collection', '1');
-                        if (listingCategoryFilter) params.set('category', listingCategoryFilter);
-                    }
                 } else {
                     if (listingBrandName) {
                         params.set('brand', listingBrandName);
@@ -8760,7 +8807,10 @@
                 ]);
                 const listCat = Array.isArray(rowsCat) ? rowsCat : [];
                 const listMp = (Array.isArray(rowsMp) ? rowsMp : []).map((p) => ({ ...p, adora_listing_kind: 'marketplace' }));
-                const list = [...listCat, ...listMp];
+                let list = [...listCat, ...listMp];
+                if (q) {
+                    list = adoraSortProductsFeaturedFirst(list);
+                }
                 if (!list.length) {
                     grid.innerHTML = `<p class="col-span-2 text-center text-violet-700/80 py-10 text-sm leading-relaxed px-3">${
                         isRTL ? 'لا توجد منتجات تطابق البحث أو القسم.' : 'No products match this section or search.'

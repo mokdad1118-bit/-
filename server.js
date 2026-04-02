@@ -1578,7 +1578,10 @@ app.get("/api/products", async (req, res) => {
       );
       params.push(mr);
     }
-    const sql = `SELECT * FROM products ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC`;
+    const orderCatalog = qtrim
+      ? `CASE WHEN COALESCE(is_featured,0) = 1 THEN 0 ELSE 1 END, id DESC`
+      : `id DESC`;
+    const sql = `SELECT * FROM products ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY ${orderCatalog}`;
     let products = await all(sql, params);
     const fhActive = String(req.query.featured_hub || "").trim();
     const mergeMpRaw = String(req.query.merge_marketplace ?? "1").trim().toLowerCase();
@@ -1599,6 +1602,19 @@ app.get("/api/products", async (req, res) => {
       } catch (_e) {
         /* keep catalog-only */
       }
+    }
+    if (qtrim) {
+      const searchFeatRank = (p) => {
+        if (p && p.adora_listing_kind === "marketplace") {
+          return Number(p.is_mp_featured_effective) === 1 ? 1 : 0;
+        }
+        return Number(p.is_featured) === 1 ? 1 : 0;
+      };
+      products.sort((a, b) => {
+        const d = searchFeatRank(b) - searchFeatRank(a);
+        if (d !== 0) return d;
+        return (Number(b.id) || 0) - (Number(a.id) || 0);
+      });
     }
     const ids = products
       .filter((p) => p.adora_listing_kind !== "marketplace")
@@ -1705,7 +1721,16 @@ app.get("/api/search/suggestions", async (req, res) => {
         subtitle_ar: brand || null,
         subtitle_en: brand || null,
         image_url: thumb || null,
+        featured_rank: Number(r.is_featured) === 1 ? 1 : 0,
       };
+    };
+
+    const mpSuggestFeaturedRank = (row) => {
+      if (Number(row.is_mp_featured) !== 1) return 0;
+      const u = row.mp_featured_until;
+      if (u == null || String(u).trim() === "") return 1;
+      const t = new Date(u);
+      return !Number.isNaN(t.getTime()) && t > new Date() ? 1 : 0;
     };
 
     const mapMpRow = (r) => {
@@ -1725,6 +1750,7 @@ app.get("/api/search/suggestions", async (req, res) => {
         subtitle_ar: vnAr || null,
         subtitle_en: vnEn || null,
         image_url: img || null,
+        featured_rank: mpSuggestFeaturedRank(r),
       };
     };
 
@@ -1733,11 +1759,11 @@ app.get("/api/search/suggestions", async (req, res) => {
     if (scope === "products" || scope === "all") {
       const { where, params } = buildProductClauses();
       const lim = scope === "all" ? Math.min(maxTotal, Math.max(4, Math.ceil(maxTotal * 0.55))) : maxTotal;
-      const sql = `SELECT p.id, p.name_ar, p.name_en, p.brand,
+      const sql = `SELECT p.id, p.name_ar, p.name_en, p.brand, COALESCE(p.is_featured,0) AS is_featured,
         (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.id ASC LIMIT 1) AS thumb
         FROM products p
         WHERE (${where})${hubSql}
-        ORDER BY p.id DESC
+        ORDER BY CASE WHEN COALESCE(p.is_featured,0) = 1 THEN 0 ELSE 1 END, p.id DESC
         LIMIT ?`;
       const rows = await all(sql, [...params, ...hubParams, lim]);
       for (const r of rows) {
@@ -1749,19 +1775,19 @@ app.get("/api/search/suggestions", async (req, res) => {
     if ((hubOn === "1" || hubOn === "true") && (scope === "products" || scope === "all")) {
       let limHub = Math.max(1, maxTotal - items.length);
       if (limHub > 0) {
-        let mpHubSql = " AND COALESCE(mp.featured_hub_enabled,0) = 1 AND COALESCE(mp.show_in_marketplace_tab,1) = 1 ";
+        let mpHubSql = " AND COALESCE(mp.featured_hub_enabled,0) = 1 ";
         const mpHubParams = [];
         if (hubSec) {
           mpHubSql += " AND mp.featured_hub_section = ? ";
           mpHubParams.push(hubSec);
         }
         const { where, params } = buildMpClauses();
-        const sqlHub = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
+        const sqlHub = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mp.is_mp_featured, mp.mp_featured_until, mv.name_ar AS vn_ar, mv.name_en AS vn_en
         FROM marketplace_products mp
         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         WHERE mp.is_active = 1 ${mpHubSql} AND (${where})
-        ORDER BY mp.id DESC
+        ORDER BY (CASE WHEN COALESCE(mp.is_mp_featured,0) = 1 AND (mp.mp_featured_until IS NULL OR mp.mp_featured_until > CURRENT_TIMESTAMP) THEN 0 ELSE 1 END), mp.id DESC
         LIMIT ?`;
         const rowsHub = await all(sqlHub, [...mpHubParams, ...params, limHub]);
         for (const r of rowsHub) {
@@ -1777,7 +1803,7 @@ app.get("/api/search/suggestions", async (req, res) => {
       if (scope === "all") {
         lim = Math.max(1, maxTotal - items.length);
       }
-      let mpScopeExtra = " AND COALESCE(mp.show_in_marketplace_tab,1) = 1 ";
+      let mpScopeExtra = "";
       const mpScopeParams = [];
       if (hubOn === "1" || hubOn === "true") {
         mpScopeExtra += " AND COALESCE(mp.featured_hub_enabled,0) = 1 ";
@@ -1786,12 +1812,12 @@ app.get("/api/search/suggestions", async (req, res) => {
           mpScopeParams.push(hubSec);
         }
       }
-      const sql = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mv.name_ar AS vn_ar, mv.name_en AS vn_en
+      const sql = `SELECT mp.id, mp.name_ar, mp.name_en, mp.images_json, mp.is_mp_featured, mp.mp_featured_until, mv.name_ar AS vn_ar, mv.name_en AS vn_en
         FROM marketplace_products mp
         INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
         INNER JOIN marketplace_sections ms ON ms.id = mp.section_id AND ms.is_active = 1
         WHERE mp.is_active = 1 ${mpScopeExtra} AND (${where})
-        ORDER BY mp.id DESC
+        ORDER BY (CASE WHEN COALESCE(mp.is_mp_featured,0) = 1 AND (mp.mp_featured_until IS NULL OR mp.mp_featured_until > CURRENT_TIMESTAMP) THEN 0 ELSE 1 END), mp.id DESC
         LIMIT ?`;
       const rows = await all(sql, [...mpScopeParams, ...params, lim]);
       for (const r of rows) {
@@ -1808,7 +1834,14 @@ app.get("/api/search/suggestions", async (req, res) => {
       if (kid) seenKeys.add(kid);
       deduped.push(it);
     }
-    return res.json(deduped.slice(0, maxTotal));
+    deduped.sort((a, b) => {
+      const fa = Number(a.featured_rank) || 0;
+      const fb = Number(b.featured_rank) || 0;
+      if (fb !== fa) return fb - fa;
+      return 0;
+    });
+    const stripped = deduped.slice(0, maxTotal).map(({ featured_rank: _fr, ...rest }) => rest);
+    return res.json(stripped);
   } catch (_e) {
     return res.json([]);
   }

@@ -536,7 +536,7 @@ async function fetchMarketplaceProductsForListingSearchMerge(variants) {
   const sql = `SELECT ${MP_SELECT_LIST}, mprev.review_avg, mprev.review_count
      ${MP_FROM}
      ${MP_REVIEW_JOIN_SQL}
-     WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER} AND COALESCE(mp.show_in_marketplace_tab, 1) = 1
+     WHERE mp.is_active = 1 ${MP_PUBLIC_LISTING_FILTER}
      AND (${parts.join(" OR ")})
      ORDER BY ${MP_ORDER_VENDOR_PREMIUM} ASC, ${MP_ORDER_PRODUCT_FEATURED} ASC, mp.id DESC
      LIMIT 120`;
