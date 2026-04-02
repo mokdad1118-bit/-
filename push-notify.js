@@ -132,10 +132,9 @@ function buildPushPayloadFromRow(row) {
   const img = row.image_url ? sanitizeHttpsUrl(row.image_url) : null;
   const base = getPublicAssetBase();
   const iconPath = "/icons/adora-icon.png";
-  const badgePath = "/icons/adora-badge.png";
   const defaultBannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
-  const badge = base ? `${base}${badgePath}` : badgePath;
+  const badge = icon;
   const defaultBanner = base ? `${base}${defaultBannerPath}` : defaultBannerPath;
   const titleRaw = row.title != null && String(row.title).trim() ? String(row.title).trim() : "";
   const title = titleRaw.slice(0, 120) || "Adora";
@@ -182,10 +181,9 @@ async function notifyVendorPortalPush(vendorId, { title, body, url }) {
   if (!rows.length) return;
   const base = getPublicAssetBase();
   const iconPath = "/icons/adora-icon.png";
-  const badgePath = "/icons/adora-badge.png";
   const bannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
-  const badge = base ? `${base}${badgePath}` : badgePath;
+  const badge = icon;
   const image = base ? `${base}${bannerPath}` : bannerPath;
   const openPath =
     typeof url === "string" && url.trim()
@@ -220,10 +218,9 @@ async function notifyAdminsVendorContactPush({ title, body, url }) {
   if (!rows.length) return;
   const base = getPublicAssetBase();
   const iconPath = "/icons/adora-icon.png";
-  const badgePath = "/icons/adora-badge.png";
   const bannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
-  const badge = base ? `${base}${badgePath}` : badgePath;
+  const badge = icon;
   const image = base ? `${base}${bannerPath}` : bannerPath;
   const openPath =
     typeof url === "string" && url.trim() ? resolvePushOpenUrl(url.trim()) : "/admin";

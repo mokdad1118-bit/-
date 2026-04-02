@@ -401,7 +401,7 @@
             const opts = {
                 body,
                 icon: `${origin}/icons/adora-icon.png`,
-                badge: `${origin}/icons/adora-badge.png`,
+                badge: `${origin}/icons/adora-icon.png`,
                 tag: `adora-${payload?.id || 'msg'}`,
                 data: { url: resolveNotificationOpenUrl(payload?.link_url) },
                 silent: false,

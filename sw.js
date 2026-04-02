@@ -17,7 +17,8 @@ self.addEventListener("activate", (e) => {
 });
 
 const ADORA_PUSH_ICON = "/icons/adora-icon.png";
-const ADORA_PUSH_BADGE = "/icons/adora-badge.png";
+/** نفس أيقونة الإشعار — أندرويد (Samsung وغيره) يعرض badge أحياناً في المربع الأيمن؛ adora-badge الصغير كان يظهر فارغاً */
+const ADORA_PUSH_BADGE = "/icons/adora-icon.png";
 const ADORA_PUSH_IMAGE = "/icons/adora-image.png";
 
 /**

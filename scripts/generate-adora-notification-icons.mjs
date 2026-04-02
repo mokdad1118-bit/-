@@ -1,7 +1,8 @@
 /**
  * يولّد من شعار العلامة (مربع تقريباً):
  *   icons/adora-icon.png           192×192 — إشعار + manifest + favicon
- *   icons/adora-icon-512.png       512×512 — manifest (maskable)
+ *   icons/adora-icon-72…384.png    مقاسات إضافية لأندرويد / WebAPK
+ *   icons/adora-icon-512.png       512×512 — manifest
  *   icons/adora-apple-touch.png    180×180 — Apple touch icon
  *   icons/adora-badge.png           72×72 — شارة إشعار (قص يركّز على حرف A)
  *   icons/adora-image.png          512×256 — صورة إشعار عريضة
@@ -39,6 +40,20 @@ await sharp(src)
   .png()
   .toFile(outIcon);
 
+const densityIcons = [
+  [72, "adora-icon-72.png"],
+  [96, "adora-icon-96.png"],
+  [144, "adora-icon-144.png"],
+  [256, "adora-icon-256.png"],
+  [384, "adora-icon-384.png"],
+];
+for (const [size, name] of densityIcons) {
+  await sharp(src)
+    .resize(size, size, { fit: "cover", position: "centre" })
+    .png()
+    .toFile(path.join(root, "icons", name));
+}
+
 await sharp(src)
   .resize(512, 512, { fit: "contain", position: "centre", background: LAVENDER })
   .png()
@@ -64,7 +79,15 @@ await sharp(src)
   .png()
   .toFile(outImage);
 
-for (const f of [outIcon, out512, outApple, outBadge, outImage]) {
+const allOut = [
+  outIcon,
+  ...densityIcons.map(([, name]) => path.join(root, "icons", name)),
+  out512,
+  outApple,
+  outBadge,
+  outImage,
+];
+for (const f of allOut) {
   const m = await sharp(f).metadata();
   console.log(path.basename(f), m.width, "x", m.height);
 }
