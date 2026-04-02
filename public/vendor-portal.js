@@ -903,6 +903,16 @@
       .replace(/"/g, "&quot;");
   }
 
+  /** إشعار يتعلق بظهور الشعار/النجمة للزبائن — يُعرض داخل إطار بنفسجي فاتح */
+  function vpNotifIsCustomerBrandHighlight(n) {
+    const t = String(n.title || "");
+    const m = String(n.message || "");
+    if (t.indexOf("نجمة مميزة") !== -1) return true;
+    if (m.indexOf("شعاركم للزبائن") !== -1 || m.indexOf("بجانب شعاركم") !== -1) return true;
+    if (m.indexOf("gold star badge") !== -1 && m.indexOf("customers") !== -1) return true;
+    return false;
+  }
+
   function vpRenderNotificationArticleHtml(n) {
     const isUnread = Number(n.is_read) === 0;
     const cls = isUnread ? "vp-portal-notif vp-portal-notif--unread" : "vp-portal-notif";
@@ -935,7 +945,11 @@
       "<div class=\"font-extrabold text-amber-950 text-xs sm:text-sm\">" +
       vpEscNotif(n.title) +
       "</div>" +
-      "<div class=\"text-gray-800 whitespace-pre-wrap text-xs mt-1 leading-relaxed\">" +
+      "<div class=\"" +
+      (vpNotifIsCustomerBrandHighlight(n)
+        ? "vp-notif-message--customer-brand whitespace-pre-wrap text-xs mt-1 leading-relaxed font-semibold"
+        : "text-gray-800 whitespace-pre-wrap text-xs mt-1 leading-relaxed") +
+      "\">" +
       vpEscNotif(n.message) +
       "</div>" +
       "<div class=\"flex flex-wrap items-center justify-between gap-2 mt-2 pt-2 border-t border-amber-100\">" +
