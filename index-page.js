@@ -1125,7 +1125,7 @@
         };
         /** صورة احتياطية عندما لا تتوفر صورة للمنتج */
         function adoraPlaceholderImageUrl() {
-            return 'icons/adora-icon.svg';
+            return 'icons/adora-icon.png';
         }
         let flashSaleItems = [];
         const adoraGalleryAutoScrollTimers = {};
@@ -11784,7 +11784,7 @@
             let bestScore = 0;
             host.querySelectorAll('img[src]').forEach((im) => {
                 const s = (im.getAttribute('src') || '').trim();
-                if (!s || s.includes('adora-icon.svg')) return;
+                if (!s || /adora-icon\.(svg|png)/i.test(s)) return;
                 const r = im.getBoundingClientRect();
                 const iw = Math.max(0, Math.min(r.right, hostRect.right) - Math.max(r.left, hostRect.left));
                 const ih = Math.max(0, Math.min(r.bottom, hostRect.bottom) - Math.max(r.top, hostRect.top));
@@ -12434,7 +12434,7 @@
                 if (!host) return out;
                 host.querySelectorAll('img[src]').forEach((im) => {
                     const u = (im.getAttribute('src') || '').trim();
-                    if (!u || u.includes('adora-icon.svg')) return;
+                    if (!u || /adora-icon\.(svg|png)/i.test(u)) return;
                     out.push(u);
                 });
                 return out;
@@ -12443,7 +12443,7 @@
             function openGalleryLightboxFromImg(host, im) {
                 if (!host || !im || !host.contains(im)) return;
                 const s = im.getAttribute('src');
-                if (!s || String(s).includes('adora-icon.svg')) return;
+                if (!s || /adora-icon\.(svg|png)/i.test(String(s))) return;
                 const urls = collectGallerySrcs(host);
                 const idx = urls.indexOf(String(s).trim());
                 if (urls.length > 1 && idx >= 0) {
