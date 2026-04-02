@@ -2343,15 +2343,11 @@
             const hasG = !!cfg.google_oauth_client_id;
             const hasA = !!cfg.apple_oauth_client_id;
             const introS = document.getElementById('auth-oauth-intro-signup');
-            const offS = document.getElementById('auth-oauth-off-hint-signup');
-            const offL = document.getElementById('auth-oauth-off-hint-login');
             const slotS = document.getElementById('auth-google-slot-signup');
             const slotL = document.getElementById('auth-google-slot-login');
 
             if (!hasG && !hasA) {
                 introS?.classList.add('hidden');
-                offS?.classList.remove('hidden');
-                offL?.classList.remove('hidden');
                 slotS?.classList.add('hidden');
                 slotL?.classList.add('hidden');
                 document.getElementById('auth-apple-btn-signup')?.classList.add('hidden');
@@ -2360,8 +2356,6 @@
             }
 
             introS?.classList.remove('hidden');
-            offS?.classList.add('hidden');
-            offL?.classList.add('hidden');
 
             if (hasG) {
                 slotS?.classList.remove('hidden');
