@@ -589,6 +589,9 @@ function connectAdminSocket() {
       openAcVendorContactModal(acVcOpenThreadId).catch(() => {});
     }
   });
+  adminIoSocket.on("vendor_ad_request:created", () => {
+    loadAdoraAdRequestsTable().catch(() => {});
+  });
 }
 
 function showError(el, message) {
@@ -6667,6 +6670,10 @@ async function loadAdoraAdRequestsTable() {
   try {
     const rows = await api("/api/admin/vendor-ad-requests", { token });
     const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+      return;
+    }
     tbody.innerHTML = list
       .map((r) => {
         const vname = ar ? r.vendor_name_ar : r.vendor_name_en;
@@ -6724,7 +6731,6 @@ async function loadAdoraAdRequestsTable() {
         }
       });
     });
-    if (!list.length) tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="9" class="py-3 text-red-600">${escapeHtml(err.message || String(err))}</td></tr>`;
   }

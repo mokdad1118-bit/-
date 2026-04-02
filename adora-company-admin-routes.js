@@ -440,7 +440,7 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
       const rows = await all(
         `SELECT r.*, mv.name_ar AS vendor_name_ar, mv.name_en AS vendor_name_en, mv.public_vendor_code
          FROM vendor_ad_requests r
-         INNER JOIN marketplace_vendors mv ON mv.id = r.vendor_id
+         LEFT JOIN marketplace_vendors mv ON mv.id = r.vendor_id
          ORDER BY r.id DESC LIMIT 300`
       );
       return res.json(rows);

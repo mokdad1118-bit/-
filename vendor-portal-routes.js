@@ -840,6 +840,9 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
 
   app.post("/api/vendor-portal/ad-requests", ...vpGuarded, async (req, res) => {
     try {
+      if (req.mpVendor.mustChangePassword) {
+        return res.status(403).json({ error: "يجب تغيير كلمة المرور أولاً", must_change_password: true });
+      }
       const t = req.body?.request_type != null ? String(req.body.request_type).trim() : "";
       if (!REQUEST_TYPES.includes(t)) return res.status(400).json({ error: "Invalid request_type" });
       const notes = req.body?.notes != null ? String(req.body.notes).trim().slice(0, 2000) : "";
@@ -848,8 +851,36 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
         [req.mpVendor.id, t, notes || null]
       );
       const row = await get(`SELECT * FROM vendor_ad_requests WHERE id=?`, [ins.id]);
+      try {
+        const io = app.get("io");
+        if (io) {
+          io.to("admin").emit("vendor_ad_request:created", {
+            id: ins.id,
+            vendor_id: req.mpVendor.id,
+            request_type: t,
+          });
+        }
+      } catch (_e) {
+        /* ignore socket */
+      }
+      try {
+        const vrow = await get(
+          `SELECT name_ar, name_en, public_vendor_code FROM marketplace_vendors WHERE id=?`,
+          [req.mpVendor.id]
+        );
+        const vn = vrow ? String(vrow.name_ar || vrow.name_en || "").trim() : "";
+        const cmp = vrow?.public_vendor_code != null ? String(vrow.public_vendor_code).trim() : "";
+        await notifyAdminsVendorContactPush({
+          title: "طلب إعلان جديد — بوابة المشترك",
+          body: `${vn || "شركة"}${cmp ? ` (${cmp})` : ""} — ${t}${notes ? `. ملاحظات: ${notes.slice(0, 120)}${notes.length > 120 ? "…" : ""}` : ""}. راجع لوحة الإدارة: إضافة شركة → طلبات الإعلانات.`,
+          url: "/admin",
+        });
+      } catch (_e) {
+        /* push اختياري */
+      }
       return res.status(201).json(row);
-    } catch (_e) {
+    } catch (e) {
+      console.error("[vendor-portal] ad-requests POST", e);
       return res.status(500).json({ error: "Failed" });
     }
   });
