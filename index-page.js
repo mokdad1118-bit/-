@@ -397,14 +397,19 @@
             const tRaw = payload?.title != null ? String(payload.title).trim() : '';
             const title = tRaw ? tRaw.slice(0, 120) : isRTL ? 'أدورا' : 'Adora';
             const body = String(payload?.message || '').slice(0, 300);
+            const origin = window.location.origin;
             const opts = {
                 body,
-                icon: `${window.location.origin}/icons/adora-icon.svg`,
+                icon: `${origin}/icons/adora-icon.png`,
+                badge: `${origin}/icons/adora-badge.png`,
                 tag: `adora-${payload?.id || 'msg'}`,
                 data: { url: resolveNotificationOpenUrl(payload?.link_url) },
                 silent: false,
             };
-            if (payload?.image_url && /^https:\/\//i.test(payload.image_url)) opts.image = payload.image_url;
+            opts.image =
+                payload?.image_url && /^https:\/\//i.test(payload.image_url)
+                    ? payload.image_url
+                    : `${origin}/icons/adora-image.png`;
             try {
                 const n = new Notification(title, opts);
                 n.onclick = () => {

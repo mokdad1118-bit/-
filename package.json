@@ -10,7 +10,8 @@
     "build:css": "tailwindcss -i ./tailwind.input.css -o ./tailwind.bundle.css --minify",
     "build:css:admin": "tailwindcss -i ./tailwind.input.css -o ./tailwind.admin.bundle.css --minify -c ./tailwind.admin.config.js",
     "build:netlify": "node scripts/write-adora-config.cjs",
-    "migrate:sqlite-to-pg": "node scripts/migrate-sqlite-to-pg.cjs"
+    "migrate:sqlite-to-pg": "node scripts/migrate-sqlite-to-pg.cjs",
+    "icons:notifications": "node scripts/generate-adora-notification-icons.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^6.4.0",
     "eslint": "^8.57.0",
+    "sharp": "^0.34.5",
     "sqlite3": "^5.1.7"
   }
 }

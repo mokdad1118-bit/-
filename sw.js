@@ -16,8 +16,19 @@ self.addEventListener("activate", (e) => {
   );
 });
 
+const ADORA_PUSH_ICON = "/icons/adora-icon.png";
+const ADORA_PUSH_BADGE = "/icons/adora-badge.png";
+const ADORA_PUSH_IMAGE = "/icons/adora-image.png";
+
 self.addEventListener("push", (event) => {
-  let data = { title: "Adora", body: "", url: "/", icon: "/icons/adora-icon.svg" };
+  let data = {
+    title: "Adora",
+    body: "",
+    url: "/",
+    icon: ADORA_PUSH_ICON,
+    badge: ADORA_PUSH_BADGE,
+    image: ADORA_PUSH_IMAGE,
+  };
   try {
     const j = event.data && event.data.json();
     if (j && typeof j === "object") Object.assign(data, j);
@@ -25,11 +36,13 @@ self.addEventListener("push", (event) => {
     if (event.data) data.body = String(event.data.text());
   }
   const title = data.title || "Adora";
-  const icon = data.icon || "/icons/adora-icon.svg";
+  const icon = data.icon || ADORA_PUSH_ICON;
+  const richImage = data.image != null && String(data.image).trim() ? String(data.image).trim() : ADORA_PUSH_IMAGE;
   const options = {
     body: (data.body || "").slice(0, 500),
     icon,
-    badge: data.badge || icon,
+    badge: data.badge || ADORA_PUSH_BADGE,
+    image: richImage,
     data: { url: typeof data.url === "string" && data.url ? data.url : "/" },
     tag: data.tag || "adora",
     renotify: true,
@@ -38,7 +51,6 @@ self.addEventListener("push", (event) => {
     timestamp: Date.now(),
     vibrate: [180, 80, 120],
   };
-  if (data.image) options.image = data.image;
   event.waitUntil(self.registration.showNotification(title, options));
 });
 

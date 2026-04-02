@@ -131,9 +131,12 @@ async function getEligibleSubscriptionRowsBroadcast() {
 function buildPushPayloadFromRow(row) {
   const img = row.image_url ? sanitizeHttpsUrl(row.image_url) : null;
   const base = getPublicAssetBase();
-  const iconPath = "/icons/adora-icon.svg";
+  const iconPath = "/icons/adora-icon.png";
+  const badgePath = "/icons/adora-badge.png";
+  const defaultBannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
-  const badge = icon;
+  const badge = base ? `${base}${badgePath}` : badgePath;
+  const defaultBanner = base ? `${base}${defaultBannerPath}` : defaultBannerPath;
   const titleRaw = row.title != null && String(row.title).trim() ? String(row.title).trim() : "";
   const title = titleRaw.slice(0, 120) || "Adora";
   return {
@@ -143,7 +146,7 @@ function buildPushPayloadFromRow(row) {
     url: resolvePushOpenUrl(row.link_url),
     icon,
     badge,
-    image: img || undefined,
+    image: img || defaultBanner,
   };
 }
 
@@ -178,8 +181,12 @@ async function notifyVendorPortalPush(vendorId, { title, body, url }) {
   const rows = await getVendorPushSubscriptionRows(vendorId);
   if (!rows.length) return;
   const base = getPublicAssetBase();
-  const iconPath = "/icons/adora-icon.svg";
+  const iconPath = "/icons/adora-icon.png";
+  const badgePath = "/icons/adora-badge.png";
+  const bannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
+  const badge = base ? `${base}${badgePath}` : badgePath;
+  const image = base ? `${base}${bannerPath}` : bannerPath;
   const openPath =
     typeof url === "string" && url.trim()
       ? resolvePushOpenUrl(url.trim())
@@ -190,7 +197,8 @@ async function notifyVendorPortalPush(vendorId, { title, body, url }) {
     tag: `adora-vendor-${vendorId}-${Date.now()}`,
     url: openPath,
     icon,
-    badge: icon,
+    badge,
+    image,
   };
   await sendWebPushToSubscriptions(rows, payload, removeDeadVendorPushSubscription);
 }
@@ -211,8 +219,12 @@ async function notifyAdminsVendorContactPush({ title, body, url }) {
   const rows = await getAdminPushSubscriptionRows();
   if (!rows.length) return;
   const base = getPublicAssetBase();
-  const iconPath = "/icons/adora-icon.svg";
+  const iconPath = "/icons/adora-icon.png";
+  const badgePath = "/icons/adora-badge.png";
+  const bannerPath = "/icons/adora-image.png";
   const icon = base ? `${base}${iconPath}` : iconPath;
+  const badge = base ? `${base}${badgePath}` : badgePath;
+  const image = base ? `${base}${bannerPath}` : bannerPath;
   const openPath =
     typeof url === "string" && url.trim() ? resolvePushOpenUrl(url.trim()) : "/admin";
   const payload = {
@@ -221,7 +233,8 @@ async function notifyAdminsVendorContactPush({ title, body, url }) {
     tag: `adora-admin-vc-${Date.now()}`,
     url: openPath,
     icon,
-    badge: icon,
+    badge,
+    image,
   };
   await sendWebPushToSubscriptions(rows, payload);
 }
