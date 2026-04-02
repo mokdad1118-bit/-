@@ -2421,18 +2421,43 @@
         }
 
         async function handleLogin() {
-            const phone = document.getElementById('auth-phone-login').value.trim();
+            const raw = document.getElementById('auth-phone-login').value.trim();
             const password = document.getElementById('auth-password-login').value;
+            const showLoginErr = (t) => openAuthModal('login', t);
+            if (!raw || !password) {
+                showLoginErr(
+                    isRTL ? 'أدخل البريد أو رقم الهاتف وكلمة المرور' : 'Enter your email or phone and password'
+                );
+                return;
+            }
+            const digitsOnly = raw.replace(/\D/g, '');
+            const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+            const looksLikePhone = digitsOnly.length >= 8;
+            if (!looksLikeEmail && !looksLikePhone) {
+                showLoginErr(
+                    isRTL
+                        ? 'أدخل البريد الإلكتروني كاملاً (مثل name@example.com) أو رقم الهاتف (8 أرقام على الأقل). لا يمكن تسجيل الدخول باسم مختصر فقط.'
+                        : 'Use your full email (e.g. name@example.com) or phone number (8+ digits). Short names alone cannot sign in.'
+                );
+                return;
+            }
             try {
                 const data = await apiFetch('/api/auth/login', {
                     method: 'POST',
                     requireAuth: false,
-                    body: { phone, password },
+                    body: { phone: raw, password },
                 });
                 setStoredJwtToken(data.token);
                 await completeAuthTransitionToApp(afterAuthLoginSuccess);
             } catch (e) {
-                openAuthModal('login', isRTL ? `فشل تسجيل الدخول: ${e.message}` : `Login failed: ${e.message}`);
+                const m = e && e.message ? String(e.message) : '';
+                const friendly =
+                    m === 'Invalid credentials'
+                        ? isRTL
+                            ? 'البريد/الهاتف أو كلمة المرور غير صحيحة. جرّب البريد كاملاً أو نفس رقم واتساب الذي سجّلت به.'
+                            : 'Wrong email/phone or password. Use the full email or the phone number you signed up with.'
+                        : m;
+                showLoginErr(isRTL ? `فشل تسجيل الدخول: ${friendly}` : `Login failed: ${friendly}`);
             }
         }
 
