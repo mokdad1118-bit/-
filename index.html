@@ -4553,9 +4553,15 @@
             pointer-events: none;
             z-index: 0;
         }
-        /* شريط جانبي على الكمبيوتر — المحتوى داخل عمود موبايل 428px فقط */
+        .auth-mobile-viewport > .auth-particles-canvas {
+            z-index: 1;
+        }
+        .auth-mobile-viewport > .auth-cosmos-stars {
+            z-index: 0;
+        }
+        /* شريط جانبي على الكمبيوتر — محيط بنفسجي فاتح يتماشى مع خلفية البوابة */
         .auth-screen-letterbox {
-            background: #06040f !important;
+            background: linear-gradient(160deg, #ede9fe 0%, #ddd6fe 40%, #e9d5ff 100%) !important;
             flex-direction: row;
             align-items: stretch;
             justify-content: center;
@@ -4571,17 +4577,127 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 80px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 0 70px rgba(91, 33, 182, 0.18);
         }
-        .auth-gate-screen .auth-mobile-viewport {
-            background: radial-gradient(ellipse 120% 80% at 50% 20%, rgba(76, 29, 149, 0.45) 0%, transparent 55%),
-                radial-gradient(ellipse 90% 60% at 80% 90%, rgba(139, 92, 246, 0.25) 0%, transparent 45%),
-                linear-gradient(180deg, #0c0218 0%, #1e0b3a 45%, #0f0524 100%);
-        }
+        /* خلفية كونية: بنفسجي فاتح + طبقات موجية ونقاط */
+        .auth-gate-screen .auth-mobile-viewport,
         #auth-modal .auth-mobile-viewport {
-            background: radial-gradient(ellipse 100% 70% at 50% -10%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
-                radial-gradient(ellipse 80% 50% at 100% 100%, rgba(167, 139, 250, 0.2) 0%, transparent 50%),
-                linear-gradient(165deg, #070212 0%, #1a0a2e 50%, #0b0618 100%);
+            background:
+                radial-gradient(ellipse 85% 55% at 50% 0%, rgba(167, 139, 250, 0.35) 0%, transparent 58%),
+                radial-gradient(ellipse 70% 50% at 100% 100%, rgba(196, 181, 253, 0.45) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 45% at 0% 85%, rgba(221, 214, 254, 0.9) 0%, transparent 55%),
+                linear-gradient(168deg, #faf5ff 0%, #f3e8ff 38%, #ede9fe 72%, #e9d5ff 100%);
+        }
+        .auth-gate-screen .auth-mobile-viewport::before,
+        #auth-modal .auth-mobile-viewport::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.85;
+            background-image:
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 48' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%237c3aed' stroke-opacity='0.11' stroke-width='1.2' d='M0 28c12-10 24-10 36 0s24 10 36 0 24-10 36 0 24 10 36 0'/%3E%3Cpath fill='none' stroke='%235b21b6' stroke-opacity='0.09' stroke-width='1' d='M0 14c18 12 36 12 54 0s36-12 54 0 36 12 54 0'/%3E%3C/svg%3E"),
+                radial-gradient(circle at 8% 12%, rgba(91, 33, 182, 0.14) 0%, transparent 2.5px),
+                radial-gradient(circle at 22% 38%, rgba(109, 40, 217, 0.12) 0%, transparent 2px),
+                radial-gradient(circle at 41% 18%, rgba(91, 33, 182, 0.16) 0%, transparent 2.2px),
+                radial-gradient(circle at 58% 52%, rgba(124, 58, 237, 0.13) 0%, transparent 2px),
+                radial-gradient(circle at 73% 28%, rgba(91, 33, 182, 0.15) 0%, transparent 2.4px),
+                radial-gradient(circle at 88% 44%, rgba(109, 40, 217, 0.12) 0%, transparent 2px),
+                radial-gradient(circle at 15% 72%, rgba(124, 58, 237, 0.11) 0%, transparent 2.3px),
+                radial-gradient(circle at 35% 88%, rgba(91, 33, 182, 0.14) 0%, transparent 2px),
+                radial-gradient(circle at 52% 76%, rgba(109, 40, 217, 0.12) 0%, transparent 2.1px),
+                radial-gradient(circle at 68% 92%, rgba(91, 33, 182, 0.13) 0%, transparent 2px),
+                radial-gradient(circle at 92% 78%, rgba(124, 58, 237, 0.11) 0%, transparent 2.2px),
+                radial-gradient(circle at 6% 55%, rgba(91, 33, 182, 0.1) 0%, transparent 1.8px),
+                radial-gradient(circle at 95% 12%, rgba(109, 40, 217, 0.13) 0%, transparent 2px);
+            background-size:
+                144px 48px,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%,
+                100% 100%;
+            background-repeat: repeat-x, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+            animation: authWavesDrift 28s linear infinite;
+        }
+        @keyframes authWavesDrift {
+            to { background-position: 144px 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+        }
+        .auth-cosmos-stars {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .auth-cosmos-stars::before,
+        .auth-cosmos-stars::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+        }
+        .auth-cosmos-stars::before {
+            background-image:
+                radial-gradient(1.4px 1.4px at 11% 17%, rgba(91, 33, 182, 0.85), transparent),
+                radial-gradient(1px 1px at 27% 61%, rgba(124, 58, 237, 0.7), transparent),
+                radial-gradient(1.2px 1.2px at 44% 33%, rgba(91, 33, 182, 0.75), transparent),
+                radial-gradient(1px 1px at 63% 74%, rgba(109, 40, 217, 0.8), transparent),
+                radial-gradient(1.5px 1.5px at 78% 22%, rgba(91, 33, 182, 0.9), transparent),
+                radial-gradient(1px 1px at 89% 56%, rgba(124, 58, 237, 0.65), transparent),
+                radial-gradient(1.2px 1.2px at 18% 84%, rgba(109, 40, 217, 0.72), transparent),
+                radial-gradient(1px 1px at 51% 11%, rgba(91, 33, 182, 0.78), transparent),
+                radial-gradient(1.3px 1.3px at 36% 48%, rgba(124, 58, 237, 0.68), transparent),
+                radial-gradient(1px 1px at 71% 91%, rgba(91, 33, 182, 0.7), transparent),
+                radial-gradient(1.2px 1.2px at 84% 39%, rgba(109, 40, 217, 0.75), transparent),
+                radial-gradient(1px 1px at 5% 42%, rgba(124, 58, 237, 0.65), transparent),
+                radial-gradient(1.4px 1.4px at 96% 68%, rgba(91, 33, 182, 0.8), transparent);
+            animation: authStarTwinkleA 4.2s ease-in-out infinite;
+        }
+        .auth-cosmos-stars::after {
+            background-image:
+                radial-gradient(1px 1px at 19% 29%, rgba(124, 58, 237, 0.7), transparent),
+                radial-gradient(1.3px 1.3px at 48% 63%, rgba(91, 33, 182, 0.82), transparent),
+                radial-gradient(1px 1px at 66% 18%, rgba(109, 40, 217, 0.68), transparent),
+                radial-gradient(1.2px 1.2px at 31% 79%, rgba(91, 33, 182, 0.76), transparent),
+                radial-gradient(1px 1px at 56% 41%, rgba(124, 58, 237, 0.72), transparent),
+                radial-gradient(1.4px 1.4px at 74% 58%, rgba(91, 33, 182, 0.88), transparent),
+                radial-gradient(1px 1px at 92% 14%, rgba(109, 40, 217, 0.66), transparent),
+                radial-gradient(1.2px 1.2px at 8% 73%, rgba(124, 58, 237, 0.74), transparent),
+                radial-gradient(1px 1px at 41% 88%, rgba(91, 33, 182, 0.7), transparent),
+                radial-gradient(1.3px 1.3px at 59% 7%, rgba(109, 40, 217, 0.8), transparent);
+            animation: authStarTwinkleB 5.5s ease-in-out infinite;
+            animation-delay: -2.2s;
+        }
+        @keyframes authStarTwinkleA {
+            0%, 100% { opacity: 0.35; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-3px); }
+        }
+        @keyframes authStarTwinkleB {
+            0%, 100% { opacity: 0.45; transform: translateY(0) scale(1); }
+            45% { opacity: 0.95; transform: translateY(2px) scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .auth-gate-screen .auth-mobile-viewport::before,
+            #auth-modal .auth-mobile-viewport::before {
+                animation: none !important;
+                background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0 !important;
+            }
+            .auth-cosmos-stars::before,
+            .auth-cosmos-stars::after {
+                animation: none !important;
+                opacity: 0.75 !important;
+                transform: none !important;
+            }
         }
         .auth-gate-screen .auth-mobile-frame {
             background: transparent;
@@ -4593,11 +4709,19 @@
             font-weight: 800;
             font-size: clamp(2.25rem, 8vw, 2.75rem);
             letter-spacing: 0.12em;
-            background: linear-gradient(135deg, #faf5ff 0%, #e9d5ff 40%, #c4b5fd 100%);
+            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 42%, #7c3aed 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            filter: drop-shadow(0 0 24px rgba(167, 139, 250, 0.45));
+            filter: drop-shadow(0 2px 14px rgba(91, 33, 182, 0.22));
+        }
+        .auth-gate-tagline {
+            color: rgba(76, 29, 149, 0.88) !important;
+        }
+        .auth-gate-hint {
+            color: rgba(91, 33, 182, 0.92) !important;
+            font-weight: 600;
+            line-height: 1.5;
         }
         .auth-gate-btn {
             position: relative;
@@ -4631,43 +4755,45 @@
         .adora-auth-glass {
             position: relative;
             z-index: 2;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
-            backdrop-filter: blur(22px) saturate(1.35);
-            -webkit-backdrop-filter: blur(22px) saturate(1.35);
-            border-left: 1px solid rgba(255, 255, 255, 0.14);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12) inset, 0 25px 50px -12px rgba(49, 21, 96, 0.55);
+            background: linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(250, 245, 255, 0.9) 55%, rgba(237, 233, 254, 0.88) 100%) !important;
+            backdrop-filter: blur(18px) saturate(1.2);
+            -webkit-backdrop-filter: blur(18px) saturate(1.2);
+            border-left: 1px solid rgba(124, 58, 237, 0.14);
+            border-right: 1px solid rgba(124, 58, 237, 0.1);
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.65) inset,
+                0 24px 48px -12px rgba(91, 33, 182, 0.18);
         }
         .adora-auth-glass .border-gray-100 {
-            border-color: rgba(255, 255, 255, 0.1) !important;
+            border-color: rgba(124, 58, 237, 0.12) !important;
         }
         .adora-auth-label {
-            color: rgba(255, 255, 255, 0.82) !important;
+            color: rgba(76, 29, 149, 0.92) !important;
         }
         .adora-auth-muted {
-            color: rgba(196, 181, 253, 0.75) !important;
+            color: rgba(109, 40, 217, 0.65) !important;
         }
         .adora-auth-glass .adora-auth-oauth-divider-label {
-            color: rgba(255, 255, 255, 0.88) !important;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+            color: rgba(91, 33, 182, 0.78) !important;
+            text-shadow: none;
         }
         .adora-auth-input {
             width: 100%;
             margin-top: 0.25rem;
             padding: 0.85rem 1rem;
             border-radius: 1rem;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            color: #faf5ff;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(124, 58, 237, 0.22);
+            color: #1e1b4b;
             outline: none;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .adora-auth-input::placeholder {
-            color: rgba(255, 255, 255, 0.35);
+            color: rgba(91, 33, 182, 0.35);
         }
         .adora-auth-input:focus {
-            border-color: rgba(167, 139, 250, 0.65);
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 0 24px rgba(167, 139, 250, 0.15);
+            border-color: rgba(124, 58, 237, 0.55);
+            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.28), 0 0 20px rgba(124, 58, 237, 0.12);
         }
         .auth-field-enter {
             animation: adoraFieldIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -4701,14 +4827,6 @@
         .adora-auth-primary-btn:hover {
             box-shadow: 0 6px 28px rgba(109, 40, 217, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
-        /* رسائل التحقق / الأخطاء في نافذة الحساب — وضوح على الخلفية الزجاجية */
-        #auth-message:not(.hidden) {
-            color: #fffefc;
-            background: rgba(251, 191, 36, 0.22);
-            border: 1px solid rgba(253, 224, 71, 0.45);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-        }
-
         .adora-auth-primary-btn:active {
             transform: scale(0.98);
         }
@@ -4724,20 +4842,25 @@
             opacity: 0.92;
         }
         .adora-auth-ghost-btn {
-            color: rgba(255, 255, 255, 0.55) !important;
+            color: rgba(91, 33, 182, 0.65) !important;
+        }
+        .adora-auth-ghost-btn:hover {
+            color: rgba(76, 29, 149, 0.92) !important;
         }
         .adora-auth-close {
-            color: rgba(255, 255, 255, 0.45) !important;
+            color: rgba(109, 40, 217, 0.55) !important;
         }
         .adora-auth-close:hover {
-            color: rgba(255, 255, 255, 0.85) !important;
+            color: rgba(76, 29, 149, 0.92) !important;
         }
+        /* رسائل الأخطاء — وضوح على البطاقة الفاتحة */
         #auth-message:not(.hidden) {
-            color: rgba(254, 202, 202, 0.95) !important;
-            background: rgba(127, 29, 29, 0.25);
-            border: 1px solid rgba(248, 113, 113, 0.35);
+            color: #7f1d1d !important;
+            background: rgba(254, 226, 226, 0.9);
+            border: 1px solid rgba(248, 113, 113, 0.45);
             border-radius: 0.75rem;
             padding: 0.65rem 0.75rem;
+            box-shadow: 0 4px 16px rgba(91, 33, 182, 0.06);
         }
         #app-shell.app-shell--entering {
             opacity: 0;
@@ -4948,19 +5071,20 @@
     <div id="auth-gate-screen" class="auth-gate-screen auth-screen-letterbox fixed inset-0 z-[9990] hidden flex justify-center items-stretch">
         <div class="auth-mobile-viewport" onclick="event.stopPropagation()">
         <canvas id="auth-gate-particles-canvas" class="auth-particles-canvas" aria-hidden="true"></canvas>
+        <div class="auth-cosmos-stars" aria-hidden="true"></div>
         <div class="auth-mobile-frame flex flex-col items-center justify-between text-center w-full flex-1 min-h-0 relative z-[2]">
             <div class="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto min-h-0 py-6">
                 <div class="auth-gate-hero auth-card-enter w-full flex flex-col items-center px-2">
                     <div class="auth-gate-hero-logo mb-1">Adora</div>
-                    <p class="text-violet-200/90 text-sm px-3 text-center leading-relaxed font-semibold mb-4 max-w-sm" dir="auto" data-en="Adora — a world of products at your fingertips 🌍" data-ar="Adora — عالم من المنتجات بين يديك 🌍">Adora — عالم من المنتجات بين يديك 🌍</p>
-                    <p class="text-violet-100/80 text-sm px-2 text-center leading-relaxed max-w-xs" data-en="Choose below: sign in or create a new account." data-ar="اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.">اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.</p>
+                    <p class="auth-gate-tagline text-sm px-3 text-center leading-relaxed font-semibold mb-2 max-w-sm" dir="auto" data-en="Adora — a world of products at your fingertips 🌍" data-ar="Adora — عالم من المنتجات بين يديك 🌍">Adora — عالم من المنتجات بين يديك 🌍</p>
                 </div>
             </div>
             <div class="w-full max-w-sm space-y-3 pb-4">
-                <button type="button" onclick="openAuthFromGate('login')" class="auth-gate-btn w-full py-4 rounded-2xl bg-white/95 text-violet-800 font-bold shadow-xl shadow-violet-950/40 border border-white/50">
+                <p class="auth-gate-hint text-sm px-3 text-center max-w-xs mx-auto" data-en="Choose below: sign in or create a new account." data-ar="اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.">اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.</p>
+                <button type="button" onclick="openAuthFromGate('login')" class="auth-gate-btn w-full py-4 rounded-2xl bg-white/95 text-violet-800 font-bold shadow-xl shadow-violet-900/15 border border-violet-200/80">
                     <span data-en="Login" data-ar="تسجيل الدخول">تسجيل الدخول</span>
                 </button>
-                <button type="button" onclick="openAuthFromGate('signup')" class="auth-gate-btn w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold border border-violet-400/50 shadow-lg shadow-violet-900/50">
+                <button type="button" onclick="openAuthFromGate('signup')" class="auth-gate-btn w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold border border-violet-500/40 shadow-lg shadow-violet-600/25">
                     <span data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</span>
                 </button>
             </div>
@@ -4972,15 +5096,16 @@
     <div id="auth-modal" class="auth-modal-root auth-screen-letterbox fixed inset-0 z-[9996] hidden flex justify-center items-stretch" onclick="closeAuthModal()">
         <div class="auth-mobile-viewport" onclick="event.stopPropagation()">
         <canvas id="auth-modal-particles-canvas" class="auth-particles-canvas" aria-hidden="true"></canvas>
+        <div class="auth-cosmos-stars" aria-hidden="true"></div>
         <div class="auth-modal-sheet adora-auth-glass auth-card-enter relative z-[2]" onclick="event.stopPropagation()">
             <div class="flex-shrink-0 flex justify-between items-start px-4 pt-4 pb-3 border-b border-gray-100">
                 <div>
                     <p class="text-[10px] tracking-[0.4em] uppercase adora-auth-muted" data-en="Account" data-ar="الحساب">Account</p>
-                    <h3 class="text-lg font-bold text-white hidden" id="auth-modal-heading-login" data-en="Sign in" data-ar="تسجيل الدخول">تسجيل الدخول</h3>
-                    <h3 class="text-lg font-bold text-white" id="auth-modal-heading-signup" data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</h3>
+                    <h3 class="text-lg font-bold text-violet-900 hidden" id="auth-modal-heading-login" data-en="Sign in" data-ar="تسجيل الدخول">تسجيل الدخول</h3>
+                    <h3 class="text-lg font-bold text-violet-900" id="auth-modal-heading-signup" data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</h3>
                 </div>
-                <button type="button" class="adora-auth-close p-1 -m-1 rounded-lg hover:bg-white/10" aria-label="Close" onclick="closeAuthModal()">
-                    <i class="fas fa-times text-lg"></i>
+                <button type="button" class="adora-auth-close p-1 -m-1 rounded-lg hover:bg-violet-100/80" aria-label="Close" onclick="closeAuthModal()">
+                    <i class="fas fa-times text-lg text-violet-700"></i>
                 </button>
             </div>
 
@@ -4993,10 +5118,10 @@
                         <button type="button" id="auth-apple-btn-login" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign in with Apple" data-ar="تسجيل الدخول مع Apple">
                             <i class="fab fa-apple text-lg"></i><span>Apple</span>
                         </button>
-                        <div class="flex items-center gap-2 opacity-75 pt-1">
-                            <hr class="flex-1 border-white/20" />
+                        <div class="flex items-center gap-2 opacity-90 pt-1">
+                            <hr class="flex-1 border-violet-200" />
                             <span class="adora-auth-oauth-divider-label text-[11px] whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد/الهاتف">أو بالبريد/الهاتف</span>
-                            <hr class="flex-1 border-white/20" />
+                            <hr class="flex-1 border-violet-200" />
                         </div>
                     </div>
                     <div id="auth-login-form-block">
@@ -5015,16 +5140,16 @@
                         </button>
                     </form>
                     <p class="text-center pt-1">
-                        <button type="button" onclick="showAuthForgotPasswordFlow()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 block w-full" data-en="Forgot password?" data-ar="نسيت كلمة المرور؟">نسيت كلمة المرور؟</button>
+                        <button type="button" onclick="showAuthForgotPasswordFlow()" class="text-sm font-semibold text-amber-700 hover:text-amber-900 underline underline-offset-2 block w-full" data-en="Forgot password?" data-ar="نسيت كلمة المرور؟">نسيت كلمة المرور؟</button>
                     </p>
                     <p class="text-center pt-1">
-                        <button type="button" onclick="setAuthMode('signup')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="No account? Create one" data-ar="ليس لديك حساب؟ أنشئ حساباً">ليس لديك حساب؟ أنشئ حساباً</button>
+                        <button type="button" onclick="setAuthMode('signup')" class="text-sm font-semibold text-violet-700 hover:text-violet-950 underline underline-offset-2" data-en="No account? Create one" data-ar="ليس لديك حساب؟ أنشئ حساباً">ليس لديك حساب؟ أنشئ حساباً</button>
                     </p>
                     </div>
 
                     <div id="auth-forgot-flow" class="space-y-4 hidden">
                         <div id="auth-forgot-step-email" class="space-y-3">
-                            <p class="text-sm text-white/95 leading-relaxed text-center" data-en="Enter your account email. We will send a 6-digit code (valid 5 minutes)." data-ar="أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).">أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).</p>
+                            <p class="text-sm text-violet-900 leading-relaxed text-center" data-en="Enter your account email. We will send a 6-digit code (valid 5 minutes)." data-ar="أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).">أدخل البريد المسجّل في حسابك. سنرسل رمزاً من 6 أرقام (صالح 5 دقائق).</p>
                             <div>
                                 <label class="text-sm font-semibold adora-auth-label" data-en="Email" data-ar="البريد الإلكتروني">البريد الإلكتروني</label>
                                 <input id="auth-forgot-email" type="email" class="adora-auth-input" inputmode="email" autocomplete="email" data-en-placeholder="you@example.com" data-ar-placeholder="you@example.com" placeholder="" />
@@ -5032,11 +5157,11 @@
                             <button type="button" onclick="handleForgotPasswordRequestCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold w-full">
                                 <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
                             </button>
-                            <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="w-full py-2 text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
+                            <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="w-full py-2 text-sm font-semibold text-violet-700 hover:text-violet-950 underline underline-offset-2" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
                         </div>
                         <div id="auth-forgot-step-otp" class="space-y-3 hidden">
-                            <p class="text-sm text-white/95 leading-relaxed text-center" data-en="Enter the code and your new password." data-ar="أدخل الرمز وكلمة المرور الجديدة.">أدخل الرمز وكلمة المرور الجديدة.</p>
-                            <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-forgot-otp-email-display"></p>
+                            <p class="text-sm text-violet-900 leading-relaxed text-center" data-en="Enter the code and your new password." data-ar="أدخل الرمز وكلمة المرور الجديدة.">أدخل الرمز وكلمة المرور الجديدة.</p>
+                            <p class="text-center text-xs text-violet-800 font-mono font-semibold break-all" id="auth-forgot-otp-email-display"></p>
                             <div>
                                 <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
                                 <input id="auth-forgot-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
@@ -5053,10 +5178,10 @@
                                 <span data-en="Reset password & sign in" data-ar="تغيير كلمة المرور والدخول">تغيير كلمة المرور والدخول</span>
                             </button>
                             <div class="flex flex-col items-center gap-2">
-                                <button type="button" id="auth-forgot-resend-btn" onclick="handleForgotPasswordResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                                <button type="button" id="auth-forgot-resend-btn" onclick="handleForgotPasswordResendCode()" class="text-sm font-semibold text-amber-700 hover:text-amber-900 underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
                                     <span id="auth-forgot-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
                                 </button>
-                                <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="text-xs text-white/80 hover:text-white" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
+                                <button type="button" onclick="cancelAuthForgotPasswordFlow()" class="text-xs text-violet-600 hover:text-violet-900" data-en="Cancel" data-ar="إلغاء">إلغاء</button>
                             </div>
                         </div>
                     </div>
@@ -5068,10 +5193,10 @@
                         <button type="button" id="auth-apple-btn-signup" onclick="adoraAppleSignIn()" class="hidden adora-auth-apple-btn w-full h-12 rounded-2xl font-bold text-sm flex items-center justify-center gap-2" data-en="Sign up with Apple" data-ar="إنشاء حساب مع Apple">
                             <i class="fab fa-apple text-lg"></i><span>Apple</span>
                         </button>
-                        <div class="flex items-center gap-2 opacity-75 pt-1">
-                            <hr class="flex-1 border-white/20" />
+                        <div class="flex items-center gap-2 opacity-90 pt-1">
+                            <hr class="flex-1 border-violet-200" />
                             <span class="adora-auth-oauth-divider-label text-[11px] whitespace-nowrap" data-en="or with email" data-ar="أو بالبريد الإلكتروني">أو بالبريد الإلكتروني</span>
-                            <hr class="flex-1 border-white/20" />
+                            <hr class="flex-1 border-violet-200" />
                         </div>
                     </div>
                     <form id="auth-form-signup" class="space-y-3">
@@ -5091,19 +5216,19 @@
                             <label class="text-sm font-semibold adora-auth-label" data-en="Password" data-ar="كلمة المرور">Password</label>
                             <input id="auth-password" type="password" class="adora-auth-input" autocomplete="new-password" placeholder="••••••••" />
                         </div>
-                        <p class="text-[11px] text-violet-200/90 leading-relaxed" data-en="We will email you a 6-digit code (valid 5 minutes). Not required again after you sign up." data-ar="سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.">سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.</p>
+                        <p class="text-[11px] text-violet-700 leading-relaxed" data-en="We will email you a 6-digit code (valid 5 minutes). Not required again after you sign up." data-ar="سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.">سنرسل لك رمزاً مكوّناً من 6 أرقام على بريدك (صالح 5 دقائق). لا يُطلب مرة أخرى بعد إنشاء الحساب.</p>
                         <button type="button" onclick="handleSignupSendCode()" class="adora-auth-primary-btn h-12 rounded-2xl font-bold flex items-center justify-center gap-2 auth-field-enter" style="animation-delay: 0.2s">
                             <i class="fas fa-envelope"></i>
                             <span data-en="Send verification code" data-ar="إرسال رمز التحقق">إرسال رمز التحقق</span>
                         </button>
                         <p class="text-center pt-1">
-                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2" data-en="Already have an account? Sign in" data-ar="لديك حساب؟ سجّل الدخول">لديك حساب؟ سجّل الدخول</button>
+                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-700 hover:text-violet-950 underline underline-offset-2" data-en="Already have an account? Sign in" data-ar="لديك حساب؟ سجّل الدخول">لديك حساب؟ سجّل الدخول</button>
                         </p>
                     </form>
 
                     <div id="auth-signup-otp-panel" class="space-y-4 hidden">
-                        <p class="text-sm text-white/95 leading-relaxed text-center drop-shadow-sm" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
-                        <p class="text-center text-xs text-white/85 font-mono font-semibold break-all" id="auth-signup-otp-email-display"></p>
+                        <p class="text-sm text-violet-900 leading-relaxed text-center" data-en="Enter the code we sent to your email." data-ar="أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.">أدخل الرمز الذي أرسلناه إلى بريدك الإلكتروني.</p>
+                        <p class="text-center text-xs text-violet-800 font-mono font-semibold break-all" id="auth-signup-otp-email-display"></p>
                         <div>
                             <label class="text-sm font-semibold adora-auth-label text-center block" data-en="Verification code" data-ar="رمز التحقق">رمز التحقق</label>
                             <input id="auth-signup-otp-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" class="adora-auth-input text-center text-2xl tracking-[0.4em] font-bold font-mono" placeholder="••••••" />
@@ -5112,13 +5237,13 @@
                             <span data-en="Verify & create account" data-ar="تأكيد وإنشاء الحساب">تأكيد وإنشاء الحساب</span>
                         </button>
                         <div class="flex flex-col items-center gap-2">
-                            <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-amber-100 hover:text-white underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
+                            <button type="button" id="auth-signup-resend-btn" onclick="handleSignupResendCode()" class="text-sm font-semibold text-amber-700 hover:text-amber-900 underline underline-offset-2 disabled:opacity-40 disabled:pointer-events-none">
                                 <span id="auth-signup-resend-label" data-en="Resend code" data-ar="إعادة إرسال الرمز">إعادة إرسال الرمز</span>
                             </button>
-                            <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-white/80 hover:text-white">
+                            <button type="button" onclick="resetSignupEmailOtpUi()" class="text-xs text-violet-600 hover:text-violet-900">
                                 <span data-en="Change email" data-ar="تغيير البريد">تغيير البريد</span>
                             </button>
-                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-200 hover:text-white underline underline-offset-2 mt-1" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
+                            <button type="button" onclick="setAuthMode('login')" class="text-sm font-semibold text-violet-700 hover:text-violet-950 underline underline-offset-2 mt-1" data-en="Back to sign in" data-ar="العودة لتسجيل الدخول">العودة لتسجيل الدخول</button>
                         </div>
                     </div>
                 </div>
@@ -7434,6 +7559,6 @@
     </div>
 
     <script src="/vendor/panzoom.min.js"></script>
-    <script src="/index-page.js?v=brand-lavender-icons1"></script>
+    <script src="/index-page.js?v=auth-light-cosmos1"></script>
 </body>
 </html>

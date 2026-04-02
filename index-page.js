@@ -1945,7 +1945,7 @@
                 }
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.globalCompositeOperation = 'source-over';
-                ctx.fillStyle = 'rgba(8, 3, 22, 0.2)';
+                ctx.fillStyle = 'rgba(245, 240, 252, 0.32)';
                 ctx.fillRect(0, 0, w, h);
 
                 const cx = w / 2;
