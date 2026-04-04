@@ -1649,11 +1649,72 @@ function vendorSubTermsAcceptedCellHtml(r, ar) {
 
 let orderAccountingUiBound = false;
 
+async function patchOrderAccountingSubscriptionRow(tbody, id, token) {
+  const st = tbody.querySelector(`.oa-sub-status[data-oa-sub-id="${id}"]`)?.value;
+  const msg = tbody.querySelector(`.oa-sub-msg[data-oa-sub-id="${id}"]`)?.value ?? "";
+  return api(`/api/admin/vendor-subscription-requests/${id}`, {
+    method: "PATCH",
+    token,
+    body: { status: st, admin_message: msg },
+  });
+}
+
+async function saveAllOrderAccountingQueueRows() {
+  const tbody = document.getElementById("oa-vsub-tbody");
+  const btn = document.getElementById("btn-oa-queue-save-all");
+  if (!tbody || !btn) return;
+  const ar = getAdminLang() === "ar";
+  const token = getToken();
+  if (!token) {
+    alert(ar ? "يجب تسجيل الدخول." : "Please sign in.");
+    return;
+  }
+  const selects = tbody.querySelectorAll("select.oa-sub-status[data-oa-sub-id]");
+  if (!selects.length) {
+    alert(ar ? "لا صفوف للحفظ." : "No rows to save.");
+    return;
+  }
+  btn.disabled = true;
+  const label = btn.querySelector("span");
+  const prev = label ? label.textContent : "";
+  if (label) label.textContent = ar ? "جاري الحفظ…" : "Saving…";
+  let ok = 0;
+  let fail = 0;
+  const syncData = [];
+  for (const sel of selects) {
+    const id = sel.getAttribute("data-oa-sub-id");
+    if (!id) continue;
+    try {
+      const data = await patchOrderAccountingSubscriptionRow(tbody, id, token);
+      ok += 1;
+      if (data && data.vendor_plan_sync) syncData.push(data);
+    } catch (_e) {
+      fail += 1;
+    }
+  }
+  if (label) label.textContent = prev;
+  btn.disabled = false;
+  for (const d of syncData) {
+    alertVendorSubscriptionPlanSync(d);
+  }
+  if (fail) {
+    alert(ar ? `حُفِظ ${ok} طلباً، وفشل ${fail}.` : `Saved ${ok}, failed ${fail}.`);
+  } else if (ok) {
+    alert(ar ? `تم حفظ ${ok} طلب.` : `Saved ${ok} request(s).`);
+  }
+  loadVendorSubscriptionRequests().catch(() => {});
+  await loadOrderAccountingVendorQueue();
+  refilterOrderAccountingQueueTable();
+}
+
 function bindOrderAccountingListenersOnce() {
   if (orderAccountingUiBound) return;
   orderAccountingUiBound = true;
   document.getElementById("btn-oa-queue-refresh")?.addEventListener("click", () => {
     loadOrderAccountingVendorQueue().catch((e) => alert(e.message || String(e)));
+  });
+  document.getElementById("btn-oa-queue-save-all")?.addEventListener("click", () => {
+    saveAllOrderAccountingQueueRows().catch((e) => alert(e.message || String(e)));
   });
 }
 
@@ -1725,32 +1786,34 @@ async function loadOrderAccountingVendorQueue() {
           : `<div class="text-[11px] max-w-[140px]"><span class="font-mono text-violet-800">${escapeHtml(m.key)}</span>${
               m.title ? `<div class="text-gray-600 mt-0.5 leading-snug">${escapeHtml(m.title)}</div>` : ""
             }</div>`;
-      const docsHtml = `<div class="space-y-1"><p class="text-[10px] text-gray-500 leading-tight">${escapeHtml(vendorSubDocTypeShortLabel(r, ar))}</p>${vendorSubDocLinksCellHtml(r, ar, false)}</div>`;
-      return `<tr class="border-t border-gray-100 align-top">
-        <td class="p-2 font-mono">${r.id}</td>
-        <td class="p-2 whitespace-nowrap text-xs text-gray-600">${escapeHtml(dt)}</td>
-        <td class="p-2 max-w-[120px]">${escapeHtml(r.company_name || "")}</td>
-        <td class="p-2 align-top">${planHtml}</td>
-        <td class="p-2 font-mono text-xs">${escapeHtml(m.commission)}</td>
-        <td class="p-2 font-mono text-xs">${escapeHtml(m.quota)}</td>
-        <td class="p-2 max-w-[130px] truncate text-xs" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
-        <td class="p-2 align-top">${vendorSubTermsAcceptedCellHtml(r, ar)}</td>
-        <td class="p-2 align-top text-[11px]">${docsHtml}</td>
-        <td class="p-2">
-          <select class="w-full text-xs p-1 rounded border border-gray-200 oa-sub-status" data-oa-sub-id="${r.id}">
+      const docsHtml = `<div class="space-y-1"><p class="text-[10px] text-slate-500 leading-tight">${escapeHtml(vendorSubDocTypeShortLabel(r, ar))}</p>${vendorSubDocLinksCellHtml(r, ar, false)}</div>`;
+      const emailFull = escapeHtml(r.email || "");
+      return `<tr class="oa-queue-row align-top transition-colors hover:bg-violet-50/40">
+        <td class="p-3 font-mono text-xs text-violet-900 font-semibold">${r.id}</td>
+        <td class="p-3 whitespace-nowrap text-xs text-slate-600">${escapeHtml(dt)}</td>
+        <td class="p-3 max-w-[10rem] sm:max-w-[12rem] text-xs text-slate-800 whitespace-normal break-words leading-snug">${escapeHtml(r.company_name || "")}</td>
+        <td class="p-3 align-top">${planHtml}</td>
+        <td class="p-3 font-mono text-xs text-slate-800">${escapeHtml(m.commission)}</td>
+        <td class="p-3 font-mono text-xs text-slate-800">${escapeHtml(m.quota)}</td>
+        <td class="p-3 align-top text-xs text-slate-900 min-w-[12rem] max-w-[22rem] whitespace-normal break-all leading-relaxed" dir="ltr">${emailFull || "—"}</td>
+        <td class="p-3 align-top">${vendorSubTermsAcceptedCellHtml(r, ar)}</td>
+        <td class="p-3 align-top text-[11px]">${docsHtml}</td>
+        <td class="p-3 min-w-[9.5rem]">
+          <select class="oa-sub-status w-full text-xs p-2 rounded-xl border border-violet-200/90 bg-white text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400" data-oa-sub-id="${r.id}">
             <option value="pending"${r.status === "pending" ? " selected" : ""}>${stLab.pending}</option>
             <option value="approved"${r.status === "approved" ? " selected" : ""}>${stLab.approved}</option>
             <option value="rejected"${r.status === "rejected" ? " selected" : ""}>${stLab.rejected}</option>
             <option value="incomplete"${r.status === "incomplete" ? " selected" : ""}>${stLab.incomplete}</option>
           </select>
         </td>
-        <td class="p-2 min-w-[200px] space-y-1">
-          <textarea class="w-full text-xs p-1 rounded border border-gray-200 oa-sub-msg" data-oa-sub-id="${r.id}" rows="2" placeholder="${
+        <td class="p-3 min-w-[220px] space-y-2">
+          <textarea class="oa-sub-msg w-full text-xs p-2 rounded-xl border border-violet-200/90 bg-white text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400" data-oa-sub-id="${r.id}" rows="2" placeholder="${
             ar ? "ملاحظة محاسبة / متابعة" : "Accounting / follow-up note"
           }">${escapeHtml(r.admin_message || "")}</textarea>
-          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-slate-700 text-white oa-sub-save" data-oa-sub-id="${r.id}">${
-            ar ? "حفظ" : "Save"
-          }</button>
+          <button type="button" class="oa-sub-save inline-flex w-full items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-gradient-to-l from-violet-600 to-indigo-600 text-white font-bold shadow-md shadow-violet-600/20 hover:from-violet-700 hover:to-indigo-700 active:scale-[0.99] transition" data-oa-sub-id="${r.id}">
+            <i class="fas fa-check text-[10px]" aria-hidden="true"></i>
+            <span>${ar ? "حفظ الصف" : "Save row"}</span>
+          </button>
         </td>
       </tr>`;
     })
@@ -1758,14 +1821,9 @@ async function loadOrderAccountingVendorQueue() {
   tbody.querySelectorAll(".oa-sub-save").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-oa-sub-id");
-      const st = tbody.querySelector(`.oa-sub-status[data-oa-sub-id="${id}"]`)?.value;
-      const msg = tbody.querySelector(`.oa-sub-msg[data-oa-sub-id="${id}"]`)?.value ?? "";
+      if (!id) return;
       try {
-        const data = await api(`/api/admin/vendor-subscription-requests/${id}`, {
-          method: "PATCH",
-          token,
-          body: { status: st, admin_message: msg },
-        });
+        const data = await patchOrderAccountingSubscriptionRow(tbody, id, token);
         alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
         alertVendorSubscriptionPlanSync(data);
         loadVendorSubscriptionRequests().catch(() => {});

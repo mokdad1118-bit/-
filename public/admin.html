@@ -1659,33 +1659,51 @@
               </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-              <div class="flex flex-wrap gap-2 items-center justify-between">
-                <div>
-                  <h3 class="text-base font-bold text-gray-900" data-en="Accounting queue — company join requests (automatic)" data-ar="طابور المحاسبة — طلبات الانضمام (تلقائي)">طابور المحاسبة — طلبات الانضمام (تلقائي)</h3>
-                  <p class="text-[11px] text-gray-500 mt-1 leading-relaxed" data-en="Same records as «Join requests». Columns «Terms» and «Attachments» reflect stored consent and uploaded document URLs. When you set status to Approved, the server tries to apply the chosen plan to the matching marketplace company." data-ar="نفس السجلات في «طلبات الاشتراك». عمودا «الشروط» و«المرفقات» يعكسان الموافقة المخزّنة وروابط الصور. عند «تمت الموافقة» يحاول الخادم تطبيق الباقة على شركة السوق المطابقة.">نفس السجلات في «طلبات الاشتراك». عمودا «الشروط» و«المرفقات» يعكسان الموافقة وروابط الهوية/السجل. عند «تمت الموافقة» يُطبَّق مفتاح الباقة على شركة السوق إن وُجدت مطابقة.</p>
+            <div class="oa-accounting-queue-card rounded-3xl border border-violet-200/90 bg-gradient-to-br from-white via-violet-50/30 to-indigo-50/40 shadow-lg shadow-violet-900/5 overflow-hidden">
+              <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-violet-200/60 bg-gradient-to-l from-violet-700 via-violet-600 to-indigo-700 text-white">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                  <div class="min-w-0 flex gap-3">
+                    <div class="hidden sm:flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                      <i class="fas fa-file-invoice-dollar text-lg opacity-95" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <h3 class="text-lg font-extrabold tracking-tight text-white drop-shadow-sm" data-en="Accounting queue — company join requests (automatic)" data-ar="طابور المحاسبة — طلبات الانضمام (تلقائي)">طابور المحاسبة — طلبات الانضمام (تلقائي)</h3>
+                      <p class="text-[11px] sm:text-xs text-violet-100/95 mt-1.5 leading-relaxed max-w-3xl" data-en="Same records as «Join requests». Edit status or notes, then use «Save all changes» or save per row. Full email is shown in its column." data-ar="نفس سجلات «طلبات الاشتراك». عدّل الحالة أو الملاحظة ثم استخدم «حفظ التعديلات» أو زر الحفظ لكل صف. البريد يظهر كاملاً في عموده.">نفس سجلات «طلبات الاشتراك». عدّل الحالة أو الملاحظة ثم استخدم «حفظ التعديلات» أو حفظ الصف. البريد يظهر كاملاً.</p>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <button type="button" id="btn-oa-queue-save-all" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-violet-800 text-sm font-extrabold shadow-md shadow-black/10 hover:bg-violet-50 active:scale-[0.98] transition border border-white/80" data-en="Save all changes" data-ar="حفظ التعديلات">
+                      <i class="fas fa-floppy-disk text-[0.85rem]" aria-hidden="true"></i>
+                      <span>حفظ التعديلات</span>
+                    </button>
+                    <button type="button" id="btn-oa-queue-refresh" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold ring-1 ring-white/30 hover:bg-white/20 active:scale-[0.98] transition" data-en="Refresh queue" data-ar="تحديث الطابور">
+                      <i class="fas fa-rotate text-[0.85rem]" aria-hidden="true"></i>
+                      <span>تحديث الطابور</span>
+                    </button>
+                  </div>
                 </div>
-                <button type="button" id="btn-oa-queue-refresh" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 active:scale-[0.99] shrink-0" data-en="Refresh queue" data-ar="تحديث الطابور">تحديث الطابور</button>
               </div>
-              <div class="overflow-x-auto border border-gray-100 rounded-xl">
-                <table class="min-w-full text-sm">
-                  <thead class="bg-gray-50 text-gray-600">
-                    <tr>
-                      <th class="text-start p-2 whitespace-nowrap" data-en="ID" data-ar="#">#</th>
-                      <th class="text-start p-2 whitespace-nowrap" data-en="Submitted" data-ar="تاريخ الإرسال">تاريخ الإرسال</th>
-                      <th class="text-start p-2" data-en="Company" data-ar="الشركة">الشركة</th>
-                      <th class="text-start p-2" data-en="Plan" data-ar="الباقة">الباقة</th>
-                      <th class="text-start p-2 whitespace-nowrap" data-en="Commission %" data-ar="عمولة %">عمولة %</th>
-                      <th class="text-start p-2 whitespace-nowrap" data-en="Product quota" data-ar="حصة منتجات">حصة منتجات</th>
-                      <th class="text-start p-2" data-en="Email" data-ar="البريد">البريد</th>
-                      <th class="text-start p-2 whitespace-nowrap" data-en="Terms accepted" data-ar="الشروط">الشروط</th>
-                      <th class="text-start p-2 min-w-[120px]" data-en="Attachments (ID / license)" data-ar="المرفقات">المرفقات</th>
-                      <th class="text-start p-2" data-en="Status" data-ar="الحالة">الحالة</th>
-                      <th class="text-start p-2 min-w-[200px]" data-en="Admin note &amp; save" data-ar="ملاحظة وحفظ">ملاحظة وحفظ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="oa-vsub-tbody"></tbody>
-                </table>
+              <div class="p-3 sm:p-4 bg-white/60">
+                <div class="overflow-x-auto rounded-2xl border border-violet-100/90 bg-white shadow-inner shadow-violet-950/5">
+                  <table class="oa-queue-table min-w-full text-sm">
+                    <thead>
+                      <tr class="bg-gradient-to-b from-slate-50 to-violet-50/40 text-slate-700 border-b border-violet-100">
+                        <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="ID" data-ar="#">#</th>
+                        <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Submitted" data-ar="تاريخ الإرسال">تاريخ الإرسال</th>
+                        <th class="text-start p-3 text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Company" data-ar="الشركة">الشركة</th>
+                        <th class="text-start p-3 text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Plan" data-ar="الباقة">الباقة</th>
+                        <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Commission %" data-ar="عمولة %">عمولة %</th>
+                        <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Product quota" data-ar="حصة منتجات">حصة منتجات</th>
+                        <th class="text-start p-3 min-w-[14rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Email (full)" data-ar="البريد (كامل)">البريد (كامل)</th>
+                        <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Terms" data-ar="الشروط">الشروط</th>
+                        <th class="text-start p-3 min-w-[8rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Attachments" data-ar="المرفقات">المرفقات</th>
+                        <th class="text-start p-3 min-w-[9rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Status" data-ar="الحالة">الحالة</th>
+                        <th class="text-start p-3 min-w-[220px] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Note &amp; save row" data-ar="ملاحظة وحفظ الصف">ملاحظة وحفظ الصف</th>
+                      </tr>
+                    </thead>
+                    <tbody id="oa-vsub-tbody" class="divide-y divide-violet-100/80"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
