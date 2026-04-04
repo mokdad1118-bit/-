@@ -11549,7 +11549,14 @@
             const modal = document.getElementById('vendor-join-terms-modal');
             if (!modal || !modal.classList.contains('hidden')) return;
             const sc = document.getElementById('vendor-join-terms-modal-scroll');
-            if (sc) sc.scrollTop = 0;
+            if (sc) {
+                sc.scrollTop = 0;
+                try {
+                    sc.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                } catch (_s) {
+                    sc.scrollTop = 0;
+                }
+            }
             document.body.style.overflow = 'hidden';
             requestAnimationFrame(() => {
                 try {
@@ -11557,12 +11564,30 @@
                     modal.setAttribute('aria-hidden', 'false');
                     if (sc) {
                         sc.scrollTop = 0;
+                        try {
+                            sc.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                        } catch (_s2) {}
                         void sc.offsetHeight;
                     }
                 } catch (_e2) {}
                 requestAnimationFrame(() => {
-                    if (sc) sc.scrollTop = 0;
+                    if (!sc) return;
+                    sc.scrollTop = 0;
+                    try {
+                        sc.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                    } catch (_s3) {}
                 });
+                setTimeout(() => {
+                    if (!sc || !modal || modal.classList.contains('hidden')) return;
+                    sc.scrollTop = 0;
+                    try {
+                        sc.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                    } catch (_s4) {}
+                }, 0);
+                setTimeout(() => {
+                    if (!sc || !modal || modal.classList.contains('hidden')) return;
+                    sc.scrollTop = 0;
+                }, 80);
             });
         }
         function closeVendorJoinTermsModal() {
