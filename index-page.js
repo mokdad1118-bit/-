@@ -4879,6 +4879,31 @@
             }
         }
 
+        function syncVendorJoinPlansModalLocale() {
+            const ar = document.getElementById('vendor-join-plans-terms-ar');
+            const en = document.getElementById('vendor-join-plans-terms-en');
+            const tar = document.getElementById('vj-plans-section-title-ar');
+            const ten = document.getElementById('vj-plans-section-title-en');
+            if (ar && en) {
+                ar.classList.toggle('hidden', !isRTL);
+                en.classList.toggle('hidden', isRTL);
+            }
+            if (tar && ten) {
+                tar.classList.toggle('hidden', !isRTL);
+                ten.classList.toggle('hidden', isRTL);
+            }
+            const mh = document.getElementById('vendor-join-plans-modal-title');
+            if (mh) {
+                const da = mh.getAttribute('data-ar');
+                const de = mh.getAttribute('data-en');
+                if (da && de) {
+                    let t = isRTL ? da : de;
+                    t = t.replace(/&amp;/g, '&');
+                    mh.textContent = t;
+                }
+            }
+        }
+
         function renderVendorJoinPlansModalList() {
             const root = document.getElementById('vendor-join-plans-modal-list');
             if (!root) return;
@@ -4899,13 +4924,13 @@
                               .join('')
                         : '';
                     const sel = vendorJoinSelectedPlanKey === p.key;
-                    return `<div class="rounded-2xl border ${sel ? 'border-sky-500 ring-2 ring-sky-200' : 'border-gray-200'} bg-white p-4 shadow-sm">
+                    return `<div class="rounded-2xl border ${sel ? 'border-violet-500 ring-2 ring-violet-200' : 'border-gray-200'} bg-white p-4 shadow-sm">
                         <div class="flex flex-col gap-1">
                             <p class="font-bold text-gray-900 text-sm">${escapeHtml(title || p.key)}</p>
-                            ${price ? `<p class="text-xs font-semibold text-sky-700">${escapeHtml(price)}</p>` : ''}
+                            ${price ? `<p class="text-xs font-semibold text-violet-700">${escapeHtml(price)}</p>` : ''}
                             ${bl ? `<ul class="list-disc ps-4 mt-2 space-y-0.5">${bl}</ul>` : ''}
                         </div>
-                        <button type="button" class="mt-3 w-full py-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold active:scale-[0.99]" data-vj-pick-plan="${escapeHtml(p.key)}">${isRTL ? 'اختيار هذه الباقة' : 'Select this plan'}</button>
+                        <button type="button" class="mt-3 w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-bold shadow-md shadow-violet-600/20 hover:bg-violet-700 active:scale-[0.99]" data-vj-pick-plan="${escapeHtml(p.key)}">${isRTL ? 'اختيار هذه الباقة' : 'Select this plan'}</button>
                     </div>`;
                 })
                 .join('');
@@ -4915,6 +4940,11 @@
             const modal = document.getElementById('vendor-join-plans-modal');
             if (!modal) return;
             document.body.style.overflow = 'hidden';
+            const sc = document.getElementById('vendor-join-plans-modal-scroll');
+            if (sc) {
+                sc.scrollTop = 0;
+            }
+            syncVendorJoinPlansModalLocale();
             ensureVendorJoinPlansLoaded()
                 .then(() => {
                     renderVendorJoinPlansModalList();
