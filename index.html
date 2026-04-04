@@ -1341,6 +1341,16 @@
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
         /* فوق التدرج البنفسجي: الخلفية البيضاء الافتراضية تخفي عنوان text-white */
+        /* خارج #app-shell: fixed يغطي الشاشة كاملة ولا يتأثر بـ transform على الغلاف */
+        #vendor-join-terms-modal {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        #vendor-join-terms-modal,
+        #vendor-join-terms-modal * {
+            -webkit-user-select: text;
+            user-select: text;
+        }
         .vendor-join-terms-modal-scroll {
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
@@ -6167,7 +6177,7 @@
                     <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-3">
                         <p class="font-bold text-violet-900 text-sm" data-en="Terms and conditions on Adora" data-ar="الشروط والأحكام داخل أدورا">الشروط والأحكام داخل أدورا</p>
                         <p class="text-[11px] text-violet-800/90 font-medium -mt-1" data-en="Open the reader window to view the full text, then return here to accept." data-ar="اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.">اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.</p>
-                        <button type="button" onclick="openVendorJoinTermsModal()" class="w-full py-3.5 rounded-2xl border-2 border-violet-300 bg-white text-violet-900 font-bold text-sm shadow-sm hover:bg-violet-50 active:scale-[0.99] transition" data-en="Read terms and conditions" data-ar="قراءة الأحكام والشروط">قراءة الأحكام والشروط</button>
+                        <button type="button" id="vendor-join-btn-read-terms" class="w-full py-3.5 rounded-2xl border-2 border-violet-300 bg-white text-violet-900 font-bold text-sm shadow-sm hover:bg-violet-50 active:scale-[0.99] transition touch-manipulation" data-en="Read terms and conditions" data-ar="قراءة الأحكام والشروط">قراءة الأحكام والشروط</button>
                     </div>
                     <div class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3">
                         <input type="checkbox" id="vj-p-terms" required class="mt-0.5 rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" aria-required="true" />
@@ -6180,155 +6190,6 @@
             <div class="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 text-sm text-white/95 space-y-2">
                 <p class="font-bold flex items-center gap-2"><i class="fas fa-star text-amber-200" aria-hidden="true"></i><span data-en="Why Adora?" data-ar="لماذا أدورا؟">لماذا أدورا؟</span></p>
                 <p class="text-xs text-white/85 leading-relaxed" data-en="Reach thousands of shoppers, manage your presence from one place, and grow with a trusted marketplace." data-ar="وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.">وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.</p>
-            </div>
-        </div>
-    </div>
-    <!-- نافذة قراءة الشروط والأحكام (انضم كشركة) — تمرير داخلي فقط -->
-    <div id="vendor-join-terms-modal" class="fixed inset-0 z-[85] hidden bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeVendorJoinTermsModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-terms-modal-title">
-        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-hidden shadow-2xl shadow-black/20 flex flex-col ring-1 ring-black/5" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
-                <h2 id="vendor-join-terms-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Terms and conditions" data-ar="الشروط والأحكام">الشروط والأحكام</h2>
-                <button type="button" class="w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 active:scale-95 transition" onclick="closeVendorJoinTermsModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
-                    <i class="fas fa-times text-[15px] text-gray-600"></i>
-                </button>
-            </div>
-            <div id="vendor-join-terms-modal-scroll" class="overflow-y-auto flex-1 min-h-0 p-4 sm:p-5 overscroll-contain bg-gray-50/50 vendor-join-terms-modal-scroll">
-<div id="vendor-join-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800 pb-4"></div>
-                        <div id="vendor-join-terms-default" class="space-y-4 leading-relaxed text-[11px] sm:text-xs text-gray-800 pb-2">
-                            <header class="space-y-2 pb-2 border-b border-violet-200/80">
-                                <p class="font-bold text-violet-950 text-sm sm:text-base">الشروط والأحكام – منصة Adora</p>
-                                <p class="text-gray-700">مرحباً بكم في منصة Adora. باستخدامك للمنصة أو تسجيل شركتك، فإنك توافق على الشروط والأحكام التالية:</p>
-                            </header>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">أولاً: التعريفات</h3>
-                                <ul class="list-none ps-0 space-y-1.5">
-                                    <li><span class="font-semibold text-gray-900">المنصة:</span> تعني منصة Adora</li>
-                                    <li><span class="font-semibold text-gray-900">الشركة:</span> أي متجر أو بائع يقوم بالتسجيل داخل المنصة</li>
-                                    <li><span class="font-semibold text-gray-900">المستخدم:</span> أي شخص يستخدم المنصة للتصفح أو الشراء</li>
-                                    <li><span class="font-semibold text-gray-900">الإدارة:</span> فريق إدارة منصة Adora</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثانياً: التسجيل في المنصة</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يحق للشركات التسجيل في المنصة بعد إدخال البيانات الصحيحة</li>
-                                    <li>يجب أن تكون جميع المعلومات المقدمة صحيحة ودقيقة</li>
-                                    <li>تتحمل الشركة مسؤولية حسابها وكلمة المرور</li>
-                                    <li>يحق للإدارة تعليق أو حذف أي حساب يحتوي معلومات غير صحيحة</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثالثاً: الباقات والاشتراكات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>توفر المنصة باقات اشتراك مختلفة للشركات</li>
-                                    <li>يتم تفعيل الباقة بعد إتمام الدفع</li>
-                                    <li>مدة الاشتراك حسب الباقة المختارة</li>
-                                    <li>لا يتم استرجاع رسوم الاشتراك بعد التفعيل</li>
-                                    <li>يحق للإدارة تعديل أسعار الباقات مستقبلاً</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">رابعاً: العمولة على الطلبات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>تفرض المنصة عمولة على الطلبات الناجحة</li>
-                                    <li>تختلف العمولة حسب الباقة المختارة</li>
-                                    <li>يتم احتساب العمولة على كل طلب مكتمل</li>
-                                    <li>يحق للإدارة تعديل نسبة العمولة مستقبلاً</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">خامساً: المنتجات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>الشركة مسؤولة عن جميع المنتجات المضافة</li>
-                                    <li>يجب أن تكون المنتجات أصلية وغير مخالفة</li>
-                                    <li>يمنع إضافة المنتجات المقلدة أو غير القانونية</li>
-                                    <li>يحق للإدارة حذف أي منتج مخالف دون إشعار مسبق</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">سادساً: الشركات المميزة</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يمكن للشركات الحصول على ميزة &quot;شركة مميزة&quot; حسب الباقة</li>
-                                    <li>يتم إلغاء التمييز عند انتهاء الاشتراك</li>
-                                    <li>لا يتم استرجاع رسوم التمييز بعد التفعيل</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">سابعاً: المنتجات المميزة</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يمكن للشركة تمييز منتجاتها حسب الباقة</li>
-                                    <li>يتم إلغاء التمييز عند انتهاء المدة</li>
-                                    <li>يحق للإدارة تعديل سياسة المنتجات المميزة</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثامناً: الإعلانات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>توفر المنصة خدمات إعلانية للشركات</li>
-                                    <li>يتم تحديد مدة الإعلان مسبقاً</li>
-                                    <li>لا يتم استرجاع رسوم الإعلان بعد التفعيل</li>
-                                    <li>يحق للإدارة رفض أي إعلان مخالف</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">تاسعاً: الدفع</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يتم الدفع حسب الباقة المختارة</li>
-                                    <li>في حال عدم الدفع يتم إيقاف المميزات</li>
-                                    <li>يحق للإدارة تعليق الحساب عند التأخر بالدفع</li>
-                                    <li>جميع المدفوعات غير قابلة للاسترجاع بعد التفعيل</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">عاشراً: الطلبات والمبيعات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>تتحمل الشركة مسؤولية تنفيذ الطلبات</li>
-                                    <li>تتحمل الشركة مسؤولية جودة المنتجات</li>
-                                    <li>المنصة وسيط بين البائع والمشتري</li>
-                                    <li>المنصة غير مسؤولة عن أي نزاع بين الطرفين</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الحادي عشر: إيقاف الحساب</h3>
-                                <p class="text-gray-800">يحق لإدارة المنصة إيقاف أي حساب في الحالات التالية:</p>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>مخالفة الشروط</li>
-                                    <li>بيع منتجات غير قانونية</li>
-                                    <li>الاحتيال أو التلاعب</li>
-                                    <li>تقديم معلومات غير صحيحة</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الثاني عشر: إنهاء الخدمة</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يحق للشركة طلب إغلاق حسابها</li>
-                                    <li>يحق للإدارة إيقاف أي حساب مخالف</li>
-                                    <li>لا يتم استرجاع أي رسوم مدفوعة</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الثالث عشر: التعديلات</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>يحق لإدارة Adora تعديل الشروط والأحكام في أي وقت</li>
-                                    <li>يتم نشر التعديلات داخل المنصة</li>
-                                    <li>استمرار استخدام المنصة يعني الموافقة على التعديلات</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الرابع عشر: المسؤولية القانونية</h3>
-                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
-                                    <li>المنصة غير مسؤولة عن أي خسائر ناتجة عن استخدام الخدمة</li>
-                                    <li>تتحمل الشركة كامل المسؤولية عن منتجاتها</li>
-                                </ul>
-                            </section>
-                            <section class="space-y-2 pb-1">
-                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الخامس عشر: الموافقة</h3>
-                                <p class="text-gray-800 font-medium">باستخدام منصة Adora، فإنك توافق على جميع الشروط والأحكام المذكورة أعلاه.</p>
-                            </section>
-                        </div>
-            </div>
-            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
-                <button type="button" class="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm shadow-md hover:bg-violet-700 active:scale-[0.99] transition" onclick="closeVendorJoinTermsModal()" data-en="Done reading" data-ar="إنهاء القراءة">إنهاء القراءة</button>
             </div>
         </div>
     </div>
@@ -7716,6 +7577,157 @@
     </div><!-- /#app-shell -->
 
     </div><!-- /mobile-container -->
+
+    <!-- نافذة قراءة الشروط والأحكام (انضم كشركة) — تمرير داخلي فقط -->
+    <div id="vendor-join-terms-modal" class="fixed inset-0 z-[10047] hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto" onclick="closeVendorJoinTermsModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-terms-modal-title">
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-hidden shadow-2xl shadow-black/20 flex flex-col ring-1 ring-black/5" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
+                <h2 id="vendor-join-terms-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Terms and conditions" data-ar="الشروط والأحكام">الشروط والأحكام</h2>
+                <button type="button" class="w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 active:scale-95 transition" onclick="closeVendorJoinTermsModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-[15px] text-gray-600"></i>
+                </button>
+            </div>
+            <div id="vendor-join-terms-modal-scroll" class="overflow-y-auto flex-1 min-h-0 p-4 sm:p-5 overscroll-contain bg-gray-50/50 vendor-join-terms-modal-scroll">
+<div id="vendor-join-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800 pb-4"></div>
+                        <div id="vendor-join-terms-default" class="space-y-4 leading-relaxed text-[11px] sm:text-xs text-gray-800 pb-2">
+                            <header class="space-y-2 pb-2 border-b border-violet-200/80">
+                                <p class="font-bold text-violet-950 text-sm sm:text-base">الشروط والأحكام – منصة Adora</p>
+                                <p class="text-gray-700">مرحباً بكم في منصة Adora. باستخدامك للمنصة أو تسجيل شركتك، فإنك توافق على الشروط والأحكام التالية:</p>
+                            </header>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">أولاً: التعريفات</h3>
+                                <ul class="list-none ps-0 space-y-1.5">
+                                    <li><span class="font-semibold text-gray-900">المنصة:</span> تعني منصة Adora</li>
+                                    <li><span class="font-semibold text-gray-900">الشركة:</span> أي متجر أو بائع يقوم بالتسجيل داخل المنصة</li>
+                                    <li><span class="font-semibold text-gray-900">المستخدم:</span> أي شخص يستخدم المنصة للتصفح أو الشراء</li>
+                                    <li><span class="font-semibold text-gray-900">الإدارة:</span> فريق إدارة منصة Adora</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثانياً: التسجيل في المنصة</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يحق للشركات التسجيل في المنصة بعد إدخال البيانات الصحيحة</li>
+                                    <li>يجب أن تكون جميع المعلومات المقدمة صحيحة ودقيقة</li>
+                                    <li>تتحمل الشركة مسؤولية حسابها وكلمة المرور</li>
+                                    <li>يحق للإدارة تعليق أو حذف أي حساب يحتوي معلومات غير صحيحة</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثالثاً: الباقات والاشتراكات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>توفر المنصة باقات اشتراك مختلفة للشركات</li>
+                                    <li>يتم تفعيل الباقة بعد إتمام الدفع</li>
+                                    <li>مدة الاشتراك حسب الباقة المختارة</li>
+                                    <li>لا يتم استرجاع رسوم الاشتراك بعد التفعيل</li>
+                                    <li>يحق للإدارة تعديل أسعار الباقات مستقبلاً</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">رابعاً: العمولة على الطلبات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>تفرض المنصة عمولة على الطلبات الناجحة</li>
+                                    <li>تختلف العمولة حسب الباقة المختارة</li>
+                                    <li>يتم احتساب العمولة على كل طلب مكتمل</li>
+                                    <li>يحق للإدارة تعديل نسبة العمولة مستقبلاً</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">خامساً: المنتجات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>الشركة مسؤولة عن جميع المنتجات المضافة</li>
+                                    <li>يجب أن تكون المنتجات أصلية وغير مخالفة</li>
+                                    <li>يمنع إضافة المنتجات المقلدة أو غير القانونية</li>
+                                    <li>يحق للإدارة حذف أي منتج مخالف دون إشعار مسبق</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">سادساً: الشركات المميزة</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يمكن للشركات الحصول على ميزة &quot;شركة مميزة&quot; حسب الباقة</li>
+                                    <li>يتم إلغاء التمييز عند انتهاء الاشتراك</li>
+                                    <li>لا يتم استرجاع رسوم التمييز بعد التفعيل</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">سابعاً: المنتجات المميزة</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يمكن للشركة تمييز منتجاتها حسب الباقة</li>
+                                    <li>يتم إلغاء التمييز عند انتهاء المدة</li>
+                                    <li>يحق للإدارة تعديل سياسة المنتجات المميزة</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ثامناً: الإعلانات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>توفر المنصة خدمات إعلانية للشركات</li>
+                                    <li>يتم تحديد مدة الإعلان مسبقاً</li>
+                                    <li>لا يتم استرجاع رسوم الإعلان بعد التفعيل</li>
+                                    <li>يحق للإدارة رفض أي إعلان مخالف</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">تاسعاً: الدفع</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يتم الدفع حسب الباقة المختارة</li>
+                                    <li>في حال عدم الدفع يتم إيقاف المميزات</li>
+                                    <li>يحق للإدارة تعليق الحساب عند التأخر بالدفع</li>
+                                    <li>جميع المدفوعات غير قابلة للاسترجاع بعد التفعيل</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">عاشراً: الطلبات والمبيعات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>تتحمل الشركة مسؤولية تنفيذ الطلبات</li>
+                                    <li>تتحمل الشركة مسؤولية جودة المنتجات</li>
+                                    <li>المنصة وسيط بين البائع والمشتري</li>
+                                    <li>المنصة غير مسؤولة عن أي نزاع بين الطرفين</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الحادي عشر: إيقاف الحساب</h3>
+                                <p class="text-gray-800">يحق لإدارة المنصة إيقاف أي حساب في الحالات التالية:</p>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>مخالفة الشروط</li>
+                                    <li>بيع منتجات غير قانونية</li>
+                                    <li>الاحتيال أو التلاعب</li>
+                                    <li>تقديم معلومات غير صحيحة</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الثاني عشر: إنهاء الخدمة</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يحق للشركة طلب إغلاق حسابها</li>
+                                    <li>يحق للإدارة إيقاف أي حساب مخالف</li>
+                                    <li>لا يتم استرجاع أي رسوم مدفوعة</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الثالث عشر: التعديلات</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>يحق لإدارة Adora تعديل الشروط والأحكام في أي وقت</li>
+                                    <li>يتم نشر التعديلات داخل المنصة</li>
+                                    <li>استمرار استخدام المنصة يعني الموافقة على التعديلات</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الرابع عشر: المسؤولية القانونية</h3>
+                                <ul class="list-disc ps-4 space-y-1.5 marker:text-violet-500">
+                                    <li>المنصة غير مسؤولة عن أي خسائر ناتجة عن استخدام الخدمة</li>
+                                    <li>تتحمل الشركة كامل المسؤولية عن منتجاتها</li>
+                                </ul>
+                            </section>
+                            <section class="space-y-2 pb-1">
+                                <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الخامس عشر: الموافقة</h3>
+                                <p class="text-gray-800 font-medium">باستخدام منصة Adora، فإنك توافق على جميع الشروط والأحكام المذكورة أعلاه.</p>
+                            </section>
+                        </div>
+            </div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm shadow-md hover:bg-violet-700 active:scale-[0.99] transition" onclick="closeVendorJoinTermsModal()" data-en="Done reading" data-ar="إنهاء القراءة">إنهاء القراءة</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- أثناء التحقق من التوكن: بدونها تبقى الشاشة فارغة بين إخفاء الـ splash وظهور التطبيق أو بوابة الدخول -->
     <div id="session-resume-overlay" class="fixed inset-0 z-[10048] hidden flex flex-col items-center justify-center bg-slate-50/98 px-6" aria-live="polite" aria-busy="true">

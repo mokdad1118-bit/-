@@ -4759,6 +4759,21 @@
             if (!form || form.dataset.adoraVjBound === '1') return;
             form.dataset.adoraVjBound = '1';
             bindVendorJoinDocTypeOnce();
+            const readTermsBtn = document.getElementById('vendor-join-btn-read-terms');
+            if (readTermsBtn && readTermsBtn.dataset.adoraVjTermsBtn !== '1') {
+                readTermsBtn.dataset.adoraVjTermsBtn = '1';
+                readTermsBtn.addEventListener(
+                    'click',
+                    (e) => {
+                        try {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        } catch (_e2) {}
+                        openVendorJoinTermsModal(e);
+                    },
+                    true
+                );
+            }
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const msg = document.getElementById('vendor-join-page-msg');
@@ -11523,22 +11538,46 @@
             restoreBodyScrollIfIdle();
         }
 
-        function openVendorJoinTermsModal() {
+        function openVendorJoinTermsModal(ev) {
+            try {
+                if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+                if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            } catch (_e) {}
             const modal = document.getElementById('vendor-join-terms-modal');
+            if (!modal || !modal.classList.contains('hidden')) return;
             const sc = document.getElementById('vendor-join-terms-modal-scroll');
-            if (!modal) return;
             if (sc) sc.scrollTop = 0;
-            modal.classList.remove('hidden');
-            modal.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => {
+                try {
+                    modal.classList.remove('hidden');
+                    modal.setAttribute('aria-hidden', 'false');
+                    try {
+                        modal.removeAttribute('inert');
+                    } catch (_i) {}
+                    if (sc) {
+                        sc.scrollTop = 0;
+                        void sc.offsetHeight;
+                    }
+                } catch (_e2) {}
+                requestAnimationFrame(() => {
+                    if (sc) sc.scrollTop = 0;
+                });
+            });
         }
         function closeVendorJoinTermsModal() {
-            const modal = document.getElementById('vendor-join-terms-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.setAttribute('aria-hidden', 'true');
+            try {
+                const modal = document.getElementById('vendor-join-terms-modal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.setAttribute('aria-hidden', 'true');
+                    try {
+                        modal.setAttribute('inert', '');
+                    } catch (_i) {}
+                }
+            } finally {
+                restoreBodyScrollIfIdle();
             }
-            restoreBodyScrollIfIdle();
         }
         try {
             window.openVendorJoinTermsModal = openVendorJoinTermsModal;
