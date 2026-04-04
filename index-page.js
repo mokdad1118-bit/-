@@ -11294,6 +11294,7 @@
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
                 'vendor-join-terms-modal',
+                'logout-farewell-modal',
                 'adora-image-lightbox',
             ];
             const anyOpen = overlayIds.some((id) => {
@@ -11447,7 +11448,31 @@
         }
 
         function logoutFromSideMenu() {
-            logout();
+            openLogoutFarewellModal();
+        }
+
+        function openLogoutFarewellModal() {
+            const m = document.getElementById('logout-farewell-modal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            m.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLogoutFarewellModal() {
+            const m = document.getElementById('logout-farewell-modal');
+            if (!m) return;
+            m.classList.add('hidden');
+            m.setAttribute('aria-hidden', 'true');
+            restoreBodyScrollIfIdle();
+            const panel = document.getElementById('side-drawer-panel');
+            if (panel && panel.classList.contains('open')) {
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function confirmLogoutFarewellModal() {
+            performLogout();
         }
 
         function getOrderStatusLabel(status) {
@@ -11862,20 +11887,25 @@
         }
 
         // Profile
+        function performLogout() {
+            disconnectAppSocket();
+            clearStoredJwtToken();
+            updateSiteRatingLoginHint();
+            updateProductReviewLoginHint();
+            updateMarketplaceReviewLoginHint();
+            shouldPersistOrderStatusUpdates = false;
+            latestOrderDbId = null;
+            latestOrderCreatedAt = null;
+            closeLogoutFarewellModal();
+            closeSideDrawer();
+            refreshSideMenuHeader().catch(() => {});
+            showAuthGateOnly();
+            showToast(isRTL ? 'تم تسجيل الخروج' : 'Logged out successfully');
+        }
+
         function logout() {
             if (confirm(isRTL ? 'هل أنت متأكد من تسجيل الخروج؟' : 'Are you sure you want to logout?')) {
-                disconnectAppSocket();
-                clearStoredJwtToken();
-                updateSiteRatingLoginHint();
-                updateProductReviewLoginHint();
-                updateMarketplaceReviewLoginHint();
-                shouldPersistOrderStatusUpdates = false;
-                latestOrderDbId = null;
-                latestOrderCreatedAt = null;
-                closeSideDrawer();
-                refreshSideMenuHeader().catch(() => {});
-                showAuthGateOnly();
-                showToast(isRTL ? 'تم تسجيل الخروج' : 'Logged out successfully');
+                performLogout();
             }
         }
 
