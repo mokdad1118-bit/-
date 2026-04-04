@@ -3345,6 +3345,7 @@
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
                 'vendor-join-terms-modal',
+                'vendor-join-plans-modal',
                 'adora-image-lightbox',
                 'home-subcat-overlay',
             ];
@@ -4930,7 +4931,7 @@
                             ${price ? `<p class="text-xs font-semibold text-violet-700">${escapeHtml(price)}</p>` : ''}
                             ${bl ? `<ul class="list-disc ps-4 mt-2 space-y-0.5">${bl}</ul>` : ''}
                         </div>
-                        <button type="button" class="mt-3 w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-bold shadow-md shadow-violet-600/20 hover:bg-violet-700 active:scale-[0.99]" data-vj-pick-plan="${escapeHtml(p.key)}">${isRTL ? 'اختيار هذه الباقة' : 'Select this plan'}</button>
+                        <button type="button" class="mt-3 w-full py-2.5 rounded-xl bg-violet-600 text-white text-xs font-bold shadow-md shadow-violet-600/20 hover:bg-violet-700 active:scale-[0.99] touch-manipulation" data-vj-pick-plan="${escapeHtml(String(p.key || '').trim())}">${isRTL ? 'اختيار هذه الباقة' : 'Select this plan'}</button>
                     </div>`;
                 })
                 .join('');
@@ -4988,18 +4989,28 @@
             form.dataset.adoraVjBound = '1';
             bindVendorJoinDocTypeOnce();
             const plansModal = document.getElementById('vendor-join-plans-modal');
+            /* استخدم مرحلة الالتقاط (capture): اللوحة الداخلية تستدعي stopPropagation() لمنع إغلاق الخلفية،
+               وهذا يمنع وصول النقر في الفقاعة إلى #vendor-join-plans-modal فيُفقد اختيار الباقة على اللمس. */
             if (plansModal && plansModal.dataset.vjPlanPickBound !== '1') {
                 plansModal.dataset.vjPlanPickBound = '1';
-                plansModal.addEventListener('click', (ev) => {
-                    const raw = ev.target;
-                    const btn = raw && raw.closest ? raw.closest('[data-vj-pick-plan]') : null;
-                    if (!btn || !plansModal.contains(btn)) return;
-                    const k = btn.getAttribute('data-vj-pick-plan');
-                    if (!k) return;
-                    vendorJoinSelectedPlanKey = k;
-                    updateVendorJoinSelectedPlanUi();
-                    closeVendorJoinPlansModal();
-                });
+                plansModal.addEventListener(
+                    'click',
+                    (ev) => {
+                        const raw = ev.target;
+                        const btn = raw && raw.closest ? raw.closest('[data-vj-pick-plan]') : null;
+                        if (!btn || !plansModal.contains(btn)) return;
+                        const k = btn.getAttribute('data-vj-pick-plan');
+                        if (!k) return;
+                        try {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                        } catch (_e) {}
+                        vendorJoinSelectedPlanKey = k;
+                        updateVendorJoinSelectedPlanUi();
+                        closeVendorJoinPlansModal();
+                    },
+                    true
+                );
             }
             const pickPlanBtn = document.getElementById('vendor-join-btn-pick-plan');
             if (pickPlanBtn && pickPlanBtn.dataset.adoraVjPickPlan !== '1') {
