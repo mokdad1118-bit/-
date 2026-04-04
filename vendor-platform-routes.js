@@ -327,7 +327,45 @@ async function resolveMarketplaceVendorIdForSubscriptionRequest(row) {
   return { vendorId: null, match: null };
 }
 
-/** عند الموافقة: تعبئة حقول الباقة والعمولة والتواريخ على marketplace_vendors من لقطة الطلب */
+function normalizeSubscriptionTsInput(v) {
+  if (v == null || v === "") return null;
+  const d = new Date(typeof v === "string" ? String(v).trim() : v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** انتهاء اشتراك الشركاء: إيقاف حقول الباقة على البائع + تحديث حالة الاشتراك في الطلبات المعتمدة */
+async function expireVendorSubscriptionsAccountingSweep() {
+  try {
+    await run(
+      `UPDATE marketplace_vendors SET
+         subscription_plan_key = NULL,
+         subscription_commission_percent = NULL,
+         subscription_product_quota = NULL
+       WHERE subscription_ends_at IS NOT NULL
+         AND subscription_ends_at < CURRENT_TIMESTAMP
+         AND (
+           subscription_plan_key IS NOT NULL
+           OR subscription_commission_percent IS NOT NULL
+           OR subscription_product_quota IS NOT NULL
+         )`
+    );
+    await run(
+      `UPDATE vendor_subscription_requests
+       SET subscription_status = 'expired', updated_at = CURRENT_TIMESTAMP
+       WHERE status = 'approved'
+         AND subscription_status = 'active'
+         AND subscription_ends_at IS NOT NULL
+         AND subscription_ends_at < CURRENT_TIMESTAMP`
+    );
+  } catch (_e) {
+    /* لا نمنع تحميل اللوحة */
+  }
+}
+
+const VSUB_SUBSCRIPTION_STATUSES = ["none", "active", "expired", "paused"];
+const VSUB_PAYMENT_STATUSES = ["paid", "unpaid", "pending_payment"];
+
+/** عند الموافقة: تعبئة حقول الباقة والعمولة والتواريخ على marketplace_vendors من لقطة الطلب وتواريخ المشرف */
 async function applySubscriptionPlanToMarketplaceVendor(vendorId, row) {
   const snap = safeJsonParse(row.selected_plan_snapshot_json, {});
   const planKey = String(row.selected_plan_key || snap.key || "")
@@ -343,10 +381,13 @@ async function applySubscriptionPlanToMarketplaceVendor(vendorId, row) {
   const priceMonthly = Number(snap.price_usd_monthly);
   const hasPaidPlan = Number.isFinite(priceMonthly) && priceMonthly > 0;
 
-  const started = new Date().toISOString();
-  let endsAt = null;
-  if (hasPaidPlan) {
-    const d = new Date();
+  let started = normalizeSubscriptionTsInput(row.subscription_started_at);
+  if (!started) {
+    started = new Date().toISOString();
+  }
+  let endsAt = normalizeSubscriptionTsInput(row.subscription_ends_at);
+  if (!endsAt && hasPaidPlan) {
+    const d = new Date(started);
     d.setMonth(d.getMonth() + 1);
     endsAt = d.toISOString();
   }
@@ -370,7 +411,12 @@ async function applySubscriptionPlanToMarketplaceVendor(vendorId, row) {
       vendorId,
     ]
   );
-  return { ok: true, plan_key: planKey, subscription_ends_at: endsAt };
+  return {
+    ok: true,
+    plan_key: planKey,
+    subscription_started_at: started,
+    subscription_ends_at: endsAt,
+  };
 }
 
 function buildVendorSubStatusNotification(status, companyName, adminMessage) {
@@ -822,6 +868,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
 
   app.get("/api/admin/vendor-subscription-requests", requireAuth, requireAdmin, async (_req, res) => {
     try {
+      await expireVendorSubscriptionsAccountingSweep();
       const rows = await all(
         `SELECT * FROM vendor_subscription_requests ORDER BY created_at DESC, id DESC LIMIT 500`
       );
@@ -846,11 +893,58 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       }
       const admin_message =
         b.admin_message !== undefined ? (b.admin_message ? String(b.admin_message).trim().slice(0, 4000) : null) : cur.admin_message;
+
+      let subscription_started_at = cur.subscription_started_at;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_started_at")) {
+        subscription_started_at = normalizeSubscriptionTsInput(b.subscription_started_at);
+      }
+      let subscription_ends_at = cur.subscription_ends_at;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_ends_at")) {
+        subscription_ends_at = normalizeSubscriptionTsInput(b.subscription_ends_at);
+      }
+      let subscription_status = cur.subscription_status != null ? String(cur.subscription_status).trim() : "none";
+      if (b.subscription_status != null) {
+        const ss = String(b.subscription_status).trim();
+        if (VSUB_SUBSCRIPTION_STATUSES.includes(ss)) subscription_status = ss;
+      }
+      let payment_status = cur.payment_status != null ? String(cur.payment_status).trim() : "pending_payment";
+      if (b.payment_status != null) {
+        const ps = String(b.payment_status).trim();
+        if (VSUB_PAYMENT_STATUSES.includes(ps)) payment_status = ps;
+      }
+      let subscription_price_usd = cur.subscription_price_usd;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_price_usd")) {
+        if (b.subscription_price_usd === null || b.subscription_price_usd === "") {
+          subscription_price_usd = null;
+        } else {
+          const n = Number(b.subscription_price_usd);
+          subscription_price_usd = Number.isFinite(n) && n >= 0 ? n : null;
+        }
+      }
+
       await run(
-        `UPDATE vendor_subscription_requests SET status=?, admin_message=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-        [status, admin_message, id]
+        `UPDATE vendor_subscription_requests SET
+          status=?,
+          admin_message=?,
+          subscription_started_at=?::timestamptz,
+          subscription_ends_at=?::timestamptz,
+          subscription_status=?,
+          payment_status=?,
+          subscription_price_usd=?,
+          updated_at=CURRENT_TIMESTAMP
+         WHERE id=?`,
+        [
+          status,
+          admin_message,
+          subscription_started_at,
+          subscription_ends_at,
+          subscription_status,
+          payment_status,
+          subscription_price_usd,
+          id,
+        ]
       );
-      const updated = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
+      let updated = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
       const newStatus = String(updated.status || "").trim();
       let vendor_plan_sync = null;
       if (newStatus === "approved" && prevStatus !== "approved") {
@@ -864,6 +958,18 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
               match,
               ...applied,
             };
+            if (applied.ok === true) {
+              await run(
+                `UPDATE vendor_subscription_requests SET
+                  subscription_started_at = ?::timestamptz,
+                  subscription_ends_at = ?::timestamptz,
+                  subscription_status = CASE WHEN subscription_status = 'paused' THEN subscription_status ELSE 'active' END,
+                  updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?`,
+                [applied.subscription_started_at, applied.subscription_ends_at, id]
+              );
+              updated = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
+            }
           } else {
             vendor_plan_sync = {
               applied: false,

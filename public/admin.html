@@ -1646,6 +1646,17 @@
                 <p class="text-xs font-bold text-violet-950" data-en="Goal" data-ar="الهدف">الهدف</p>
                 <p class="text-sm text-violet-900 mt-1 leading-relaxed" data-en="Build a professional, scalable plans system on the Adora platform." data-ar="إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.">إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.</p>
               </div>
+              <div class="rounded-xl border border-sky-200/90 bg-sky-50/40 p-3 sm:p-4 space-y-2">
+                <h3 class="text-sm font-bold text-sky-950" data-en="Subscription vs request" data-ar="الاشتراك مقابل الطلب">الاشتراك مقابل الطلب</h3>
+                <ul class="list-disc ps-5 space-y-1 text-xs sm:text-sm text-sky-950/90 leading-relaxed">
+                  <li>
+                    <span data-en="Request status (review column): pending, approved, rejected, incomplete. Subscription block: start/end dates, subscription status (active / expired / paused), payment status, and plan price — set by the admin before or after approval." data-ar="حالة الطلب (عمود المراجعة): قيد المراجعة، تمت الموافقة، تم الرفض، أوراق ناقصة. عمود الاشتراك والمحاسبة: تواريخ البداية/النهاية، حالة الاشتراك (نشط / منتهي / موقوف)، حالة الدفع، وسعر الباقة — يحددها المشرف."></span>
+                  </li>
+                  <li>
+                    <span data-en="On approval, the plan is applied to the matching marketplace company; start/end dates use your inputs when set, otherwise the server sets start now and end +1 month for paid plans. When subscription end passes, perks clear on the vendor and the request subscription status becomes expired (on refresh)." data-ar="عند الموافقة تُفعَّل الباقة على شركة السوق المطابقة؛ تُستخدم تواريخك إن عبأتها، وإلا يضبط الخادم البداية الآن والنهاية +شهر للباقات المدفوعة. بعد انتهاء الاشتراك تُزال مزايا الباقة من البائع وتُحدَّث حالة الاشتراك إلى «منتهي» عند التحديث."></span>
+                  </li>
+                </ul>
+              </div>
               <div class="rounded-xl border border-emerald-200/90 bg-emerald-50/50 p-3 sm:p-4 space-y-2">
                 <h3 class="text-sm font-bold text-emerald-950" data-en="Data sent with each app request" data-ar="ما يُرسل مع كل طلب من التطبيق">ما يُرسل مع كل طلب من التطبيق</h3>
                 <ul class="list-disc ps-5 space-y-1 text-xs sm:text-sm text-emerald-950/90 leading-relaxed">
@@ -1697,7 +1708,8 @@
                         <th class="text-start p-3 min-w-[14rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Email (full)" data-ar="البريد (كامل)">البريد (كامل)</th>
                         <th class="text-start p-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Terms" data-ar="الشروط">الشروط</th>
                         <th class="text-start p-3 min-w-[8rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Attachments" data-ar="المرفقات">المرفقات</th>
-                        <th class="text-start p-3 min-w-[9rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Status" data-ar="الحالة">الحالة</th>
+                        <th class="text-start p-3 min-w-[16rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Subscription &amp; billing (dates, status, payment, price)" data-ar="الاشتراك والمحاسبة (تواريخ، حالة، دفع، سعر)">الاشتراك والمحاسبة</th>
+                        <th class="text-start p-3 min-w-[9rem] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Request status" data-ar="حالة الطلب">حالة الطلب</th>
                         <th class="text-start p-3 min-w-[220px] text-xs font-bold uppercase tracking-wide text-violet-900/90" data-en="Note &amp; save row" data-ar="ملاحظة وحفظ الصف">ملاحظة وحفظ الصف</th>
                       </tr>
                     </thead>

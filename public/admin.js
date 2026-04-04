@@ -1647,15 +1647,89 @@ function vendorSubTermsAcceptedCellHtml(r, ar) {
   return `<span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-100 text-red-900 border border-red-200/80 whitespace-nowrap">${ar ? "غير موثّق" : "Not recorded"}</span>`;
 }
 
+function oaDefaultPriceUsd(r) {
+  if (r.subscription_price_usd != null && r.subscription_price_usd !== "" && Number.isFinite(Number(r.subscription_price_usd))) {
+    return String(Number(r.subscription_price_usd));
+  }
+  try {
+    const s = JSON.parse(r.selected_plan_snapshot_json || "{}");
+    const n = Number(s.price_usd_monthly);
+    return Number.isFinite(n) ? String(n) : "";
+  } catch (_e) {
+    return "";
+  }
+}
+
+function oaAccountingCellHtml(r, ar) {
+  const subSt = String(r.subscription_status || "none");
+  const paySt = String(r.payment_status || "pending_payment");
+  const startVal = subscriptionEndsAtToDatetimeLocal(r.subscription_started_at);
+  const endVal = subscriptionEndsAtToDatetimeLocal(r.subscription_ends_at);
+  const priceVal = oaDefaultPriceUsd(r);
+  const id = r.id;
+  const o = (v, cur, a, e) =>
+    `<option value="${escapeHtml(v)}"${cur === v ? " selected" : ""}>${escapeHtml(ar ? a : e)}</option>`;
+  return `<div class="space-y-2 min-w-[14rem] rounded-xl border border-violet-100/90 bg-white/90 p-2 shadow-sm">
+    <div class="space-y-0.5">
+      <span class="text-[10px] font-bold text-violet-900/85 block">${ar ? "بداية الاشتراك" : "Subscription start"}</span>
+      <input type="datetime-local" class="oa-sub-start w-full text-[11px] p-1.5 rounded-lg border border-violet-200 bg-white" data-oa-sub-id="${id}" value="${escapeHtml(startVal)}" />
+    </div>
+    <div class="space-y-0.5">
+      <span class="text-[10px] font-bold text-violet-900/85 block">${ar ? "نهاية الاشتراك" : "Subscription end"}</span>
+      <input type="datetime-local" class="oa-sub-end w-full text-[11px] p-1.5 rounded-lg border border-violet-200 bg-white" data-oa-sub-id="${id}" value="${escapeHtml(endVal)}" />
+    </div>
+    <div class="space-y-0.5">
+      <span class="text-[10px] font-bold text-violet-900/85 block">${ar ? "حالة الاشتراك" : "Subscription status"}</span>
+      <select class="oa-subscription-status w-full text-[11px] p-1.5 rounded-lg border border-violet-200 bg-white" data-oa-sub-id="${id}">
+        ${o("none", subSt, "— غير مفعّل", "— None")}
+        ${o("active", subSt, "نشط", "Active")}
+        ${o("expired", subSt, "منتهي", "Expired")}
+        ${o("paused", subSt, "موقوف", "Paused")}
+      </select>
+    </div>
+    <div class="space-y-0.5">
+      <span class="text-[10px] font-bold text-violet-900/85 block">${ar ? "حالة الدفع" : "Payment status"}</span>
+      <select class="oa-payment-status w-full text-[11px] p-1.5 rounded-lg border border-violet-200 bg-white" data-oa-sub-id="${id}">
+        ${o("paid", paySt, "مدفوع", "Paid")}
+        ${o("unpaid", paySt, "غير مدفوع", "Unpaid")}
+        ${o("pending_payment", paySt, "بانتظار الدفع", "Pending payment")}
+      </select>
+    </div>
+    <div class="space-y-0.5">
+      <span class="text-[10px] font-bold text-violet-900/85 block">${ar ? "سعر الباقة (دولار)" : "Plan price (USD)"}</span>
+      <input type="number" step="0.01" min="0" class="oa-sub-price w-full text-[11px] p-1.5 rounded-lg border border-violet-200 bg-white" data-oa-sub-id="${id}" value="${escapeHtml(priceVal)}" placeholder="0" />
+    </div>
+  </div>`;
+}
+
 let orderAccountingUiBound = false;
 
 async function patchOrderAccountingSubscriptionRow(tbody, id, token) {
   const st = tbody.querySelector(`.oa-sub-status[data-oa-sub-id="${id}"]`)?.value;
   const msg = tbody.querySelector(`.oa-sub-msg[data-oa-sub-id="${id}"]`)?.value ?? "";
+  const startEl = tbody.querySelector(`.oa-sub-start[data-oa-sub-id="${id}"]`);
+  const endEl = tbody.querySelector(`.oa-sub-end[data-oa-sub-id="${id}"]`);
+  const subSt = tbody.querySelector(`.oa-subscription-status[data-oa-sub-id="${id}"]`)?.value;
+  const paySt = tbody.querySelector(`.oa-payment-status[data-oa-sub-id="${id}"]`)?.value;
+  const priceEl = tbody.querySelector(`.oa-sub-price[data-oa-sub-id="${id}"]`);
+  const body = {
+    status: st,
+    admin_message: msg,
+    subscription_started_at: datetimeLocalToIsoUtc(startEl?.value || ""),
+    subscription_ends_at: datetimeLocalToIsoUtc(endEl?.value || ""),
+    subscription_status: subSt,
+    payment_status: paySt,
+  };
+  const priceRaw = priceEl && String(priceEl.value || "").trim();
+  if (priceRaw === "") body.subscription_price_usd = null;
+  else if (priceRaw) {
+    const n = Number(priceRaw);
+    body.subscription_price_usd = Number.isFinite(n) ? n : null;
+  }
   return api(`/api/admin/vendor-subscription-requests/${id}`, {
     method: "PATCH",
     token,
-    body: { status: st, admin_message: msg },
+    body,
   });
 }
 
@@ -1746,7 +1820,7 @@ async function loadOrderAccountingVendorQueue() {
     ? VP_SUB_STATUS_LABELS_AR
     : { pending: "Pending", approved: "Approved", rejected: "Rejected", incomplete: "Incomplete" };
   const token = getToken();
-  const oaColspan = 11;
+  const oaColspan = 12;
   if (!token) {
     tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-amber-800 bg-amber-50/80">${
       ar ? "يجب تسجيل الدخول لعرض طابور المحاسبة." : "Sign in to load the accounting queue."
@@ -1798,6 +1872,7 @@ async function loadOrderAccountingVendorQueue() {
         <td class="p-3 align-top text-xs text-slate-900 min-w-[12rem] max-w-[22rem] whitespace-normal break-all leading-relaxed" dir="ltr">${emailFull || "—"}</td>
         <td class="p-3 align-top">${vendorSubTermsAcceptedCellHtml(r, ar)}</td>
         <td class="p-3 align-top text-[11px]">${docsHtml}</td>
+        <td class="p-3 align-top">${oaAccountingCellHtml(r, ar)}</td>
         <td class="p-3 min-w-[9.5rem]">
           <select class="oa-sub-status w-full text-xs p-2 rounded-xl border border-violet-200/90 bg-white text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400" data-oa-sub-id="${r.id}">
             <option value="pending"${r.status === "pending" ? " selected" : ""}>${stLab.pending}</option>

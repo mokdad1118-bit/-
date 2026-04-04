@@ -345,6 +345,7 @@ async function initDb() {
   await migrateVendorSubscriptionUserLink();
   await migrateVendorJoinTermsAndDocImages();
   await migrateVendorJoinPlansV1();
+  await migrateVendorSubscriptionAccountingV1();
   await migrateMarketplaceComprehensiveV2();
   await migrateAdoraMultiVendorProgramFullV1();
   await migrateMarketplaceHomePlacementsV1();
@@ -1061,6 +1062,21 @@ async function migrateVendorJoinPlansV1() {
   await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_commission_percent DOUBLE PRECISION`);
   await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_product_quota INTEGER`);
   await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMPTZ`);
+}
+
+/** حقول محاسبة الاشتراك على طلب الانضمام (منفصلة عن حالة الطلب) */
+async function migrateVendorSubscriptionAccountingV1() {
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMPTZ`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS subscription_ends_at TIMESTAMPTZ`);
+  await run(
+    `ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none'`
+  );
+  await run(
+    `ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending_payment'`
+  );
+  await run(
+    `ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS subscription_price_usd DOUBLE PRECISION`
+  );
 }
 
 /** Multi-vendor: رموز CMP/PRD، طلبات فرعية لكل شركة، عنوان JSON، طلبات إعلان */
