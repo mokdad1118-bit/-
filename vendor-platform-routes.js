@@ -289,6 +289,90 @@ async function resolveVendorSubscriptionNotifyUserId(row) {
   return null;
 }
 
+/** مطابقة شركة السوق مع طلب الانضمام: بريد البوابة = بريد المستخدم/الطلب، أو اسم شركة فريد */
+async function resolveMarketplaceVendorIdForSubscriptionRequest(row) {
+  const uid = row.user_id != null ? Number(row.user_id) : NaN;
+  if (Number.isFinite(uid) && uid > 0) {
+    const u = await get(`SELECT email FROM users WHERE id=? AND COALESCE(role,'user') <> 'admin'`, [uid]);
+    const em = u && u.email ? String(u.email).trim().toLowerCase() : "";
+    if (em) {
+      const v = await get(
+        `SELECT id FROM marketplace_vendors WHERE LOWER(TRIM(COALESCE(portal_username,'')))=? LIMIT 1`,
+        [em]
+      );
+      if (v) return { vendorId: Number(v.id), match: "portal_username_user_email" };
+    }
+  }
+  const reqEmail = row.email != null ? String(row.email).trim().toLowerCase() : "";
+  if (reqEmail) {
+    const v = await get(
+      `SELECT id FROM marketplace_vendors WHERE LOWER(TRIM(COALESCE(portal_username,'')))=? LIMIT 1`,
+      [reqEmail]
+    );
+    if (v) return { vendorId: Number(v.id), match: "portal_username_request_email" };
+  }
+  const cn = row.company_name != null ? String(row.company_name).trim() : "";
+  if (cn) {
+    const list = await all(
+      `SELECT id FROM marketplace_vendors
+       WHERE vendor_type = 'company'
+         AND (TRIM(name_ar) = TRIM(?) OR TRIM(name_en) = TRIM(?)
+              OR LOWER(TRIM(name_en)) = LOWER(TRIM(?)))
+       ORDER BY id DESC
+       LIMIT 5`,
+      [cn, cn, cn]
+    );
+    if (list.length === 1) return { vendorId: Number(list[0].id), match: "company_name_unique" };
+  }
+  return { vendorId: null, match: null };
+}
+
+/** عند الموافقة: تعبئة حقول الباقة والعمولة والتواريخ على marketplace_vendors من لقطة الطلب */
+async function applySubscriptionPlanToMarketplaceVendor(vendorId, row) {
+  const snap = safeJsonParse(row.selected_plan_snapshot_json, {});
+  const planKey = String(row.selected_plan_key || snap.key || "")
+    .trim()
+    .slice(0, 64);
+  if (!planKey) {
+    return { ok: false, reason: "no_plan_key" };
+  }
+  const comm = Number(snap.commission_percent);
+  const commissionOk = Number.isFinite(comm) && comm >= 0 && comm <= 100;
+  const quotaNum = Math.floor(Number(snap.product_quota));
+  const quotaOk = Number.isFinite(quotaNum) && quotaNum > 0;
+  const priceMonthly = Number(snap.price_usd_monthly);
+  const hasPaidPlan = Number.isFinite(priceMonthly) && priceMonthly > 0;
+
+  const started = new Date().toISOString();
+  let endsAt = null;
+  if (hasPaidPlan) {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    endsAt = d.toISOString();
+  }
+
+  await run(
+    `UPDATE marketplace_vendors SET
+      subscription_plan_key=?,
+      subscription_commission_percent=?,
+      subscription_product_quota=COALESCE(?, subscription_product_quota),
+      subscription_started_at=?::timestamptz,
+      subscription_ends_at=?::timestamptz,
+      product_quota=COALESCE(?, product_quota)
+     WHERE id=?`,
+    [
+      planKey,
+      commissionOk ? comm : null,
+      quotaOk ? quotaNum : null,
+      started,
+      endsAt,
+      quotaOk ? quotaNum : null,
+      vendorId,
+    ]
+  );
+  return { ok: true, plan_key: planKey, subscription_ends_at: endsAt };
+}
+
 function buildVendorSubStatusNotification(status, companyName, adminMessage) {
   const c = companyName && String(companyName).trim() ? String(companyName).trim() : "شركتك";
   const note =
@@ -768,6 +852,33 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       );
       const updated = await get(`SELECT * FROM vendor_subscription_requests WHERE id=?`, [id]);
       const newStatus = String(updated.status || "").trim();
+      let vendor_plan_sync = null;
+      if (newStatus === "approved" && prevStatus !== "approved") {
+        try {
+          const { vendorId, match } = await resolveMarketplaceVendorIdForSubscriptionRequest(updated);
+          if (vendorId) {
+            const applied = await applySubscriptionPlanToMarketplaceVendor(vendorId, updated);
+            vendor_plan_sync = {
+              applied: applied.ok === true,
+              vendor_id: vendorId,
+              match,
+              ...applied,
+            };
+          } else {
+            vendor_plan_sync = {
+              applied: false,
+              reason: "vendor_not_found",
+              hint_ar:
+                "لم تُعثر على شركة سوق مطابقة. أنشئ الشركة من «إضافة شركة» واجعل اسم مستخدم البوابة مساوياً لبريد الطلب، أو طابق اسم الشركة (عربي/إنجليزي) بدقة وفريد.",
+              hint_en:
+                "No matching marketplace company. Create the company with portal username equal to the request email, or a unique company name match.",
+            };
+          }
+        } catch (e) {
+          const msg = e && e.message ? String(e.message) : "sync_failed";
+          vendor_plan_sync = { applied: false, reason: "exception", error: msg };
+        }
+      }
       if (typeof notifyUserInApp === "function" && prevStatus !== newStatus) {
         try {
           const notifyUid = await resolveVendorSubscriptionNotifyUserId(updated);
@@ -783,7 +894,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           /* لا نفشل حفظ الحالة إذا تعذر الإشعار */
         }
       }
-      return res.json(updated);
+      return vendor_plan_sync != null ? res.json({ ...updated, vendor_plan_sync }) : res.json(updated);
     } catch (_e) {
       return res.status(500).json({ error: "Failed to update request" });
     }

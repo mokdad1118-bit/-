@@ -1621,6 +1621,62 @@
             </div>
           </div>
 
+          <!-- نظام محاسبة الطلبات — طابور تلقائي من طلبات الانضمام -->
+          <div id="tab-order-accounting" class="tab-panel hidden space-y-4">
+            <div class="rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 space-y-4 shadow-sm">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-bold text-slate-900" data-en="Order accounting system" data-ar="نظام محاسبة الطلبات">نظام محاسبة الطلبات</h2>
+                  <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed" data-en="Reference checklist for linking plans, commissions, and subscriptions. Join requests below are loaded automatically from the database when users submit the in-app form — no manual entry." data-ar="مرجع تنفيذ لربط الباقات والعمولة والاشتراكات. جدول الطابور أدناه يُحمَّل تلقائياً من قاعدة البيانات عند إرسال المستخدم نموذج «انضم كشركة» في التطبيق — دون إدخال يدوي هنا.">مرجع تنفيذ لربط الباقات والعمولة والاشتراكات. جدول الطابور أدناه يُحمَّل تلقائياً من قاعدة البيانات عند إرسال المستخدم نموذج «انضم كشركة» في التطبيق — دون إدخال يدوي هنا.</p>
+                </div>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-white/90 p-3 sm:p-4 space-y-2">
+                <h3 class="text-sm font-bold text-slate-800" data-en="Implementation notes" data-ar="ملاحظات مهمة للتنفيذ">ملاحظات مهمة للتنفيذ</h3>
+                <ul class="list-disc ps-5 space-y-1 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                  <li><span data-en="Plans must be linked to the accounting system." data-ar="يجب ربط الباقات مع نظام المحاسبة."></span></li>
+                  <li><span data-en="Commission is calculated automatically according to the plan." data-ar="يتم احتساب العمولة تلقائياً حسب الباقة."></span></li>
+                  <li><span data-en="Premium features stop when the subscription ends." data-ar="يتم إيقاف المميزات عند انتهاء الاشتراك."></span></li>
+                  <li><span data-en="The plan can be changed later." data-ar="إمكانية تغيير الباقة لاحقاً."></span></li>
+                  <li><span data-en="The subscription can be extended." data-ar="إمكانية تمديد الاشتراك."></span></li>
+                  <li><span data-en="The plan can be upgraded." data-ar="إمكانية ترقية الباقة."></span></li>
+                  <li><span data-en="Record subscription start and end dates." data-ar="تسجيل تاريخ بداية ونهاية الاشتراك."></span></li>
+                </ul>
+              </div>
+              <div class="rounded-xl border border-violet-200 bg-violet-50/50 p-3 sm:p-4">
+                <p class="text-xs font-bold text-violet-950" data-en="Goal" data-ar="الهدف">الهدف</p>
+                <p class="text-sm text-violet-900 mt-1 leading-relaxed" data-en="Build a professional, scalable plans system on the Adora platform." data-ar="إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.">إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.</p>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <div class="flex flex-wrap gap-2 items-center justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-gray-900" data-en="Accounting queue — company join requests (automatic)" data-ar="طابور المحاسبة — طلبات الانضمام (تلقائي)">طابور المحاسبة — طلبات الانضمام (تلقائي)</h3>
+                  <p class="text-[11px] text-gray-500 mt-1 leading-relaxed" data-en="Same records as «Join requests». When you set status to Approved, the server tries to apply the chosen plan to the matching marketplace company (portal username = request email, or a single company with the same name). Paid plans get +1 month on subscription end; free plans leave end date open." data-ar="نفس السجلات في «طلبات الاشتراك». عند اختيار «تمت الموافقة» يحاول الخادم تطبيق الباقة على شركة السوق المطابقة (اسم مستخدم البوابة = بريد الطلب، أو شركة واحدة بنفس اسم الشركة). الباقات المدفوعة تُضبط نهاية الاشتراك لشهر واحد؛ المجانية تُترك بدون تاريخ نهاية للاشتراك.">نفس السجلات في «طلبات الاشتراك». عند «تمت الموافقة» يُطبَّق مفتاح الباقة والعمولة والحصة تلقائياً على شركة السوق إن وُجدت مطابقة (بوابة = بريد الطلب أو اسم شركة فريد).</p>
+                </div>
+                <button type="button" id="btn-oa-queue-refresh" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 active:scale-[0.99] shrink-0" data-en="Refresh queue" data-ar="تحديث الطابور">تحديث الطابور</button>
+              </div>
+              <div class="overflow-x-auto border border-gray-100 rounded-xl">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th class="text-start p-2 whitespace-nowrap" data-en="ID" data-ar="#">#</th>
+                      <th class="text-start p-2 whitespace-nowrap" data-en="Submitted" data-ar="تاريخ الإرسال">تاريخ الإرسال</th>
+                      <th class="text-start p-2" data-en="Company" data-ar="الشركة">الشركة</th>
+                      <th class="text-start p-2" data-en="Plan" data-ar="الباقة">الباقة</th>
+                      <th class="text-start p-2 whitespace-nowrap" data-en="Commission %" data-ar="عمولة %">عمولة %</th>
+                      <th class="text-start p-2 whitespace-nowrap" data-en="Product quota" data-ar="حصة منتجات">حصة منتجات</th>
+                      <th class="text-start p-2" data-en="Email" data-ar="البريد">البريد</th>
+                      <th class="text-start p-2" data-en="Status" data-ar="الحالة">الحالة</th>
+                      <th class="text-start p-2 min-w-[200px]" data-en="Admin note &amp; save" data-ar="ملاحظة وحفظ">ملاحظة وحفظ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="oa-vsub-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- Users (app customers) -->
           <div id="tab-users" class="tab-panel hidden space-y-4">
             <div class="bg-violet-50 rounded-2xl border border-violet-100 p-4">
@@ -2241,6 +2297,9 @@
             </button>
             <button type="button" data-tab="tab-orders" class="tab-btn admin-sidebar-item">
               <i class="fas fa-receipt"></i><span class="admin-sidebar-label" data-en="Orders" data-ar="الطلبات">الطلبات</span>
+            </button>
+            <button type="button" data-tab="tab-order-accounting" class="tab-btn admin-sidebar-item">
+              <i class="fas fa-file-invoice-dollar"></i><span class="admin-sidebar-label" data-en="Order accounting" data-ar="نظام محاسبة الطلبات">نظام محاسبة الطلبات</span>
             </button>
             <button type="button" data-tab="tab-users" class="tab-btn admin-sidebar-item">
               <i class="fas fa-users"></i><span class="admin-sidebar-label" data-en="Users" data-ar="المستخدمون">المستخدمون</span>

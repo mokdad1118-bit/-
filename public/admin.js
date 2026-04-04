@@ -896,6 +896,9 @@ function setActiveTab(tabId) {
     loadVendorSubscriptionRequests().catch(() => {});
     loadAppAdInquiriesUi().catch(() => {});
   }
+  if (tabId === "tab-order-accounting") {
+    loadOrderAccountingTab().catch(() => {});
+  }
   if (tabId === "tab-adora-company") {
     initAdoraCompanyAdminTab().catch(() => {});
     refreshAdminVendorContactUnread().catch(() => {});
@@ -1559,6 +1562,140 @@ const VP_SUB_STATUS_LABELS_AR = {
   incomplete: "طلب ناقص",
 };
 
+/** بعد حفظ طلب الانضمام — إن وُجدت مزامنة باقة مع شركة السوق */
+function alertVendorSubscriptionPlanSync(data) {
+  const sync = data && data.vendor_plan_sync;
+  if (!sync) return;
+  const ar = getAdminLang() === "ar";
+  if (sync.applied) {
+    const vid = sync.vendor_id != null ? sync.vendor_id : "—";
+    const pk = sync.plan_key || "—";
+    alert(
+      ar
+        ? `تم ربط الباقة تلقائياً بالشركة رقم ${vid}.\nمفتاح الباقة: ${pk}\n(العمولة، حصة المنتجات، وبداية/نهاية الاشتراك حُدّثت على الخادم.)`
+        : `Plan linked to vendor #${vid}.\nPlan key: ${pk}\n(Commission, quota, and subscription dates were updated.)`
+    );
+  } else {
+    const hint = ar ? sync.hint_ar : sync.hint_en;
+    const detail = [sync.reason, sync.error].filter(Boolean).join(": ");
+    alert(
+      (ar ? "تعذر ربط الباقة تلقائياً بشركة في السوق.\n" : "Could not auto-apply the plan to a vendor.\n") +
+        (hint ? `${hint}\n` : "") +
+        (detail ? (ar ? `التفاصيل: ` : `Detail: `) + detail : "")
+    );
+  }
+}
+
+/** لقطة الباقة المحفوظة مع طلب الانضمام — للعرض في محاسبة الطابور */
+function vendorSubSnapshotAccounting(r) {
+  let title = "";
+  let commission = "—";
+  let quota = "—";
+  try {
+    const snap = JSON.parse(r.selected_plan_snapshot_json || "{}");
+    if (snap && snap.title_ar) title = String(snap.title_ar);
+    const c = Number(snap.commission_percent);
+    if (Number.isFinite(c)) commission = String(c);
+    const q = Number(snap.product_quota);
+    if (Number.isFinite(q) && q > 0) quota = String(Math.floor(q));
+  } catch (_e) {
+    /* ignore */
+  }
+  const k = r.selected_plan_key != null ? String(r.selected_plan_key).trim() : "";
+  return { key: k, title, commission, quota };
+}
+
+let orderAccountingUiBound = false;
+
+function bindOrderAccountingListenersOnce() {
+  if (orderAccountingUiBound) return;
+  orderAccountingUiBound = true;
+  document.getElementById("btn-oa-queue-refresh")?.addEventListener("click", () => {
+    loadOrderAccountingVendorQueue().catch((e) => alert(e.message || String(e)));
+  });
+}
+
+async function loadOrderAccountingVendorQueue() {
+  const token = getToken();
+  if (!token) return;
+  const rows = await api("/api/admin/vendor-subscription-requests", { token });
+  const tbody = document.getElementById("oa-vsub-tbody");
+  if (!tbody) return;
+  const ar = getAdminLang() === "ar";
+  const loc = ar ? "ar-SA" : "en-US";
+  const stLab = ar
+    ? VP_SUB_STATUS_LABELS_AR
+    : { pending: "Pending", approved: "Approved", rejected: "Rejected", incomplete: "Incomplete" };
+  if (!Array.isArray(rows) || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-500">${
+      ar ? "لا طلبات في الطابور." : "No items in the queue."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((r) => {
+      const m = vendorSubSnapshotAccounting(r);
+      const dt = r.created_at ? new Date(r.created_at).toLocaleString(loc) : "—";
+      const planHtml =
+        !m.key
+          ? "—"
+          : `<div class="text-[11px] max-w-[140px]"><span class="font-mono text-violet-800">${escapeHtml(m.key)}</span>${
+              m.title ? `<div class="text-gray-600 mt-0.5 leading-snug">${escapeHtml(m.title)}</div>` : ""
+            }</div>`;
+      return `<tr class="border-t border-gray-100 align-top">
+        <td class="p-2 font-mono">${r.id}</td>
+        <td class="p-2 whitespace-nowrap text-xs text-gray-600">${escapeHtml(dt)}</td>
+        <td class="p-2 max-w-[120px]">${escapeHtml(r.company_name || "")}</td>
+        <td class="p-2 align-top">${planHtml}</td>
+        <td class="p-2 font-mono text-xs">${escapeHtml(m.commission)}</td>
+        <td class="p-2 font-mono text-xs">${escapeHtml(m.quota)}</td>
+        <td class="p-2 max-w-[130px] truncate text-xs" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
+        <td class="p-2">
+          <select class="w-full text-xs p-1 rounded border border-gray-200 oa-sub-status" data-oa-sub-id="${r.id}">
+            <option value="pending"${r.status === "pending" ? " selected" : ""}>${stLab.pending}</option>
+            <option value="approved"${r.status === "approved" ? " selected" : ""}>${stLab.approved}</option>
+            <option value="rejected"${r.status === "rejected" ? " selected" : ""}>${stLab.rejected}</option>
+            <option value="incomplete"${r.status === "incomplete" ? " selected" : ""}>${stLab.incomplete}</option>
+          </select>
+        </td>
+        <td class="p-2 min-w-[200px] space-y-1">
+          <textarea class="w-full text-xs p-1 rounded border border-gray-200 oa-sub-msg" data-oa-sub-id="${r.id}" rows="2" placeholder="${
+            ar ? "ملاحظة محاسبة / متابعة" : "Accounting / follow-up note"
+          }">${escapeHtml(r.admin_message || "")}</textarea>
+          <button type="button" class="text-xs px-2 py-1 rounded-lg bg-slate-700 text-white oa-sub-save" data-oa-sub-id="${r.id}">${
+            ar ? "حفظ" : "Save"
+          }</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  tbody.querySelectorAll(".oa-sub-save").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-oa-sub-id");
+      const st = tbody.querySelector(`.oa-sub-status[data-oa-sub-id="${id}"]`)?.value;
+      const msg = tbody.querySelector(`.oa-sub-msg[data-oa-sub-id="${id}"]`)?.value ?? "";
+      try {
+        const data = await api(`/api/admin/vendor-subscription-requests/${id}`, {
+          method: "PATCH",
+          token,
+          body: { status: st, admin_message: msg },
+        });
+        alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
+        alertVendorSubscriptionPlanSync(data);
+        loadVendorSubscriptionRequests().catch(() => {});
+        loadOrderAccountingVendorQueue().catch(() => {});
+      } catch (err) {
+        alert(err.message || String(err));
+      }
+    });
+  });
+}
+
+async function loadOrderAccountingTab() {
+  bindOrderAccountingListenersOnce();
+  await loadOrderAccountingVendorQueue();
+}
+
 async function loadVendorSubscriptionRequests() {
   const token = getToken();
   if (!token) return;
@@ -1629,12 +1766,15 @@ async function loadVendorSubscriptionRequests() {
       const st = tbody.querySelector(`.vp-sub-status[data-vp-sub-id="${id}"]`)?.value;
       const msg = tbody.querySelector(`.vp-sub-msg[data-vp-sub-id="${id}"]`)?.value ?? "";
       try {
-        await api(`/api/admin/vendor-subscription-requests/${id}`, {
+        const data = await api(`/api/admin/vendor-subscription-requests/${id}`, {
           method: "PATCH",
           token,
           body: { status: st, admin_message: msg },
         });
         alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
+        alertVendorSubscriptionPlanSync(data);
+        loadVendorSubscriptionRequests().catch(() => {});
+        loadOrderAccountingVendorQueue().catch(() => {});
       } catch (err) {
         alert(err.message || String(err));
       }
