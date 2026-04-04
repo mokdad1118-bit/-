@@ -642,12 +642,14 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       const public_product_code = await allocateNextPublicProductCode();
       const priceNum = Number.isFinite(price) ? price : 0;
       const listingOnCreate = vendorPortalListingStatusOnCreate(priceNum);
+      const showYm = Number(b.show_in_you_may_also_like) === 1 ? 1 : 0;
       const ins = await run(
         `INSERT INTO marketplace_products (
           section_id, vendor_id, department_id, name_ar, name_en, description_ar, description_en, price, discount_percent, stock,
           images_json, inventory_json, product_options_json, is_offer, sort_order, is_active, sku, barcode, public_product_code,
-          is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0, ?)`,
+          is_mp_featured, featured_hub_enabled, featured_hub_section, show_in_offers_tab, show_in_marketplace_tab, vendor_listing_status,
+          show_in_you_may_also_like
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999, ?, NULL, NULL, ?, 0, 0, NULL, 0, 0, ?, ?)`,
         [
           v.section_id,
           v.id,
@@ -665,6 +667,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           is_active,
           public_product_code,
           listingOnCreate,
+          showYm,
         ]
       );
       const mapped = await getMarketplaceProductMappedAdminById(ins.id);
@@ -755,6 +758,14 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       }
       const finalPrice = Number.isFinite(price) ? price : 0;
       const nextListing = vendorPortalListingStatusOnVendorUpdate(cur, finalPrice);
+      const showYm =
+        b.show_in_you_may_also_like != null
+          ? Number(b.show_in_you_may_also_like) === 1
+            ? 1
+            : 0
+          : Number(cur.show_in_you_may_also_like) === 1
+            ? 1
+            : 0;
 
       const hasVariantBody = b.product_options != null || b.inventory != null;
       let invJson;
@@ -772,7 +783,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
       await run(
         `UPDATE marketplace_products SET name_ar=?, name_en=?, description_ar=?, description_en=?,
          price=?, discount_percent=?, stock=?, images_json=?, inventory_json=?, product_options_json=?,
-         department_id=?, is_active=?, vendor_listing_status=? WHERE id=? AND vendor_id=?`,
+         department_id=?, is_active=?, vendor_listing_status=?, show_in_you_may_also_like=? WHERE id=? AND vendor_id=?`,
         [
           name_ar,
           name_en,
@@ -787,6 +798,7 @@ function registerVendorPortalRoutes(app, { notifyUserInApp, savePublicImageFromB
           depRes.department_id,
           is_active,
           nextListing,
+          showYm,
           id,
           req.mpVendor.id,
         ]

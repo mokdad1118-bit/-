@@ -698,6 +698,8 @@
     if (ic) {
       ic.className = "fas fa-plus-circle text-emerald-600";
     }
+    const ymal = el("vp-prod-ymal");
+    if (ymal) ymal.checked = false;
   }
 
   async function vpLoadProductForEdit(productId) {
@@ -720,6 +722,8 @@
     if (dept && p.department_id != null) dept.value = String(p.department_id);
     const act = el("vp-prod-active");
     if (act) act.checked = Number(p.is_active) !== 0;
+    const ymal = el("vp-prod-ymal");
+    if (ymal) ymal.checked = Number(p.show_in_you_may_also_like) === 1;
     productImageUrls = Array.isArray(p.images) ? p.images.slice() : [];
     renderProductPreview();
     const po = Array.isArray(p.product_options) ? p.product_options : [];
@@ -1437,6 +1441,8 @@
     renderProductPreview();
     const act = el("vp-prod-active");
     if (act) act.checked = true;
+    const ymal = el("vp-prod-ymal");
+    if (ymal) ymal.checked = false;
     updateProductFormState(lastVendorMe);
   });
 
@@ -1487,6 +1493,7 @@
           department_id: deptVal ? Number(deptVal) : undefined,
           images: productImageUrls.slice(),
           is_active: el("vp-prod-active")?.checked ? 1 : 0,
+          show_in_you_may_also_like: el("vp-prod-ymal")?.checked ? 1 : 0,
           product_options: vpVariantState.product_options,
           inventory: invOut,
         };
@@ -1502,6 +1509,7 @@
           department_id: deptVal ? Number(deptVal) : undefined,
           images: productImageUrls.slice(),
           is_active: el("vp-prod-active")?.checked ? 1 : 0,
+          show_in_you_may_also_like: el("vp-prod-ymal")?.checked ? 1 : 0,
         };
       }
 
@@ -1547,6 +1555,8 @@
       vpClearProductEditUi();
       const act = el("vp-prod-active");
       if (act) act.checked = true;
+      const ymalR = el("vp-prod-ymal");
+      if (ymalR) ymalR.checked = false;
       const me = await api("/api/vendor-portal/me");
       lastVendorMe = me;
       el("vp-quota").textContent = "المنتجات النشطة: " + (me.product_quota_display || "—");

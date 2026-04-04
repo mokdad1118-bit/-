@@ -6434,6 +6434,15 @@
                 <button type="button" id="marketplace-desc-toggle" class="mt-2 text-indigo-500 text-sm font-bold hidden hover:text-indigo-600 transition-colors" onclick="toggleMarketplaceDescExpanded()" data-en-more="Show more" data-ar-more="عرض المزيد" data-en-less="Show less" data-ar-less="عرض أقل">عرض المزيد</button>
             </div>
 
+            <div id="mp-product-related-section" class="border-t border-gray-100 pt-5 mt-6">
+                <div class="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/95 via-white to-white px-3 py-4 space-y-2 shadow-sm">
+                    <p class="text-[11px] font-bold text-violet-700 tracking-wide" data-en="Partner marketplace" data-ar="السوق الشامل">السوق الشامل</p>
+                    <h3 class="text-base font-bold text-gray-900 leading-tight" data-en="You may also like" data-ar="قد يعجبك أيضاً">قد يعجبك أيضاً</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed" data-en="Other marketplace products appear here when enabled per product (admin panel or partner portal)." data-ar="تظهر هنا منتجات أخرى من السوق الشامل عند تفعيل الخيار لكل منتج — من لوحة الإدارة أو من بوابة الشركاء.">تظهر هنا منتجات أخرى من السوق الشامل عند تفعيل الخيار لكل منتج — من لوحة الإدارة أو من بوابة الشركاء.</p>
+                    <div id="mp-product-related-scroll" class="adora-scroll-strip product-detail-related-scroll pt-1 snap-x snap-proximity -mx-1 px-0.5"></div>
+                </div>
+            </div>
+
             <div id="marketplace-rating-summary-card" class="adora-rating-summary-card hidden" aria-hidden="true">
                 <div class="flex flex-col sm:flex-row sm:items-stretch">
                     <div class="flex-1 px-4 py-5 sm:px-5 sm:py-6 flex flex-col items-center sm:items-start text-center sm:text-start">
@@ -6462,15 +6471,6 @@
                 </button>
                 <div id="marketplace-reviews-list" class="space-y-4 pb-4">
                     <p class="text-sm text-gray-500 py-2" data-en="Loading reviews…" data-ar="جاري تحميل التقييمات…">جاري تحميل التقييمات…</p>
-                </div>
-            </div>
-
-            <div id="mp-product-related-section" class="hidden border-t border-gray-100 pt-5 mt-6">
-                <div class="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/95 via-white to-white px-3 py-4 space-y-2 shadow-sm">
-                    <p class="text-[11px] font-bold text-violet-700 tracking-wide" data-en="Partner marketplace" data-ar="السوق الشامل — دخول السوق">السوق الشامل — دخول السوق</p>
-                    <h3 class="text-base font-bold text-gray-900 leading-tight" data-en="You may also like" data-ar="قد يعجبك أيضاً">قد يعجبك أيضاً</h3>
-                    <p class="text-xs text-gray-600 leading-relaxed" data-en="Only marketplace products flagged for this row in admin." data-ar="منتجات أخرى من السوق الشامل — فقط ما يُفعَّل له «قد يعجبك أيضاً» في لوحة التحكم.">منتجات أخرى من السوق الشامل — فقط ما يُفعَّل له «قد يعجبك أيضاً» في لوحة التحكم.</p>
-                    <div id="mp-product-related-scroll" class="adora-scroll-strip product-detail-related-scroll pt-1 snap-x snap-proximity -mx-1 px-0.5"></div>
                 </div>
             </div>
             </div>
@@ -7689,6 +7689,6 @@
     </div>
 
     <script src="/vendor/panzoom.min.js"></script>
-    <script src="/index-page.js?v=android-notif-icon1"></script>
+    <script src="/index-page.js?v=mp-ymal-pdp-v1"></script>
 </body>
 </html>
