@@ -1328,11 +1328,11 @@
                 'screen-cart',
                 'screen-profile',
             ];
-            if (!keys.includes(screenId)) return;
             document.querySelectorAll('.nav-item').forEach((item) => {
                 item.classList.remove('active', 'text-purple-600');
                 item.classList.add('text-gray-400');
             });
+            if (!keys.includes(screenId)) return;
             const navBtn = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
             if (navBtn) {
                 navBtn.classList.remove('text-gray-400');
@@ -3362,6 +3362,9 @@
             const splash = document.getElementById('splash-screen');
             if (splash && splash.style.display !== 'none') return true;
             if (adoraPtrOverlayBlocking()) return true;
+            /* صفحات نماذج طويلة + تمرير النافذة: سحب-للتحديث كان يستدعي preventDefault فيلمس فيعلّق التمرير */
+            if (document.getElementById('screen-vendor-join')?.classList.contains('active')) return true;
+            if (document.getElementById('screen-app-ad-inquiry')?.classList.contains('active')) return true;
             return false;
         }
 
@@ -11552,9 +11555,6 @@
                 try {
                     modal.classList.remove('hidden');
                     modal.setAttribute('aria-hidden', 'false');
-                    try {
-                        modal.removeAttribute('inert');
-                    } catch (_i) {}
                     if (sc) {
                         sc.scrollTop = 0;
                         void sc.offsetHeight;
@@ -11571,9 +11571,6 @@
                 if (modal) {
                     modal.classList.add('hidden');
                     modal.setAttribute('aria-hidden', 'true');
-                    try {
-                        modal.setAttribute('inert', '');
-                    } catch (_i) {}
                 }
             } finally {
                 restoreBodyScrollIfIdle();
