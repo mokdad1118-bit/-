@@ -1342,7 +1342,9 @@
         }
         /* فوق التدرج البنفسجي: الخلفية البيضاء الافتراضية تخفي عنوان text-white */
         /* خارج #app-shell: fixed يغطي الشاشة كاملة ولا يتأثر بـ transform على الغلاف */
+        /* z-index هنا إلزامي: z-[10047] غير مُولَّد في tailwind.bundle.css فيُبقى الطبقة تحت الهيدر/الدُك (z-40) */
         #vendor-join-terms-modal {
+            z-index: 10047;
             -webkit-transform: translateZ(0);
             transform: translateZ(0);
         }
@@ -1373,6 +1375,7 @@
             }
         }
         #vendor-join-plans-modal {
+            z-index: 10049;
             -webkit-transform: translateZ(0);
             transform: translateZ(0);
         }
@@ -7669,7 +7672,7 @@
     </div><!-- /mobile-container -->
 
     <!-- نافذة قراءة الشروط والأحكام (انضم كشركة) — تمرير داخلي فقط -->
-    <div id="vendor-join-terms-modal" class="fixed inset-0 z-[10047] hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinTermsModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-terms-modal-title">
+    <div id="vendor-join-terms-modal" class="fixed inset-0 hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinTermsModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-terms-modal-title">
         <div class="vendor-join-terms-sheet bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl shadow-black/20 ring-1 ring-black/5" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
                 <h2 id="vendor-join-terms-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Terms and conditions" data-ar="الشروط والأحكام">الشروط والأحكام</h2>
@@ -7826,7 +7829,7 @@
     </div>
 
     <!-- اختيار باقة الانضمام كشركة — قائمة الباقات من الخادم فقط -->
-    <div id="vendor-join-plans-modal" class="fixed inset-0 z-[10049] hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinPlansModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-plans-modal-title">
+    <div id="vendor-join-plans-modal" class="fixed inset-0 hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinPlansModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-plans-modal-title">
         <div class="vendor-join-plans-sheet bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl shadow-black/20 ring-1 ring-black/5" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
                 <h2 id="vendor-join-plans-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Choose your plan" data-ar="اختر الباقة">اختر الباقة</h2>
