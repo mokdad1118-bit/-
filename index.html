@@ -7825,108 +7825,17 @@
         </div>
     </div>
 
-    <!-- اختيار باقة الانضمام كشركة — نص نظام الباقات الرسمي + اختيار من القائمة -->
+    <!-- اختيار باقة الانضمام كشركة — قائمة الباقات من الخادم فقط -->
     <div id="vendor-join-plans-modal" class="fixed inset-0 z-[10049] hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinPlansModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-plans-modal-title">
         <div class="vendor-join-plans-sheet bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl shadow-black/20 ring-1 ring-black/5" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
-                <h2 id="vendor-join-plans-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Plans &amp; package choice" data-ar="الباقات واختيار الباقة">الباقات واختيار الباقة</h2>
+                <h2 id="vendor-join-plans-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Choose your plan" data-ar="اختر الباقة">اختر الباقة</h2>
                 <button type="button" class="w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 active:scale-95 transition" onclick="closeVendorJoinPlansModal()" aria-label="إغلاق" data-en-aria="Close" data-ar-aria="إغلاق">
                     <i class="fas fa-times text-[15px] text-gray-600"></i>
                 </button>
             </div>
             <div id="vendor-join-plans-modal-scroll" class="p-4 sm:p-5 bg-violet-50/30 vendor-join-plans-modal-scroll">
-                <div id="vendor-join-plans-terms-ar" class="space-y-4 text-[11px] sm:text-xs text-gray-800 leading-relaxed pb-2">
-                    <header class="space-y-2 pb-2 border-b border-violet-200/80">
-                        <p class="font-bold text-violet-950 text-sm sm:text-base">نظام الباقات الرسمي – منصة Adora</p>
-                        <p class="text-gray-700">يرجى إنشاء نظام باقات احترافي داخل لوحة التحكم وفق التفاصيل التالية:</p>
-                    </header>
-                    <section class="space-y-1.5">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الباقة المجانية (Starter)</h3>
-                        <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                            <li>عدد المنتجات: 20 منتج</li>
-                            <li>دعم فني</li>
-                            <li>ظهور عادي داخل المنصة</li>
-                            <li>بدون منتجات مميزة</li>
-                            <li>بدون إعلانات</li>
-                            <li>بدون شركة مميزة</li>
-                            <li>العمولة: 5% على كل طلب</li>
-                            <li>السعر: مجاني</li>
-                        </ul>
-                    </section>
-                    <section class="space-y-1.5">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الباقة الأساسية (Basic)</h3>
-                        <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                            <li>عدد المنتجات: 35 منتج</li>
-                            <li>دعم فني</li>
-                            <li>عدد المنتجات المميزة: 4 منتجات</li>
-                            <li>ظهور داخل الأقسام</li>
-                            <li>بدون شركة مميزة</li>
-                            <li>بدون إعلانات</li>
-                            <li>العمولة: 4% على كل طلب</li>
-                            <li>السعر: 20$ شهري</li>
-                        </ul>
-                    </section>
-                    <section class="space-y-1.5">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الباقة المتقدمة (Growth)</h3>
-                        <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                            <li>عدد المنتجات: 60 منتج</li>
-                            <li>دعم فني</li>
-                            <li>عدد المنتجات المميزة: 8 منتجات</li>
-                            <li>ظهور داخل الأقسام</li>
-                            <li>ظهور داخل «قد يعجبك»</li>
-                            <li>إعلان واحد لمدة 15 يوم</li>
-                            <li>العمولة: 3.5% على كل طلب</li>
-                            <li>السعر: 35$ شهري</li>
-                        </ul>
-                    </section>
-                    <section class="space-y-1.5">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الباقة الاحترافية (Premium)</h3>
-                        <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                            <li>عدد المنتجات: 80 منتج</li>
-                            <li>دعم فني أولوية</li>
-                            <li>عدد المنتجات المميزة: 10 منتجات</li>
-                            <li>شركة مميزة</li>
-                            <li>ظهور داخل تبويب «مميز»</li>
-                            <li>ظهور داخل «قد يعجبك»</li>
-                            <li>إعلانين لمدة 20 يوم</li>
-                            <li>أولوية في البحث</li>
-                            <li>العمولة: 3% على كل طلب</li>
-                            <li>السعر: 50$ شهري</li>
-                        </ul>
-                    </section>
-                    <section class="space-y-1.5 rounded-2xl border border-violet-200/80 bg-white/80 p-3">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">ملاحظات مهمة للتنفيذ</h3>
-                        <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                            <li>يجب ربط الباقات مع نظام المحاسبة</li>
-                            <li>يتم احتساب العمولة تلقائياً حسب الباقة</li>
-                            <li>يتم إيقاف المميزات عند انتهاء الاشتراك</li>
-                            <li>إمكانية تغيير الباقة لاحقاً</li>
-                            <li>إمكانية تمديد الاشتراك</li>
-                            <li>إمكانية ترقية الباقة</li>
-                            <li>تسجيل تاريخ بداية ونهاية الاشتراك</li>
-                        </ul>
-                    </section>
-                    <section class="space-y-1 pb-1">
-                        <h3 class="font-bold text-violet-900 text-xs sm:text-sm">الهدف</h3>
-                        <p class="text-gray-800 font-medium">إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.</p>
-                    </section>
-                </div>
-                <div id="vendor-join-plans-terms-en" class="hidden space-y-3 text-[11px] sm:text-xs text-gray-800 leading-relaxed pb-2">
-                    <p class="font-bold text-violet-950 text-sm">Official plans — Adora platform</p>
-                    <p class="text-gray-700">Professional tiered plans: <strong>Starter</strong> (20 products, 5% commission, free), <strong>Basic</strong> (35 products, 4 featured, 4% commission, $20/mo), <strong>Growth</strong> (60 products, 8 featured, «You may also like», 1 ad 15 days, 3.5% commission, $35/mo), <strong>Premium</strong> (80 products, 10 featured, featured company, Featured hub, 2 ads 20 days, search priority, 3% commission, $50/mo).</p>
-                    <p class="font-bold text-violet-900 text-xs">Implementation</p>
-                    <ul class="list-disc ps-4 space-y-0.5 marker:text-violet-500">
-                        <li>Link plans to accounting; commission auto by plan</li>
-                        <li>Disable perks when subscription ends</li>
-                        <li>Change plan, extend, or upgrade later; store start/end dates</li>
-                    </ul>
-                    <p class="text-gray-800 font-medium">Goal: a scalable professional plans system on Adora.</p>
-                </div>
-                <div class="mt-5 pt-4 border-t border-violet-200/90">
-                    <p id="vj-plans-section-title-ar" class="font-bold text-violet-900 text-sm mb-3">اختر الباقة المناسبة</p>
-                    <p id="vj-plans-section-title-en" class="hidden font-bold text-violet-900 text-sm mb-3">Choose your plan</p>
-                    <div id="vendor-join-plans-modal-list" class="space-y-3"></div>
-                </div>
+                <div id="vendor-join-plans-modal-list" class="space-y-3"></div>
             </div>
             <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
                 <button type="button" class="w-full py-3 rounded-2xl border border-violet-200 text-violet-900 font-bold text-sm hover:bg-violet-50 active:scale-[0.99] transition" onclick="closeVendorJoinPlansModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>

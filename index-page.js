@@ -4881,18 +4881,6 @@
         }
 
         function syncVendorJoinPlansModalLocale() {
-            const ar = document.getElementById('vendor-join-plans-terms-ar');
-            const en = document.getElementById('vendor-join-plans-terms-en');
-            const tar = document.getElementById('vj-plans-section-title-ar');
-            const ten = document.getElementById('vj-plans-section-title-en');
-            if (ar && en) {
-                ar.classList.toggle('hidden', !isRTL);
-                en.classList.toggle('hidden', isRTL);
-            }
-            if (tar && ten) {
-                tar.classList.toggle('hidden', !isRTL);
-                ten.classList.toggle('hidden', isRTL);
-            }
             const mh = document.getElementById('vendor-join-plans-modal-title');
             if (mh) {
                 const da = mh.getAttribute('data-ar');
