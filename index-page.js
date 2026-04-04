@@ -1654,6 +1654,11 @@
                 closeAdoraImageLightboxIfOpen();
                 return;
             }
+            const vjTerms = document.getElementById('vendor-join-terms-modal');
+            if (vjTerms && !vjTerms.classList.contains('hidden')) {
+                closeVendorJoinTermsModal();
+                return;
+            }
 
             adoraEnsureStackTailMatchesCurrent();
 
@@ -3338,6 +3343,7 @@
                 'product-share-modal',
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
+                'vendor-join-terms-modal',
                 'adora-image-lightbox',
                 'home-subcat-overlay',
             ];
@@ -11171,6 +11177,7 @@
                 'product-share-modal',
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
+                'vendor-join-terms-modal',
                 'adora-image-lightbox',
             ];
             const anyOpen = overlayIds.some((id) => {
@@ -11515,6 +11522,28 @@
             document.getElementById('orders-list-modal')?.classList.add('hidden');
             restoreBodyScrollIfIdle();
         }
+
+        function openVendorJoinTermsModal() {
+            const modal = document.getElementById('vendor-join-terms-modal');
+            const sc = document.getElementById('vendor-join-terms-modal-scroll');
+            if (!modal) return;
+            if (sc) sc.scrollTop = 0;
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeVendorJoinTermsModal() {
+            const modal = document.getElementById('vendor-join-terms-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            restoreBodyScrollIfIdle();
+        }
+        try {
+            window.openVendorJoinTermsModal = openVendorJoinTermsModal;
+            window.closeVendorJoinTermsModal = closeVendorJoinTermsModal;
+        } catch (_e) {}
 
         async function openProfileEditModal() {
             const modal = document.getElementById('profile-edit-modal');

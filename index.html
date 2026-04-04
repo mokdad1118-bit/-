@@ -1341,6 +1341,11 @@
             border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
         /* فوق التدرج البنفسجي: الخلفية البيضاء الافتراضية تخفي عنوان text-white */
+        .vendor-join-terms-modal-scroll {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+        }
         #screen-vendor-join .adora-screen-toolbar,
         #screen-app-ad-inquiry .adora-screen-toolbar {
             background: rgba(76, 29, 149, 0.42);
@@ -6161,9 +6166,35 @@
                     </div>
                     <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-3">
                         <p class="font-bold text-violet-900 text-sm" data-en="Terms and conditions on Adora" data-ar="الشروط والأحكام داخل أدورا">الشروط والأحكام داخل أدورا</p>
-                        <p class="text-[11px] text-violet-800/90 font-medium -mt-1" data-en="Please read the full text below before accepting." data-ar="يرجى قراءة النص كاملاً قبل الموافقة.">يرجى قراءة النص كاملاً قبل الموافقة.</p>
-                        <div id="vendor-join-terms-custom" class="hidden max-h-[min(52vh,24rem)] sm:max-h-[30rem] overflow-y-auto overscroll-contain scroll-smooth touch-pan-y rounded-xl border border-violet-200/70 bg-white/80 p-3 sm:p-4 whitespace-pre-line leading-relaxed text-gray-800 shadow-inner"></div>
-                        <div id="vendor-join-terms-default" class="max-h-[min(52vh,24rem)] sm:max-h-[30rem] overflow-y-auto overscroll-contain scroll-smooth touch-pan-y rounded-xl border border-violet-200/70 bg-white/80 p-3 sm:p-4 space-y-4 leading-relaxed text-[11px] sm:text-xs text-gray-800 shadow-inner">
+                        <p class="text-[11px] text-violet-800/90 font-medium -mt-1" data-en="Open the reader window to view the full text, then return here to accept." data-ar="اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.">اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.</p>
+                        <button type="button" onclick="openVendorJoinTermsModal()" class="w-full py-3.5 rounded-2xl border-2 border-violet-300 bg-white text-violet-900 font-bold text-sm shadow-sm hover:bg-violet-50 active:scale-[0.99] transition" data-en="Read terms and conditions" data-ar="قراءة الأحكام والشروط">قراءة الأحكام والشروط</button>
+                    </div>
+                    <div class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3">
+                        <input type="checkbox" id="vj-p-terms" required class="mt-0.5 rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" aria-required="true" />
+                        <label for="vj-p-terms" class="text-xs leading-relaxed text-gray-800 font-semibold" data-en="I confirm I opened «Read terms and conditions», read them, and agree in full (required)." data-ar="أقر بأنني قرأت الشروط والأحكام عبر زر «قراءة الأحكام والشروط» وأوافق عليها بشكل كامل (إلزامي).">أقر بأنني قرأت الشروط والأحكام عبر زر «قراءة الأحكام والشروط» وأوافق عليها بشكل كامل (إلزامي).</label>
+                    </div>
+                    <p id="vendor-join-page-msg" class="text-xs text-center font-semibold hidden rounded-xl py-2 px-3"></p>
+                    <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/25 active:scale-[0.99] transition-transform" data-en="Submit request" data-ar="إرسال الطلب">إرسال الطلب</button>
+                </form>
+            </div>
+            <div class="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 text-sm text-white/95 space-y-2">
+                <p class="font-bold flex items-center gap-2"><i class="fas fa-star text-amber-200" aria-hidden="true"></i><span data-en="Why Adora?" data-ar="لماذا أدورا؟">لماذا أدورا؟</span></p>
+                <p class="text-xs text-white/85 leading-relaxed" data-en="Reach thousands of shoppers, manage your presence from one place, and grow with a trusted marketplace." data-ar="وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.">وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.</p>
+            </div>
+        </div>
+    </div>
+    <!-- نافذة قراءة الشروط والأحكام (انضم كشركة) — تمرير داخلي فقط -->
+    <div id="vendor-join-terms-modal" class="fixed inset-0 z-[85] hidden bg-black/50 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4" onclick="closeVendorJoinTermsModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-terms-modal-title">
+        <div class="bg-white w-full max-w-[428px] sm:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-hidden shadow-2xl shadow-black/20 flex flex-col ring-1 ring-black/5" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-violet-50/90 to-white">
+                <h2 id="vendor-join-terms-modal-title" class="text-base font-bold text-violet-950 tracking-tight" data-en="Terms and conditions" data-ar="الشروط والأحكام">الشروط والأحكام</h2>
+                <button type="button" class="w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 active:scale-95 transition" onclick="closeVendorJoinTermsModal()" data-en-aria="Close" data-ar-aria="إغلاق" aria-label="إغلاق">
+                    <i class="fas fa-times text-[15px] text-gray-600"></i>
+                </button>
+            </div>
+            <div id="vendor-join-terms-modal-scroll" class="overflow-y-auto flex-1 min-h-0 p-4 sm:p-5 overscroll-contain bg-gray-50/50 vendor-join-terms-modal-scroll">
+<div id="vendor-join-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800 pb-4"></div>
+                        <div id="vendor-join-terms-default" class="space-y-4 leading-relaxed text-[11px] sm:text-xs text-gray-800 pb-2">
                             <header class="space-y-2 pb-2 border-b border-violet-200/80">
                                 <p class="font-bold text-violet-950 text-sm sm:text-base">الشروط والأحكام – منصة Adora</p>
                                 <p class="text-gray-700">مرحباً بكم في منصة Adora. باستخدامك للمنصة أو تسجيل شركتك، فإنك توافق على الشروط والأحكام التالية:</p>
@@ -6295,21 +6326,13 @@
                                 <p class="text-gray-800 font-medium">باستخدام منصة Adora، فإنك توافق على جميع الشروط والأحكام المذكورة أعلاه.</p>
                             </section>
                         </div>
-                    </div>
-                    <div class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 p-3">
-                        <input type="checkbox" id="vj-p-terms" required class="mt-0.5 rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" aria-required="true" />
-                        <label for="vj-p-terms" class="text-xs leading-relaxed text-gray-800 font-semibold" data-en="I confirm that I have read all the terms and conditions above and agree to them in full (required)." data-ar="أقر بأنني قرأت جميع الشروط والأحكام أعلاه وأوافق عليها بشكل كامل (إلزامي).">أقر بأنني قرأت جميع الشروط والأحكام أعلاه وأوافق عليها بشكل كامل (إلزامي).</label>
-                    </div>
-                    <p id="vendor-join-page-msg" class="text-xs text-center font-semibold hidden rounded-xl py-2 px-3"></p>
-                    <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-extrabold shadow-lg shadow-purple-900/25 active:scale-[0.99] transition-transform" data-en="Submit request" data-ar="إرسال الطلب">إرسال الطلب</button>
-                </form>
             </div>
-            <div class="rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-4 text-sm text-white/95 space-y-2">
-                <p class="font-bold flex items-center gap-2"><i class="fas fa-star text-amber-200" aria-hidden="true"></i><span data-en="Why Adora?" data-ar="لماذا أدورا؟">لماذا أدورا؟</span></p>
-                <p class="text-xs text-white/85 leading-relaxed" data-en="Reach thousands of shoppers, manage your presence from one place, and grow with a trusted marketplace." data-ar="وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.">وصل لآلاف العملاء، وأدر حضورك من مكان واحد، ونمّ مع منصة موثوقة.</p>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm shadow-md hover:bg-violet-700 active:scale-[0.99] transition" onclick="closeVendorJoinTermsModal()" data-en="Done reading" data-ar="إنهاء القراءة">إنهاء القراءة</button>
             </div>
         </div>
     </div>
+
 
     <!-- ==================== طلب إعلان منتج — صفحة كاملة ==================== -->
     <div id="screen-app-ad-inquiry" class="screen app-ad-inquiry-page-bg text-white">
