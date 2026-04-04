@@ -897,7 +897,7 @@ function setActiveTab(tabId) {
     loadAppAdInquiriesUi().catch(() => {});
   }
   if (tabId === "tab-order-accounting") {
-    loadOrderAccountingTab().catch(() => {});
+    loadOrderAccountingTab().catch((e) => console.error("[admin] loadOrderAccountingTab", e));
   }
   if (tabId === "tab-adora-company") {
     initAdoraCompanyAdminTab().catch(() => {});
@@ -1615,10 +1615,26 @@ function bindOrderAccountingListenersOnce() {
   });
 }
 
+function refilterOrderAccountingQueueTable() {
+  const tbody = document.getElementById("oa-vsub-tbody");
+  if (!tbody) return;
+  const q = getAdminFilter();
+  tbody.querySelectorAll("tr").forEach((tr) => {
+    const single = tr.querySelector("td[colspan]");
+    if (single) {
+      tr.classList.remove("hidden");
+      return;
+    }
+    if (!q) {
+      tr.classList.remove("hidden");
+      return;
+    }
+    const text = (tr.textContent || "").toLowerCase();
+    tr.classList.toggle("hidden", !text.includes(q));
+  });
+}
+
 async function loadOrderAccountingVendorQueue() {
-  const token = getToken();
-  if (!token) return;
-  const rows = await api("/api/admin/vendor-subscription-requests", { token });
   const tbody = document.getElementById("oa-vsub-tbody");
   if (!tbody) return;
   const ar = getAdminLang() === "ar";
@@ -1626,7 +1642,31 @@ async function loadOrderAccountingVendorQueue() {
   const stLab = ar
     ? VP_SUB_STATUS_LABELS_AR
     : { pending: "Pending", approved: "Approved", rejected: "Rejected", incomplete: "Incomplete" };
-  if (!Array.isArray(rows) || !rows.length) {
+  const token = getToken();
+  if (!token) {
+    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-amber-800 bg-amber-50/80">${
+      ar ? "يجب تسجيل الدخول لعرض طابور المحاسبة." : "Sign in to load the accounting queue."
+    }</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400">${
+    ar ? "جاري تحميل الطابور…" : "Loading queue…"
+  }</td></tr>`;
+  let rows;
+  try {
+    rows = await api("/api/admin/vendor-subscription-requests", { token });
+  } catch (e) {
+    console.error("[admin] loadOrderAccountingVendorQueue", e);
+    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+    return;
+  }
+  if (!Array.isArray(rows)) {
+    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${
+      ar ? "استجابة غير صالحة من الخادم." : "Invalid server response."
+    }</td></tr>`;
+    return;
+  }
+  if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-500">${
       ar ? "لا طلبات في الطابور." : "No items in the queue."
     }</td></tr>`;
@@ -1683,12 +1723,14 @@ async function loadOrderAccountingVendorQueue() {
         alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
         alertVendorSubscriptionPlanSync(data);
         loadVendorSubscriptionRequests().catch(() => {});
-        loadOrderAccountingVendorQueue().catch(() => {});
+        await loadOrderAccountingVendorQueue();
+        refilterOrderAccountingQueueTable();
       } catch (err) {
         alert(err.message || String(err));
       }
     });
   });
+  refilterOrderAccountingQueueTable();
 }
 
 async function loadOrderAccountingTab() {
@@ -1774,7 +1816,8 @@ async function loadVendorSubscriptionRequests() {
         alert(getAdminLang() === "ar" ? "تم التحديث." : "Updated.");
         alertVendorSubscriptionPlanSync(data);
         loadVendorSubscriptionRequests().catch(() => {});
-        loadOrderAccountingVendorQueue().catch(() => {});
+        await loadOrderAccountingVendorQueue();
+        refilterOrderAccountingQueueTable();
       } catch (err) {
         alert(err.message || String(err));
       }
@@ -5270,6 +5313,7 @@ function refilterAdminActiveTab() {
   }
   else if (vis === "tab-flash") renderFlashSalesTable();
   else if (vis === "tab-banners") renderBannersTable();
+  else if (vis === "tab-order-accounting") refilterOrderAccountingQueueTable();
 }
 
 const HOME_SECTION_VIS_KEYS_FALLBACK = [
