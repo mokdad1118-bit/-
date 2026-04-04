@@ -6768,7 +6768,7 @@
                 if (Number(currentMarketplaceProductDetail.id) !== Number(excludeMpId)) return;
                 const list = Array.isArray(rows) ? rows : [];
                 if (!list.length) {
-                    wrap.innerHTML = `<p class="text-sm text-gray-500 text-center py-6 px-3 leading-relaxed" data-en="No suggestions yet. Enable «You may also like» per product in admin or the partner portal." data-ar="لا توجد منتجات مقترحة حالياً. فعّل خيار «قد يعجبك أيضاً» لكل منتج من لوحة الإدارة أو من بوابة الشركاء ليظهر هنا.">لا توجد منتجات مقترحة حالياً. فعّل خيار «قد يعجبك أيضاً» لكل منتج من لوحة الإدارة أو من بوابة الشركاء ليظهر هنا.</p>`;
+                    wrap.innerHTML = `<p class="text-sm text-gray-500 text-center py-6 px-3 leading-relaxed" data-en="Thank you for visiting. Related products will be available here soon." data-ar="شكراً لحضوركم، سيتم تفعيل المنتجات هنا عما قريب.">شكراً لحضوركم، سيتم تفعيل المنتجات هنا عما قريب.</p>`;
                     return;
                 }
                 wrap.innerHTML = `<div class="home-product-strip">${list.map((p) => renderMpProductCardHomeCompact(p)).join('')}</div>`;
