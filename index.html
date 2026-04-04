@@ -1372,6 +1372,28 @@
                 max-height: min(92vh, 46rem);
             }
         }
+        #vendor-join-plans-modal {
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        #vendor-join-plans-modal .vendor-join-plans-sheet {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 428px;
+            max-height: min(92dvh, 92vh);
+            min-height: 0;
+            overflow: hidden;
+        }
+        #vendor-join-plans-modal .vendor-join-plans-modal-scroll {
+            flex: 1 1 0;
+            min-height: 0;
+            min-width: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+        }
         #vendor-join-terms-modal .vendor-join-terms-modal-scroll {
             flex: 1 1 0;
             min-height: 0;
@@ -6200,6 +6222,11 @@
                         <p class="text-[11px] font-bold text-gray-600" data-en="Commercial registration image (required)" data-ar="صورة السجل التجاري (إلزامي)">صورة السجل التجاري (إلزامي)</p>
                         <input id="vj-p-commercial-img" type="file" accept="image/jpeg,image/png,image/webp" class="mt-1 block w-full text-xs text-gray-700 file:mr-2 file:rounded-lg file:border-0 file:bg-purple-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-purple-800" />
                     </div>
+                    <div class="rounded-2xl bg-sky-50/90 border border-sky-100 p-4 text-xs text-gray-700 space-y-3">
+                        <p class="font-bold text-sky-950 text-sm" data-en="Please choose a suitable package" data-ar="يرجى اختيار الباقة المناسبة">يرجى اختيار الباقة المناسبة</p>
+                        <p id="vj-selected-plan-label" class="hidden text-[11px] font-semibold text-sky-900 bg-white/80 rounded-xl px-3 py-2 border border-sky-100"></p>
+                        <button type="button" id="vendor-join-btn-pick-plan" class="w-full py-3.5 rounded-2xl border-2 border-sky-400 bg-white text-sky-950 font-bold text-sm shadow-sm hover:bg-sky-50 active:scale-[0.99] transition touch-manipulation" data-en="Tap here to choose" data-ar="اضغط هنا للاختيار">اضغط هنا للاختيار</button>
+                    </div>
                     <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-3">
                         <p class="font-bold text-violet-900 text-sm" data-en="Terms and conditions on Adora" data-ar="الشروط والأحكام داخل أدورا">الشروط والأحكام داخل أدورا</p>
                         <p class="text-[11px] text-violet-800/90 font-medium -mt-1" data-en="Open the reader window to view the full text, then return here to accept." data-ar="اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.">اضغط الزر لفتح نافذة القراءة — التمرير داخل النافذة فقط.</p>
@@ -7782,6 +7809,23 @@
         </div>
     </div>
 
+    <!-- اختيار باقة الانضمام كشركة -->
+    <div id="vendor-join-plans-modal" class="fixed inset-0 z-[10049] hidden bg-black/55 flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-auto overscroll-none" onclick="closeVendorJoinPlansModal()" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="vendor-join-plans-modal-title">
+        <div class="vendor-join-plans-sheet bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl shadow-black/20 ring-1 ring-black/5" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-100 shrink-0 bg-gradient-to-b from-sky-50/90 to-white">
+                <h2 id="vendor-join-plans-modal-title" class="text-base font-bold text-sky-950 tracking-tight" data-en="Choose a plan" data-ar="اختيار الباقة">اختيار الباقة</h2>
+                <button type="button" class="w-11 h-11 rounded-2xl border border-gray-200/90 bg-white flex items-center justify-center shrink-0 shadow-sm hover:bg-gray-50 active:scale-95 transition" onclick="closeVendorJoinPlansModal()" aria-label="إغلاق" data-en-aria="Close" data-ar-aria="إغلاق">
+                    <i class="fas fa-times text-[15px] text-gray-600"></i>
+                </button>
+            </div>
+            <div id="vendor-join-plans-modal-scroll" class="p-4 sm:p-5 bg-gray-50/50 vendor-join-plans-modal-scroll">
+                <div id="vendor-join-plans-modal-list" class="space-y-3"></div>
+            </div>
+            <div class="shrink-0 border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
+                <button type="button" class="w-full py-3 rounded-2xl border border-gray-200 text-gray-800 font-bold text-sm hover:bg-gray-50 active:scale-[0.99] transition" onclick="closeVendorJoinPlansModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
+            </div>
+        </div>
+    </div>
 
     <!-- أثناء التحقق من التوكن: بدونها تبقى الشاشة فارغة بين إخفاء الـ splash وظهور التطبيق أو بوابة الدخول -->
     <div id="session-resume-overlay" class="fixed inset-0 z-[10048] hidden flex flex-col items-center justify-center bg-slate-50/98 px-6" aria-live="polite" aria-busy="true">

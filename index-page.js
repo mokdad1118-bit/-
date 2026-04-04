@@ -3272,6 +3272,7 @@
                 syncVendorJoinHeroFromConfig();
                 syncVendorJoinTermsFromConfig();
                 bindVendorJoinPageFormOnce();
+                prefetchVendorJoinPlans().catch(() => {});
             }
             if (screenId === 'screen-app-ad-inquiry') {
                 syncAppAdInquiryPageHeroFromConfig();
@@ -3483,6 +3484,7 @@
                 syncVendorJoinHeroFromConfig();
                 syncVendorJoinTermsFromConfig();
                 bindVendorJoinPageFormOnce();
+                prefetchVendorJoinPlans().catch(() => {});
                 return;
             }
             if (sid === 'screen-app-ad-inquiry') {
@@ -4847,6 +4849,101 @@
             document.getElementById('vj-commercial-upload')?.classList.toggle('hidden', !commercial);
         }
 
+        let vendorJoinPlansCache = null;
+        let vendorJoinSelectedPlanKey = null;
+
+        async function ensureVendorJoinPlansLoaded() {
+            if (Array.isArray(vendorJoinPlansCache)) return vendorJoinPlansCache;
+            const res = await fetch(`${getApiOrigin()}/api/public/vendor-platform/join-plans`);
+            const data = await res.json().catch(() => ({}));
+            vendorJoinPlansCache = Array.isArray(data.plans) ? data.plans : [];
+            return vendorJoinPlansCache;
+        }
+
+        function prefetchVendorJoinPlans() {
+            return ensureVendorJoinPlansLoaded();
+        }
+
+        function updateVendorJoinSelectedPlanUi() {
+            const el = document.getElementById('vj-selected-plan-label');
+            if (!el) return;
+            const plans = vendorJoinPlansCache || [];
+            const p = plans.find((x) => x && String(x.key) === String(vendorJoinSelectedPlanKey));
+            if (vendorJoinSelectedPlanKey && p) {
+                const title = isRTL ? p.title_ar || p.title_en || p.key : p.title_en || p.title_ar || p.key;
+                el.textContent = isRTL ? `الباقة المختارة: ${title}` : `Selected plan: ${title}`;
+                el.classList.remove('hidden');
+            } else {
+                el.textContent = '';
+                el.classList.add('hidden');
+            }
+        }
+
+        function renderVendorJoinPlansModalList() {
+            const root = document.getElementById('vendor-join-plans-modal-list');
+            if (!root) return;
+            const plans = vendorJoinPlansCache || [];
+            if (!plans.length) {
+                root.innerHTML = `<p class="text-center text-sm text-gray-500 py-6">${isRTL ? 'لا توجد باقات حالياً.' : 'No plans available.'}</p>`;
+                return;
+            }
+            root.innerHTML = plans
+                .map((p) => {
+                    const title = isRTL ? p.title_ar || p.title_en : p.title_en || p.title_ar;
+                    const price = isRTL ? p.price_label_ar || '' : p.price_label_en || '';
+                    const bullets = (isRTL ? p.bullets_ar : p.bullets_en) || [];
+                    const bl = Array.isArray(bullets)
+                        ? bullets
+                              .slice(0, 14)
+                              .map((l) => `<li class="text-[11px] text-gray-600">${escapeHtml(l)}</li>`)
+                              .join('')
+                        : '';
+                    const sel = vendorJoinSelectedPlanKey === p.key;
+                    return `<div class="rounded-2xl border ${sel ? 'border-sky-500 ring-2 ring-sky-200' : 'border-gray-200'} bg-white p-4 shadow-sm">
+                        <div class="flex flex-col gap-1">
+                            <p class="font-bold text-gray-900 text-sm">${escapeHtml(title || p.key)}</p>
+                            ${price ? `<p class="text-xs font-semibold text-sky-700">${escapeHtml(price)}</p>` : ''}
+                            ${bl ? `<ul class="list-disc ps-4 mt-2 space-y-0.5">${bl}</ul>` : ''}
+                        </div>
+                        <button type="button" class="mt-3 w-full py-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold active:scale-[0.99]" data-vj-pick-plan="${escapeHtml(p.key)}">${isRTL ? 'اختيار هذه الباقة' : 'Select this plan'}</button>
+                    </div>`;
+                })
+                .join('');
+        }
+
+        function openVendorJoinPlansModal() {
+            const modal = document.getElementById('vendor-join-plans-modal');
+            if (!modal) return;
+            document.body.style.overflow = 'hidden';
+            ensureVendorJoinPlansLoaded()
+                .then(() => {
+                    renderVendorJoinPlansModalList();
+                    modal.classList.remove('hidden');
+                    modal.setAttribute('aria-hidden', 'false');
+                })
+                .catch(() => {
+                    const root = document.getElementById('vendor-join-plans-modal-list');
+                    if (root) {
+                        root.innerHTML = `<p class="text-center text-red-600 text-sm py-6">${isRTL ? 'تعذر تحميل الباقات.' : 'Could not load plans.'}</p>`;
+                    }
+                    modal.classList.remove('hidden');
+                    modal.setAttribute('aria-hidden', 'false');
+                });
+        }
+
+        function closeVendorJoinPlansModal() {
+            const modal = document.getElementById('vendor-join-plans-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            restoreBodyScrollIfIdle();
+        }
+
+        try {
+            window.closeVendorJoinPlansModal = closeVendorJoinPlansModal;
+        } catch (_eW) {}
+
         function bindVendorJoinDocTypeOnce() {
             const form = document.getElementById('vendor-join-page-form');
             if (!form || form.dataset.adoraVjDocBound === '1') return;
@@ -4860,6 +4957,31 @@
             if (!form || form.dataset.adoraVjBound === '1') return;
             form.dataset.adoraVjBound = '1';
             bindVendorJoinDocTypeOnce();
+            const plansModal = document.getElementById('vendor-join-plans-modal');
+            if (plansModal && plansModal.dataset.vjPlanPickBound !== '1') {
+                plansModal.dataset.vjPlanPickBound = '1';
+                plansModal.addEventListener('click', (ev) => {
+                    const raw = ev.target;
+                    const btn = raw && raw.closest ? raw.closest('[data-vj-pick-plan]') : null;
+                    if (!btn || !plansModal.contains(btn)) return;
+                    const k = btn.getAttribute('data-vj-pick-plan');
+                    if (!k) return;
+                    vendorJoinSelectedPlanKey = k;
+                    updateVendorJoinSelectedPlanUi();
+                    closeVendorJoinPlansModal();
+                });
+            }
+            const pickPlanBtn = document.getElementById('vendor-join-btn-pick-plan');
+            if (pickPlanBtn && pickPlanBtn.dataset.adoraVjPickPlan !== '1') {
+                pickPlanBtn.dataset.adoraVjPickPlan = '1';
+                pickPlanBtn.addEventListener('click', (e) => {
+                    try {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } catch (_e2) {}
+                    openVendorJoinPlansModal();
+                });
+            }
             const readTermsBtn = document.getElementById('vendor-join-btn-read-terms');
             if (readTermsBtn && readTermsBtn.dataset.adoraVjTermsBtn !== '1') {
                 readTermsBtn.dataset.adoraVjTermsBtn = '1';
@@ -4909,6 +5031,17 @@
                     }
                     return;
                 }
+                if (!vendorJoinSelectedPlanKey) {
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'يرجى اختيار باقة من القائمة قبل الإرسال.'
+                            : 'Please choose a subscription plan before submitting.';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                        msg.classList.remove('hidden');
+                    }
+                    return;
+                }
                 if (!document.getElementById('vj-p-terms')?.checked) {
                     if (msg) {
                         msg.textContent = isRTL
@@ -4927,6 +5060,7 @@
                 fd.append('email', document.getElementById('vj-p-email')?.value?.trim() || '');
                 fd.append('doc_type', docCommercial ? 'commercial' : 'national_id');
                 fd.append('terms_accepted', document.getElementById('vj-p-terms')?.checked ? '1' : '0');
+                fd.append('selected_plan_key', String(vendorJoinSelectedPlanKey));
                 if (ff) fd.append('id_front', ff);
                 if (fb) fd.append('id_back', fb);
                 if (fc) fd.append('commercial_register', fc);
@@ -4941,7 +5075,10 @@
                     });
                     const data = await res.json().catch(() => ({}));
                     if (!res.ok) {
-                        throw new Error(data.error || (isRTL ? 'تعذر الإرسال' : 'Could not submit'));
+                        const errLine = isRTL
+                            ? data.error || data.error_en || 'تعذر الإرسال'
+                            : data.error_en || data.error || 'Could not submit';
+                        throw new Error(errLine);
                     }
                     refreshVendorSubscriptionSideMenu().catch(() => {});
                     if (msg) {
@@ -4954,6 +5091,8 @@
                     }
                     form.reset();
                     syncVendorJoinDocTypePanels();
+                    vendorJoinSelectedPlanKey = null;
+                    updateVendorJoinSelectedPlanUi();
                     setTimeout(() => backFromVendorJoin(), 2400);
                 } catch (err) {
                     if (msg) {
@@ -11294,6 +11433,7 @@
                 'vendor-subscription-modal',
                 'app-ad-inquiries-modal',
                 'vendor-join-terms-modal',
+                'vendor-join-plans-modal',
                 'logout-farewell-modal',
                 'adora-image-lightbox',
             ];

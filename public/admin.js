@@ -1211,6 +1211,8 @@ async function loadVendorPlatformSettingsUi() {
   if (psj) psj.value = s.partner_cta_slides_json && String(s.partner_cta_slides_json).trim() !== "[]" ? s.partner_cta_slides_json : "";
   const asj = document.getElementById("vp-app-ad-slides-json");
   if (asj) asj.value = s.app_ad_cta_slides_json && String(s.app_ad_cta_slides_json).trim() !== "[]" ? s.app_ad_cta_slides_json : "";
+  const jpj = document.getElementById("vp-join-plans-json");
+  if (jpj) jpj.value = s.vendor_join_plans_json != null ? String(s.vendor_join_plans_json).trim() : "";
 }
 
 async function loadAppAdInquiriesUi() {
@@ -1462,6 +1464,7 @@ async function collectVendorPlatformSettingsBody() {
     partner_cta_placements,
     vendor_join_terms_ar: txt("vp-join-terms-ar", "vendor_join_terms_ar"),
     vendor_join_terms_en: txt("vp-join-terms-en", "vendor_join_terms_en"),
+    vendor_join_plans_json: trimTxt("vp-join-plans-json", "vendor_join_plans_json"),
     vendor_join_terms_clauses: readVpJoinTermsClausesFromDom(),
     app_ad_banner_enabled: bit("vp-app-ad-on", "app_ad_banner_enabled"),
     app_ad_banner_text_ar: trimTxt("vp-app-ad-ar", "app_ad_banner_text_ar"),
@@ -1564,9 +1567,23 @@ async function loadVendorSubscriptionRequests() {
   if (!tbody) return;
   const ar = getAdminLang() === "ar";
   if (!Array.isArray(rows) || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-500">${ar ? "لا طلبات." : "No requests."}</td></tr>`;
     return;
   }
+  const planCell = (r) => {
+    const k = r.selected_plan_key != null ? String(r.selected_plan_key).trim() : "";
+    if (!k) return "—";
+    let title = "";
+    try {
+      const snap = JSON.parse(r.selected_plan_snapshot_json || "{}");
+      if (snap && snap.title_ar) title = String(snap.title_ar);
+    } catch (_e) {
+      title = "";
+    }
+    return `<div class="text-[11px] max-w-[120px]"><span class="font-mono text-violet-800">${escapeHtml(k)}</span>${
+      title ? `<div class="text-gray-600 mt-0.5 leading-snug">${escapeHtml(title)}</div>` : ""
+    }</div>`;
+  };
   const docCell = (r) => {
     const parts = [];
     if (r.id_front_url) parts.push(`<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_front_url)}">${ar ? "وجه الهوية" : "ID front"}</a>`);
@@ -1587,6 +1604,7 @@ async function loadVendorSubscriptionRequests() {
         <td class="p-2">${r.id}</td>
         <td class="p-2 max-w-[100px]">${escapeHtml(r.full_name || "")}</td>
         <td class="p-2 max-w-[100px]">${escapeHtml(r.company_name || "")}</td>
+        <td class="p-2 align-top">${planCell(r)}</td>
         <td class="p-2 whitespace-nowrap">${escapeHtml(r.phone || "")}</td>
         <td class="p-2 max-w-[120px] truncate" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
         <td class="p-2 align-top text-[11px]">${docCell(r)}</td>
@@ -5920,6 +5938,24 @@ function openAcEditCompanyModal(row) {
   if (ow) ow.value = row.owner_name || "";
   const q = document.getElementById("ac-edit-quota");
   if (q) q.value = String(Math.max(1, Number(row.product_quota || 1)));
+  const spk = document.getElementById("ac-edit-sub-plan-key");
+  if (spk) spk.value = row.subscription_plan_key != null ? String(row.subscription_plan_key) : "";
+  const scomm = document.getElementById("ac-edit-sub-commission");
+  if (scomm) {
+    scomm.value =
+      row.subscription_commission_percent != null && row.subscription_commission_percent !== ""
+        ? String(row.subscription_commission_percent)
+        : "";
+  }
+  const squota = document.getElementById("ac-edit-sub-quota");
+  if (squota) {
+    squota.value =
+      row.subscription_product_quota != null && Number(row.subscription_product_quota) > 0
+        ? String(row.subscription_product_quota)
+        : "";
+  }
+  const sst = document.getElementById("ac-edit-sub-started");
+  if (sst) sst.value = subscriptionEndsAtToDatetimeLocal(row.subscription_started_at);
   const se = document.getElementById("ac-edit-sub-ends");
   if (se) se.value = subscriptionEndsAtToDatetimeLocal(row.subscription_ends_at);
   const us = document.getElementById("ac-edit-user");
@@ -6519,11 +6555,27 @@ async function initAdoraCompanyAdminTab() {
           return;
         }
       }
+      const subCommRaw = document.getElementById("ac-edit-sub-commission")?.value?.trim();
+      const subQuotaRaw = document.getElementById("ac-edit-sub-quota")?.value?.trim();
+      let subscription_commission_percent = null;
+      if (subCommRaw !== undefined && subCommRaw !== "") {
+        const n = Number(subCommRaw);
+        subscription_commission_percent = Number.isFinite(n) ? n : null;
+      }
+      let subscription_product_quota = null;
+      if (subQuotaRaw !== undefined && subQuotaRaw !== "") {
+        const n = Math.floor(Number(subQuotaRaw));
+        subscription_product_quota = Number.isFinite(n) && n > 0 ? n : null;
+      }
       const payload = {
         company_name_ar: document.getElementById("ac-edit-name-ar")?.value?.trim(),
         company_name_en: document.getElementById("ac-edit-name-en")?.value?.trim(),
         owner_name: document.getElementById("ac-edit-owner")?.value?.trim(),
         product_quota: Number(document.getElementById("ac-edit-quota")?.value || 1),
+        subscription_plan_key: document.getElementById("ac-edit-sub-plan-key")?.value?.trim() || null,
+        subscription_commission_percent,
+        subscription_product_quota,
+        subscription_started_at: datetimeLocalToIsoUtc(document.getElementById("ac-edit-sub-started")?.value),
         subscription_ends_at: datetimeLocalToIsoUtc(document.getElementById("ac-edit-sub-ends")?.value),
         portal_username: document.getElementById("ac-edit-user")?.value?.trim().toLowerCase(),
         logo_url,

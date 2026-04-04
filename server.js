@@ -2375,6 +2375,23 @@ function orderReceivedNotifyMessage(orderNo) {
   return `تم استلام طلبك في النظام. رقم الطلب: ${ord}. احفظ الرقم للمتابعة؛ ستصلك إشعارات عند تغيير الحالة.\nOrder received. Number: ${ord}. Save it - you will get status updates here.`;
 }
 
+/** عمولة سوق لسطر الطلب: نسبة البائع إن كان الاشتراك سارياً، وإلا نسبة المنصة الافتراضية */
+function marketplaceCommissionPercentForVendorRow(vendorSubRow, platformPct) {
+  const platform = Number.isFinite(Number(platformPct)) ? Math.min(100, Math.max(0, Number(platformPct))) : 5;
+  const ends = vendorSubRow && vendorSubRow.subscription_ends_at;
+  if (ends != null && String(ends).trim() !== "") {
+    const t = new Date(String(ends)).getTime();
+    if (!Number.isNaN(t) && t <= Date.now()) {
+      return platform;
+    }
+  }
+  const v = vendorSubRow && vendorSubRow.subscription_commission_percent;
+  if (v != null && String(v).trim() !== "" && Number.isFinite(Number(v))) {
+    return Math.min(100, Math.max(0, Number(v)));
+  }
+  return platform;
+}
+
 app.get("/api/orders/next-order-no", requireAuth, async (req, res) => {
   try {
     const order_no = await allocateNextOrderNo();
@@ -2427,13 +2444,15 @@ app.post("/api/orders", requireAuth, async (req, res) => {
         .join("\n")
         .slice(0, 2000);
     }
+    const mpVendorSubByMpid = new Map();
     for (const item of productLines) {
       const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
       const mpidRaw = item.marketplace_product_id != null ? Number(item.marketplace_product_id) : null;
       const mpid = Number.isFinite(mpidRaw) && mpidRaw > 0 ? mpidRaw : null;
       if (!mpid) continue;
       const mp = await get(
-        `SELECT mp.id, mp.stock, mp.name_ar, mp.inventory_json, mp.product_options_json
+        `SELECT mp.id, mp.stock, mp.name_ar, mp.inventory_json, mp.product_options_json,
+                mv.subscription_commission_percent, mv.subscription_ends_at
          FROM marketplace_products mp
          INNER JOIN marketplace_vendors mv ON mv.id = mp.vendor_id AND mv.is_active = 1 AND COALESCE(mv.portal_suspended, 0) = 0
          WHERE mp.id=? AND mp.is_active = 1 AND COALESCE(mp.vendor_listing_status, 'published') = 'published'`,
@@ -2442,6 +2461,10 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       if (!mp) {
         return res.status(400).json({ error: "Invalid marketplace product" });
       }
+      mpVendorSubByMpid.set(mpid, {
+        subscription_commission_percent: mp.subscription_commission_percent,
+        subscription_ends_at: mp.subscription_ends_at,
+      });
       const po = safeJsonParse(mp.product_options_json, []);
       const hasDynMp = Array.isArray(po) && po.length > 0;
       const vOptPre = item.variant_options;
@@ -2481,8 +2504,15 @@ app.post("/api/orders", requireAuth, async (req, res) => {
       const pid = mpid ? null : Number.isFinite(pidRaw) && pidRaw > 0 ? pidRaw : null;
       const qn = Math.max(1, Math.floor(Number(item.qty || 1)));
       const lineSubtotal = Number(item.price || 0) * qn;
+      const vSub = mpid ? mpVendorSubByMpid.get(mpid) : null;
+      const lineCommissionPct =
+        mpid && vSub ? marketplaceCommissionPercentForVendorRow(vSub, commissionPct) : commissionPct;
       const marketplace_commission_amount =
-        mpid && commissionPct > 0 ? Math.round(lineSubtotal * (commissionPct / 100) * 10000) / 10000 : mpid ? 0 : null;
+        mpid && lineCommissionPct > 0
+          ? Math.round(lineSubtotal * (lineCommissionPct / 100) * 10000) / 10000
+          : mpid
+            ? 0
+            : null;
       const vOptRaw = item.variant_options;
       const variant_options =
         vOptRaw && typeof vOptRaw === "object" && !Array.isArray(vOptRaw) ? vOptRaw : null;

@@ -4,6 +4,7 @@
 const multer = require("multer");
 const { get, all, run } = require("./db");
 const { getVendorPlatformSettings } = require("./vendor-platform-settings");
+const { mergePlansFromSettingsJson, getPlanByKey, planSnapshotForStorage } = require("./lib/vendorJoinPlans");
 const { sanitizeHttpsUrl } = require("./push-notify");
 
 const vendorJoinUpload = multer({
@@ -387,6 +388,16 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
     }
   });
 
+  app.get("/api/public/vendor-platform/join-plans", async (_req, res) => {
+    try {
+      const s = await getVendorPlatformSettings();
+      const plans = mergePlansFromSettingsJson(s?.vendor_join_plans_json);
+      return res.json({ plans });
+    } catch (_e) {
+      return res.status(500).json({ error: "Failed to load join plans" });
+    }
+  });
+
   app.get("/api/admin/vendor-platform/settings", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const row = await getVendorPlatformSettings();
@@ -468,6 +479,21 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         }
       }
 
+      let vendor_join_plans_json =
+        cur.vendor_join_plans_json != null ? String(cur.vendor_join_plans_json) : "";
+      if (Array.isArray(b.vendor_join_plans)) {
+        vendor_join_plans_json = JSON.stringify({ plans: b.vendor_join_plans }).slice(0, 120000);
+      } else if (b.vendor_join_plans_json !== undefined && b.vendor_join_plans_json !== null) {
+        const t = String(b.vendor_join_plans_json).trim();
+        if (!t) {
+          vendor_join_plans_json = "";
+        } else {
+          const parsed = safeJsonParse(t, null);
+          const ok = Array.isArray(parsed) || (parsed && typeof parsed === "object" && Array.isArray(parsed.plans));
+          vendor_join_plans_json = ok ? t.slice(0, 120000) : vendor_join_plans_json;
+        }
+      }
+
       const app_ad_banner_enabled =
         b.app_ad_banner_enabled != null ? (Number(b.app_ad_banner_enabled) === 0 ? 0 : 1) : Number(cur.app_ad_banner_enabled) === 1 ? 1 : 0;
       const app_ad_banner_text_ar =
@@ -511,6 +537,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_slides_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
           vendor_join_terms_ar=?, vendor_join_terms_en=?, vendor_join_terms_clauses_json=?,
+          vendor_join_plans_json=?,
           app_ad_banner_enabled=?, app_ad_banner_text_ar=?, app_ad_banner_text_en=?,
           app_ad_banner_subtitle_ar=?, app_ad_banner_subtitle_en=?, app_ad_banner_placements_json=?,
           app_ad_cta_slides_json=?,
@@ -536,6 +563,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           vendor_join_terms_ar,
           vendor_join_terms_en,
           vendor_join_terms_clauses_json,
+          vendor_join_plans_json,
           app_ad_banner_enabled,
           app_ad_banner_text_ar,
           app_ad_banner_text_en,
@@ -613,14 +641,27 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         return res.status(400).json({ error: "You must accept the terms" });
       }
 
+      const settingsForPlans = await getVendorPlatformSettings();
+      const joinPlans = mergePlansFromSettingsJson(settingsForPlans?.vendor_join_plans_json);
+      const selected_plan_key_raw = b.selected_plan_key != null ? String(b.selected_plan_key).trim().toLowerCase() : "";
+      const chosenPlan = getPlanByKey(joinPlans, selected_plan_key_raw);
+      if (!chosenPlan) {
+        return res.status(400).json({
+          error: "يرجى اختيار باقة صالحة من القائمة.",
+          error_en: "Please select a valid subscription plan.",
+        });
+      }
+      const selected_plan_key = chosenPlan.key;
+      const selected_plan_snapshot_json = JSON.stringify(planSnapshotForStorage(chosenPlan));
+
       let user_id = null;
       if (req.user && String(req.user.role || "").trim().toLowerCase() !== "admin") {
         const uid = Number(req.user.id);
         if (Number.isFinite(uid) && uid > 0) user_id = uid;
       }
       const ins = await run(
-        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status, user_id, doc_type, id_front_url, id_back_url, commercial_register_url)
-         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)`,
+        `INSERT INTO vendor_subscription_requests (full_name, phone, company_name, email, id_document, terms_accepted, status, user_id, doc_type, id_front_url, id_back_url, commercial_register_url, selected_plan_key, selected_plan_snapshot_json)
+         VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
         [
           full_name,
           phone,
@@ -633,6 +674,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           id_front_url,
           id_back_url,
           commercial_register_url,
+          selected_plan_key,
+          selected_plan_snapshot_json,
         ]
       );
       return res.status(201).json({ ok: true, id: ins.id });
@@ -652,7 +695,8 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const phone = urow.phone != null ? String(urow.phone).trim() : "";
       const rows = await all(
         `SELECT id, full_name, phone, company_name, email, status, admin_message, created_at, updated_at, user_id,
-                doc_type, id_front_url, id_back_url, commercial_register_url
+                doc_type, id_front_url, id_back_url, commercial_register_url,
+                selected_plan_key, selected_plan_snapshot_json
          FROM vendor_subscription_requests
          WHERE user_id = ?
             OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND LOWER(TRIM(email)) = LOWER(TRIM(?)))

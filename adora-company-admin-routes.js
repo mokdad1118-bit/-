@@ -155,6 +155,38 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
           subscription_ends_at = String(s).trim();
         }
       }
+      let subscription_plan_key = cur.subscription_plan_key;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_plan_key")) {
+        const t = b.subscription_plan_key != null ? String(b.subscription_plan_key).trim().slice(0, 64) : "";
+        subscription_plan_key = t || null;
+      }
+      let subscription_commission_percent = cur.subscription_commission_percent;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_commission_percent")) {
+        if (b.subscription_commission_percent === null || b.subscription_commission_percent === "") {
+          subscription_commission_percent = null;
+        } else {
+          const n = Number(b.subscription_commission_percent);
+          subscription_commission_percent = Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : null;
+        }
+      }
+      let subscription_product_quota = cur.subscription_product_quota;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_product_quota")) {
+        if (b.subscription_product_quota === null || b.subscription_product_quota === "") {
+          subscription_product_quota = null;
+        } else {
+          const n = Math.floor(Number(b.subscription_product_quota));
+          subscription_product_quota = Number.isFinite(n) && n > 0 ? n : null;
+        }
+      }
+      let subscription_started_at = cur.subscription_started_at;
+      if (Object.prototype.hasOwnProperty.call(b, "subscription_started_at")) {
+        const s = b.subscription_started_at;
+        if (s == null || (typeof s === "string" && !String(s).trim())) {
+          subscription_started_at = null;
+        } else {
+          subscription_started_at = String(s).trim();
+        }
+      }
       let portal_username = cur.portal_username;
       if (b.portal_username != null && String(b.portal_username).trim()) {
         const nu = String(b.portal_username).trim().toLowerCase();
@@ -194,13 +226,19 @@ function registerAdoraCompanyAdminRoutes(app, { requireAuth, requireAdmin, notif
         is_premium = Number(b.is_premium) === 1 ? 1 : 0;
       }
       await run(
-        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=?,
+        `UPDATE marketplace_vendors SET name_ar=?, name_en=?, product_quota=?, owner_name=?,
+         subscription_plan_key=?, subscription_commission_percent=?, subscription_product_quota=?,
+         subscription_started_at=?::timestamptz, subscription_ends_at=?::timestamptz, portal_username=?, logo_url=?, portal_suspended=?,
          show_in_app_brands_section=?, show_in_app_top_brands_section=?, is_premium=? WHERE id=?`,
         [
           name_ar,
           name_en,
           product_quota,
           owner_name,
+          subscription_plan_key || null,
+          subscription_commission_percent,
+          subscription_product_quota,
+          subscription_started_at || null,
           subscription_ends_at || null,
           portal_username || null,
           logo_url,

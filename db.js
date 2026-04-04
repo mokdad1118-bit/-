@@ -344,6 +344,7 @@ async function initDb() {
   await migrateVendorPlatformPartnerCtaPlacements();
   await migrateVendorSubscriptionUserLink();
   await migrateVendorJoinTermsAndDocImages();
+  await migrateVendorJoinPlansV1();
   await migrateMarketplaceComprehensiveV2();
   await migrateAdoraMultiVendorProgramFullV1();
   await migrateMarketplaceHomePlacementsV1();
@@ -1047,6 +1048,19 @@ async function migrateVendorJoinTermsAndDocImages() {
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_front_url TEXT`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_back_url TEXT`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS commercial_register_url TEXT`);
+}
+
+/** باقات انضمام الشركاء + حقول اشتراك/عمولة على البائع */
+async function migrateVendorJoinPlansV1() {
+  await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_plans_json TEXT NOT NULL DEFAULT ''`);
+  await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS selected_plan_key TEXT NOT NULL DEFAULT ''`);
+  await run(
+    `ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS selected_plan_snapshot_json TEXT NOT NULL DEFAULT '{}'`
+  );
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_plan_key TEXT`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_commission_percent DOUBLE PRECISION`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_product_quota INTEGER`);
+  await run(`ALTER TABLE marketplace_vendors ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMPTZ`);
 }
 
 /** Multi-vendor: رموز CMP/PRD، طلبات فرعية لكل شركة، عنوان JSON، طلبات إعلان */
