@@ -1040,6 +1040,9 @@ async function migrateAdoraFeedbackBannersSignupPhoneSlidesV1() {
 async function migrateVendorJoinTermsAndDocImages() {
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_ar TEXT NOT NULL DEFAULT ''`);
   await run(`ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_en TEXT NOT NULL DEFAULT ''`);
+  await run(
+    `ALTER TABLE vendor_platform_settings ADD COLUMN IF NOT EXISTS vendor_join_terms_clauses_json TEXT NOT NULL DEFAULT '[]'`
+  );
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS doc_type TEXT NOT NULL DEFAULT 'national_id'`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_front_url TEXT`);
   await run(`ALTER TABLE vendor_subscription_requests ADD COLUMN IF NOT EXISTS id_back_url TEXT`);

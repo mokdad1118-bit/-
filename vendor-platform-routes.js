@@ -50,6 +50,45 @@ function normalizeCtaSlideEntry(x) {
   return { title_ar, title_en, subtitle_ar, subtitle_en };
 }
 
+function normalizeVendorJoinClause(x) {
+  if (!x || typeof x !== "object") return null;
+  const title_ar = String(x.title_ar || "").trim().slice(0, 500);
+  const title_en = String(x.title_en || "").trim().slice(0, 500);
+  const intro_ar = String(x.intro_ar || "").trim().slice(0, 4000);
+  const intro_en = String(x.intro_en || "").trim().slice(0, 4000);
+  const toLines = (v) => {
+    if (Array.isArray(v)) {
+      return v
+        .map((s) => String(s || "").trim())
+        .filter(Boolean)
+        .slice(0, 40)
+        .map((s) => s.slice(0, 2000));
+    }
+    if (typeof v === "string") {
+      return v
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 40)
+        .map((s) => s.slice(0, 2000));
+    }
+    return [];
+  };
+  const bullets_ar = toLines(x.bullets_ar);
+  const bullets_en = toLines(x.bullets_en);
+  const list_style = x.list_style === "none" ? "none" : "disc";
+  const is_header = x.is_header === true || Number(x.is_header) === 1;
+  if (!title_ar && !title_en && !intro_ar && !intro_en && !bullets_ar.length && !bullets_en.length) return null;
+  return { title_ar, title_en, intro_ar, intro_en, bullets_ar, bullets_en, list_style, is_header };
+}
+
+function vendorJoinTermsClausesForPublic(s) {
+  const raw = s.vendor_join_terms_clauses_json != null ? s.vendor_join_terms_clauses_json : "[]";
+  const arr = safeJsonParse(raw, []);
+  if (!Array.isArray(arr) || !arr.length) return [];
+  return arr.map(normalizeVendorJoinClause).filter(Boolean);
+}
+
 function partnerCtaSlidesForPublic(s) {
   const arr = safeJsonParse(s.partner_cta_slides_json, []);
   if (Array.isArray(arr) && arr.length) {
@@ -291,6 +330,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_placements: ["home_under_search"],
           vendor_join_terms_ar: "",
           vendor_join_terms_en: "",
+          vendor_join_terms_clauses: [],
           bestsellers_boost_enabled: 1,
           app_ad_banner_enabled: 1,
           app_ad_banner_text_ar: "أعلن عن منتجك داخل تطبيق أدورا",
@@ -330,6 +370,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         partner_cta_slides: partnerCtaSlidesForPublic(s),
         vendor_join_terms_ar: s.vendor_join_terms_ar || "",
         vendor_join_terms_en: s.vendor_join_terms_en || "",
+        vendor_join_terms_clauses: vendorJoinTermsClausesForPublic(s),
         bestsellers_boost_enabled: Number(s.bestsellers_boost_enabled) === 1 ? 1 : 0,
         app_ad_banner_enabled: appAdEff.enabledOn ? 1 : 0,
         app_ad_banner_text_ar: String(s.app_ad_banner_text_ar || "").trim() || DEFAULT_APP_AD_BANNER_TEXT_AR,
@@ -405,6 +446,28 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const vendor_join_terms_en =
         b.vendor_join_terms_en != null ? String(b.vendor_join_terms_en).slice(0, 8000) : cur.vendor_join_terms_en ?? "";
 
+      let vendor_join_terms_clauses_json =
+        cur.vendor_join_terms_clauses_json != null ? String(cur.vendor_join_terms_clauses_json) : "[]";
+      if (Array.isArray(b.vendor_join_terms_clauses)) {
+        const clauses = b.vendor_join_terms_clauses.map(normalizeVendorJoinClause).filter(Boolean);
+        vendor_join_terms_clauses_json = JSON.stringify(clauses).slice(0, 120000);
+      } else if (b.vendor_join_terms_clauses_json !== undefined && b.vendor_join_terms_clauses_json !== null) {
+        const t = String(b.vendor_join_terms_clauses_json).trim();
+        if (!t) {
+          vendor_join_terms_clauses_json = "[]";
+        } else {
+          const parsed = safeJsonParse(t, null);
+          if (Array.isArray(parsed)) {
+            vendor_join_terms_clauses_json = JSON.stringify(parsed.map(normalizeVendorJoinClause).filter(Boolean)).slice(
+              0,
+              120000
+            );
+          } else {
+            vendor_join_terms_clauses_json = t.slice(0, 120000);
+          }
+        }
+      }
+
       const app_ad_banner_enabled =
         b.app_ad_banner_enabled != null ? (Number(b.app_ad_banner_enabled) === 0 ? 0 : 1) : Number(cur.app_ad_banner_enabled) === 1 ? 1 : 0;
       const app_ad_banner_text_ar =
@@ -447,7 +510,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           partner_cta_subtitle_ar=?, partner_cta_subtitle_en=?, partner_cta_placements_json=?,
           partner_cta_slides_json=?,
           featured_products_mode=?, featured_vendor_ids_json=?, bestsellers_boost_enabled=?,
-          vendor_join_terms_ar=?, vendor_join_terms_en=?,
+          vendor_join_terms_ar=?, vendor_join_terms_en=?, vendor_join_terms_clauses_json=?,
           app_ad_banner_enabled=?, app_ad_banner_text_ar=?, app_ad_banner_text_en=?,
           app_ad_banner_subtitle_ar=?, app_ad_banner_subtitle_en=?, app_ad_banner_placements_json=?,
           app_ad_cta_slides_json=?,
@@ -472,6 +535,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
           bestsellers_boost_enabled,
           vendor_join_terms_ar,
           vendor_join_terms_en,
+          vendor_join_terms_clauses_json,
           app_ad_banner_enabled,
           app_ad_banner_text_ar,
           app_ad_banner_text_en,

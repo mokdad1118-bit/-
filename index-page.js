@@ -4283,6 +4283,7 @@
                         bestsellers_boost_enabled: 1,
                         app_ad_banner_enabled: 0,
                         app_ad_banner_placements: [],
+                        vendor_join_terms_clauses: [],
                     };
                 }
                 if (!Array.isArray(partnerCtaConfig.partner_cta_placements)) {
@@ -4296,6 +4297,9 @@
                 }
                 if (!Array.isArray(partnerCtaConfig.partner_cta_slides)) partnerCtaConfig.partner_cta_slides = [];
                 if (!Array.isArray(partnerCtaConfig.app_ad_cta_slides)) partnerCtaConfig.app_ad_cta_slides = [];
+                if (!Array.isArray(partnerCtaConfig.vendor_join_terms_clauses)) {
+                    partnerCtaConfig.vendor_join_terms_clauses = [];
+                }
             } catch (_e) {
                 partnerCtaConfig = {
                     partner_banner_enabled: 0,
@@ -4305,6 +4309,7 @@
                     app_ad_banner_placements: [],
                     partner_cta_slides: [],
                     app_ad_cta_slides: [],
+                    vendor_join_terms_clauses: [],
                 };
             }
             syncPartnerCtaDom();
@@ -4316,10 +4321,95 @@
             loadHomeBestsellers().catch(() => {});
         }
 
+        function vendorJoinClauseRowHasContent(c) {
+            if (!c || typeof c !== 'object') return false;
+            const t = (x) => String(x || '').trim();
+            if (t(c.title_ar) || t(c.title_en)) return true;
+            if (t(c.intro_ar) || t(c.intro_en)) return true;
+            const br = Array.isArray(c.bullets_ar) ? c.bullets_ar : [];
+            const be = Array.isArray(c.bullets_en) ? c.bullets_en : [];
+            return br.some((x) => t(x)) || be.some((x) => t(x));
+        }
+
+        function escapeVendorTermsHtml(s) {
+            return String(s || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function vendorTermsIntroToHtml(intro) {
+            return escapeVendorTermsHtml(intro).replace(/\r\n|\r|\n/g, '<br/>');
+        }
+
+        function renderVendorJoinTermsClausesHtml(clauses, rtl) {
+            if (!Array.isArray(clauses) || !clauses.length) return '';
+            const parts = [];
+            for (const c of clauses) {
+                if (!vendorJoinClauseRowHasContent(c)) continue;
+                const titleRaw = rtl
+                    ? String(c.title_ar || '').trim()
+                    : String(c.title_en || c.title_ar || '').trim();
+                const introRaw = rtl
+                    ? String(c.intro_ar || '').trim()
+                    : String(c.intro_en || c.intro_ar || '').trim();
+                let bulletList = rtl
+                    ? Array.isArray(c.bullets_ar)
+                        ? c.bullets_ar
+                        : []
+                    : Array.isArray(c.bullets_en) && c.bullets_en.some((x) => String(x || '').trim())
+                      ? c.bullets_en
+                      : Array.isArray(c.bullets_ar)
+                        ? c.bullets_ar
+                        : [];
+                bulletList = bulletList.map((x) => String(x || '').trim()).filter(Boolean);
+                const listStyle = c.list_style === 'none' ? 'none' : 'disc';
+                const ulClass =
+                    listStyle === 'none'
+                        ? 'list-none ps-0 space-y-1.5'
+                        : 'list-disc ps-4 space-y-1.5 marker:text-violet-500';
+                const isHeader = c.is_header === true || Number(c.is_header) === 1;
+                const inner = [];
+                if (titleRaw) {
+                    const tag = isHeader ? 'p' : 'h3';
+                    const titleClass = isHeader
+                        ? 'font-bold text-violet-950 text-sm sm:text-base'
+                        : 'font-bold text-violet-900 text-xs sm:text-sm';
+                    inner.push(`<${tag} class="${titleClass}">${escapeVendorTermsHtml(titleRaw)}</${tag}>`);
+                }
+                if (introRaw) {
+                    const pClass = isHeader ? 'text-gray-700' : 'text-gray-800';
+                    inner.push(`<p class="${pClass}">${vendorTermsIntroToHtml(introRaw)}</p>`);
+                }
+                if (bulletList.length) {
+                    inner.push(`<ul class="${ulClass}">`);
+                    for (const b of bulletList) {
+                        inner.push(`<li>${escapeVendorTermsHtml(b)}</li>`);
+                    }
+                    inner.push('</ul>');
+                }
+                const wrap = isHeader ? 'header' : 'section';
+                const wrapClass = isHeader ? 'space-y-2 pb-2 border-b border-violet-200/80' : 'space-y-2';
+                parts.push(`<${wrap} class="${wrapClass}">${inner.join('')}</${wrap}>`);
+            }
+            return `<div class="space-y-4">${parts.join('')}</div>`;
+        }
+
         function syncVendorJoinTermsFromConfig() {
             const customEl = document.getElementById('vendor-join-terms-custom');
             const defaultEl = document.getElementById('vendor-join-terms-default');
             if (!customEl || !defaultEl) return;
+            const clauses = partnerCtaConfig?.vendor_join_terms_clauses;
+            const clausesActive =
+                Array.isArray(clauses) && clauses.length && clauses.some(vendorJoinClauseRowHasContent);
+            if (clausesActive) {
+                customEl.className = 'space-y-4 leading-relaxed text-[11px] sm:text-xs text-gray-800 pb-4';
+                customEl.innerHTML = renderVendorJoinTermsClausesHtml(clauses, isRTL);
+                customEl.classList.remove('hidden');
+                defaultEl.classList.add('hidden');
+                return;
+            }
             const primary = isRTL
                 ? String(partnerCtaConfig?.vendor_join_terms_ar || '').trim()
                 : String(partnerCtaConfig?.vendor_join_terms_en || '').trim();
@@ -4329,6 +4419,7 @@
             const text = primary || secondary;
             if (text) {
                 customEl.textContent = text;
+                customEl.className = 'whitespace-pre-line leading-relaxed text-gray-800 pb-4';
                 customEl.classList.remove('hidden');
                 defaultEl.classList.add('hidden');
             } else {

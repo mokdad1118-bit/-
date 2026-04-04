@@ -888,8 +888,8 @@ function setActiveTab(tabId) {
   if (tabId === "tab-database") loadDatabaseOverview().catch(() => {});
   if (tabId === "tab-banners") {
     loadBanners().catch(() => {});
-    loadVendorPlatformSettingsUi().catch(() => {});
     bindVendorPlatformAdminListenersOnce();
+    loadVendorPlatformSettingsUi().catch(() => {});
   }
   if (tabId === "tab-marketplace") initMarketplaceAdminTab().catch(() => {});
   if (tabId === "tab-vendor-subscriptions") {
@@ -931,6 +931,205 @@ const VP_APP_AD_PLACEMENT_KEYS = [
   "featured_hub_screen",
   "listing_screen",
 ];
+
+let vpJoinTermsClausesEditorBound = false;
+
+function vpJoinClauseEmpty() {
+  return {
+    title_ar: "",
+    title_en: "",
+    intro_ar: "",
+    intro_en: "",
+    bullets_ar: [],
+    bullets_en: [],
+    list_style: "disc",
+    is_header: false,
+  };
+}
+
+function vpJoinBulletsToText(arr) {
+  if (!Array.isArray(arr)) return "";
+  return arr.map((x) => String(x || "")).join("\n");
+}
+
+function vpJoinParseBulletsTextarea(val) {
+  return String(val || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function vpJoinClauseCardHtml(c, idx) {
+  const title_ar = escapeHtml(c.title_ar || "");
+  const title_en = escapeHtml(c.title_en || "");
+  const intro_ar = escapeHtml(c.intro_ar || "");
+  const intro_en = escapeHtml(c.intro_en || "");
+  const bullets_ar = escapeHtml(vpJoinBulletsToText(c.bullets_ar));
+  const bullets_en = escapeHtml(vpJoinBulletsToText(c.bullets_en));
+  const listNone = c.list_style === "none";
+  const isHeader = c.is_header === true || Number(c.is_header) === 1;
+  return `<div class="vp-join-clause-card rounded-xl border border-violet-200/80 bg-white p-3 space-y-2 shadow-sm" data-vp-join-clause="${idx}">
+    <div class="flex flex-wrap justify-between items-center gap-2 border-b border-gray-100 pb-2">
+      <span class="text-xs font-bold text-violet-900"><span data-en="Clause" data-ar="بند">بند</span> #${idx + 1}</span>
+      <div class="flex flex-wrap gap-1">
+        <button type="button" class="px-2 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-vp-clause-up="${idx}" title="Up">↑</button>
+        <button type="button" class="px-2 py-1 rounded-lg bg-gray-100 text-xs font-bold hover:bg-gray-200" data-vp-clause-down="${idx}" title="Down">↓</button>
+        <button type="button" class="px-2 py-1 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100" data-vp-clause-del="${idx}"><span data-en="Delete" data-ar="حذف">حذف</span></button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div><label class="text-[10px] font-bold text-gray-600">عنوان البند (عربي)</label><input type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" data-vp-f="title_ar" value="${title_ar}" /></div>
+      <div><label class="text-[10px] font-bold text-gray-600">Clause title (EN)</label><input type="text" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" data-vp-f="title_en" value="${title_en}" /></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div><label class="text-[10px] font-bold text-gray-600">فقرة اختيارية (عربي)</label><textarea rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" data-vp-f="intro_ar">${intro_ar}</textarea></div>
+      <div><label class="text-[10px] font-bold text-gray-600">Optional paragraph (EN)</label><textarea rows="2" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm" data-vp-f="intro_en">${intro_en}</textarea></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div><label class="text-[10px] font-bold text-gray-600">نقاط (عربي) — سطر لكل نقطة</label><textarea rows="4" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm font-sans" data-vp-f="bullets_ar" placeholder="سطر لكل بند فرعي">${bullets_ar}</textarea></div>
+      <div><label class="text-[10px] font-bold text-gray-600">Bullets (EN) — one line each</label><textarea rows="4" class="mt-0.5 w-full p-2 rounded-lg border border-gray-200 text-sm font-sans" data-vp-f="bullets_en" placeholder="One line per bullet">${bullets_en}</textarea></div>
+    </div>
+    <div class="flex flex-wrap gap-4 text-xs">
+      <label class="flex items-center gap-2 cursor-pointer font-semibold text-gray-700"><input type="checkbox" data-vp-f="is_header" ${isHeader ? "checked" : ""} /><span data-en="Document header style" data-ar="رأس المستند (مقدمة)">رأس المستند (مقدمة)</span></label>
+      <label class="flex items-center gap-2 cursor-pointer font-semibold text-gray-700"><input type="checkbox" data-vp-f="list_none" ${listNone ? "checked" : ""} /><span data-en="List without bullets (definitions)" data-ar="قائمة بلا نقاط (تعريفات)">قائمة بلا نقاط (تعريفات)</span></label>
+    </div>
+  </div>`;
+}
+
+function renderVpJoinTermsClausesFromArray(clauses) {
+  const root = document.getElementById("vp-join-terms-clauses-root");
+  if (!root) return;
+  root.innerHTML = "";
+  if (!clauses || !clauses.length) {
+    root.innerHTML = `<p class="text-xs text-gray-500 text-center py-3" data-en="No clauses yet. Add a clause or import defaults." data-ar="لا توجد بنود بعد. أضف بنداً أو استورِد البنود الافتراضية.">لا توجد بنود بعد. أضف بنداً أو استورِد البنود الافتراضية.</p>`;
+    return;
+  }
+  clauses.forEach((c, idx) => {
+    root.insertAdjacentHTML("beforeend", vpJoinClauseCardHtml(c, idx));
+  });
+}
+
+async function fetchDefaultVendorJoinTermsClauses() {
+  try {
+    const r = await fetch("/default-vendor-join-terms-clauses.json", { cache: "no-store" });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return Array.isArray(data) && data.length ? data : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+async function renderVpJoinTermsClausesFromSettings(s) {
+  let clauses = [];
+  try {
+    const raw = s.vendor_join_terms_clauses_json;
+    const p = typeof raw === "string" ? JSON.parse(raw || "[]") : raw;
+    if (Array.isArray(p)) clauses = p;
+  } catch (_e) {
+    clauses = [];
+  }
+  const banner = document.getElementById("vp-join-terms-defaults-banner");
+  if (clauses.length) {
+    if (banner) banner.classList.add("hidden");
+    renderVpJoinTermsClausesFromArray(clauses);
+    return;
+  }
+  const defaults = await fetchDefaultVendorJoinTermsClauses();
+  if (defaults && defaults.length) {
+    if (banner) {
+      banner.classList.remove("hidden");
+      const ar = getAdminLang() === "ar";
+      const t = ar ? banner.getAttribute("data-ar") : banner.getAttribute("data-en");
+      if (t) banner.textContent = t;
+    }
+    renderVpJoinTermsClausesFromArray(defaults);
+    return;
+  }
+  if (banner) banner.classList.add("hidden");
+  renderVpJoinTermsClausesFromArray([]);
+}
+
+function vpJoinClauseReadField(card, name) {
+  const el = card.querySelector(`[data-vp-f="${name}"]`);
+  if (!el) return name === "is_header" || name === "list_none" ? false : "";
+  if (el instanceof HTMLInputElement && el.type === "checkbox") return el.checked;
+  return el.value != null ? String(el.value) : "";
+}
+
+function readVpJoinTermsClausesFromDom() {
+  const root = document.getElementById("vp-join-terms-clauses-root");
+  if (!root) return [];
+  const cards = root.querySelectorAll("[data-vp-join-clause]");
+  const out = [];
+  cards.forEach((card) => {
+    const title_ar = String(vpJoinClauseReadField(card, "title_ar")).trim();
+    const title_en = String(vpJoinClauseReadField(card, "title_en")).trim();
+    const intro_ar = String(vpJoinClauseReadField(card, "intro_ar")).trim();
+    const intro_en = String(vpJoinClauseReadField(card, "intro_en")).trim();
+    const bullets_ar = vpJoinParseBulletsTextarea(vpJoinClauseReadField(card, "bullets_ar"));
+    const bullets_en = vpJoinParseBulletsTextarea(vpJoinClauseReadField(card, "bullets_en"));
+    const is_header = vpJoinClauseReadField(card, "is_header") === true;
+    const list_style = vpJoinClauseReadField(card, "list_none") === true ? "none" : "disc";
+    if (!title_ar && !title_en && !intro_ar && !intro_en && !bullets_ar.length && !bullets_en.length) return;
+    out.push({ title_ar, title_en, intro_ar, intro_en, bullets_ar, bullets_en, list_style, is_header });
+  });
+  return out;
+}
+
+function vpJoinTermsClausesReorder(index, dir) {
+  const cur = readVpJoinTermsClausesFromDom();
+  const j = index + dir;
+  if (j < 0 || j >= cur.length) return;
+  const tmp = cur[index];
+  cur[index] = cur[j];
+  cur[j] = tmp;
+  renderVpJoinTermsClausesFromArray(cur);
+}
+
+function bindVpJoinTermsClausesEditorOnce() {
+  if (vpJoinTermsClausesEditorBound) return;
+  vpJoinTermsClausesEditorBound = true;
+  document.getElementById("btn-vp-join-clause-add")?.addEventListener("click", () => {
+    const cur = readVpJoinTermsClausesFromDom();
+    cur.push(vpJoinClauseEmpty());
+    renderVpJoinTermsClausesFromArray(cur);
+  });
+  document.getElementById("btn-vp-join-clause-import-defaults")?.addEventListener("click", async () => {
+    const ar = getAdminLang() === "ar";
+    try {
+      const data = await fetchDefaultVendorJoinTermsClauses();
+      if (!data) throw new Error("invalid");
+      if (
+        !confirm(
+          ar ? "استبدال البنود المعروضة بالبنود الافتراضية لأدورا؟" : "Replace current clauses with Adora default clauses?"
+        )
+      ) {
+        return;
+      }
+      document.getElementById("vp-join-terms-defaults-banner")?.classList.add("hidden");
+      renderVpJoinTermsClausesFromArray(data);
+    } catch (_e) {
+      alert(ar ? "تعذر تحميل الملف الافتراضي." : "Could not load default clauses file.");
+    }
+  });
+  document.getElementById("vp-join-terms-clauses-root")?.addEventListener("click", (ev) => {
+    const t = ev.target;
+    if (!(t instanceof HTMLElement)) return;
+    const delBtn = t.closest("[data-vp-clause-del]");
+    if (delBtn) {
+      const idx = Number(delBtn.getAttribute("data-vp-clause-del"));
+      const cur = readVpJoinTermsClausesFromDom();
+      cur.splice(idx, 1);
+      renderVpJoinTermsClausesFromArray(cur);
+      return;
+    }
+    const upBtn = t.closest("[data-vp-clause-up]");
+    if (upBtn) vpJoinTermsClausesReorder(Number(upBtn.getAttribute("data-vp-clause-up")), -1);
+    const downBtn = t.closest("[data-vp-clause-down]");
+    if (downBtn) vpJoinTermsClausesReorder(Number(downBtn.getAttribute("data-vp-clause-down")), 1);
+  });
+}
 
 async function loadVendorPlatformSettingsUi() {
   const token = getToken();
@@ -981,6 +1180,7 @@ async function loadVendorPlatformSettingsUi() {
   const jtEn = document.getElementById("vp-join-terms-en");
   if (jtAr) jtAr.value = s.vendor_join_terms_ar || "";
   if (jtEn) jtEn.value = s.vendor_join_terms_en || "";
+  await renderVpJoinTermsClausesFromSettings(s);
   const appAdOn = document.getElementById("vp-app-ad-on");
   if (appAdOn) appAdOn.checked = Number(s.app_ad_banner_enabled) !== 0;
   const aar = document.getElementById("vp-app-ad-ar");
@@ -1262,6 +1462,7 @@ async function collectVendorPlatformSettingsBody() {
     partner_cta_placements,
     vendor_join_terms_ar: txt("vp-join-terms-ar", "vendor_join_terms_ar"),
     vendor_join_terms_en: txt("vp-join-terms-en", "vendor_join_terms_en"),
+    vendor_join_terms_clauses: readVpJoinTermsClausesFromDom(),
     app_ad_banner_enabled: bit("vp-app-ad-on", "app_ad_banner_enabled"),
     app_ad_banner_text_ar: trimTxt("vp-app-ad-ar", "app_ad_banner_text_ar"),
     app_ad_banner_text_en: trimTxt("vp-app-ad-en", "app_ad_banner_text_en"),
@@ -1291,6 +1492,7 @@ async function saveVendorPlatformSettingsFromForm() {
 function bindVendorPlatformAdminListenersOnce() {
   if (vendorPlatformListenersBound) return;
   vendorPlatformListenersBound = true;
+  bindVpJoinTermsClausesEditorOnce();
   document.getElementById("vp-settings-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!getToken()) return;

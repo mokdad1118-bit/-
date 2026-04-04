@@ -1,0 +1,277 @@
+[
+  {
+    "is_header": true,
+    "title_ar": "الشروط والأحكام – منصة Adora",
+    "title_en": "Terms and conditions – Adora platform",
+    "intro_ar": "مرحباً بكم في منصة Adora. باستخدامك للمنصة أو تسجيل شركتك، فإنك توافق على الشروط والأحكام التالية:",
+    "intro_en": "Welcome to Adora. By using the platform or registering your company, you agree to the following terms and conditions:",
+    "bullets_ar": [],
+    "bullets_en": [],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "أولاً: التعريفات",
+    "title_en": "First: Definitions",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "المنصة: تعني منصة Adora",
+      "الشركة: أي متجر أو بائع يقوم بالتسجيل داخل المنصة",
+      "المستخدم: أي شخص يستخدم المنصة للتصفح أو الشراء",
+      "الإدارة: فريق إدارة منصة Adora"
+    ],
+    "bullets_en": [
+      "Platform: means the Adora platform.",
+      "Company: any store or seller registered on the platform.",
+      "User: anyone who browses or purchases on the platform.",
+      "Administration: the Adora platform administration team."
+    ],
+    "list_style": "none"
+  },
+  {
+    "title_ar": "ثانياً: التسجيل في المنصة",
+    "title_en": "Second: Registration on the platform",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يحق للشركات التسجيل في المنصة بعد إدخال البيانات الصحيحة",
+      "يجب أن تكون جميع المعلومات المقدمة صحيحة ودقيقة",
+      "تتحمل الشركة مسؤولية حسابها وكلمة المرور",
+      "يحق للإدارة تعليق أو حذف أي حساب يحتوي معلومات غير صحيحة"
+    ],
+    "bullets_en": [
+      "Companies may register after entering correct data.",
+      "All submitted information must be accurate.",
+      "The company is responsible for its account and password.",
+      "The administration may suspend or delete accounts with false information."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "ثالثاً: الباقات والاشتراكات",
+    "title_en": "Third: Plans and subscriptions",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "توفر المنصة باقات اشتراك مختلفة للشركات",
+      "يتم تفعيل الباقة بعد إتمام الدفع",
+      "مدة الاشتراك حسب الباقة المختارة",
+      "لا يتم استرجاع رسوم الاشتراك بعد التفعيل",
+      "يحق للإدارة تعديل أسعار الباقات مستقبلاً"
+    ],
+    "bullets_en": [
+      "The platform offers different subscription plans.",
+      "The plan is activated after payment is completed.",
+      "Subscription duration depends on the selected plan.",
+      "Subscription fees are non-refundable after activation.",
+      "The administration may change plan prices in the future."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "رابعاً: العمولة على الطلبات",
+    "title_en": "Fourth: Order commission",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "تفرض المنصة عمولة على الطلبات الناجحة",
+      "تختلف العمولة حسب الباقة المختارة",
+      "يتم احتساب العمولة على كل طلب مكتمل",
+      "يحق للإدارة تعديل نسبة العمولة مستقبلاً"
+    ],
+    "bullets_en": [
+      "The platform charges commission on successful orders.",
+      "Commission rates vary by plan.",
+      "Commission is calculated per completed order.",
+      "The administration may adjust commission rates in the future."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "خامساً: المنتجات",
+    "title_en": "Fifth: Products",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "الشركة مسؤولة عن جميع المنتجات المضافة",
+      "يجب أن تكون المنتجات أصلية وغير مخالفة",
+      "يمنع إضافة المنتجات المقلدة أو غير القانونية",
+      "يحق للإدارة حذف أي منتج مخالف دون إشعار مسبق"
+    ],
+    "bullets_en": [
+      "The company is responsible for all listed products.",
+      "Products must be genuine and lawful.",
+      "Counterfeit or illegal products are prohibited.",
+      "The administration may remove violating products without prior notice."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "سادساً: الشركات المميزة",
+    "title_en": "Sixth: Featured companies",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يمكن للشركات الحصول على ميزة شركة مميزة حسب الباقة",
+      "يتم إلغاء التمييز عند انتهاء الاشتراك",
+      "لا يتم استرجاع رسوم التمييز بعد التفعيل"
+    ],
+    "bullets_en": [
+      "Companies may obtain a featured-company benefit per plan.",
+      "Highlighting ends when the subscription ends.",
+      "Featured fees are non-refundable after activation."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "سابعاً: المنتجات المميزة",
+    "title_en": "Seventh: Featured products",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يمكن للشركة تمييز منتجاتها حسب الباقة",
+      "يتم إلغاء التمييز عند انتهاء المدة",
+      "يحق للإدارة تعديل سياسة المنتجات المميزة"
+    ],
+    "bullets_en": [
+      "Companies may feature products according to the plan.",
+      "Highlighting ends when the period ends.",
+      "The administration may change the featured-products policy."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "ثامناً: الإعلانات",
+    "title_en": "Eighth: Advertising",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "توفر المنصة خدمات إعلانية للشركات",
+      "يتم تحديد مدة الإعلان مسبقاً",
+      "لا يتم استرجاع رسوم الإعلان بعد التفعيل",
+      "يحق للإدارة رفض أي إعلان مخالف"
+    ],
+    "bullets_en": [
+      "The platform offers advertising services to companies.",
+      "Ad duration is set in advance.",
+      "Ad fees are non-refundable after activation.",
+      "The administration may reject non-compliant ads."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "تاسعاً: الدفع",
+    "title_en": "Ninth: Payment",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يتم الدفع حسب الباقة المختارة",
+      "في حال عدم الدفع يتم إيقاف المميزات",
+      "يحق للإدارة تعليق الحساب عند التأخر بالدفع",
+      "جميع المدفوعات غير قابلة للاسترجاع بعد التفعيل"
+    ],
+    "bullets_en": [
+      "Payment follows the selected plan.",
+      "Features may be suspended if payment is missing.",
+      "The administration may suspend the account for late payment.",
+      "All payments are non-refundable after activation."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "عاشراً: الطلبات والمبيعات",
+    "title_en": "Tenth: Orders and sales",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "تتحمل الشركة مسؤولية تنفيذ الطلبات",
+      "تتحمل الشركة مسؤولية جودة المنتجات",
+      "المنصة وسيط بين البائع والمشتري",
+      "المنصة غير مسؤولة عن أي نزاع بين الطرفين"
+    ],
+    "bullets_en": [
+      "The company is responsible for fulfilling orders.",
+      "The company is responsible for product quality.",
+      "The platform is an intermediary between seller and buyer.",
+      "The platform is not liable for disputes between parties."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "الحادي عشر: إيقاف الحساب",
+    "title_en": "Eleventh: Account suspension",
+    "intro_ar": "يحق لإدارة المنصة إيقاف أي حساب في الحالات التالية:",
+    "intro_en": "The platform administration may suspend any account in the following cases:",
+    "bullets_ar": [
+      "مخالفة الشروط",
+      "بيع منتجات غير قانونية",
+      "الاحتيال أو التلاعب",
+      "تقديم معلومات غير صحيحة"
+    ],
+    "bullets_en": [
+      "Violation of these terms",
+      "Selling illegal products",
+      "Fraud or manipulation",
+      "Providing false information"
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "الثاني عشر: إنهاء الخدمة",
+    "title_en": "Twelfth: Termination of service",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يحق للشركة طلب إغلاق حسابها",
+      "يحق للإدارة إيقاف أي حساب مخالف",
+      "لا يتم استرجاع أي رسوم مدفوعة"
+    ],
+    "bullets_en": [
+      "The company may request account closure.",
+      "The administration may suspend any violating account.",
+      "No paid fees are refunded."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "الثالث عشر: التعديلات",
+    "title_en": "Thirteenth: Changes",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "يحق لإدارة Adora تعديل الشروط والأحكام في أي وقت",
+      "يتم نشر التعديلات داخل المنصة",
+      "استمرار استخدام المنصة يعني الموافقة على التعديلات"
+    ],
+    "bullets_en": [
+      "Adora administration may amend these terms at any time.",
+      "Changes are published within the platform.",
+      "Continued use means acceptance of the changes."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "الرابع عشر: المسؤولية القانونية",
+    "title_en": "Fourteenth: Legal liability",
+    "intro_ar": "",
+    "intro_en": "",
+    "bullets_ar": [
+      "المنصة غير مسؤولة عن أي خسائر ناتجة عن استخدام الخدمة",
+      "تتحمل الشركة كامل المسؤولية عن منتجاتها"
+    ],
+    "bullets_en": [
+      "The platform is not liable for losses from using the service.",
+      "The company bears full responsibility for its products."
+    ],
+    "list_style": "disc"
+  },
+  {
+    "title_ar": "الخامس عشر: الموافقة",
+    "title_en": "Fifteenth: Acceptance",
+    "intro_ar": "باستخدام منصة Adora، فإنك توافق على جميع الشروط والأحكام المذكورة أعلاه.",
+    "intro_en": "By using Adora, you agree to all terms and conditions stated above.",
+    "bullets_ar": [],
+    "bullets_en": [],
+    "list_style": "disc"
+  }
+]
