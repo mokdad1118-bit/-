@@ -3735,6 +3735,13 @@
                 const a = isRTL ? btn.getAttribute('data-ar-aria') : btn.getAttribute('data-en-aria');
                 if (a) btn.setAttribute('aria-label', a);
             });
+            const vjTermsAckBtn = document.getElementById('vendor-join-terms-ack-btn');
+            if (vjTermsAckBtn) {
+                const a = isRTL
+                    ? vjTermsAckBtn.getAttribute('data-ar-aria')
+                    : vjTermsAckBtn.getAttribute('data-en-aria');
+                if (a) vjTermsAckBtn.setAttribute('aria-label', a);
+            }
             if (typeof applySplashCtaLang === 'function') applySplashCtaLang();
             syncExitAppModalLabels();
             refreshSideMenuHeader().catch(() => {});
