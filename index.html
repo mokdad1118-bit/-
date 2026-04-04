@@ -6998,7 +6998,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-gray-900" data-en="My Orders" data-ar="طلباتي">My Orders</h3>
-                    <p id="profile-orders-subtitle" class="text-xs text-gray-500 mt-0.5" data-en="View all orders in a window" data-ar="عرض جميع الطلبات في نافذة">عرض جميع الطلبات في نافذة</p>
+                    <p id="profile-orders-subtitle" class="text-xs text-gray-500 mt-0.5" data-en="Open the list — use Show more for older orders" data-ar="قائمة الطلبات مع «عرض المزيد» للباقي">قائمة الطلبات مع «عرض المزيد» للباقي</p>
                 </div>
                 <span id="profile-orders-count-badge" class="shrink-0 bg-purple-600 text-white text-xs font-bold min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center hidden">0</span>
                 <i class="fas fa-chevron-right text-gray-300 shrink-0 rtl:rotate-180" aria-hidden="true"></i>
@@ -7537,7 +7537,12 @@
                     <i class="fas fa-times text-[15px] text-gray-600"></i>
                 </button>
             </div>
-            <div id="orders-list-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 space-y-3 bg-gray-50/40"></div>
+            <div id="orders-list-modal-body" class="overflow-y-auto flex-1 min-h-0 p-4 bg-gray-50/40 flex flex-col gap-0">
+                <div id="orders-list-modal-items" class="space-y-3 flex-1 min-h-0"></div>
+                <div id="orders-list-modal-more-wrap" class="hidden shrink-0 pt-3">
+                    <button type="button" id="orders-list-modal-more-btn" onclick="ordersListModalLoadMore()" class="w-full py-3 rounded-2xl border border-violet-200 bg-violet-50 text-violet-900 font-bold text-sm hover:bg-violet-100 active:scale-[0.99] transition shadow-sm" data-en="Show more" data-ar="عرض المزيد">عرض المزيد</button>
+                </div>
+            </div>
             <div class="shrink-0 border-t border-gray-100/90 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white">
                 <button type="button" class="w-full py-3.5 rounded-2xl border border-gray-200 bg-white text-gray-800 font-bold text-sm shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.99] transition" onclick="closeOrdersListModal()" data-en="Close" data-ar="إغلاق">إغلاق</button>
             </div>

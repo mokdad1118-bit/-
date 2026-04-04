@@ -3753,6 +3753,9 @@
             isRTL = !isRTL;
             localStorage.setItem('adora_rtl', isRTL ? '1' : '0');
             applyAppLanguage();
+            if (!document.getElementById('orders-list-modal')?.classList.contains('hidden')) {
+                ordersListModalUpdateMoreButton();
+            }
             updateOrderTrackingUI();
             renderBrandCards();
             renderTopBrands();
@@ -11344,6 +11347,71 @@
             </div>`;
         }
 
+        const ORDERS_LIST_MODAL_PAGE_SIZE = 6;
+        let ordersListModalState = { all: [], nextIndex: 0, pageSize: ORDERS_LIST_MODAL_PAGE_SIZE };
+
+        function buildOrderListCardHtml(o) {
+            const dateLabel = formatOrderDate(o.created_at);
+            const statusLabel = getOrderStatusLabel(o.status);
+            return `<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                        <div class="flex justify-between items-start gap-2">
+                            <div>
+                                <div class="text-xs text-gray-500">${escapeHtml(o.order_no || '')}</div>
+                                <div class="text-sm font-bold text-gray-900 mt-0.5">${escapeHtml(statusLabel)}</div>
+                                <div class="text-xs text-gray-500 mt-1">${escapeHtml(dateLabel)} · ${isRTL ? 'الإجمالي' : 'Total'}: ${formatSyp(Number(o.total_price || 0))}</div>
+                            </div>
+                            <button type="button" onclick="trackOrderFromListModal(${o.id})" class="shrink-0 px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-sm">
+                                ${isRTL ? 'تتبع' : 'Track'}
+                            </button>
+                        </div>
+                        ${renderMiniTimeline(o.status)}
+                        <div id="order-history-${o.id}" class="mt-3 hidden"></div>
+                        <button type="button" class="mt-2 text-xs font-semibold text-purple-600" onclick="toggleOrderHistory(${o.id})">
+                            ${isRTL ? 'عرض المخطط الزمني' : 'Timeline details'}
+                        </button>
+                    </div>`;
+        }
+
+        function ordersListModalResetDomForLoading(itemsEl, moreWrap) {
+            if (itemsEl) itemsEl.innerHTML = `<div class="py-1 space-y-3">${adoraSkeletonModalRowsHtml(6)}</div>`;
+            if (moreWrap) moreWrap.classList.add('hidden');
+        }
+
+        function ordersListModalUpdateMoreButton() {
+            const wrap = document.getElementById('orders-list-modal-more-wrap');
+            const btn = document.getElementById('orders-list-modal-more-btn');
+            if (!wrap || !btn) return;
+            const left = ordersListModalState.all.length - ordersListModalState.nextIndex;
+            if (left <= 0) {
+                wrap.classList.add('hidden');
+                return;
+            }
+            wrap.classList.remove('hidden');
+            const baseAr = btn.getAttribute('data-ar') || 'عرض المزيد';
+            const baseEn = btn.getAttribute('data-en') || 'Show more';
+            const base = isRTL ? baseAr : baseEn;
+            btn.textContent = `${base} (${left})`;
+        }
+
+        function ordersListModalAppendBatch() {
+            const itemsEl = document.getElementById('orders-list-modal-items');
+            if (!itemsEl) return;
+            const { all, nextIndex, pageSize } = ordersListModalState;
+            const end = Math.min(nextIndex + pageSize, all.length);
+            for (let i = nextIndex; i < end; i++) {
+                itemsEl.insertAdjacentHTML('beforeend', buildOrderListCardHtml(all[i]));
+            }
+            ordersListModalState.nextIndex = end;
+            ordersListModalUpdateMoreButton();
+        }
+
+        function ordersListModalLoadMore() {
+            ordersListModalAppendBatch();
+        }
+        try {
+            window.ordersListModalLoadMore = ordersListModalLoadMore;
+        } catch (_e) {}
+
         async function profileOpenOrdersModal() {
             if (!getStoredJwtToken()) {
                 openAuthModal('login', isRTL ? 'سجّل الدخول لعرض طلباتك' : 'Log in to view your orders');
@@ -11383,37 +11451,26 @@
             if (!modal || !body) return;
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            body.innerHTML = `<div class="py-2 space-y-3">${adoraSkeletonModalRowsHtml(6)}</div>`;
+            const itemsEl = document.getElementById('orders-list-modal-items');
+            const moreWrap = document.getElementById('orders-list-modal-more-wrap');
+            ordersListModalResetDomForLoading(itemsEl, moreWrap);
             try {
                 const orders = await apiFetch('/api/orders', { requireAuth: true });
                 if (!Array.isArray(orders) || orders.length === 0) {
-                    body.innerHTML = ordersModalEmptyStateHtml();
+                    if (itemsEl) itemsEl.innerHTML = ordersModalEmptyStateHtml();
+                    if (moreWrap) moreWrap.classList.add('hidden');
                     return;
                 }
-                const orderPieces = orders.map((o) => {
-                    const dateLabel = formatOrderDate(o.created_at);
-                    const statusLabel = getOrderStatusLabel(o.status);
-                    return `<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                        <div class="flex justify-between items-start gap-2">
-                            <div>
-                                <div class="text-xs text-gray-500">${escapeHtml(o.order_no || '')}</div>
-                                <div class="text-sm font-bold text-gray-900 mt-0.5">${escapeHtml(statusLabel)}</div>
-                                <div class="text-xs text-gray-500 mt-1">${escapeHtml(dateLabel)} · ${isRTL ? 'الإجمالي' : 'Total'}: ${formatSyp(Number(o.total_price || 0))}</div>
-                            </div>
-                            <button type="button" onclick="trackOrderFromListModal(${o.id})" class="shrink-0 px-3 py-2 rounded-xl bg-purple-600 text-white text-xs font-bold shadow-sm">
-                                ${isRTL ? 'تتبع' : 'Track'}
-                            </button>
-                        </div>
-                        ${renderMiniTimeline(o.status)}
-                        <div id="order-history-${o.id}" class="mt-3 hidden"></div>
-                        <button type="button" class="mt-2 text-xs font-semibold text-purple-600" onclick="toggleOrderHistory(${o.id})">
-                            ${isRTL ? 'عرض المخطط الزمني' : 'Timeline details'}
-                        </button>
-                    </div>`;
-                });
-                adoraInsertAdjacentHtmlChunked(body, orderPieces, 4);
+                ordersListModalState = {
+                    all: orders,
+                    nextIndex: 0,
+                    pageSize: ORDERS_LIST_MODAL_PAGE_SIZE,
+                };
+                if (itemsEl) itemsEl.innerHTML = '';
+                ordersListModalAppendBatch();
             } catch (e) {
-                body.innerHTML = `<p class="text-center text-red-600 py-8">${escapeHtml(e.message)}</p>`;
+                if (itemsEl) itemsEl.innerHTML = `<p class="text-center text-red-600 py-8">${escapeHtml(e.message)}</p>`;
+                if (moreWrap) moreWrap.classList.add('hidden');
             }
         }
 
