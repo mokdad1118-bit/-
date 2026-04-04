@@ -4784,6 +4784,17 @@
                     }
                     return;
                 }
+                if (!document.getElementById('vj-p-terms')?.checked) {
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'يجب الموافقة على الشروط والأحكام لإرسال الطلب.'
+                            : 'You must accept the terms and conditions to submit.';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                        msg.classList.remove('hidden');
+                    }
+                    return;
+                }
                 const fd = new FormData();
                 fd.append('full_name', document.getElementById('vj-p-full-name')?.value?.trim() || '');
                 fd.append('phone', document.getElementById('vj-p-phone')?.value?.trim() || '');
