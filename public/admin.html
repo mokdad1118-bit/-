@@ -1646,13 +1646,24 @@
                 <p class="text-xs font-bold text-violet-950" data-en="Goal" data-ar="الهدف">الهدف</p>
                 <p class="text-sm text-violet-900 mt-1 leading-relaxed" data-en="Build a professional, scalable plans system on the Adora platform." data-ar="إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.">إنشاء نظام باقات احترافي قابل للتوسع مستقبلاً داخل منصة Adora.</p>
               </div>
+              <div class="rounded-xl border border-emerald-200/90 bg-emerald-50/50 p-3 sm:p-4 space-y-2">
+                <h3 class="text-sm font-bold text-emerald-950" data-en="Data sent with each app request" data-ar="ما يُرسل مع كل طلب من التطبيق">ما يُرسل مع كل طلب من التطبيق</h3>
+                <ul class="list-disc ps-5 space-y-1 text-xs sm:text-sm text-emerald-950/90 leading-relaxed">
+                  <li>
+                    <span data-en="Acceptance of all terms and conditions — shown in the «Terms» column; the app blocks submit without checking the consent box." data-ar="الموافقة على جميع الأحكام والشروط — تظهر في عمود «الشروط»؛ التطبيق لا يرسل الطلب دون تفعيل خانة الموافقة."></span>
+                  </li>
+                  <li>
+                    <span data-en="ID or license images — links to the files the user uploaded (national ID front/back, or commercial register photo)." data-ar="صورة الهوية أو صورة الرخصة / السجل — روابط الملفات كما رفعها المستخدم (وجه وخلف الهوية، أو صورة السجل التجاري حسب نوع الوثيقة)."></span>
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
               <div class="flex flex-wrap gap-2 items-center justify-between">
                 <div>
                   <h3 class="text-base font-bold text-gray-900" data-en="Accounting queue — company join requests (automatic)" data-ar="طابور المحاسبة — طلبات الانضمام (تلقائي)">طابور المحاسبة — طلبات الانضمام (تلقائي)</h3>
-                  <p class="text-[11px] text-gray-500 mt-1 leading-relaxed" data-en="Same records as «Join requests». When you set status to Approved, the server tries to apply the chosen plan to the matching marketplace company (portal username = request email, or a single company with the same name). Paid plans get +1 month on subscription end; free plans leave end date open." data-ar="نفس السجلات في «طلبات الاشتراك». عند اختيار «تمت الموافقة» يحاول الخادم تطبيق الباقة على شركة السوق المطابقة (اسم مستخدم البوابة = بريد الطلب، أو شركة واحدة بنفس اسم الشركة). الباقات المدفوعة تُضبط نهاية الاشتراك لشهر واحد؛ المجانية تُترك بدون تاريخ نهاية للاشتراك.">نفس السجلات في «طلبات الاشتراك». عند «تمت الموافقة» يُطبَّق مفتاح الباقة والعمولة والحصة تلقائياً على شركة السوق إن وُجدت مطابقة (بوابة = بريد الطلب أو اسم شركة فريد).</p>
+                  <p class="text-[11px] text-gray-500 mt-1 leading-relaxed" data-en="Same records as «Join requests». Columns «Terms» and «Attachments» reflect stored consent and uploaded document URLs. When you set status to Approved, the server tries to apply the chosen plan to the matching marketplace company." data-ar="نفس السجلات في «طلبات الاشتراك». عمودا «الشروط» و«المرفقات» يعكسان الموافقة المخزّنة وروابط الصور. عند «تمت الموافقة» يحاول الخادم تطبيق الباقة على شركة السوق المطابقة.">نفس السجلات في «طلبات الاشتراك». عمودا «الشروط» و«المرفقات» يعكسان الموافقة وروابط الهوية/السجل. عند «تمت الموافقة» يُطبَّق مفتاح الباقة على شركة السوق إن وُجدت مطابقة.</p>
                 </div>
                 <button type="button" id="btn-oa-queue-refresh" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm font-bold hover:bg-slate-900 active:scale-[0.99] shrink-0" data-en="Refresh queue" data-ar="تحديث الطابور">تحديث الطابور</button>
               </div>
@@ -1667,6 +1678,8 @@
                       <th class="text-start p-2 whitespace-nowrap" data-en="Commission %" data-ar="عمولة %">عمولة %</th>
                       <th class="text-start p-2 whitespace-nowrap" data-en="Product quota" data-ar="حصة منتجات">حصة منتجات</th>
                       <th class="text-start p-2" data-en="Email" data-ar="البريد">البريد</th>
+                      <th class="text-start p-2 whitespace-nowrap" data-en="Terms accepted" data-ar="الشروط">الشروط</th>
+                      <th class="text-start p-2 min-w-[120px]" data-en="Attachments (ID / license)" data-ar="المرفقات">المرفقات</th>
                       <th class="text-start p-2" data-en="Status" data-ar="الحالة">الحالة</th>
                       <th class="text-start p-2 min-w-[200px]" data-en="Admin note &amp; save" data-ar="ملاحظة وحفظ">ملاحظة وحفظ</th>
                     </tr>

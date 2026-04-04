@@ -1605,6 +1605,48 @@ function vendorSubSnapshotAccounting(r) {
   return { key: k, title, commission, quota };
 }
 
+/** روابط صور الهوية / السجل كما أرسلها المستخدم من التطبيق */
+function vendorSubDocLinksCellHtml(r, ar, emptyAsDash) {
+  const parts = [];
+  if (r.id_front_url) {
+    parts.push(
+      `<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_front_url)}">${ar ? "وجه الهوية" : "ID front"}</a>`
+    );
+  }
+  if (r.id_back_url) {
+    parts.push(
+      `<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_back_url)}">${ar ? "خلف الهوية" : "ID back"}</a>`
+    );
+  }
+  if (r.commercial_register_url) {
+    parts.push(
+      `<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.commercial_register_url)}">${ar ? "سجل تجاري" : "Commercial register"}</a>`
+    );
+  }
+  if (!parts.length && r.id_document) {
+    parts.push(`<span class="text-[11px] text-gray-500">${escapeHtml(String(r.id_document).slice(0, 80))}</span>`);
+  }
+  if (!parts.length) {
+    if (emptyAsDash) return "—";
+    return `<span class="text-[11px] font-semibold text-amber-700">${ar ? "لا روابط مرفقات" : "No attachment links"}</span>`;
+  }
+  return `<div class="max-w-[150px] space-y-0.5">${parts.join("")}</div>`;
+}
+
+function vendorSubDocTypeShortLabel(r, ar) {
+  const dt = String(r.doc_type || "").trim().toLowerCase();
+  if (dt === "commercial" || dt === "commercial_register") return ar ? "نوع المرفق: سجل تجاري" : "Doc: commercial";
+  return ar ? "نوع المرفق: هوية" : "Doc: national ID";
+}
+
+function vendorSubTermsAcceptedCellHtml(r, ar) {
+  const ok = Number(r.terms_accepted) === 1;
+  if (ok) {
+    return `<span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200/80 whitespace-nowrap">${ar ? "موافق على الشروط" : "Terms accepted"}</span>`;
+  }
+  return `<span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-100 text-red-900 border border-red-200/80 whitespace-nowrap">${ar ? "غير موثّق" : "Not recorded"}</span>`;
+}
+
 let orderAccountingUiBound = false;
 
 function bindOrderAccountingListenersOnce() {
@@ -1643,13 +1685,14 @@ async function loadOrderAccountingVendorQueue() {
     ? VP_SUB_STATUS_LABELS_AR
     : { pending: "Pending", approved: "Approved", rejected: "Rejected", incomplete: "Incomplete" };
   const token = getToken();
+  const oaColspan = 11;
   if (!token) {
-    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-amber-800 bg-amber-50/80">${
+    tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-amber-800 bg-amber-50/80">${
       ar ? "يجب تسجيل الدخول لعرض طابور المحاسبة." : "Sign in to load the accounting queue."
     }</td></tr>`;
     return;
   }
-  tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400">${
+  tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-gray-400">${
     ar ? "جاري تحميل الطابور…" : "Loading queue…"
   }</td></tr>`;
   let rows;
@@ -1657,17 +1700,17 @@ async function loadOrderAccountingVendorQueue() {
     rows = await api("/api/admin/vendor-subscription-requests", { token });
   } catch (e) {
     console.error("[admin] loadOrderAccountingVendorQueue", e);
-    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-red-600">${escapeHtml(e.message || String(e))}</td></tr>`;
     return;
   }
   if (!Array.isArray(rows)) {
-    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${
+    tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-red-600">${
       ar ? "استجابة غير صالحة من الخادم." : "Invalid server response."
     }</td></tr>`;
     return;
   }
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-500">${
+    tbody.innerHTML = `<tr><td colspan="${oaColspan}" class="p-4 text-center text-gray-500">${
       ar ? "لا طلبات في الطابور." : "No items in the queue."
     }</td></tr>`;
     return;
@@ -1682,6 +1725,7 @@ async function loadOrderAccountingVendorQueue() {
           : `<div class="text-[11px] max-w-[140px]"><span class="font-mono text-violet-800">${escapeHtml(m.key)}</span>${
               m.title ? `<div class="text-gray-600 mt-0.5 leading-snug">${escapeHtml(m.title)}</div>` : ""
             }</div>`;
+      const docsHtml = `<div class="space-y-1"><p class="text-[10px] text-gray-500 leading-tight">${escapeHtml(vendorSubDocTypeShortLabel(r, ar))}</p>${vendorSubDocLinksCellHtml(r, ar, false)}</div>`;
       return `<tr class="border-t border-gray-100 align-top">
         <td class="p-2 font-mono">${r.id}</td>
         <td class="p-2 whitespace-nowrap text-xs text-gray-600">${escapeHtml(dt)}</td>
@@ -1690,6 +1734,8 @@ async function loadOrderAccountingVendorQueue() {
         <td class="p-2 font-mono text-xs">${escapeHtml(m.commission)}</td>
         <td class="p-2 font-mono text-xs">${escapeHtml(m.quota)}</td>
         <td class="p-2 max-w-[130px] truncate text-xs" title="${escapeHtml(r.email || "")}">${escapeHtml(r.email || "")}</td>
+        <td class="p-2 align-top">${vendorSubTermsAcceptedCellHtml(r, ar)}</td>
+        <td class="p-2 align-top text-[11px]">${docsHtml}</td>
         <td class="p-2">
           <select class="w-full text-xs p-1 rounded border border-gray-200 oa-sub-status" data-oa-sub-id="${r.id}">
             <option value="pending"${r.status === "pending" ? " selected" : ""}>${stLab.pending}</option>
@@ -1763,20 +1809,7 @@ async function loadVendorSubscriptionRequests() {
       title ? `<div class="text-gray-600 mt-0.5 leading-snug">${escapeHtml(title)}</div>` : ""
     }</div>`;
   };
-  const docCell = (r) => {
-    const parts = [];
-    if (r.id_front_url) parts.push(`<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_front_url)}">${ar ? "وجه الهوية" : "ID front"}</a>`);
-    if (r.id_back_url) parts.push(`<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.id_back_url)}">${ar ? "خلف الهوية" : "ID back"}</a>`);
-    if (r.commercial_register_url) {
-      parts.push(
-        `<a class="text-purple-600 underline text-[11px] block" target="_blank" rel="noopener" href="${escapeHtml(r.commercial_register_url)}">${ar ? "سجل تجاري" : "Commercial"}</a>`
-      );
-    }
-    if (!parts.length && r.id_document) {
-      parts.push(`<span class="text-[11px] text-gray-500">${escapeHtml(String(r.id_document).slice(0, 80))}</span>`);
-    }
-    return parts.length ? `<div class="max-w-[140px] space-y-0.5">${parts.join("")}</div>` : "—";
-  };
+  const docCell = (r) => vendorSubDocLinksCellHtml(r, ar, true);
   tbody.innerHTML = rows
     .map((r) => {
       return `<tr class="border-t border-gray-100 align-top">
