@@ -350,6 +350,7 @@ async function initDb() {
   await migrateAdoraMultiVendorProgramFullV1();
   await migrateMarketplaceHomePlacementsV1();
   await migrateAppAdBannerV1();
+  await migrateAppAdInquiryExtendedV1();
   await migrateAdoraFeedbackBannersSignupPhoneSlidesV1();
   await migrateProductsFeaturedHubV1();
   await migrateOffersMarketplaceVisibilityV1();
@@ -839,6 +840,12 @@ async function migrateAppAdBannerV1() {
       '["home_above_partner","home_below_partner","home_above_marketplace","side_menu_account"]',
     ]
   );
+}
+
+/** طلب إعلان: مدة العرض (أيام) + عدد أقسام الظهور */
+async function migrateAppAdInquiryExtendedV1() {
+  await run(`ALTER TABLE app_ad_inquiries ADD COLUMN IF NOT EXISTS ad_duration_days INTEGER NOT NULL DEFAULT 0`);
+  await run(`ALTER TABLE app_ad_inquiries ADD COLUMN IF NOT EXISTS ad_section_count INTEGER NOT NULL DEFAULT 0`);
 }
 
 /** ظهور منتجات/شركات السوق الشامل في أقسام الرئيسية + أولوية بحث حسب الشركة */

@@ -3719,6 +3719,11 @@
                 const ph = isRTL ? appAdPrice.getAttribute('data-ar-ph') : appAdPrice.getAttribute('data-en-ph');
                 if (ph) appAdPrice.setAttribute('placeholder', ph);
             }
+            const appAdDur = document.getElementById('aad-p-duration-days');
+            if (appAdDur) {
+                const dph = isRTL ? appAdDur.getAttribute('data-ar-ph') : appAdDur.getAttribute('data-en-ph');
+                if (dph) appAdDur.setAttribute('placeholder', dph);
+            }
             const searchVoiceBtn = document.getElementById('search-voice-btn');
             if (searchVoiceBtn) {
                 searchVoiceBtn.setAttribute('aria-label', isRTL ? 'بحث صوتي' : 'Voice search');
@@ -4496,6 +4501,15 @@
             const form = document.getElementById('app-ad-page-form');
             if (!form || form.dataset.adoraAppAdBound === '1') return;
             form.dataset.adoraAppAdBound = '1';
+            form.querySelectorAll('.aad-p-section-cb').forEach((cb) => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) {
+                        form.querySelectorAll('.aad-p-section-cb').forEach((o) => {
+                            if (o !== cb) o.checked = false;
+                        });
+                    }
+                });
+            });
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const msg = document.getElementById('app-ad-page-msg');
@@ -4514,12 +4528,40 @@
                     }
                     return;
                 }
+                const sectionCb = form.querySelector('.aad-p-section-cb:checked');
+                const sectionCount = sectionCb ? Number(sectionCb.value) : NaN;
+                if (!Number.isFinite(sectionCount) || sectionCount < 1 || sectionCount > 4) {
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'يرجى اختيار عدد الأقسام (قسم واحد حتى أربعة).'
+                            : 'Please choose how many sections (one through four).';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                        msg.classList.remove('hidden');
+                    }
+                    return;
+                }
+                const durRaw = document.getElementById('aad-p-duration-days')?.value?.trim() || '';
+                const durDays = Number(durRaw);
+                if (!Number.isFinite(durDays) || durDays < 1 || durDays > 366) {
+                    if (msg) {
+                        msg.textContent = isRTL
+                            ? 'يرجى إدخال عدد أيام صحيح (1–366).'
+                            : 'Enter a valid number of days (1–366).';
+                        msg.className =
+                            'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-amber-100 text-amber-900 border border-amber-200/80';
+                        msg.classList.remove('hidden');
+                    }
+                    return;
+                }
                 const fd = new FormData();
                 fd.append('full_name', document.getElementById('aad-p-full-name')?.value?.trim() || '');
                 fd.append('company_name', document.getElementById('aad-p-company')?.value?.trim() || '');
                 fd.append('email', document.getElementById('aad-p-email')?.value?.trim() || '');
                 fd.append('phone', document.getElementById('aad-p-phone')?.value?.trim() || '');
                 fd.append('residence', document.getElementById('aad-p-residence')?.value?.trim() || '');
+                fd.append('ad_duration_days', String(Math.floor(durDays)));
+                fd.append('ad_section_count', String(Math.floor(sectionCount)));
                 fd.append('product_price', document.getElementById('aad-p-product-price')?.value?.trim() || '');
                 fd.append('terms_accepted', document.getElementById('aad-p-terms')?.checked ? '1' : '0');
                 fd.append('product_image', file);
@@ -4538,8 +4580,8 @@
                     }
                     if (msg) {
                         msg.textContent = isRTL
-                            ? 'تم إرسال طلبك. سيتواصل الفريق معك قريباً.'
-                            : 'Your request was sent. Our team will reach out soon.';
+                            ? 'تم إرسال طلبك. سيتم التواصل معك خلال 24 ساعة من قبل إدارة Adora.'
+                            : 'Your request was sent. Adora administration will contact you within 24 hours.';
                         msg.className =
                             'text-xs text-center font-semibold rounded-xl py-2 px-3 bg-emerald-100 text-emerald-800 border border-emerald-200/80';
                         msg.classList.remove('hidden');
@@ -11388,11 +11430,22 @@
                         ? `<a href="${escAttr(imgUrl)}" target="_blank" rel="noopener noreferrer" class="text-fuchsia-600 underline text-xs font-semibold">${ar ? 'صورة المنتج' : 'Product image'}</a>`
                         : '';
                     const price = r.product_price ? String(r.product_price).replace(/</g, '&lt;') : '—';
+                    const ddays = Number(r.ad_duration_days);
+                    const secs = Number(r.ad_section_count);
+                    const durLine =
+                        Number.isFinite(ddays) && ddays > 0
+                            ? `<p class="text-xs text-gray-600 mt-0.5">${ar ? 'أيام الظهور:' : 'Display days:'} ${ddays}</p>`
+                            : '';
+                    const secLine =
+                        Number.isFinite(secs) && secs > 0
+                            ? `<p class="text-xs text-gray-600 mt-0.5">${ar ? 'عدد الأقسام:' : 'Sections:'} ${secs}</p>`
+                            : '';
                     return `<div class="rounded-2xl border border-gray-100 p-4 bg-gray-50/80">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <p class="font-bold text-gray-900 truncate">${String(r.company_name || '—').replace(/</g, '&lt;')}</p>
                 <p class="text-xs text-gray-500 mt-0.5">#${r.id}${dstr ? ` · ${dstr}` : ''}</p>
+                ${durLine}${secLine}
                 <p class="text-xs text-gray-600 mt-1">${ar ? 'السعر:' : 'Price:'} ${price}</p>
                 ${imgLink ? `<div class="mt-1">${imgLink}</div>` : ''}
               </div>

@@ -6307,6 +6307,32 @@
                         <input id="aad-p-residence" name="residence" type="text" required maxlength="400" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" />
                     </div>
                     <div>
+                        <label for="aad-p-duration-days" class="text-xs font-bold text-gray-600" data-en="Ad display duration (days)" data-ar="عدد أيام ظهور الإعلان">عدد أيام ظهور الإعلان</label>
+                        <input id="aad-p-duration-days" name="ad_duration_days" type="number" inputmode="numeric" min="1" max="366" step="1" required class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" placeholder="مثال: 7" data-en-ph="e.g. 7" data-ar-ph="مثال: 7" />
+                    </div>
+                    <div class="rounded-2xl border border-gray-200 bg-gray-50/80 p-3 space-y-2">
+                        <p class="text-xs font-bold text-gray-800" data-en="In how many app sections should the ad appear?" data-ar="في كم قسماً تود ظهور الإعلان؟">في كم قسماً تود ظهور الإعلان؟</p>
+                        <p class="text-[11px] text-gray-600 leading-relaxed" data-en="Select one option (checkboxes — only one applies)." data-ar="اختر خياراً واحداً فقط (مربعات اختيار — يُسمح بخيار واحد).">اختر خياراً واحداً فقط (مربعات اختيار — يُسمح بخيار واحد).</p>
+                        <div class="grid grid-cols-2 gap-2 text-xs font-medium text-gray-800">
+                            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-2 active:scale-[0.99]">
+                                <input type="checkbox" class="aad-p-section-cb rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" value="1" data-aad-section="1" />
+                                <span data-en="One section" data-ar="قسم واحد">قسم واحد</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-2 active:scale-[0.99]">
+                                <input type="checkbox" class="aad-p-section-cb rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" value="2" data-aad-section="2" />
+                                <span data-en="Two sections" data-ar="قسمان">قسمان</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-2 active:scale-[0.99]">
+                                <input type="checkbox" class="aad-p-section-cb rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" value="3" data-aad-section="3" />
+                                <span data-en="Three sections" data-ar="ثلاثة أقسام">ثلاثة أقسام</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-2 active:scale-[0.99]">
+                                <input type="checkbox" class="aad-p-section-cb rounded border-gray-300 text-purple-600 w-4 h-4 shrink-0" value="4" data-aad-section="4" />
+                                <span data-en="Four sections" data-ar="أربعة أقسام">أربعة أقسام</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
                         <label for="aad-p-product-price" class="text-xs font-bold text-gray-600" data-en="Product price (as you want it shown)" data-ar="سعر المنتج (كما تود عرضه)">سعر المنتج (كما تود عرضه)</label>
                         <input id="aad-p-product-price" name="product_price" type="text" required maxlength="120" class="mt-1 w-full p-3 rounded-xl border border-gray-200 bg-white focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 outline-none transition" placeholder="مثال: 25 دينار / $19" data-en-ph="e.g. 25 JOD / $19" data-ar-ph="مثال: 25 دينار / $19" />
                     </div>
@@ -6317,10 +6343,14 @@
                     <div class="rounded-2xl bg-violet-50/90 border border-violet-100 p-4 text-xs text-gray-700 space-y-2">
                         <p class="font-bold text-violet-900" data-en="Terms" data-ar="الشروط">الشروط</p>
                         <div id="app-ad-page-terms-custom" class="hidden whitespace-pre-line leading-relaxed text-gray-800"></div>
-                        <ul id="app-ad-page-terms-default" class="list-disc ps-4 space-y-1 leading-relaxed">
-                            <li data-en="Clear, well-lit product photo" data-ar="صورة واضحة للمنتج">صورة واضحة للمنتج</li>
-                            <li data-en="Fair and acceptable product price" data-ar="سعر مقبول للمنتج">سعر مقبول للمنتج</li>
-                            <li data-en="Accurate contact details" data-ar="صحة بيانات التواصل">صحة بيانات التواصل</li>
+                        <ul id="app-ad-page-terms-default" class="list-disc ps-4 space-y-1.5 leading-relaxed">
+                            <li data-en="The ad is reviewed before publishing" data-ar="مراجعة الإعلان قبل النشر">مراجعة الإعلان قبل النشر</li>
+                            <li data-en="Ad display duration is specified" data-ar="تحديد مدة الإعلان">تحديد مدة الإعلان</li>
+                            <li data-en="Prohibited or illegal content is not allowed" data-ar="منع المحتوى المخالف">منع المحتوى المخالف</li>
+                            <li data-en="Ad fees are non-refundable" data-ar="عدم استرجاع رسوم الإعلان">عدم استرجاع رسوم الإعلان</li>
+                            <li data-en="The company is responsible for the ad content" data-ar="مسؤولية الإعلان على الشركة">مسؤولية الإعلان على الشركة</li>
+                            <li data-en="Management may reject the ad" data-ar="إمكانية رفض الإعلان من قبل الإدارة">إمكانية رفض الإعلان من قبل الإدارة</li>
+                            <li data-en="Display order of ads is determined by management" data-ar="تحديد ترتيب ظهور الإعلانات">تحديد ترتيب ظهور الإعلانات</li>
                         </ul>
                     </div>
                     <div class="flex items-start gap-3">

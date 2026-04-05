@@ -916,13 +916,15 @@
                 <h2 class="text-lg font-bold text-violet-900">طلبات إعلان منتج (بنر الإعلانات)</h2>
                 <button type="button" id="btn-app-ad-inq-refresh" class="px-3 py-2 rounded-xl bg-violet-100 text-sm font-bold text-violet-900">تحديث هذا القسم</button>
               </div>
-              <p class="text-xs text-gray-600 leading-relaxed">طلبات من نموذج «إعلاناتكم على التطبيق» فقط — جدول وقاعدة بيانات منفصلة عن طلبات الانضمام كشركة أعلاه.</p>
+              <p class="text-xs text-gray-600 leading-relaxed">طلبات من نموذج «إعلاناتكم على التطبيق» — يشمل الطلب أيام ظهور الإعلان وعدد أقسام الظهور (1–4) إلى جانب السعر والصورة. الجدول منفصل عن طلبات الانضمام كشركة أعلاه.</p>
               <div class="overflow-x-auto border border-gray-100 rounded-xl max-h-[28rem] overflow-y-auto bg-white">
                 <table class="min-w-full text-xs">
                   <thead class="bg-gray-50 sticky top-0 z-10"><tr>
                     <th class="p-2 text-start">#</th>
                     <th class="p-2 text-start">الاسم / الشركة</th>
                     <th class="p-2 text-start">تواصل</th>
+                    <th class="p-2 text-start whitespace-nowrap">أيام الظهور</th>
+                    <th class="p-2 text-start whitespace-nowrap">الأقسام</th>
                     <th class="p-2 text-start">سعر</th>
                     <th class="p-2 text-start">صورة</th>
                     <th class="p-2 text-start">حالة</th>
@@ -2064,7 +2066,7 @@
                 </div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">شروط نموذج الإعلان (عربي)</label><textarea id="vp-app-ad-terms-ar" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="فقرة أو سطر لكل بند…"></textarea></div>
                 <div class="md:col-span-2"><label class="text-xs font-bold">Ad inquiry terms (English)</label><textarea id="vp-app-ad-terms-en" rows="4" class="mt-1 w-full p-2 rounded-xl border border-gray-200 text-sm font-sans" placeholder="One line per bullet…"></textarea></div>
-                <p class="md:col-span-2 text-[11px] text-gray-500 leading-relaxed">إذا تركت حقول الشروط والأحكام فارغة يُعرض في التطبيق النص الكامل الافتراضي (الشروط والأحكام الرسمية لأدورا).</p>
+                <p class="md:col-span-2 text-[11px] text-gray-500 leading-relaxed" data-en="If empty, the app shows the built-in ad terms (review before publish, duration, prohibited content, no refund, company responsibility, admin may reject, display order)." data-ar="إذا تركت الحقول فارغة يُعرض في التطبيق قائمة الشروط الافتراضية للإعلان (مراجعة قبل النشر، المدة، المحتوى المخالف، عدم الاسترجاع، مسؤولية الشركة، رفض الإدارة، ترتيب الظهور).">إذا تركت الحقول فارغة يُعرض في التطبيق قائمة الشروط الافتراضية للإعلان (مراجعة قبل النشر، المدة، المحتوى المخالف، عدم الاسترجاع، مسؤولية الشركة، رفض الإدارة، ترتيب الظهور).</p>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">

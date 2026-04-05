@@ -1227,11 +1227,11 @@ async function loadAppAdInquiriesUi() {
   try {
     rows = await api("/api/admin/app-ad-inquiries", { token });
   } catch (_e) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-red-600">${ar ? "تعذر التحميل." : "Failed to load."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="p-3 text-center text-red-600">${ar ? "تعذر التحميل." : "Failed to load."}</td></tr>`;
     return;
   }
   if (!Array.isArray(rows) || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="p-3 text-center text-gray-500">${ar ? "لا طلبات بعد." : "No inquiries yet."}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="p-3 text-center text-gray-500">${ar ? "لا طلبات بعد." : "No inquiries yet."}</td></tr>`;
     return;
   }
   const stLabel = (st) => {
@@ -1247,10 +1247,16 @@ async function loadAppAdInquiriesUi() {
       const imgCell = imgUrl
         ? `<a href="${escapeHtml(imgUrl)}" target="_blank" rel="noopener noreferrer" class="text-violet-600 font-bold underline">${ar ? "عرض" : "View"}</a>`
         : "—";
+      const durN = Number(r.ad_duration_days);
+      const secN = Number(r.ad_section_count);
+      const durCell = Number.isFinite(durN) && durN > 0 ? String(durN) : "—";
+      const secCell = Number.isFinite(secN) && secN > 0 ? String(secN) : "—";
       return `<tr class="border-t border-gray-100 align-top" data-app-ad-inq-id="${r.id}">
         <td class="p-2 font-mono">${r.id}</td>
         <td class="p-2 max-w-[120px]"><div class="font-semibold">${escapeHtml(r.full_name || "")}</div><div class="text-gray-600">${escapeHtml(r.company_name || "")}</div></td>
         <td class="p-2 max-w-[130px] text-[10px] break-all"><div>${escapeHtml(r.email || "")}</div><div class="mt-0.5">${escapeHtml(r.phone || "")}</div><div class="mt-0.5 text-gray-500">${escapeHtml(r.residence || "")}</div></td>
+        <td class="p-2 whitespace-nowrap text-center font-semibold">${escapeHtml(durCell)}</td>
+        <td class="p-2 whitespace-nowrap text-center font-semibold">${escapeHtml(secCell)}</td>
         <td class="p-2 max-w-[72px] break-words">${escapeHtml(r.product_price || "")}</td>
         <td class="p-2">${imgCell}</td>
         <td class="p-2">

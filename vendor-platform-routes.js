@@ -851,7 +851,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const email = urow.email != null ? String(urow.email).trim() : "";
       const phone = urow.phone != null ? String(urow.phone).trim() : "";
       const rows = await all(
-        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, status, admin_note, created_at, updated_at, user_id
+        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, ad_duration_days, ad_section_count, status, admin_note, created_at, updated_at, user_id
          FROM app_ad_inquiries
          WHERE user_id = ?
             OR (user_id IS NULL AND TRIM(COALESCE(?, '')) <> '' AND LOWER(TRIM(email)) = LOWER(TRIM(?)))
@@ -1165,8 +1165,16 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
       const residence = b.residence != null ? String(b.residence).trim().slice(0, 400) : "";
       const product_price = b.product_price != null ? String(b.product_price).trim().slice(0, 120) : "";
       const terms_accepted = Number(b.terms_accepted) === 1 || String(b.terms_accepted).trim() === "1" ? 1 : 0;
+      const ad_duration_days = Number(b.ad_duration_days);
+      const ad_section_count = Number(b.ad_section_count);
       if (!full_name || !company_name || !email || !phone || !residence || !product_price) {
         return res.status(400).json({ error: "يرجى تعبئة جميع الحقول المطلوبة." });
+      }
+      if (!Number.isFinite(ad_duration_days) || ad_duration_days < 1 || ad_duration_days > 366) {
+        return res.status(400).json({ error: "يرجى إدخال عدد أيام ظهور الإعلان (من 1 إلى 366)." });
+      }
+      if (!Number.isFinite(ad_section_count) || ad_section_count < 1 || ad_section_count > 4) {
+        return res.status(400).json({ error: "يرجى اختيار عدد الأقسام (من 1 إلى 4)." });
       }
       if (!terms_accepted) {
         return res.status(400).json({ error: "يجب الموافقة على الشروط." });
@@ -1194,9 +1202,21 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
         if (Number.isFinite(uid) && uid > 0) user_id = uid;
       }
       const ins = await run(
-        `INSERT INTO app_ad_inquiries (full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, status, user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        [full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, user_id]
+        `INSERT INTO app_ad_inquiries (full_name, company_name, email, phone, residence, product_price, product_image_url, ad_duration_days, ad_section_count, terms_accepted, status, user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+        [
+          full_name,
+          company_name,
+          email,
+          phone,
+          residence,
+          product_price,
+          product_image_url,
+          Math.floor(ad_duration_days),
+          Math.floor(ad_section_count),
+          terms_accepted,
+          user_id,
+        ]
       );
       return res.status(201).json({ ok: true, id: ins.id });
     } catch (_e) {
@@ -1207,7 +1227,7 @@ function registerVendorPlatformRoutes(app, { requireAuth, requireAdmin, optional
   app.get("/api/admin/app-ad-inquiries", requireAuth, requireAdmin, async (_req, res) => {
     try {
       const rows = await all(
-        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, terms_accepted, status, admin_note, user_id, created_at, updated_at
+        `SELECT id, full_name, company_name, email, phone, residence, product_price, product_image_url, ad_duration_days, ad_section_count, terms_accepted, status, admin_note, user_id, created_at, updated_at
          FROM app_ad_inquiries ORDER BY created_at DESC, id DESC LIMIT 500`
       );
       return res.json(rows);
