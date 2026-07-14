@@ -115,6 +115,17 @@
       #ac-ff-detail-scroll.ac-ff-detail-scroll::-webkit-scrollbar-thumb:hover {
         background: rgba(109, 40, 217, 0.55);
       }
+      #admin-dash-layout {
+        direction: ltr;
+      }
+      #admin-dash-main,
+      #admin-sidebar {
+        direction: rtl;
+      }
+      html[dir="ltr"] #admin-dash-main,
+      html[dir="ltr"] #admin-sidebar {
+        direction: ltr;
+      }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900 min-h-screen">
@@ -165,7 +176,7 @@
       <!-- Dashboard -->
       <div id="dash-panel" class="hidden mt-4">
         <div id="admin-dash-layout" class="flex flex-col lg:flex-row lg:items-start gap-4">
-        <div id="admin-dash-main" class="flex-1 min-w-0 flex flex-col gap-4 order-1 lg:order-2">
+        <div id="admin-dash-main" class="flex-1 min-w-0 flex flex-col gap-4 order-1 lg:order-1">
         <div class="bg-white rounded-2xl border border-gray-200 p-3 md:p-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -2295,7 +2306,7 @@
 
         <aside
           id="admin-sidebar"
-          class="admin-sidebar-rail order-2 lg:order-1 text-white border border-white/15"
+          class="admin-sidebar-rail order-2 lg:order-2 text-white border border-white/15"
           role="navigation"
           aria-labelledby="admin-sidebar-title"
         >
@@ -2495,4 +2506,3 @@
     <script src="/admin.js"></script>
   </body>
 </html>
-

@@ -79,9 +79,11 @@ function syncAdminDashSidebarOrder() {
   if (!mainCol || !side) return;
   const ar = getAdminLang() === "ar";
   mainCol.classList.remove("lg:order-2", "lg:order-none");
-  mainCol.classList.add(ar ? "lg:order-2" : "lg:order-none");
+  mainCol.classList.add("lg:order-1");
+  mainCol.dir = ar ? "rtl" : "ltr";
   side.classList.remove("lg:order-1", "lg:order-none");
-  side.classList.add(ar ? "lg:order-1" : "lg:order-none");
+  side.classList.add("lg:order-2");
+  side.dir = ar ? "rtl" : "ltr";
 }
 
 function setAdminLang(lang) {
@@ -7498,4 +7500,3 @@ init().catch((e) => {
     console.error(e);
   }
 });
-
