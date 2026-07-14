@@ -1238,6 +1238,15 @@
             padding-right: 1rem;
             box-sizing: border-box;
         }
+        .home-full-width-section {
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            padding-left: 1rem;
+            padding-right: 1rem;
+            box-sizing: border-box;
+        }
         .partner-cta-pill {
             background: linear-gradient(120deg, #6d28d9 0%, #7c3aed 45%, #5b21b6 100%);
             color: #fff;
@@ -5587,12 +5596,12 @@
 
         <div id="home-reorder-root">
         <!-- السوق الشامل: منفصل عن أقسام الألبسة — عنوان متمركز بنبض، ثم الوصف، ثم عرض الكل، ثم الشريط -->
-        <div class="px-4 pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market" data-home-order-key="comprehensive_market">
+        <div class="home-full-width-section pt-4 pb-1 space-y-4" data-adora-section="comprehensive_market" data-home-order-key="comprehensive_market">
             <div class="flex flex-col items-center text-center gap-2.5">
                 <h2 class="adora-glow-title" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="A curated group of companies under Adora — open the market to search all products." data-ar="مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.">مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.</p>
             </div>
-            <div id="partner-cta-home-above-marketplace" class="home-full-width-cta hidden pt-2">
+            <div id="partner-cta-home-above-marketplace" class="hidden pt-2">
                 <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()">
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-handshake text-base"></i></span>
