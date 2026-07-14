@@ -4092,7 +4092,7 @@
                 : partnerCtaConfig.partner_cta_subtitle_en || partnerCtaConfig.partner_cta_subtitle_ar;
             const ht = document.getElementById('vendor-join-hero-title');
             const hs = document.getElementById('vendor-join-hero-sub');
-            if (ht) ht.textContent = title || (isRTL ? 'انضم كشركة في أدورا' : 'Partner with Adora');
+            if (ht) ht.textContent = title || (isRTL ? 'انضم كشركة داخل أدورا' : 'Partner with Adora');
             if (hs) {
                 hs.textContent = sub || (isRTL ? 'قدّم طلبك وسيتواصل فريق أدورا معك.' : 'Submit your details and our team will reach out.');
             }
@@ -4104,7 +4104,7 @@
                 window.__adoraPartnerCtaRotateTimer = null;
             }
             const master = partnerCtaConfig && Number(partnerCtaConfig.partner_banner_enabled) === 1;
-            const fallbackTitle = isRTL ? 'انضم كشركة في أدورا' : 'Join as a company on Adora';
+            const fallbackTitle = isRTL ? 'انضم كشركة داخل أدورا' : 'Join as a company on Adora';
             const slidesRaw = partnerCtaConfig?.partner_cta_slides;
             const slides =
                 Array.isArray(slidesRaw) && slidesRaw.length
@@ -4188,7 +4188,7 @@
                 window.__adoraAppAdCtaRotateTimer = null;
             }
             const master = partnerCtaConfig && Number(partnerCtaConfig.app_ad_banner_enabled) === 1;
-            const fallbackTitle = isRTL ? 'إعلاناتكم على التطبيق' : 'Advertise on the app';
+            const fallbackTitle = isRTL ? 'أعلن عن منتجك' : 'Advertise your product';
             const slidesRaw = partnerCtaConfig?.app_ad_cta_slides;
             const slides =
                 Array.isArray(slidesRaw) && slidesRaw.length
@@ -4443,7 +4443,7 @@
             const hs = document.getElementById('app-ad-page-hero-sub');
             if (ht) {
                 ht.textContent =
-                    title || (isRTL ? 'إعلاناتكم على التطبيق' : 'Advertise on the app');
+                    title || (isRTL ? 'أعلن عن منتجك' : 'Advertise your product');
             }
             if (hs) {
                 hs.textContent =
