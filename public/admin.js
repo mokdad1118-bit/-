@@ -928,7 +928,6 @@ const VP_APP_AD_PLACEMENT_KEYS = [
   "home_above_partner",
   "home_below_partner",
   "home_between_main_and_brands",
-  "home_above_marketplace",
   "side_menu_account",
   "profile_screen",
   "marketplace_screen",

@@ -4211,7 +4211,6 @@
             toggle('app-ad-cta-home-above-partner', master && appAdCtaPlacementOn('home_above_partner'));
             toggle('app-ad-cta-home-below-partner', master && appAdCtaPlacementOn('home_below_partner'));
             toggle('app-ad-cta-home-between-brands', master && appAdCtaPlacementOn('home_between_main_and_brands'));
-            toggle('app-ad-cta-home-above-marketplace', master && appAdCtaPlacementOn('home_above_marketplace'));
             toggle('app-ad-cta-marketplace-screen', master && appAdCtaPlacementOn('marketplace_screen'));
             toggle('app-ad-cta-offers-screen', master && appAdCtaPlacementOn('offers_screen'));
             toggle('app-ad-cta-featured-hub-screen', master && appAdCtaPlacementOn('featured_hub_screen'));
@@ -4245,11 +4244,6 @@
                 if (t2) t2.textContent = lineTitle;
                 setSubVis(s2, sub);
 
-                const t3 = document.getElementById('app-ad-cta-above-market-title');
-                const s3 = document.getElementById('app-ad-cta-above-market-sub');
-                if (t3) t3.textContent = lineTitle;
-                setSubVis(s3, sub);
-
                 const t4 = document.getElementById('app-ad-cta-between-brands-title');
                 const s4 = document.getElementById('app-ad-cta-between-brands-sub');
                 if (t4) t4.textContent = lineTitle;
@@ -4268,7 +4262,7 @@
                     if (el) el.textContent = compact;
                 });
 
-                document.querySelectorAll('#app-ad-cta-home-above-partner button, #app-ad-cta-home-below-partner button, #app-ad-cta-home-above-marketplace button, #app-ad-cta-home-between-brands button').forEach((btn) => {
+                document.querySelectorAll('#app-ad-cta-home-above-partner button, #app-ad-cta-home-below-partner button, #app-ad-cta-home-between-brands button').forEach((btn) => {
                     if (btn) btn.setAttribute('aria-label', lineTitle);
                 });
             };

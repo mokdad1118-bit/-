@@ -1222,12 +1222,21 @@
         }
         /* عند إلغاء «تثبيت مع البحث»: أزرار الإعلان/الشراكة خارج الشريط اللاصق */
         #home-under-search-cta-group.home-under-search-cta-group--detached {
-            padding-left: 1rem;
-            padding-right: 1rem;
+            padding-left: 0;
+            padding-right: 0;
             padding-top: 0.25rem;
             padding-bottom: 0.75rem;
             background: #fff;
             border-bottom: 1px solid #f3f4f6;
+        }
+        .home-full-width-cta {
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            padding-left: 1rem;
+            padding-right: 1rem;
+            box-sizing: border-box;
         }
         .partner-cta-pill {
             background: linear-gradient(120deg, #6d28d9 0%, #7c3aed 45%, #5b21b6 100%);
@@ -5534,7 +5543,7 @@
                 </button>
             </div>
             <div id="home-under-search-cta-group">
-            <div id="app-ad-cta-home-above-partner" class="hidden pt-2">
+            <div id="app-ad-cta-home-above-partner" class="home-full-width-cta hidden pt-2">
                 <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryPage()" aria-label="">
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/35 backdrop-blur-sm">
@@ -5547,7 +5556,7 @@
                     <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 </button>
             </div>
-            <div id="partner-cta-home-under-search" class="hidden pt-3">
+            <div id="partner-cta-home-under-search" class="home-full-width-cta hidden pt-3">
                 <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()" aria-label="">
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
@@ -5560,7 +5569,7 @@
                     <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180"></i></span>
                 </button>
             </div>
-            <div id="app-ad-cta-home-below-partner" class="hidden pt-2">
+            <div id="app-ad-cta-home-below-partner" class="home-full-width-cta hidden pt-2">
                 <button type="button" class="app-ad-cta-pill flex items-center gap-3" onclick="openAppAdInquiryPage()" aria-label="">
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/35 backdrop-blur-sm">
@@ -5583,8 +5592,8 @@
                 <h2 class="adora-glow-title" data-en="Comprehensive market" data-ar="السوق الشامل">السوق الشامل</h2>
                 <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-[22rem] mx-auto px-0.5" data-en="A curated group of companies under Adora — open the market to search all products." data-ar="مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.">مجموعة شركات ضمن أدورا — ادخل السوق وابحث في كل المنتجات.</p>
             </div>
-            <div id="partner-cta-home-above-marketplace" class="hidden px-1 pt-2">
-                <button type="button" class="partner-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openVendorJoinPage()">
+            <div id="partner-cta-home-above-marketplace" class="home-full-width-cta hidden pt-2">
+                <button type="button" class="partner-cta-pill flex items-center gap-3" onclick="openVendorJoinPage()">
                     <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180"></i></span>
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><i class="fas fa-handshake text-base"></i></span>
                     <span class="min-w-0 flex-1 text-center sm:text-start">
@@ -5592,17 +5601,6 @@
                         <span id="partner-cta-above-market-sub" class="mt-0.5 block text-xs text-white/85"></span>
                     </span>
                     <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180"></i></span>
-                </button>
-            </div>
-            <div id="app-ad-cta-home-above-marketplace" class="hidden px-1 pt-2">
-                <button type="button" class="app-ad-cta-pill mx-auto flex max-w-md items-center gap-3" onclick="openAppAdInquiryPage()">
-                    <span class="adora-cta-pill-chevron adora-cta-pill-chevron--lead" aria-hidden="true"><i class="fas fa-chevron-right text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/25"><i class="fas fa-bullhorn text-base text-indigo-950"></i></span>
-                    <span class="min-w-0 flex-1 text-center sm:text-start">
-                        <span id="app-ad-cta-above-market-title" class="block text-sm font-extrabold"></span>
-                        <span id="app-ad-cta-above-market-sub" class="app-ad-cta-sub mt-0.5 block text-xs"></span>
-                    </span>
-                    <span class="adora-cta-pill-chevron" aria-hidden="true"><i class="fas fa-chevron-left text-sm opacity-90 rtl:rotate-180 text-indigo-950"></i></span>
                 </button>
             </div>
             <button type="button" id="marketplace-home-entrance-card" onclick="openMarketplaceBrowse({})" class="w-full max-w-md mx-auto block rounded-2xl overflow-hidden border border-purple-100 shadow-lg shadow-purple-900/10 bg-gradient-to-br from-violet-600 to-purple-800 text-start active:scale-[0.99] transition-transform">
