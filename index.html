@@ -5092,8 +5092,8 @@
             box-shadow: none;
         }
         .auth-gate-top {
-            padding: max(1.35rem, env(safe-area-inset-top, 0px) + 1rem) 1.35rem 1.65rem;
-            min-height: 26dvh;
+            padding: max(1rem, env(safe-area-inset-top, 0px) + 0.75rem) 1.25rem 1.35rem;
+            min-height: 22dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -5111,7 +5111,7 @@
             align-items: center;
             gap: 0.7rem;
             align-self: flex-start;
-            padding: 0.45rem 0.8rem 0.45rem 0.5rem;
+            padding: 0.34rem 0.72rem 0.34rem 0.42rem;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.14);
             border: 1px solid rgba(255, 255, 255, 0.28);
@@ -5120,38 +5120,38 @@
             -webkit-backdrop-filter: blur(14px);
         }
         .auth-gate-brand img {
-            width: 2.3rem;
-            height: 2.3rem;
+            width: 2rem;
+            height: 2rem;
             border-radius: 0.85rem;
             box-shadow: 0 8px 18px rgba(44, 12, 99, 0.18);
         }
         .auth-gate-brand span {
             color: #FFFFFF;
             font-weight: 900;
-            font-size: 1.25rem;
+            font-size: 1.08rem;
             letter-spacing: 0.02em;
         }
         .auth-gate-title {
-            margin-top: 1.05rem;
-            font-size: 1.25rem;
+            margin-top: 0.78rem;
+            font-size: 1.1rem;
             font-weight: 900;
             color: #FFFFFF;
             animation: authGateSlideUp 0.32s ease-out 0.05s both;
         }
         .auth-gate-subtitle {
-            margin-top: 0.45rem;
+            margin-top: 0.32rem;
             max-width: 20rem;
-            font-size: 0.92rem;
-            line-height: 1.7;
+            font-size: 0.84rem;
+            line-height: 1.55;
             color: rgba(255, 255, 255, 0.88);
             animation: authGateSlideUp 0.32s ease-out 0.1s both;
         }
         .auth-gate-image {
             position: relative;
-            width: calc(100% - 2rem);
-            aspect-ratio: 16 / 10;
-            margin: -1.2rem auto 1rem;
-            border-radius: 1.55rem;
+            width: calc(100% - 2.45rem);
+            aspect-ratio: 16 / 8.8;
+            margin: -0.9rem auto 0.85rem;
+            border-radius: 1.25rem;
             background: #FFFFFF;
             border: 1px solid rgba(255, 255, 255, 0.78);
             box-shadow: 0 24px 44px rgba(43, 43, 43, 0.16), 0 0 0 1px rgba(123, 63, 242, 0.08);
@@ -5161,9 +5161,9 @@
         .auth-gate-image::after {
             content: '';
             position: absolute;
-            inset: 0.65rem;
+            inset: 0.5rem;
             z-index: 3;
-            border-radius: 1rem;
+            border-radius: 0.9rem;
             border: 1px solid rgba(255, 255, 255, 0.45);
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.04));
             backdrop-filter: blur(2px);
@@ -5371,31 +5371,63 @@
         .adora-auth-glass {
             position: relative;
             z-index: 2;
-            background:
-                linear-gradient(165deg, rgba(255, 248, 250, 0.96) 0%, rgba(255, 231, 237, 0.9) 56%, rgba(41, 12, 22, 0.86) 100%) !important;
+            background: #F8F6FF !important;
             backdrop-filter: blur(18px) saturate(1.2);
             -webkit-backdrop-filter: blur(18px) saturate(1.2);
-            border-left: 1px solid rgba(244, 163, 182, 0.22);
-            border-right: 1px solid rgba(244, 163, 182, 0.16);
-            box-shadow:
-                0 0 0 1px rgba(255, 255, 255, 0.65) inset,
-                0 24px 48px -12px rgba(62, 9, 27, 0.36);
+            border-left: 1px solid rgba(123, 63, 242, 0.12);
+            border-right: 1px solid rgba(184, 77, 255, 0.12);
+            box-shadow: 0 24px 48px -12px rgba(123, 63, 242, 0.18);
+        }
+        .adora-auth-glass::before {
+            content: '';
+            display: block;
+            height: 7.25rem;
+            margin: calc(-1 * env(safe-area-inset-top, 0px)) -1px 0;
+            background:
+                radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.25), transparent 30%),
+                linear-gradient(135deg, #7B3FF2 0%, #B84DFF 100%);
+            border-bottom-left-radius: 1.7rem;
+            border-bottom-right-radius: 1.7rem;
+            box-shadow: 0 16px 34px rgba(123, 63, 242, 0.22);
         }
         .adora-auth-glass .border-gray-100 {
-            border-color: rgba(180, 56, 97, 0.16) !important;
+            border-color: transparent !important;
+        }
+        .adora-auth-glass > .flex-shrink-0 {
+            position: absolute;
+            top: max(1rem, env(safe-area-inset-top, 0px) + 0.65rem);
+            left: 0;
+            right: 0;
+            z-index: 4;
+            padding-inline: 1.25rem !important;
+            color: #FFFFFF;
+        }
+        .adora-auth-glass > .flex-1 {
+            position: relative;
+            z-index: 3;
+            margin: -1.35rem 0.9rem 0;
+            border-radius: 1.35rem 1.35rem 0 0;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 -8px 28px rgba(43, 43, 43, 0.08);
         }
         .adora-auth-glass h3,
         .adora-auth-glass .text-violet-900 {
-            color: #3a0d1b !important;
+            color: #FFFFFF !important;
+            text-shadow: 0 10px 26px rgba(44, 12, 99, 0.24);
+        }
+        .adora-auth-glass .adora-auth-muted {
+            color: rgba(255, 255, 255, 0.72) !important;
         }
         .adora-auth-label {
-            color: rgba(58, 13, 27, 0.92) !important;
+            color: #2B2B2B !important;
         }
-        .adora-auth-muted {
-            color: rgba(155, 47, 81, 0.74) !important;
+        .adora-auth-glass .text-violet-700,
+        .adora-auth-glass .text-violet-800,
+        .adora-auth-glass .text-violet-600 {
+            color: #7B3FF2 !important;
         }
         .adora-auth-glass .adora-auth-oauth-divider-label {
-            color: rgba(122, 31, 59, 0.78) !important;
+            color: rgba(43, 43, 43, 0.58) !important;
             text-shadow: none;
         }
         .adora-auth-input {
@@ -5403,18 +5435,18 @@
             margin-top: 0.25rem;
             padding: 0.85rem 1rem;
             border-radius: 1rem;
-            background: rgba(255, 250, 251, 0.96);
-            border: 1px solid rgba(180, 56, 97, 0.24);
-            color: #2a0814;
+            background: #FFFFFF;
+            border: 1px solid rgba(123, 63, 242, 0.18);
+            color: #2B2B2B;
             outline: none;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .adora-auth-input::placeholder {
-            color: rgba(122, 31, 59, 0.35);
+            color: rgba(43, 43, 43, 0.34);
         }
         .adora-auth-input:focus {
-            border-color: rgba(224, 82, 125, 0.62);
-            box-shadow: 0 0 0 3px rgba(244, 163, 182, 0.28), 0 0 20px rgba(224, 82, 125, 0.16);
+            border-color: rgba(123, 63, 242, 0.62);
+            box-shadow: 0 0 0 3px rgba(123, 63, 242, 0.16), 0 0 20px rgba(184, 77, 255, 0.1);
         }
         .auth-field-enter {
             animation: adoraFieldIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -5439,14 +5471,14 @@
             position: relative;
             overflow: hidden;
             width: 100%;
-            background: linear-gradient(135deg, #3a0d1b 0%, #9b2f51 50%, #f4a3b6 100%) !important;
+            background: linear-gradient(135deg, #7B3FF2 0%, #B84DFF 100%) !important;
             color: #fff !important;
-            border: 1px solid rgba(255, 210, 221, 0.35);
-            box-shadow: 0 4px 24px rgba(122, 31, 59, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 14px 28px rgba(123, 63, 242, 0.28);
             transition: transform 0.18s ease, box-shadow 0.2s ease;
         }
         .adora-auth-primary-btn:hover {
-            box-shadow: 0 6px 28px rgba(224, 82, 125, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            box-shadow: 0 16px 32px rgba(123, 63, 242, 0.32);
         }
         .adora-auth-primary-btn:active {
             transform: scale(0.98);
@@ -5463,16 +5495,19 @@
             opacity: 0.92;
         }
         .adora-auth-ghost-btn {
-            color: rgba(122, 31, 59, 0.72) !important;
+            color: #7B3FF2 !important;
         }
         .adora-auth-ghost-btn:hover {
-            color: rgba(58, 13, 27, 0.94) !important;
+            color: #5f2bd8 !important;
         }
         .adora-auth-close {
-            color: rgba(122, 31, 59, 0.62) !important;
+            color: rgba(255, 255, 255, 0.82) !important;
         }
         .adora-auth-close:hover {
-            color: rgba(58, 13, 27, 0.94) !important;
+            color: #FFFFFF !important;
+        }
+        .adora-auth-close i {
+            color: currentColor !important;
         }
         /* رسائل الأخطاء — وضوح على البطاقة الفاتحة */
         #auth-message:not(.hidden) {
