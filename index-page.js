@@ -18,7 +18,7 @@
         
         let currentSlide = 0;
         const totalSlides = slides.length;
-        const msPerSlide = 5200;
+        const msPerSlide = 5600;
         let progress = 0;
         let splashInterval;
         let progressInterval;
