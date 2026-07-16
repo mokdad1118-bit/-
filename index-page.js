@@ -53,14 +53,21 @@
         }
         
         function startSlideShow() {
+            if (totalSlides <= 1) {
+                if (categoryText && slides[0]) {
+                    categoryText.textContent = slides[0].getAttribute('data-category') || categoryText.textContent;
+                    categoryText.classList.add('active');
+                }
+                return;
+            }
             splashInterval = setInterval(() => {
                 slides[currentSlide].classList.remove('active');
-                indicators[currentSlide].classList.remove('active');
+                indicators[currentSlide]?.classList.remove('active');
                 
                 currentSlide = (currentSlide + 1) % totalSlides;
                 
                 slides[currentSlide].classList.add('active');
-                indicators[currentSlide].classList.add('active');
+                indicators[currentSlide]?.classList.add('active');
                 
                 progress = 0;
                 if (progressBar) progressBar.style.width = '0%';

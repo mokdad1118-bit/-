@@ -65,7 +65,9 @@
             bottom: 0;
             z-index: 9999;
             overflow: hidden;
-            background: #0a0a0a;
+            background:
+                radial-gradient(circle at 18% 10%, rgba(255, 191, 204, 0.22), transparent 34%),
+                linear-gradient(145deg, #070506 0%, #15090d 46%, #030303 100%);
             display: flex;
             justify-content: center;
             align-items: stretch;
@@ -98,6 +100,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            perspective: 1000px;
         }
         
         .splash-slide {
@@ -114,10 +117,28 @@
         
         .splash-slide-photo {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            inset: -1.5%;
+            width: 103%;
+            height: 103%;
             object-fit: cover;
+            filter: saturate(1.08) contrast(1.08) brightness(0.92);
+            transform-origin: center center;
+        }
+        .splash-slide.active .splash-slide-photo {
+            animation:
+                adoraWelcomeTilt 2.2s cubic-bezier(0.2, 0.9, 0.25, 1) 0.12s both,
+                adoraWelcomeBreath 8s ease-in-out 2.35s infinite;
+        }
+        @keyframes adoraWelcomeTilt {
+            0% { transform: scale(1.08) rotate(0deg) rotateY(0deg); }
+            28% { transform: scale(1.1) translateX(8px) rotate(1.7deg) rotateY(-8deg); }
+            52% { transform: scale(1.09) translateX(0) rotate(0deg) rotateY(0deg); }
+            78% { transform: scale(1.1) translateX(-8px) rotate(-1.7deg) rotateY(8deg); }
+            100% { transform: scale(1.08) rotate(0deg) rotateY(0deg); }
+        }
+        @keyframes adoraWelcomeBreath {
+            0%, 100% { transform: scale(1.08) translate3d(0, 0, 0); }
+            50% { transform: scale(1.115) translate3d(0, -8px, 0); }
         }
         .splash-slide-center-brand {
             position: absolute;
@@ -147,14 +168,42 @@
         .splash-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(
-                to bottom,
-                rgba(0,0,0,0.4) 0%,
-                rgba(0,0,0,0.2) 40%,
-                rgba(0,0,0,0.5) 100%
-            );
+            background:
+                radial-gradient(circle at 22% 13%, rgba(255, 195, 206, 0.22), transparent 31%),
+                radial-gradient(circle at 85% 92%, rgba(238, 91, 137, 0.2), transparent 34%),
+                linear-gradient(to bottom, rgba(4, 3, 4, 0.1) 0%, rgba(4, 3, 4, 0.26) 42%, rgba(4, 3, 4, 0.74) 100%);
             z-index: 10;
             pointer-events: none;
+        }
+        .splash-shards {
+            position: absolute;
+            inset: 0;
+            z-index: 18;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .splash-shard {
+            position: absolute;
+            left: 50%;
+            top: 52%;
+            width: var(--size, 4px);
+            height: var(--size, 4px);
+            border-radius: 999px;
+            background: radial-gradient(circle, #ffe3ea 0%, #f4a3b6 48%, rgba(232, 90, 128, 0) 75%);
+            box-shadow: 0 0 14px rgba(249, 178, 196, 0.85), 0 0 28px rgba(224, 73, 121, 0.42);
+            opacity: 0;
+            animation: adoraShardScatter 2.25s cubic-bezier(0.12, 0.74, 0.22, 1) var(--delay, 0s) both;
+        }
+        @keyframes adoraShardScatter {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.1) rotate(0deg);
+            }
+            15% { opacity: 1; }
+            100% {
+                opacity: 0;
+                transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(var(--scale, 1)) rotate(var(--rotate, 90deg));
+            }
         }
         
         .splash-logo-container {
@@ -181,11 +230,11 @@
         }
         
         .splash-logo {
-            font-size: clamp(2.25rem, 10vw, 3.25rem);
+            font-size: clamp(2.1rem, 9vw, 3.1rem);
             font-weight: 800;
-            color: white;
-            text-shadow: 0 4px 30px rgba(0,0,0,0.3);
-            letter-spacing: -1px;
+            color: #ffe8ee;
+            text-shadow: 0 0 20px rgba(255, 183, 199, 0.55), 0 7px 30px rgba(0,0,0,0.6);
+            letter-spacing: 0.08em;
             line-height: 1;
         }
         
@@ -202,7 +251,7 @@
         
         .category-text {
             font-size: clamp(0.72rem, 3.2vw, 0.9rem);
-            color: rgba(255,255,255,0.95);
+            color: rgba(255, 226, 234, 0.95);
             font-weight: 600;
             letter-spacing: clamp(0.08em, 0.5vw, 0.3em);
             text-transform: uppercase;
@@ -252,7 +301,7 @@
             width: min(200px, 55vw);
             margin: 0 auto;
             height: 2px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 228, 235, 0.18);
             border-radius: 2px;
             z-index: 20;
             overflow: hidden;
@@ -262,10 +311,10 @@
         .splash-progress-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #7c3aed, #ec4899);
+            background: linear-gradient(90deg, #ffdce5, #f094ad, #a73758);
             border-radius: 2px;
             transition: width 0.1s linear;
-            box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+            box-shadow: 0 0 16px rgba(244, 163, 182, 0.7);
         }
         
         .splash-cta {
@@ -278,8 +327,8 @@
         }
         
         .cta-button {
-            background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%);
-            color: white;
+            background: linear-gradient(135deg, #ffe4eb 0%, #f4a3b6 46%, #9b2f51 100%);
+            color: #17070c;
             width: 100%;
             min-height: 48px;
             padding: 0.9rem 1.25rem;
@@ -297,7 +346,7 @@
             pointer-events: auto;
             -webkit-user-select: none;
             user-select: none;
-            box-shadow: 0 10px 40px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 16px 44px rgba(220, 78, 119, 0.38), 0 0 0 1px rgba(255, 231, 237, 0.42) inset;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -306,7 +355,7 @@
         @media (hover: hover) and (pointer: fine) {
             .cta-button:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 15px 50px rgba(124, 58, 237, 0.5);
+                box-shadow: 0 18px 54px rgba(244, 163, 182, 0.45);
             }
         }
         
@@ -4660,7 +4709,9 @@
         }
         /* شريط جانبي على الكمبيوتر — محيط بنفسجي فاتح يتماشى مع خلفية البوابة */
         .auth-screen-letterbox {
-            background: linear-gradient(160deg, #ede9fe 0%, #ddd6fe 40%, #e9d5ff 100%) !important;
+            background:
+                radial-gradient(circle at 20% 12%, rgba(249, 178, 196, 0.2), transparent 34%),
+                linear-gradient(155deg, #050404 0%, #15090d 48%, #030303 100%) !important;
             flex-direction: row;
             align-items: stretch;
             justify-content: center;
@@ -4676,16 +4727,17 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 70px rgba(91, 33, 182, 0.18);
+            box-shadow: 0 0 70px rgba(244, 163, 182, 0.12);
         }
         /* خلفية كونية: بنفسجي فاتح + طبقات موجية ونقاط */
         .auth-gate-screen .auth-mobile-viewport,
         #auth-modal .auth-mobile-viewport {
             background:
-                radial-gradient(ellipse 85% 55% at 50% 0%, rgba(167, 139, 250, 0.35) 0%, transparent 58%),
-                radial-gradient(ellipse 70% 50% at 100% 100%, rgba(196, 181, 253, 0.45) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 45% at 0% 85%, rgba(221, 214, 254, 0.9) 0%, transparent 55%),
-                linear-gradient(168deg, #faf5ff 0%, #f3e8ff 38%, #ede9fe 72%, #e9d5ff 100%);
+                linear-gradient(180deg, rgba(3, 3, 3, 0.32), rgba(3, 3, 3, 0.88)),
+                radial-gradient(ellipse 85% 55% at 50% 0%, rgba(255, 211, 221, 0.17) 0%, transparent 58%),
+                radial-gradient(ellipse 70% 50% at 100% 100%, rgba(206, 72, 113, 0.22) 0%, transparent 50%),
+                url('/images/adora-welcome-marble.jpeg') center / cover no-repeat,
+                #070506;
         }
         .auth-gate-screen .auth-mobile-viewport::before,
         #auth-modal .auth-mobile-viewport::before {
@@ -4696,20 +4748,20 @@
             pointer-events: none;
             opacity: 0.85;
             background-image:
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 48' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%237c3aed' stroke-opacity='0.11' stroke-width='1.2' d='M0 28c12-10 24-10 36 0s24 10 36 0 24-10 36 0 24 10 36 0'/%3E%3Cpath fill='none' stroke='%235b21b6' stroke-opacity='0.09' stroke-width='1' d='M0 14c18 12 36 12 54 0s36-12 54 0 36 12 54 0'/%3E%3C/svg%3E"),
-                radial-gradient(circle at 8% 12%, rgba(91, 33, 182, 0.14) 0%, transparent 2.5px),
-                radial-gradient(circle at 22% 38%, rgba(109, 40, 217, 0.12) 0%, transparent 2px),
-                radial-gradient(circle at 41% 18%, rgba(91, 33, 182, 0.16) 0%, transparent 2.2px),
-                radial-gradient(circle at 58% 52%, rgba(124, 58, 237, 0.13) 0%, transparent 2px),
-                radial-gradient(circle at 73% 28%, rgba(91, 33, 182, 0.15) 0%, transparent 2.4px),
-                radial-gradient(circle at 88% 44%, rgba(109, 40, 217, 0.12) 0%, transparent 2px),
-                radial-gradient(circle at 15% 72%, rgba(124, 58, 237, 0.11) 0%, transparent 2.3px),
-                radial-gradient(circle at 35% 88%, rgba(91, 33, 182, 0.14) 0%, transparent 2px),
-                radial-gradient(circle at 52% 76%, rgba(109, 40, 217, 0.12) 0%, transparent 2.1px),
-                radial-gradient(circle at 68% 92%, rgba(91, 33, 182, 0.13) 0%, transparent 2px),
-                radial-gradient(circle at 92% 78%, rgba(124, 58, 237, 0.11) 0%, transparent 2.2px),
-                radial-gradient(circle at 6% 55%, rgba(91, 33, 182, 0.1) 0%, transparent 1.8px),
-                radial-gradient(circle at 95% 12%, rgba(109, 40, 217, 0.13) 0%, transparent 2px);
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 48' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='%23ffc4d1' stroke-opacity='0.14' stroke-width='1.2' d='M0 28c12-10 24-10 36 0s24 10 36 0 24-10 36 0 24 10 36 0'/%3E%3Cpath fill='none' stroke='%23e0527d' stroke-opacity='0.12' stroke-width='1' d='M0 14c18 12 36 12 54 0s36-12 54 0 36 12 54 0'/%3E%3C/svg%3E"),
+                radial-gradient(circle at 8% 12%, rgba(255, 211, 221, 0.2) 0%, transparent 2.5px),
+                radial-gradient(circle at 22% 38%, rgba(244, 163, 182, 0.16) 0%, transparent 2px),
+                radial-gradient(circle at 41% 18%, rgba(255, 228, 235, 0.22) 0%, transparent 2.2px),
+                radial-gradient(circle at 58% 52%, rgba(224, 82, 125, 0.2) 0%, transparent 2px),
+                radial-gradient(circle at 73% 28%, rgba(255, 211, 221, 0.19) 0%, transparent 2.4px),
+                radial-gradient(circle at 88% 44%, rgba(244, 163, 182, 0.16) 0%, transparent 2px),
+                radial-gradient(circle at 15% 72%, rgba(224, 82, 125, 0.16) 0%, transparent 2.3px),
+                radial-gradient(circle at 35% 88%, rgba(255, 211, 221, 0.18) 0%, transparent 2px),
+                radial-gradient(circle at 52% 76%, rgba(244, 163, 182, 0.15) 0%, transparent 2.1px),
+                radial-gradient(circle at 68% 92%, rgba(255, 211, 221, 0.17) 0%, transparent 2px),
+                radial-gradient(circle at 92% 78%, rgba(224, 82, 125, 0.15) 0%, transparent 2.2px),
+                radial-gradient(circle at 6% 55%, rgba(255, 211, 221, 0.13) 0%, transparent 1.8px),
+                radial-gradient(circle at 95% 12%, rgba(244, 163, 182, 0.17) 0%, transparent 2px);
             background-size:
                 144px 48px,
                 100% 100%,
@@ -4792,32 +4844,32 @@
         }
         .auth-gate-screen .auth-cosmos-stars::before {
             background-image:
-                radial-gradient(1.8px 1.8px at 11% 17%, rgba(49, 21, 96, 0.95), transparent),
-                radial-gradient(1.4px 1.4px at 27% 61%, rgba(76, 29, 149, 0.9), transparent),
-                radial-gradient(1.6px 1.6px at 44% 33%, rgba(49, 21, 96, 0.92), transparent),
-                radial-gradient(1.3px 1.3px at 63% 74%, rgba(91, 33, 182, 0.95), transparent),
-                radial-gradient(2px 2px at 78% 22%, rgba(49, 21, 96, 0.98), transparent),
-                radial-gradient(1.3px 1.3px at 89% 56%, rgba(76, 29, 149, 0.88), transparent),
-                radial-gradient(1.5px 1.5px at 18% 84%, rgba(91, 33, 182, 0.9), transparent),
-                radial-gradient(1.3px 1.3px at 51% 11%, rgba(49, 21, 96, 0.94), transparent),
-                radial-gradient(1.6px 1.6px at 36% 48%, rgba(76, 29, 149, 0.88), transparent),
-                radial-gradient(1.3px 1.3px at 71% 91%, rgba(49, 21, 96, 0.9), transparent),
-                radial-gradient(1.5px 1.5px at 84% 39%, rgba(91, 33, 182, 0.92), transparent),
-                radial-gradient(1.3px 1.3px at 5% 42%, rgba(76, 29, 149, 0.86), transparent),
-                radial-gradient(1.7px 1.7px at 96% 68%, rgba(49, 21, 96, 0.95), transparent);
+                radial-gradient(1.8px 1.8px at 11% 17%, rgba(255, 226, 234, 0.95), transparent),
+                radial-gradient(1.4px 1.4px at 27% 61%, rgba(244, 163, 182, 0.85), transparent),
+                radial-gradient(1.6px 1.6px at 44% 33%, rgba(255, 211, 221, 0.9), transparent),
+                radial-gradient(1.3px 1.3px at 63% 74%, rgba(224, 82, 125, 0.85), transparent),
+                radial-gradient(2px 2px at 78% 22%, rgba(255, 226, 234, 0.96), transparent),
+                radial-gradient(1.3px 1.3px at 89% 56%, rgba(244, 163, 182, 0.82), transparent),
+                radial-gradient(1.5px 1.5px at 18% 84%, rgba(224, 82, 125, 0.82), transparent),
+                radial-gradient(1.3px 1.3px at 51% 11%, rgba(255, 211, 221, 0.92), transparent),
+                radial-gradient(1.6px 1.6px at 36% 48%, rgba(244, 163, 182, 0.8), transparent),
+                radial-gradient(1.3px 1.3px at 71% 91%, rgba(255, 211, 221, 0.86), transparent),
+                radial-gradient(1.5px 1.5px at 84% 39%, rgba(224, 82, 125, 0.84), transparent),
+                radial-gradient(1.3px 1.3px at 5% 42%, rgba(244, 163, 182, 0.8), transparent),
+                radial-gradient(1.7px 1.7px at 96% 68%, rgba(255, 226, 234, 0.9), transparent);
         }
         .auth-gate-screen .auth-cosmos-stars::after {
             background-image:
-                radial-gradient(1.4px 1.4px at 19% 29%, rgba(76, 29, 149, 0.9), transparent),
-                radial-gradient(1.7px 1.7px at 48% 63%, rgba(49, 21, 96, 0.95), transparent),
-                radial-gradient(1.3px 1.3px at 66% 18%, rgba(91, 33, 182, 0.88), transparent),
-                radial-gradient(1.5px 1.5px at 31% 79%, rgba(49, 21, 96, 0.92), transparent),
-                radial-gradient(1.3px 1.3px at 56% 41%, rgba(76, 29, 149, 0.9), transparent),
-                radial-gradient(1.8px 1.8px at 74% 58%, rgba(49, 21, 96, 0.96), transparent),
-                radial-gradient(1.3px 1.3px at 92% 14%, rgba(91, 33, 182, 0.85), transparent),
-                radial-gradient(1.5px 1.5px at 8% 73%, rgba(76, 29, 149, 0.9), transparent),
-                radial-gradient(1.3px 1.3px at 41% 88%, rgba(49, 21, 96, 0.88), transparent),
-                radial-gradient(1.6px 1.6px at 59% 7%, rgba(91, 33, 182, 0.92), transparent);
+                radial-gradient(1.4px 1.4px at 19% 29%, rgba(244, 163, 182, 0.85), transparent),
+                radial-gradient(1.7px 1.7px at 48% 63%, rgba(255, 226, 234, 0.9), transparent),
+                radial-gradient(1.3px 1.3px at 66% 18%, rgba(224, 82, 125, 0.8), transparent),
+                radial-gradient(1.5px 1.5px at 31% 79%, rgba(255, 211, 221, 0.88), transparent),
+                radial-gradient(1.3px 1.3px at 56% 41%, rgba(244, 163, 182, 0.84), transparent),
+                radial-gradient(1.8px 1.8px at 74% 58%, rgba(255, 226, 234, 0.92), transparent),
+                radial-gradient(1.3px 1.3px at 92% 14%, rgba(224, 82, 125, 0.78), transparent),
+                radial-gradient(1.5px 1.5px at 8% 73%, rgba(244, 163, 182, 0.83), transparent),
+                radial-gradient(1.3px 1.3px at 41% 88%, rgba(255, 211, 221, 0.84), transparent),
+                radial-gradient(1.6px 1.6px at 59% 7%, rgba(224, 82, 125, 0.82), transparent);
         }
         /* نجوم تدور دائرياً حول شعار Adora والجملة التعريفية */
         .auth-gate-hero-wrap {
@@ -4869,17 +4921,17 @@
             left: -4px;
             top: -4px;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #7c3aed, #4c1d95 55%, #312065 100%);
+            background: radial-gradient(circle at 30% 30%, #ffe4eb, #e0527d 55%, #7a1f3b 100%);
             box-shadow:
-                0 0 10px rgba(76, 29, 149, 0.75),
-                0 0 4px rgba(49, 21, 96, 0.9);
+                0 0 10px rgba(244, 163, 182, 0.75),
+                0 0 4px rgba(224, 82, 125, 0.9);
         }
         .auth-gate-orbit-stars--inner .auth-gate-orbit-dot::after {
             width: 6px;
             height: 6px;
             left: -3px;
             top: -3px;
-            box-shadow: 0 0 8px rgba(76, 29, 149, 0.65);
+            box-shadow: 0 0 8px rgba(244, 163, 182, 0.65);
         }
         .auth-gate-hero-inner {
             position: relative;
@@ -4912,17 +4964,18 @@
             font-weight: 800;
             font-size: clamp(2.25rem, 8vw, 2.75rem);
             letter-spacing: 0.12em;
-            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 42%, #7c3aed 100%);
+            background: linear-gradient(135deg, #ffe8ee 0%, #f4a3b6 45%, #b43861 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            filter: drop-shadow(0 2px 14px rgba(91, 33, 182, 0.22));
+            filter: drop-shadow(0 2px 18px rgba(244, 163, 182, 0.38));
         }
         .auth-gate-tagline {
-            color: rgba(76, 29, 149, 0.88) !important;
+            color: rgba(255, 231, 237, 0.92) !important;
+            text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
         }
         .auth-gate-hint {
-            color: rgba(91, 33, 182, 0.92) !important;
+            color: rgba(255, 231, 237, 0.82) !important;
             font-weight: 600;
             line-height: 1.5;
         }
@@ -4930,6 +4983,15 @@
             position: relative;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.25s ease;
+            border-color: rgba(255, 210, 221, 0.3) !important;
+            background: linear-gradient(135deg, rgba(255, 228, 235, 0.96), rgba(240, 148, 173, 0.92)) !important;
+            color: #17070c !important;
+            box-shadow: 0 18px 34px rgba(5, 3, 4, 0.35), 0 0 0 1px rgba(255, 231, 237, 0.3) inset !important;
+        }
+        .auth-gate-btn + .auth-gate-btn {
+            background: linear-gradient(135deg, #9b2f51 0%, #e0527d 48%, #ffe4eb 100%) !important;
+            color: #fff9fb !important;
+            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.24);
         }
         .auth-gate-btn:active {
             transform: scale(0.98);
@@ -4958,26 +5020,31 @@
         .adora-auth-glass {
             position: relative;
             z-index: 2;
-            background: linear-gradient(165deg, rgba(255, 255, 255, 0.94) 0%, rgba(250, 245, 255, 0.9) 55%, rgba(237, 233, 254, 0.88) 100%) !important;
+            background:
+                linear-gradient(165deg, rgba(255, 248, 250, 0.96) 0%, rgba(255, 231, 237, 0.9) 56%, rgba(41, 12, 22, 0.86) 100%) !important;
             backdrop-filter: blur(18px) saturate(1.2);
             -webkit-backdrop-filter: blur(18px) saturate(1.2);
-            border-left: 1px solid rgba(124, 58, 237, 0.14);
-            border-right: 1px solid rgba(124, 58, 237, 0.1);
+            border-left: 1px solid rgba(244, 163, 182, 0.22);
+            border-right: 1px solid rgba(244, 163, 182, 0.16);
             box-shadow:
                 0 0 0 1px rgba(255, 255, 255, 0.65) inset,
-                0 24px 48px -12px rgba(91, 33, 182, 0.18);
+                0 24px 48px -12px rgba(62, 9, 27, 0.36);
         }
         .adora-auth-glass .border-gray-100 {
-            border-color: rgba(124, 58, 237, 0.12) !important;
+            border-color: rgba(180, 56, 97, 0.16) !important;
+        }
+        .adora-auth-glass h3,
+        .adora-auth-glass .text-violet-900 {
+            color: #3a0d1b !important;
         }
         .adora-auth-label {
-            color: rgba(76, 29, 149, 0.92) !important;
+            color: rgba(58, 13, 27, 0.92) !important;
         }
         .adora-auth-muted {
-            color: rgba(109, 40, 217, 0.65) !important;
+            color: rgba(155, 47, 81, 0.74) !important;
         }
         .adora-auth-glass .adora-auth-oauth-divider-label {
-            color: rgba(91, 33, 182, 0.78) !important;
+            color: rgba(122, 31, 59, 0.78) !important;
             text-shadow: none;
         }
         .adora-auth-input {
@@ -4985,18 +5052,18 @@
             margin-top: 0.25rem;
             padding: 0.85rem 1rem;
             border-radius: 1rem;
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid rgba(124, 58, 237, 0.22);
-            color: #1e1b4b;
+            background: rgba(255, 250, 251, 0.96);
+            border: 1px solid rgba(180, 56, 97, 0.24);
+            color: #2a0814;
             outline: none;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         .adora-auth-input::placeholder {
-            color: rgba(91, 33, 182, 0.35);
+            color: rgba(122, 31, 59, 0.35);
         }
         .adora-auth-input:focus {
-            border-color: rgba(124, 58, 237, 0.55);
-            box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.28), 0 0 20px rgba(124, 58, 237, 0.12);
+            border-color: rgba(224, 82, 125, 0.62);
+            box-shadow: 0 0 0 3px rgba(244, 163, 182, 0.28), 0 0 20px rgba(224, 82, 125, 0.16);
         }
         .auth-field-enter {
             animation: adoraFieldIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -5021,14 +5088,14 @@
             position: relative;
             overflow: hidden;
             width: 100%;
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%) !important;
+            background: linear-gradient(135deg, #3a0d1b 0%, #9b2f51 50%, #f4a3b6 100%) !important;
             color: #fff !important;
-            border: 1px solid rgba(196, 181, 253, 0.35);
-            box-shadow: 0 4px 24px rgba(91, 33, 182, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+            border: 1px solid rgba(255, 210, 221, 0.35);
+            box-shadow: 0 4px 24px rgba(122, 31, 59, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
             transition: transform 0.18s ease, box-shadow 0.2s ease;
         }
         .adora-auth-primary-btn:hover {
-            box-shadow: 0 6px 28px rgba(109, 40, 217, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            box-shadow: 0 6px 28px rgba(224, 82, 125, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
         }
         .adora-auth-primary-btn:active {
             transform: scale(0.98);
@@ -5045,16 +5112,16 @@
             opacity: 0.92;
         }
         .adora-auth-ghost-btn {
-            color: rgba(91, 33, 182, 0.65) !important;
+            color: rgba(122, 31, 59, 0.72) !important;
         }
         .adora-auth-ghost-btn:hover {
-            color: rgba(76, 29, 149, 0.92) !important;
+            color: rgba(58, 13, 27, 0.94) !important;
         }
         .adora-auth-close {
-            color: rgba(109, 40, 217, 0.55) !important;
+            color: rgba(122, 31, 59, 0.62) !important;
         }
         .adora-auth-close:hover {
-            color: rgba(76, 29, 149, 0.92) !important;
+            color: rgba(58, 13, 27, 0.94) !important;
         }
         /* رسائل الأخطاء — وضوح على البطاقة الفاتحة */
         #auth-message:not(.hidden) {
@@ -5210,50 +5277,33 @@
     <div id="splash-screen" class="splash-screen">
         <div class="splash-screen-inner">
         <div class="splash-slider">
-            <div class="splash-slide active" data-category="Adora | أدورا">
-                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="Adora" fetchpriority="high" decoding="async">
-                <div class="splash-slide-center-brand" aria-hidden="true">
-                    <img src="icons/adora-icon.png" class="splash-brand-icon" width="120" height="120" alt="">
-                </div>
-            </div>
-            <div class="splash-slide" data-category="Men | رجالي">
-                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="رجالي" loading="lazy" decoding="async">
-            </div>
-            <div class="splash-slide" data-category="Women | نسائي">
-                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="نسائي" loading="lazy" decoding="async">
-            </div>
-            <div class="splash-slide" data-category="Kids | ولادي">
-                <img class="splash-slide-photo" src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1200&amp;q=85&amp;auto=format&amp;fit=crop" width="1200" height="1600" alt="أطفال" loading="lazy" decoding="async">
+            <div class="splash-slide active" data-category="Adora">
+                <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="Adora" fetchpriority="high" decoding="async">
             </div>
         </div>
         
         <div class="splash-overlay" aria-hidden="true"></div>
+        <div class="splash-shards" aria-hidden="true">
+            <span class="splash-shard" style="--x:-44vw;--y:-34vh;--rotate:92deg;--delay:.05s;--size:4px;--scale:1.2"></span>
+            <span class="splash-shard" style="--x:38vw;--y:-30vh;--rotate:-74deg;--delay:.1s;--size:3px;--scale:1"></span>
+            <span class="splash-shard" style="--x:-30vw;--y:28vh;--rotate:130deg;--delay:.14s;--size:5px;--scale:1.15"></span>
+            <span class="splash-shard" style="--x:42vw;--y:24vh;--rotate:-120deg;--delay:.18s;--size:4px;--scale:1.25"></span>
+            <span class="splash-shard" style="--x:-8vw;--y:-42vh;--rotate:58deg;--delay:.22s;--size:3px;--scale:.9"></span>
+            <span class="splash-shard" style="--x:12vw;--y:40vh;--rotate:-96deg;--delay:.24s;--size:5px;--scale:1.1"></span>
+            <span class="splash-shard" style="--x:-52vw;--y:4vh;--rotate:170deg;--delay:.28s;--size:3px;--scale:1"></span>
+            <span class="splash-shard" style="--x:50vw;--y:-2vh;--rotate:-160deg;--delay:.3s;--size:4px;--scale:1.05"></span>
+            <span class="splash-shard" style="--x:-20vw;--y:-18vh;--rotate:72deg;--delay:.34s;--size:2px;--scale:1.4"></span>
+            <span class="splash-shard" style="--x:24vw;--y:16vh;--rotate:-44deg;--delay:.38s;--size:3px;--scale:1.25"></span>
+            <span class="splash-shard" style="--x:4vw;--y:-52vh;--rotate:126deg;--delay:.42s;--size:4px;--scale:1"></span>
+            <span class="splash-shard" style="--x:-4vw;--y:52vh;--rotate:-126deg;--delay:.46s;--size:4px;--scale:1"></span>
+        </div>
         
         <div class="splash-logo-container">
             <div class="splash-logo">Adora</div>
         </div>
         
         <div class="category-labels">
-            <div class="category-text active" id="category-text">Adora | أدورا</div>
-        </div>
-        
-        <div class="slide-indicators">
-            <div class="indicator active" data-index="0"></div>
-            <div class="indicator" data-index="1"></div>
-            <div class="indicator" data-index="2"></div>
-            <div class="indicator" data-index="3"></div>
-        </div>
-        
-        <div class="delivery-car-container">
-            <div class="delivery-car-float">
-                <div class="splash-brand-on-car">Adora</div>
-                <div class="delivery-car">
-                    <div class="car-glow"></div>
-                    <i class="fas fa-truck-fast"></i>
-                    <div class="car-trail top"></div>
-                    <div class="car-trail bottom"></div>
-                </div>
-            </div>
+            <div class="category-text active" id="category-text">STYLE IS YOU</div>
         </div>
         </div>
 
