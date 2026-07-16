@@ -1881,11 +1881,8 @@
         let adoraParticleGate = { start() {}, stop() {} };
 
         function initAdoraAuthParticles() {
-            const cModal = document.getElementById('auth-modal-particles-canvas');
-            const cGate = document.getElementById('auth-gate-particles-canvas');
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            adoraParticleModal = createAdoraHeartParticleLayer(cModal);
-            adoraParticleGate = createAdoraHeartParticleLayer(cGate);
+            adoraParticleModal = { start() {}, stop() {} };
+            adoraParticleGate = { start() {}, stop() {} };
         }
 
         /** Canvas: قلب مجرد + تفاعل خفيف مع المؤشر — محسّن للموبايل */
