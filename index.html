@@ -129,9 +129,7 @@
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
-            animation:
-                adoraWelcomeFlip 2.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
-                adoraWelcomeBreath 7s ease-in-out 2.45s infinite;
+            animation: adoraWelcomeFlip 2.35s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
         }
         .splash-face {
             position: absolute;
@@ -152,15 +150,25 @@
             filter: saturate(1.08) contrast(1.08) brightness(0.96);
             transform-origin: center center;
         }
-        @keyframes adoraWelcomeFlip {
-            0% { transform: scale(0.985) rotateY(0deg) rotateZ(0deg); }
-            38% { transform: scale(0.99) rotateY(0deg) rotateZ(0.25deg); }
-            64% { transform: scale(0.985) rotateY(94deg) rotateZ(0deg); }
-            100% { transform: scale(0.985) rotateY(180deg) rotateZ(0deg); }
+        .splash-logo-color-fill {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            overflow: hidden;
+            clip-path: inset(52% 100% 22% 0);
+            animation: adoraWordImageFill 2.15s cubic-bezier(0.22, 1, 0.36, 1) 2.55s forwards;
         }
-        @keyframes adoraWelcomeBreath {
-            0%, 100% { transform: scale(0.985) rotateY(180deg) translate3d(0, 0, 0); }
-            50% { transform: scale(1) rotateY(180deg) translate3d(0, -3px, 0); }
+        .splash-logo-color-fill .splash-slide-photo {
+            filter: saturate(1.08) contrast(1.08) brightness(0.98);
+        }
+        @keyframes adoraWelcomeFlip {
+            0% { transform: rotateY(0deg); }
+            42% { transform: rotateY(0deg); }
+            68% { transform: rotateY(92deg); }
+            100% { transform: rotateY(180deg); }
+        }
+        @keyframes adoraWordImageFill {
+            to { clip-path: inset(52% 0 22% 0); }
         }
         .splash-slide-center-brand {
             position: absolute;
@@ -203,6 +211,7 @@
             z-index: 18;
             overflow: hidden;
             pointer-events: none;
+            display: none;
         }
         .splash-shard {
             position: absolute;
@@ -330,6 +339,7 @@
             z-index: 20;
             overflow: hidden;
             flex-shrink: 0;
+            display: none;
         }
         
         .splash-progress-bar {
@@ -5005,19 +5015,68 @@
             font-weight: 600;
             line-height: 1.5;
         }
+        .auth-gate-content {
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+            padding: clamp(1rem, 5vh, 2rem) 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100%;
+        }
+        .auth-gate-card {
+            width: 100%;
+            border-radius: 28px;
+            padding: 1rem;
+            background: linear-gradient(180deg, rgba(255, 246, 249, 0.95), rgba(255, 226, 234, 0.88));
+            border: 1px solid rgba(255, 210, 221, 0.42);
+            box-shadow: 0 22px 54px rgba(5, 3, 4, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .auth-gate-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 22px;
+            background:
+                linear-gradient(180deg, rgba(3, 3, 3, 0.02), rgba(3, 3, 3, 0.2)),
+                url('/images/adora-welcome-marble.jpeg') center / contain no-repeat,
+                #050404;
+            box-shadow: 0 14px 34px rgba(58, 13, 27, 0.22);
+            margin-bottom: 1rem;
+        }
+        .auth-gate-actions {
+            display: grid;
+            gap: 0.75rem;
+        }
         .auth-gate-btn {
             position: relative;
             overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.25s ease;
             border-color: rgba(255, 210, 221, 0.3) !important;
-            background: linear-gradient(135deg, rgba(255, 228, 235, 0.96), rgba(240, 148, 173, 0.92)) !important;
-            color: #17070c !important;
-            box-shadow: 0 18px 34px rgba(5, 3, 4, 0.35), 0 0 0 1px rgba(255, 231, 237, 0.3) inset !important;
-        }
-        .auth-gate-btn + .auth-gate-btn {
-            background: linear-gradient(135deg, #9b2f51 0%, #e0527d 48%, #ffe4eb 100%) !important;
+            background: linear-gradient(135deg, #3a0d1b 0%, #9b2f51 54%, #f4a3b6 100%) !important;
             color: #fff9fb !important;
-            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.24);
+            box-shadow: 0 14px 30px rgba(122, 31, 59, 0.24), 0 0 0 1px rgba(255, 231, 237, 0.24) inset !important;
+        }
+        .auth-gate-btn--secondary {
+            background: rgba(255, 250, 251, 0.92) !important;
+            color: #17070c !important;
+            box-shadow: 0 10px 20px rgba(58, 13, 27, 0.1), 0 0 0 1px rgba(122, 31, 59, 0.14) inset !important;
+        }
+        .auth-gate-guest-btn {
+            width: 100%;
+            min-height: 48px;
+            border-radius: 1rem;
+            color: rgba(58, 13, 27, 0.82);
+            font-weight: 800;
+            background: transparent;
+            border: 1px solid rgba(122, 31, 59, 0.14);
+            transition: transform 0.18s ease, background 0.18s ease;
+        }
+        .auth-gate-guest-btn:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.35);
         }
         .auth-gate-btn:active {
             transform: scale(0.98);
@@ -5307,10 +5366,13 @@
                 <div class="splash-flip-stage" aria-label="Adora">
                     <div class="splash-flip-card">
                         <div class="splash-face splash-face--front">
-                            <img class="splash-slide-photo" src="/images/adora-welcome-white.jpeg" width="1230" height="1230" alt="Adora" fetchpriority="high" decoding="async">
+                            <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="Adora" fetchpriority="high" decoding="async">
                         </div>
                         <div class="splash-face splash-face--back">
-                            <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="" decoding="async">
+                            <img class="splash-slide-photo" src="/images/adora-welcome-white.jpeg" width="1230" height="1230" alt="" decoding="async">
+                            <div class="splash-logo-color-fill" aria-hidden="true">
+                                <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="" decoding="async">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5318,20 +5380,6 @@
         </div>
         
         <div class="splash-overlay" aria-hidden="true"></div>
-        <div class="splash-shards" aria-hidden="true">
-            <span class="splash-shard" style="--x:-44vw;--y:-34vh;--rotate:92deg;--delay:.05s;--size:4px;--scale:1.2"></span>
-            <span class="splash-shard" style="--x:38vw;--y:-30vh;--rotate:-74deg;--delay:.1s;--size:3px;--scale:1"></span>
-            <span class="splash-shard" style="--x:-30vw;--y:28vh;--rotate:130deg;--delay:.14s;--size:5px;--scale:1.15"></span>
-            <span class="splash-shard" style="--x:42vw;--y:24vh;--rotate:-120deg;--delay:.18s;--size:4px;--scale:1.25"></span>
-            <span class="splash-shard" style="--x:-8vw;--y:-42vh;--rotate:58deg;--delay:.22s;--size:3px;--scale:.9"></span>
-            <span class="splash-shard" style="--x:12vw;--y:40vh;--rotate:-96deg;--delay:.24s;--size:5px;--scale:1.1"></span>
-            <span class="splash-shard" style="--x:-52vw;--y:4vh;--rotate:170deg;--delay:.28s;--size:3px;--scale:1"></span>
-            <span class="splash-shard" style="--x:50vw;--y:-2vh;--rotate:-160deg;--delay:.3s;--size:4px;--scale:1.05"></span>
-            <span class="splash-shard" style="--x:-20vw;--y:-18vh;--rotate:72deg;--delay:.34s;--size:2px;--scale:1.4"></span>
-            <span class="splash-shard" style="--x:24vw;--y:16vh;--rotate:-44deg;--delay:.38s;--size:3px;--scale:1.25"></span>
-            <span class="splash-shard" style="--x:4vw;--y:-52vh;--rotate:126deg;--delay:.42s;--size:4px;--scale:1"></span>
-            <span class="splash-shard" style="--x:-4vw;--y:52vh;--rotate:-126deg;--delay:.46s;--size:4px;--scale:1"></span>
-        </div>
         
         <div class="splash-logo-container">
             <div class="splash-logo">Adora</div>
@@ -5357,46 +5405,22 @@
         <div class="auth-mobile-viewport" onclick="event.stopPropagation()">
         <canvas id="auth-gate-particles-canvas" class="auth-particles-canvas" aria-hidden="true"></canvas>
         <div class="auth-cosmos-stars" aria-hidden="true"></div>
-        <div class="auth-mobile-frame flex flex-col items-center justify-between text-center w-full flex-1 min-h-0 relative z-[2]">
-            <div class="flex-1 flex flex-col items-center justify-center w-full max-w-sm mx-auto min-h-0 py-6">
-                <div class="auth-gate-hero auth-card-enter w-full flex flex-col items-center px-2">
-                    <div class="auth-gate-hero-wrap">
-                        <div class="auth-gate-orbit-stars auth-gate-orbit-stars--outer" aria-hidden="true">
-                            <span class="auth-gate-orbit-dot" style="--a: 0"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 36"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 72"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 108"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 144"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 180"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 216"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 252"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 288"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 324"></span>
-                        </div>
-                        <div class="auth-gate-orbit-stars auth-gate-orbit-stars--inner" aria-hidden="true">
-                            <span class="auth-gate-orbit-dot" style="--a: 22"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 67"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 112"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 157"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 202"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 247"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 292"></span>
-                            <span class="auth-gate-orbit-dot" style="--a: 337"></span>
-                        </div>
-                        <div class="auth-gate-hero-inner flex flex-col items-center w-full">
-                            <div class="auth-gate-hero-logo mb-1">Adora</div>
-                        </div>
+        <div class="auth-mobile-frame text-center w-full flex-1 min-h-0 relative z-[2]">
+            <div class="auth-gate-content">
+                <div class="auth-gate-card auth-card-enter">
+                    <div class="auth-gate-image" aria-hidden="true"></div>
+                    <div class="auth-gate-actions">
+                        <button type="button" onclick="openAuthFromGate('signup')" class="auth-gate-btn w-full py-4 rounded-2xl font-bold border">
+                            <span data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</span>
+                        </button>
+                        <button type="button" onclick="openAuthFromGate('login')" class="auth-gate-btn auth-gate-btn--secondary w-full py-4 rounded-2xl font-bold border">
+                            <span data-en="Login" data-ar="تسجيل الدخول">تسجيل الدخول</span>
+                        </button>
+                        <button type="button" onclick="continueAsGuestFromGate()" class="auth-gate-guest-btn">
+                            <span data-en="Continue without account" data-ar="الدخول بدون حساب">الدخول بدون حساب</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="w-full max-w-sm space-y-3 pb-4">
-                <p class="auth-gate-hint text-sm px-3 text-center max-w-xs mx-auto" data-en="Choose below: sign in or create a new account." data-ar="اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.">اختر أدناه: تسجيل الدخول أو إنشاء حساب جديد.</p>
-                <button type="button" onclick="openAuthFromGate('login')" class="auth-gate-btn w-full py-4 rounded-2xl bg-white/95 text-violet-800 font-bold shadow-xl shadow-violet-900/15 border border-violet-200/80">
-                    <span data-en="Login" data-ar="تسجيل الدخول">تسجيل الدخول</span>
-                </button>
-                <button type="button" onclick="openAuthFromGate('signup')" class="auth-gate-btn w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold border border-violet-500/40 shadow-lg shadow-violet-600/25">
-                    <span data-en="Create account" data-ar="إنشاء حساب">إنشاء حساب</span>
-                </button>
             </div>
         </div>
         </div>

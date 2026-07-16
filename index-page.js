@@ -119,6 +119,16 @@
         function openAuthFromGate(mode) {
             openAuthModal(mode === 'login' ? 'login' : 'signup');
         }
+        window.openAuthFromGate = openAuthFromGate;
+
+        function continueAsGuestFromGate() {
+            try {
+                sessionStorage.setItem('adora_skip_splash', '1');
+            } catch (_e) {}
+            document.getElementById('auth-gate-screen')?.classList.add('hidden');
+            showAppShellOnly();
+        }
+        window.continueAsGuestFromGate = continueAsGuestFromGate;
 
         let pendingAfterSignupCredentials = null;
 
