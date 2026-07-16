@@ -126,13 +126,12 @@
         }
         .splash-flip-card {
             position: relative;
-            width: min(94vw, 404px);
-            height: min(94vw, 404px);
-            max-height: min(78vh, 404px);
+            width: 100%;
+            height: 100%;
             transform-style: preserve-3d;
             animation:
-                adoraWelcomeFlip 2.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
-                adoraWelcomeBreath 7s ease-in-out 2.85s infinite;
+                adoraWelcomeFlip 2.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
+                adoraWelcomeBreath 7s ease-in-out 2.45s infinite;
         }
         .splash-face {
             position: absolute;
@@ -153,52 +152,15 @@
             filter: saturate(1.08) contrast(1.08) brightness(0.96);
             transform-origin: center center;
         }
-        .splash-adora-loading-fill {
-            position: absolute;
-            left: 50%;
-            top: 61.5%;
-            width: min(70%, 284px);
-            transform: translateX(-50%);
-            overflow: hidden;
-            opacity: 0;
-            z-index: 3;
-            animation: adoraLogoFillReveal 2.45s ease-out 2.65s both;
-        }
-        .splash-adora-loading-fill::before {
-            content: 'ADORA';
-            display: block;
-            width: 0%;
-            overflow: hidden;
-            font-family: Georgia, 'Times New Roman', serif;
-            font-size: clamp(2.25rem, 11vw, 3.5rem);
-            font-weight: 500;
-            letter-spacing: clamp(0.16em, 1.2vw, 0.26em);
-            line-height: 1;
-            color: transparent;
-            white-space: nowrap;
-            background: linear-gradient(90deg, #ffe7ed 0%, #f7b6c5 35%, #d86c8b 70%, #fff3f6 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            filter: drop-shadow(0 0 12px rgba(244, 163, 182, 0.55));
-            animation: adoraLogoFillWidth 2.15s cubic-bezier(0.22, 1, 0.36, 1) 2.82s forwards;
-        }
         @keyframes adoraWelcomeFlip {
-            0% { transform: scale(0.9) rotateY(0deg) rotateZ(0deg); }
-            34% { transform: scale(0.915) rotateY(0deg) rotateZ(0.35deg); }
-            58% { transform: scale(0.91) rotateY(96deg) rotateZ(0deg); }
-            100% { transform: scale(0.9) rotateY(180deg) rotateZ(0deg); }
-        }
-        @keyframes adoraLogoFillReveal {
-            0%, 12% { opacity: 0; }
-            24%, 100% { opacity: 1; }
-        }
-        @keyframes adoraLogoFillWidth {
-            from { width: 0%; }
-            to { width: 100%; }
+            0% { transform: scale(0.985) rotateY(0deg) rotateZ(0deg); }
+            38% { transform: scale(0.99) rotateY(0deg) rotateZ(0.25deg); }
+            64% { transform: scale(0.985) rotateY(94deg) rotateZ(0deg); }
+            100% { transform: scale(0.985) rotateY(180deg) rotateZ(0deg); }
         }
         @keyframes adoraWelcomeBreath {
-            0%, 100% { transform: scale(0.9) rotateY(180deg) translate3d(0, 0, 0); }
-            50% { transform: scale(0.92) rotateY(180deg) translate3d(0, -4px, 0); }
+            0%, 100% { transform: scale(0.985) rotateY(180deg) translate3d(0, 0, 0); }
+            50% { transform: scale(1) rotateY(180deg) translate3d(0, -3px, 0); }
         }
         .splash-slide-center-brand {
             position: absolute;
@@ -308,6 +270,7 @@
             text-align: center;
             width: 90%;
             padding: 0 0.5rem;
+            display: none;
         }
         
         .category-text {
@@ -5348,7 +5311,6 @@
                         </div>
                         <div class="splash-face splash-face--back">
                             <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="" decoding="async">
-                            <div class="splash-adora-loading-fill" aria-hidden="true"></div>
                         </div>
                     </div>
                 </div>
@@ -5375,9 +5337,6 @@
             <div class="splash-logo">Adora</div>
         </div>
         
-        <div class="category-labels">
-            <div class="category-text active" id="category-text">STYLE IS YOU</div>
-        </div>
         </div>
 
         <div class="splash-bottom-stack">
