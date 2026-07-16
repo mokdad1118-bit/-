@@ -126,12 +126,19 @@
         }
         window.openAuthFromGate = openAuthFromGate;
 
-        function continueAsGuestFromGate() {
+        function continueAsGuestFromGate(targetScreen) {
             try {
                 sessionStorage.setItem('adora_skip_splash', '1');
             } catch (_e) {}
             document.getElementById('auth-gate-screen')?.classList.add('hidden');
             showAppShellOnly();
+            if (targetScreen) {
+                requestAnimationFrame(() => {
+                    try {
+                        navigateTo(targetScreen);
+                    } catch (_e) {}
+                });
+            }
         }
         window.continueAsGuestFromGate = continueAsGuestFromGate;
 
