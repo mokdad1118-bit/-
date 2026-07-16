@@ -115,31 +115,90 @@
             opacity: 1;
         }
         
-        .splash-slide-photo {
+        .splash-flip-stage {
             position: absolute;
             inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1200px;
+            background: #030303;
+        }
+        .splash-flip-card {
+            position: relative;
+            width: min(94vw, 404px);
+            height: min(94vw, 404px);
+            max-height: min(78vh, 404px);
+            transform-style: preserve-3d;
+            animation:
+                adoraWelcomeFlip 2.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
+                adoraWelcomeBreath 7s ease-in-out 2.85s infinite;
+        }
+        .splash-face {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .splash-face--back {
+            transform: rotateY(180deg);
+        }
+        .splash-slide-photo {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            background: #030303;
             filter: saturate(1.08) contrast(1.08) brightness(0.96);
             transform-origin: center center;
         }
-        .splash-slide.active .splash-slide-photo {
-            animation:
-                adoraWelcomeTilt 1.45s cubic-bezier(0.2, 0.9, 0.25, 1) 0.08s both,
-                adoraWelcomeBreath 7s ease-in-out 1.55s infinite;
+        .splash-adora-loading-fill {
+            position: absolute;
+            left: 50%;
+            top: 61.5%;
+            width: min(70%, 284px);
+            transform: translateX(-50%);
+            overflow: hidden;
+            opacity: 0;
+            z-index: 3;
+            animation: adoraLogoFillReveal 2.45s ease-out 2.65s both;
         }
-        @keyframes adoraWelcomeTilt {
-            0% { transform: scale(0.96) rotate(0deg) rotateY(0deg); }
-            28% { transform: scale(0.985) translateX(5px) rotate(1deg) rotateY(-5deg); }
-            52% { transform: scale(0.975) translateX(0) rotate(0deg) rotateY(0deg); }
-            78% { transform: scale(0.985) translateX(-5px) rotate(-1deg) rotateY(5deg); }
-            100% { transform: scale(0.96) rotate(0deg) rotateY(0deg); }
+        .splash-adora-loading-fill::before {
+            content: 'ADORA';
+            display: block;
+            width: 0%;
+            overflow: hidden;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: clamp(2.25rem, 11vw, 3.5rem);
+            font-weight: 500;
+            letter-spacing: clamp(0.16em, 1.2vw, 0.26em);
+            line-height: 1;
+            color: transparent;
+            white-space: nowrap;
+            background: linear-gradient(90deg, #ffe7ed 0%, #f7b6c5 35%, #d86c8b 70%, #fff3f6 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            filter: drop-shadow(0 0 12px rgba(244, 163, 182, 0.55));
+            animation: adoraLogoFillWidth 2.15s cubic-bezier(0.22, 1, 0.36, 1) 2.82s forwards;
+        }
+        @keyframes adoraWelcomeFlip {
+            0% { transform: scale(0.9) rotateY(0deg) rotateZ(0deg); }
+            34% { transform: scale(0.915) rotateY(0deg) rotateZ(0.35deg); }
+            58% { transform: scale(0.91) rotateY(96deg) rotateZ(0deg); }
+            100% { transform: scale(0.9) rotateY(180deg) rotateZ(0deg); }
+        }
+        @keyframes adoraLogoFillReveal {
+            0%, 12% { opacity: 0; }
+            24%, 100% { opacity: 1; }
+        }
+        @keyframes adoraLogoFillWidth {
+            from { width: 0%; }
+            to { width: 100%; }
         }
         @keyframes adoraWelcomeBreath {
-            0%, 100% { transform: scale(0.96) translate3d(0, 0, 0); }
-            50% { transform: scale(0.985) translate3d(0, -5px, 0); }
+            0%, 100% { transform: scale(0.9) rotateY(180deg) translate3d(0, 0, 0); }
+            50% { transform: scale(0.92) rotateY(180deg) translate3d(0, -4px, 0); }
         }
         .splash-slide-center-brand {
             position: absolute;
@@ -4738,7 +4797,7 @@
                 linear-gradient(180deg, rgba(3, 3, 3, 0.32), rgba(3, 3, 3, 0.88)),
                 radial-gradient(ellipse 85% 55% at 50% 0%, rgba(255, 211, 221, 0.17) 0%, transparent 58%),
                 radial-gradient(ellipse 70% 50% at 100% 100%, rgba(206, 72, 113, 0.22) 0%, transparent 50%),
-                url('/images/adora-welcome-marble.jpeg') center / cover no-repeat,
+                url('/images/adora-welcome-marble.jpeg') center 24% / min(78vw, 330px) auto no-repeat,
                 #070506;
         }
         .auth-gate-screen .auth-mobile-viewport::before,
@@ -4880,8 +4939,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0.5rem 0 1rem;
-            min-height: min(220px, 38vh);
+            padding: 0.25rem 0 0.5rem;
+            min-height: min(112px, 18vh);
             width: 100%;
         }
         .auth-gate-orbit-stars {
@@ -4972,6 +5031,7 @@
             background-clip: text;
             color: transparent;
             filter: drop-shadow(0 2px 18px rgba(244, 163, 182, 0.38));
+            display: none;
         }
         .auth-gate-tagline {
             color: rgba(255, 231, 237, 0.92) !important;
@@ -5281,7 +5341,17 @@
         <div class="splash-screen-inner">
         <div class="splash-slider">
             <div class="splash-slide active" data-category="Adora">
-                <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="Adora" fetchpriority="high" decoding="async">
+                <div class="splash-flip-stage" aria-label="Adora">
+                    <div class="splash-flip-card">
+                        <div class="splash-face splash-face--front">
+                            <img class="splash-slide-photo" src="/images/adora-welcome-white.jpeg" width="1230" height="1230" alt="Adora" fetchpriority="high" decoding="async">
+                        </div>
+                        <div class="splash-face splash-face--back">
+                            <img class="splash-slide-photo" src="/images/adora-welcome-marble.jpeg" width="1230" height="1230" alt="" decoding="async">
+                            <div class="splash-adora-loading-fill" aria-hidden="true"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
