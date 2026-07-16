@@ -6,8 +6,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f0fc",
-  "theme_color": "#7c3aed",
+  "background_color": "#090017",
+  "theme_color": "#090017",
   "icons": [
     {
       "src": "/icons/adora-icon-72.png",
