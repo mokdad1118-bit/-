@@ -2222,7 +2222,9 @@
             setAuthMode(mode);
             if (mode === 'signup') resetSignupEmailOtpUi();
             adoraParticleModal.start();
-            ensureAdoraAuthOauthButtons().catch(() => {});
+            setTimeout(() => {
+                ensureAdoraAuthOauthButtons().catch(() => {});
+            }, 120);
         }
 
         function closeAuthModal() {

@@ -5380,8 +5380,8 @@
             position: relative;
             z-index: 2;
             background: #F8F6FF !important;
-            backdrop-filter: blur(18px) saturate(1.2);
-            -webkit-backdrop-filter: blur(18px) saturate(1.2);
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             border-left: 1px solid rgba(123, 63, 242, 0.12);
             border-right: 1px solid rgba(184, 77, 255, 0.12);
             box-shadow: 0 24px 48px -12px rgba(123, 63, 242, 0.18);
@@ -5457,7 +5457,7 @@
             box-shadow: 0 0 0 3px rgba(123, 63, 242, 0.16), 0 0 20px rgba(184, 77, 255, 0.1);
         }
         .auth-field-enter {
-            animation: adoraFieldIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation: none !important;
         }
         @keyframes adoraFieldIn {
             from {
@@ -5466,13 +5466,26 @@
             }
         }
         .auth-card-enter {
-            animation: adoraCardIn 0.28s ease-out backwards;
+            animation: adoraFastCardIn 0.14s ease-out backwards;
+        }
+        #auth-modal .auth-card-enter {
+            animation: adoraFastCardIn 0.12s ease-out backwards;
+        }
+        #auth-modal .auth-field-enter {
+            animation: none !important;
+            animation-delay: 0s !important;
         }
         @keyframes adoraCardIn {
             from {
                 opacity: 0;
                 transform: translateY(18px) scale(0.97);
                 filter: blur(8px);
+            }
+        }
+        @keyframes adoraFastCardIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
             }
         }
         .adora-auth-primary-btn {
