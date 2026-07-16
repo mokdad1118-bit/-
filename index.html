@@ -115,91 +115,106 @@
             opacity: 1;
         }
         
-        .splash-flip-stage {
+        .splash-lux-stage {
             position: absolute;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            perspective: 1200px;
+            padding: 2rem;
             background:
-                radial-gradient(circle at 50% 38%, rgba(135, 63, 255, 0.18), transparent 42%),
-                #05020d;
+                radial-gradient(circle at 50% 38%, rgba(184, 77, 255, 0.26), transparent 38%),
+                radial-gradient(circle at 18% 16%, rgba(255, 123, 205, 0.18), transparent 28%),
+                linear-gradient(145deg, #090017 0%, #16002d 48%, #06000e 100%);
         }
-        .splash-flip-card {
+        .splash-lux-logo-wrap {
             position: relative;
-            width: min(100%, 428px);
-            height: min(100%, 100dvh);
-            transform-style: preserve-3d;
-            will-change: transform;
-            animation: adoraWelcomeFlip 2.15s cubic-bezier(0.2, 0.85, 0.25, 1) 0.35s both;
-        }
-        .splash-face {
-            position: absolute;
-            inset: 0;
+            width: min(100%, 390px);
+            min-height: 320px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-            transform: translateZ(0);
         }
-        .splash-face--back {
-            transform: rotateY(180deg);
-        }
-        .splash-logo-panel {
+        .splash-lux-logo {
             position: relative;
-            width: min(96vw, 428px);
-            aspect-ratio: 3 / 2;
-            background-image: url('/images/adora-splash-dual.jpeg');
-            background-repeat: no-repeat;
-            background-size: 100% 200%;
-            background-position: center top;
-            filter: saturate(1.05) contrast(1.04) brightness(0.98);
-            transform: translateZ(0);
-            overflow: hidden;
+            font-family: Georgia, 'Times New Roman', 'Plus Jakarta Sans', serif;
+            font-size: clamp(5.2rem, 25vw, 7.9rem);
+            font-weight: 600;
+            letter-spacing: -0.035em;
+            line-height: 0.9;
+            color: #ffffff;
+            text-shadow:
+                0 0 18px rgba(184, 77, 255, 0.55),
+                0 0 38px rgba(255, 112, 205, 0.22),
+                0 18px 42px rgba(0, 0, 0, 0.42);
+            will-change: transform, opacity;
+            animation:
+                adoraLogoSlowSpin 1.35s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both,
+                adoraLogoFinish 0.55s cubic-bezier(0.22, 1, 0.36, 1) 5.05s forwards;
         }
-        .splash-logo-panel--white {
-            background-position: center bottom;
-        }
-        .splash-logo-color-fill {
-            position: absolute;
-            inset: 0;
-            z-index: 3;
+        .splash-loading-track {
+            width: min(72vw, 300px);
+            height: 4px;
+            margin-top: 2.2rem;
+            border-radius: 999px;
             overflow: hidden;
-            background-image: url('/images/adora-splash-dual.jpeg');
-            background-repeat: no-repeat;
-            background-size: 100% 200%;
-            background-position: center top;
-            clip-path: inset(31% 100% 26% 0);
-            animation: adoraWordImageFill 2.1s cubic-bezier(0.22, 1, 0.36, 1) 2.45s forwards;
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+            opacity: 0;
+            animation: adoraLoadingIn 0.3s ease-out 1.45s forwards;
+        }
+        .splash-loading-bar {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #7B3FF2 0%, #B84DFF 48%, #ff72c8 100%);
+            box-shadow: 0 0 18px rgba(184, 77, 255, 0.85);
+            animation: adoraLoadingBar 3.35s cubic-bezier(0.2, 0.85, 0.25, 1) 1.55s forwards;
         }
         .splash-loading-label {
-            position: absolute;
-            left: 50%;
-            top: calc(50% + min(34vw, 145px));
-            transform: translateX(-50%);
-            z-index: 4;
-            color: rgba(240, 205, 255, 0.92);
+            margin-top: 0.9rem;
+            color: rgba(255, 255, 255, 0.82);
             font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.28em;
+            font-weight: 800;
+            letter-spacing: 0.32em;
             text-transform: uppercase;
-            text-shadow: 0 0 16px rgba(150, 70, 255, 0.75);
             opacity: 0;
-            animation: adoraLoadingLabelIn 0.35s ease-out 2.45s forwards;
+            animation: adoraLoadingIn 0.3s ease-out 1.55s forwards;
         }
-        @keyframes adoraWelcomeFlip {
-            0% { transform: rotateY(0deg); }
-            46% { transform: rotateY(0deg); }
-            70% { transform: rotateY(92deg); }
-            100% { transform: rotateY(180deg); }
+        .splash-sparkles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
         }
-        @keyframes adoraWordImageFill {
-            to { clip-path: inset(31% 0 26% 0); }
+        .splash-sparkle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 999px;
+            background: #ffffff;
+            box-shadow: 0 0 14px rgba(184, 77, 255, 0.95);
+            opacity: 0;
+            animation: adoraSparkle 2.4s ease-in-out var(--delay, 0s) infinite;
         }
-        @keyframes adoraLoadingLabelIn {
+        @keyframes adoraLogoSlowSpin {
+            0% { opacity: 0; transform: rotateY(-18deg) scale(0.94); }
+            28% { opacity: 1; }
+            100% { opacity: 1; transform: rotateY(360deg) scale(1); }
+        }
+        @keyframes adoraLoadingIn {
             to { opacity: 1; }
+        }
+        @keyframes adoraLoadingBar {
+            to { width: 100%; }
+        }
+        @keyframes adoraLogoFinish {
+            to { transform: scale(1.05); }
+        }
+        @keyframes adoraSparkle {
+            0%, 100% { opacity: 0; transform: translate3d(0, 5px, 0) scale(0.65); }
+            42% { opacity: 0.85; transform: translate3d(0, 0, 0) scale(1); }
+            70% { opacity: 0.28; }
         }
         .splash-slide-center-brand {
             position: absolute;
@@ -345,6 +360,7 @@
             max-width: 20rem;
             pointer-events: auto;
             touch-action: manipulation;
+            display: none;
         }
 
         .splash-bottom-stack .splash-cta {
@@ -5511,17 +5527,20 @@
         <div class="splash-screen-inner">
         <div class="splash-slider">
             <div class="splash-slide active" data-category="Adora">
-                <div class="splash-flip-stage" aria-label="Adora">
-                    <div class="splash-flip-card">
-                        <div class="splash-face splash-face--front">
-                            <div class="splash-logo-panel" role="img" aria-label="Adora"></div>
+                <div class="splash-lux-stage" aria-label="Adora loading">
+                    <div class="splash-lux-logo-wrap">
+                        <div class="splash-sparkles" aria-hidden="true">
+                            <span class="splash-sparkle" style="left:16%;top:28%;--delay:.2s"></span>
+                            <span class="splash-sparkle" style="left:78%;top:31%;--delay:.65s"></span>
+                            <span class="splash-sparkle" style="left:21%;top:67%;--delay:1.1s"></span>
+                            <span class="splash-sparkle" style="left:84%;top:62%;--delay:1.45s"></span>
+                            <span class="splash-sparkle" style="left:50%;top:20%;--delay:1.8s"></span>
                         </div>
-                        <div class="splash-face splash-face--back">
-                            <div class="splash-logo-panel splash-logo-panel--white" aria-hidden="true">
-                                <div class="splash-logo-color-fill" aria-hidden="true"></div>
-                                <div class="splash-loading-label" aria-hidden="true">Loading</div>
-                            </div>
+                        <div class="splash-lux-logo">Adora</div>
+                        <div class="splash-loading-track" aria-hidden="true">
+                            <div class="splash-loading-bar"></div>
                         </div>
+                        <div class="splash-loading-label" aria-hidden="true">Loading</div>
                     </div>
                 </div>
             </div>

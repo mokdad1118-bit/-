@@ -22,6 +22,7 @@
         let progress = 0;
         let splashInterval;
         let progressInterval;
+        let splashAutoTimeout;
         
         function applySplashCtaLang() {
             const label = document.getElementById('splash-cta-label');
@@ -50,6 +51,10 @@
             if (progressBar) progressBar.style.width = '0%';
             startSlideShow();
             startProgress();
+            clearTimeout(splashAutoTimeout);
+            splashAutoTimeout = setTimeout(() => {
+                adoraSplashEnter();
+            }, msPerSlide);
         }
         
         function startSlideShow() {
@@ -204,6 +209,7 @@
 
             clearInterval(splashInterval);
             clearInterval(progressInterval);
+            clearTimeout(splashAutoTimeout);
 
             splashScreen?.classList.add('splash-exit');
 
@@ -218,6 +224,7 @@
             splashEnterLocked = true;
             clearInterval(splashInterval);
             clearInterval(progressInterval);
+            clearTimeout(splashAutoTimeout);
             splashScreen?.classList.remove('splash-exit');
             await finalizeSplashTransition();
         }
